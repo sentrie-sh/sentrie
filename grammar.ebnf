@@ -1,0 +1,150 @@
+/* Sentrie Language Grammar */
+
+/* Program Structure */
+program             ::= namespaceDecl ( toplevelDecl | comment )*
+toplevelDecl        ::= policyDecl | shapeDecl | exportShape
+namespaceDecl       ::= 'namespace' FQN
+FQN                 ::= IDENT ('/' IDENT)*
+
+/* Declarations */
+policyDecl          ::= 'policy' IDENT '{' ( policyStatement )* '}'
+factDecl            ::= 'fact' IDENT ':' typeRef 'as' IDENT 'default' expr
+
+
+useStmt             ::= 'use' IDENT ( ',' IDENT )* 'from' execSource 'as' IDENT
+execSource          ::= STRING | ('@' IDENT '/' IDENT)
+
+policyStatement     ::= comment
+                        | shapeDecl
+                        | factDecl
+                        | useStmt
+                        | varDecl
+                        | ruleDecl
+                        | exportRule
+
+/* A shape can be exported from a namespace to allow visiblity to other namespaces. An unexported shape is visible to the containing namespace and it's descendants only. */
+exportShape         ::= 'export' 'shape' IDENT
+
+varDecl             ::= 'let' IDENT '=' expr
+ruleDecl            ::= 'rule' IDENT '=' ('default' expr)? ('when' expr)? (blockExpr | ruleImportClause)
+
+/* Imports and Exports */
+exportRule          ::= 'export' 'decision' 'of' IDENT ( attachClause )*
+attachClause        ::= 'attach' IDENT ('as' IDENT)?
+
+ruleImportClause    ::= 'import' 'decision' IDENT 'from' FQN ( withClause )*
+withClause          ::= 'with' IDENT 'as' IDENT
+
+/* Expressions */
+expr                ::= ternaryExpr
+ternaryExpr         ::= orExpr ( '?' expr ':' expr )?
+orExpr              ::= xorExpr ( 'or'  xorExpr )*
+xorExpr             ::= andExpr ( 'xor' andExpr )*
+andExpr             ::= unaryExpr ( 'and' unaryExpr )*
+unaryExpr           ::= ( 'not' | '!' )? cmpExpr
+
+/* Comparison Expressions */
+cmpExpr             ::= addExpr
+                      | addExpr cmpOp addExpr
+                      | listLiteral listCmpOp addExpr
+                      | mapLiteral mapCmpOp addExpr
+                      | equalityExpr
+                      | relationalExpr
+                      | isExpr
+                      | matchesExpr
+                      | containsExpr
+                      | inExpr
+                      | kvInExpr
+                      | anyExpr
+                      | allExpr
+                      | filterExpr
+                      | mapExpr
+                      | distinctExpr
+                      | reduceExpr
+                      | countExpr
+                      | definedExpr
+                      | emptyExpr
+
+cmpOp               ::= '==' | '!=' | '<=' | '>=' | '<' | '>' | 'is' | 'matches' | 'contains'
+listCmpOp           ::= 'in' | 'not in'
+mapCmpOp            ::= 'in' | 'not in'
+
+/* Arithmetic Expressions */
+addExpr             ::= mulExpr ( ( '+' | '-' ) mulExpr )*
+mulExpr             ::= primaryExpr ( ( '*' | '/' | '%' ) primaryExpr )*
+
+primaryExpr         ::= literal
+                      | IDENT
+                      | functionCall
+                      | indexAccess
+                      | fieldAccess
+                      | parenExpr
+
+/* Specific Expression Types */
+equalityExpr        ::= addExpr ( '==' | '!=' ) addExpr
+relationalExpr      ::= addExpr ( '<' | '<=' | '>' | '>=' ) addExpr
+isExpr              ::= addExpr 'is' addExpr
+                      | addExpr 'is' 'empty'
+                      | addExpr 'is' 'not' 'empty'
+                      | addExpr 'is' 'defined'
+                      | addExpr 'is' 'not' 'defined'
+matchesExpr         ::= addExpr ( 'not' )? 'matches' addExpr
+containsExpr        ::= addExpr ( 'not' )? 'contains' addExpr
+inExpr              ::= addExpr ( 'not' )? 'in' addExpr
+kvInExpr            ::= mapLiteral 'in' addExpr
+
+/* Higher-Order Operations */
+anyExpr             ::= 'any' addExpr 'as' IDENT (',' IDENT)? blockExpr
+allExpr             ::= 'all' addExpr 'as' IDENT (',' IDENT)? blockExpr
+filterExpr          ::= 'filter' addExpr 'as' IDENT (',' IDENT)? blockExpr
+mapExpr             ::= 'map' addExpr 'as' IDENT (',' IDENT)? blockExpr
+distinctExpr        ::= 'distinct' addExpr 'as' IDENT (',' IDENT)? blockExpr
+reduceExpr          ::= 'reduce' addExpr 'from' expr 'as' IDENT (',' IDENT)? blockExpr
+castExpr            ::= 'cast' addExpr 'as' primitiveType
+countExpr           ::= 'count' addExpr
+
+/* State Checking */
+definedExpr         ::= addExpr 'is' 'not'? 'defined'
+emptyExpr           ::= addExpr 'is' 'not'? 'empty'
+
+/* Basic Expression Structures */
+parenExpr           ::= '(' expr ')'
+functionCall        ::= IDENT ('.' IDENT)? '(' commaSeparatedExpr? ')'
+commaSeparatedExpr  ::= expr (',' expr)*
+indexAccess         ::= primaryExpr '[' expr ']'
+fieldAccess         ::= primaryExpr '.' IDENT
+blockExpr           ::= '{' ( comment | varDecl | ruleDecl )* 'yield' expr '}'
+
+/* Literals */
+literal             ::= scalar | listLiteral | mapLiteral | 'null'
+scalar              ::= STRING | TRINARY | INT | FLOAT
+listLiteral         ::= '[' ( expr ( ',' expr )* )? ']'
+mapLiteral          ::= '{' ( mapEntry ( ',' mapEntry )* )? '}'
+mapEntry            ::= STRING ':' expr
+
+/* Type System */
+shapeDecl           ::= 'shape' IDENT ( typeRef | complexShape )
+complexShape        ::= ('with' typeName)? '{' shapeElement+ '}'
+shapeElement        ::= IDENT ('!'|'?')? ":" typeRef
+typeRef             ::= (primitiveType
+                          | typeName
+                          | recordType
+                          | listType
+                          | mapType) typeRefConstraint*
+
+typeRefConstraint ::= '@' IDENT '(' commaSeparatedExpr? ')'
+primitiveType       ::= 'int' | 'float' | 'string' | 'bool' | 'document'
+listType            ::= 'list' '[' typeRef ']'
+mapType             ::= 'map' '[' typeRef ']'
+recordType          ::= 'record' '[' typeRef (',' typeRef)* ']'
+typeName            ::= FQN
+
+/* Basic Tokens */
+IDENT               ::= letter ( letter | digit | '_' )*
+STRING              ::= '"' ( /* any char except '"' or '\' or escaped */ )* '"'
+INT                 ::= digit+
+FLOAT               ::= digit+ '.' digit+
+TRINARY             ::= 'true' | 'false' | 'unknown'
+letter              ::= 'a'..'z' | 'A'..'Z'
+digit               ::= '0'..'9'
+comment             ::= '--' /* any char except newline */* '\n'

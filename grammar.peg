@@ -1,0 +1,148 @@
+/* Sentra Language Grammar - PEG Version */
+
+/* Program Structure */
+Program = NamespaceDecl (TopLevelDecl / Comment)*
+TopLevelDecl = PolicyDecl / ShapeDecl / ExportShape
+NamespaceDecl = "namespace" FQN
+FQN = IDENT ("/" IDENT)*
+
+/* Declarations */
+PolicyDecl = "policy" IDENT "{" PolicyStatement* "}"
+FactDecl = "fact" IDENT ":" TypeRef "as" IDENT "default" Expr
+
+UseStmt = "use" IDENT ("," IDENT)* "from" ExecSource "as" IDENT
+ExecSource = STRING / ("@" IDENT "/" IDENT)
+
+PolicyStatement = Comment
+                / ShapeDecl
+                / FactDecl
+                / UseStmt
+                / VarDecl
+                / RuleDecl
+                / ExportRule
+
+/* A shape can be exported from a namespace to allow visibility to other namespaces. 
+   An unexported shape is visible to the containing namespace and its descendants only. */
+ExportShape = "export" "shape" IDENT
+
+VarDecl = "let" IDENT "=" Expr
+RuleDecl = "rule" IDENT "=" ("default" Expr)? ("when" Expr)? (BlockExpr / RuleImportClause)
+
+/* Imports and Exports */
+ExportRule = "export" "decision" "of" IDENT AttachClause*
+AttachClause = "attach" IDENT ("as" IDENT)?
+
+RuleImportClause = "import" "decision" IDENT "from" FQN WithClause*
+WithClause = "with" IDENT "as" IDENT
+
+/* Expressions - ordered by precedence (highest to lowest) */
+Expr = TernaryExpr
+TernaryExpr = OrExpr ("?" Expr ":" Expr)?
+OrExpr = XorExpr ("or" XorExpr)*
+XorExpr = AndExpr ("xor" AndExpr)*
+AndExpr = UnaryExpr ("and" UnaryExpr)*
+UnaryExpr = ("not" / "!")? CmpExpr
+
+/* Comparison Expressions */
+CmpExpr = EqualityExpr
+        / RelationalExpr
+        / IsExpr
+        / MatchesExpr
+        / ContainsExpr
+        / InExpr
+        / KvInExpr
+        / AnyExpr
+        / AllExpr
+        / FilterExpr
+        / MapExpr
+        / DistinctExpr
+        / ReduceExpr
+        / CountExpr
+        / DefinedExpr
+        / EmptyExpr
+        / ListLiteral ListCmpOp AddExpr
+        / MapLiteral MapCmpOp AddExpr
+        / AddExpr CmpOp AddExpr
+        / AddExpr
+
+CmpOp = "==" / "!=" / "<=" / ">=" / "<" / ">" / "is" / "matches" / "contains"
+ListCmpOp = "in" / "not" "in"
+MapCmpOp = "in" / "not" "in"
+
+/* Arithmetic Expressions */
+AddExpr = MulExpr (( "+" / "-" ) MulExpr)*
+MulExpr = PrimaryExpr (( "*" / "/" / "%" ) PrimaryExpr)*
+
+PrimaryExpr = Literal
+            / IDENT
+            / FunctionCall
+            / IndexAccess
+            / FieldAccess
+            / ParenExpr
+
+/* Specific Expression Types */
+EqualityExpr = AddExpr ("==" / "!=") AddExpr
+RelationalExpr = AddExpr ("<" / "<=" / ">" / ">=") AddExpr
+IsExpr = AddExpr "is" AddExpr
+       / AddExpr "is" "empty"
+       / AddExpr "is" "not" "empty"
+       / AddExpr "is" "defined"
+       / AddExpr "is" "not" "defined"
+MatchesExpr = AddExpr ("not")? "matches" AddExpr
+ContainsExpr = AddExpr ("not")? "contains" AddExpr
+InExpr = AddExpr ("not")? "in" AddExpr
+KvInExpr = MapLiteral "in" AddExpr
+
+/* Higher-Order Operations */
+AnyExpr = "any" AddExpr "as" IDENT ("," IDENT)? BlockExpr
+AllExpr = "all" AddExpr "as" IDENT ("," IDENT)? BlockExpr
+FilterExpr = "filter" AddExpr "as" IDENT ("," IDENT)? BlockExpr
+MapExpr = "map" AddExpr "as" IDENT ("," IDENT)? BlockExpr
+DistinctExpr = "distinct" AddExpr "as" IDENT ("," IDENT)? BlockExpr
+ReduceExpr = "reduce" AddExpr "from" Expr "as" IDENT ("," IDENT)? BlockExpr
+CastExpr = "cast" AddExpr "as" PrimitiveType
+CountExpr = "count" AddExpr
+
+/* State Checking */
+DefinedExpr = AddExpr "is" ("not")? "defined"
+EmptyExpr = AddExpr "is" ("not")? "empty"
+
+/* Basic Expression Structures */
+ParenExpr = "(" Expr ")"
+FunctionCall = IDENT ("." IDENT)? "(" CommaSeparatedExpr? ")"
+CommaSeparatedExpr = Expr ("," Expr)*
+IndexAccess = PrimaryExpr "[" Expr "]"
+FieldAccess = PrimaryExpr "." IDENT
+BlockExpr = "{" (Comment / VarDecl / RuleDecl)* "yield" Expr "}"
+
+/* Literals */
+Literal = Scalar / ListLiteral / MapLiteral / "null"
+Scalar = STRING / TRINARY / INT / FLOAT
+ListLiteral = "[" (Expr ("," Expr)*)? "]"
+MapLiteral = "{" (MapEntry ("," MapEntry)*)? "}"
+MapEntry = STRING ":" Expr
+
+/* Type System */
+ShapeDecl = "shape" IDENT (TypeRef / ComplexShape)
+ComplexShape = ("with" TypeName)? "{" ShapeElement+ "}"
+ShapeElement = IDENT ("!" / "?")? ":" TypeRef
+TypeRef = (PrimitiveType / TypeName / ListType / MapType / RecordType) TypeRefConstraint*
+
+TypeRefConstraint = "@" IDENT "(" CommaSeparatedExpr? ")"
+PrimitiveType = "int" / "float" / "string" / "bool" / "document"
+ListType = "list" "[" TypeRef "]"
+MapType = "map" "[" TypeRef "]"
+RecordType = "record" "[" TypeRef ("," TypeRef)* "]"
+TypeName = FQN
+
+/* Basic Tokens */
+IDENT = [a-zA-Z] [a-zA-Z0-9_]*
+STRING = '"' (!["\\] . / "\\" .)* '"'
+INT = [0-9]+
+FLOAT = [0-9]+ "." [0-9]+
+TRINARY = "true" / "false" / "unknown"
+Comment = "--" (!"\n" .)* "\n"
+
+/* Character classes */
+letter = [a-zA-Z]
+digit = [0-9]
