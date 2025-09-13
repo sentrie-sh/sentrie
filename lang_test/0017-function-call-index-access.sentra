@@ -1,0 +1,11 @@
+namespace callindex
+policy funcs {
+	let upper = toUpper("hello")
+	let first = ["a", "b", "c"][0]
+	let last  = ["x", "y", "z"][-1]
+	let second = ["one", "two", "three"][1]
+	let third  = ["a", "b", "c"][2]
+  let multiargs = toUpper("one","two","three") + " " + ["a", "b", "c"][1] + " " + ["x", "y", "z"][0]
+	let complex = toUpper("complex") + " " + ["a", "b", "c"][0] + " " + ["x", "y", "z"][1]
+	let nested = toUpper("nested") + " " + ["one", "two", "three"][1] + " " + ["x", "y", "z"][2]
+}

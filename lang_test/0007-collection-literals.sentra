@@ -1,0 +1,12 @@
+namespace collections
+
+policy lists_and_maps {
+  let fruits = ["apple", "banana", "cherry"]
+  let ages   = {"alice": 30, "bob": 25}
+	let empty_list = []
+	let empty_map  = {}
+	let list_of_maps = [{"name": "alice", "age": 30}, {"name": "bob", "age": 25}]
+	let map_of_lists = {"fruits": ["apple", "banana"], "vegetables": ["carrot", "broccoli"]}
+	let nested_list = [[1, 2], [3, 4]]
+	let nested_map  = {"outer": {"inner": "value"}}
+}

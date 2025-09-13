@@ -1,0 +1,8 @@
+namespace complex
+policy big {
+	let data   = { "ids": [1, 2, 3, 4], "active": true }
+	let result =
+		any data["ids"] as id {
+			yield (id % 2 == 0 and not (id in [4, 6])) or id == 3
+		} ? "ok" : "fail"
+}

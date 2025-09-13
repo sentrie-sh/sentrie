@@ -1,0 +1,36 @@
+namespace shapes 
+
+shape aShape {
+  integer!: int
+  aFloat?: float
+  aString: string
+  optionalField?: string
+  notNullableField!: int
+  anotherField: boolean
+  aList: list[string]
+  aMap: AnotherShape @ashapevalidator()
+  anotherList: list[Rectangle]
+  listofmap: list[map[AnotherShape]]
+  listoflist: list[list[int]]
+  mapoflist: map[list[AnotherShape]]
+  mapofmap: map[ map[ map[AnotherShape] ] ]
+  anotherMap: AnotherShape
+
+  withValidators: int @min(0) @max(10)
+}
+
+shape Square with Rectangle {
+  side: float @min(10) @max(100)
+}
+
+policy policyName {
+  shape Circle {
+    radius: float
+  }
+
+  shape Ellipse {
+    majorAxis: float @min(10) @max(11)
+    minorAxis: float @min(5) @max(6)
+    aspects: list[string @minlength(10)] @maxlength(100)
+  }
+}

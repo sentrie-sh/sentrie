@@ -1,0 +1,5 @@
+namespace shapes 
+
+policy policyName {
+  let x = cast y as string
+}

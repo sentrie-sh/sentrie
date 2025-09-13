@@ -1,0 +1,10 @@
+namespace record_test
+policy record_operations {
+  let user_record = ["John Doe", 30, "john@example.com"]
+  let config_record = ["1.0", ["auth", "logging"], true]
+  let empty_record = []
+  
+  rule allow = { yield user_record is defined and config_record is defined }
+  rule has_name = { yield user_record[0] is defined }
+  rule is_config_valid = { yield config_record[0] is defined and config_record[2] is true }
+}

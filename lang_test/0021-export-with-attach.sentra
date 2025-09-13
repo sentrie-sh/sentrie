@@ -1,0 +1,6 @@
+namespace exports
+policy prod {
+	rule passed = { yield score >= 60 }
+	export decision of passed attach severity as "low" attach category as "pass"
+  export decision of passed 
+}

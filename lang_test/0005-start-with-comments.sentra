@@ -1,0 +1,6 @@
+-- first line comment
+namespace comments
+-- top-level note
+policy c1 {
+	-- inside policy
+}

@@ -1,0 +1,14 @@
+namespace constraint_test
+policy constraint_operations {
+  let user_doc = {
+    "name": "John Doe",
+    "age": 30,
+    "email": "john@example.com"
+  }
+  
+  let user_record = ["John Doe", 30, "john@example.com"]
+  
+  rule allow = { yield user_doc is defined and user_record is defined }
+  rule has_name = { yield user_doc.name is defined }
+  rule is_adult = { yield user_record[1] >= 18 }
+}

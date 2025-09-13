@@ -1,0 +1,4 @@
+namespace usestr
+policy util {
+	use jsonParse,xmlParse from "file://json.wasm" as json
+}

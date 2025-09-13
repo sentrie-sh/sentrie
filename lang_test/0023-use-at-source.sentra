@@ -1,0 +1,8 @@
+namespace usemod
+policy util2 {
+	use add, sub from @math/core as m
+	use multiply, divide from @math/advanced as adv
+  
+  let x = m.add(1,2)
+  let y = adv.multiply(2,3)
+}

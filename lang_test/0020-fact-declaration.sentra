@@ -1,0 +1,5 @@
+namespace facts
+policy employment {
+	fact employee_type:string as role
+  fact fact_with_default:ShapeName as a_fact default "default_value"
+} 

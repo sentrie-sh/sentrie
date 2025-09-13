@@ -1,0 +1,7 @@
+namespace logical
+policy logic_ops {
+	let ok = true and false or true xor false
+	let complex = (true and false) or (true xor false) and not false
+	let mixed = ((2 + 3) * 4 % 5 - 6 / 2) > 0 and not (true or false)
+	let n = ((2 + 3) * 4 % 5 - 6 / 2) > 0 and not ((10 + 5) * (2 - 3) / (4 + 1) % 3)
+}

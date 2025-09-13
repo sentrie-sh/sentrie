@@ -1,0 +1,9 @@
+namespace compare
+policy cmp {
+  let eq  = 5 == 5
+  let ne  = 5 != 6
+  let lt  = 4 < 5
+  let lte = 5 <= 5
+  let gt  = 6 > 5
+  let gte = 6 >= 6
+}
