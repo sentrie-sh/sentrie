@@ -1,0 +1,70 @@
+// Copyright 2025 Binaek Sarkar
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package ast
+
+import (
+	"bytes"
+	"strings"
+
+	"github.com/binaek/sentra/tokens"
+)
+
+type RecordTypeRef struct {
+	constraints []*TypeRefConstraint
+	Pos         tokens.Position
+	Fields      []TypeRef
+}
+
+var _ TypeRef = &RecordTypeRef{}
+
+func (r *RecordTypeRef) typeref()                  {}
+func (r *RecordTypeRef) Position() tokens.Position { return r.Pos }
+func (r *RecordTypeRef) GetConstraints() []*TypeRefConstraint {
+	return r.constraints
+}
+func (r *RecordTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
+	if err := validateConstraint(constraint, recordConstraints); err != nil {
+		return err
+	}
+	r.constraints = append(r.constraints, constraint)
+	return nil
+}
+
+var recordConstraints = func() map[string]int {
+	constraints := [...]v{
+		{name: "required", arglen: 0},
+		{name: "optional", arglen: 0},
+		{name: "fields", arglen: 1},
+	}
+	constraintsMap := make(map[string]int)
+	for _, v := range constraints {
+		constraintsMap[v.name] = v.arglen
+	}
+	return constraintsMap
+}()
+
+func (r *RecordTypeRef) String() string {
+	b := bytes.Buffer{}
+	b.WriteString("record[")
+
+	fields := make([]string, len(r.Fields))
+	for i, field := range r.Fields {
+		fields[i] = field.String()
+	}
+
+	b.WriteString(strings.Join(fields, ", "))
+	b.WriteString("]")
+	return b.String()
+}
