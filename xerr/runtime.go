@@ -1,0 +1,93 @@
+// Copyright 2025 Binaek Sarkar
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package xerr
+
+import (
+	"github.com/pkg/errors"
+)
+
+type InvalidInvocationError struct{}
+
+func (e InvalidInvocationError) Error() string {
+	return "invalid invocation"
+}
+
+func ErrInvalidInvocation(reason string) error {
+	return errors.Wrap(InvalidInvocationError{}, reason)
+}
+
+func ErrRuleNotFound(fqn string) error {
+	return errors.Wrapf(NotFoundError{}, "rule: %s", fqn)
+}
+
+func ErrPolicyNotFound(fqn string) error {
+	return errors.Wrapf(NotFoundError{}, "policy: %s", fqn)
+}
+
+func ErrNamespaceNotFound(name string) error {
+	return errors.Wrapf(NotFoundError{}, "namespace: %s", name)
+}
+
+func ErrShapeNotFound(name string) error {
+	return errors.Wrapf(NotFoundError{}, "shape: %s", name)
+}
+
+func ErrNotExported(fqn string) error {
+	return errors.Wrap(NotExportedError{}, fqn)
+}
+
+func ErrImportResolution(module, fn string) error {
+	return errors.Wrapf(ImportResolutionError{}, "module: %s, fn: %s", module, fn)
+}
+
+func ErrShapeValidation(msg string) error {
+	return errors.Wrap(ShapeValidationError{}, msg)
+}
+
+func ErrModuleInvocation(module, fn string) error {
+	return errors.Wrapf(ModuleInvocationError{}, "module: %s, fn: %s", module, fn)
+}
+
+var ErrRuntimePanic = &RuntimePanic{}
+
+type NotFoundError struct{}
+
+func (e NotFoundError) Error() string {
+	return "not found"
+}
+
+type NotExportedError struct{}
+
+func (e NotExportedError) Error() string { return "rule is not exported" }
+
+type ImportResolutionError struct{}
+
+func (e ImportResolutionError) Error() string {
+	return "unable to resolve import"
+}
+
+type ModuleInvocationError struct{}
+
+func (e ModuleInvocationError) Error() string {
+	return "invoke module function failed"
+}
+
+type ShapeValidationError struct{}
+
+func (e ShapeValidationError) Error() string { return "shape validation failed" }
+
+type RuntimePanic struct{}
+
+func (e RuntimePanic) Error() string { return "runtime panic" }
