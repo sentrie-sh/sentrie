@@ -102,8 +102,6 @@ func (c *Perch[T]) Get(ctx context.Context, key string, ttl time.Duration, loade
 			}
 			c.mu.Unlock()
 
-			fmt.Println("hit cache")
-
 			return v, nil
 		}
 

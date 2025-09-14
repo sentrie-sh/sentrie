@@ -48,7 +48,7 @@ func (f FQN) IsChildOf(another FQN) bool {
 
 	fqn := f.String()
 	supposedToBeChildFQN := another.String()
-	return strings.HasPrefix(fqn, fmt.Sprintf("%s.", supposedToBeChildFQN))
+	return strings.HasPrefix(fqn, fmt.Sprintf("%s%s", supposedToBeChildFQN, FQNSeparator))
 }
 
 func (f FQN) IsParentOf(another FQN) bool {

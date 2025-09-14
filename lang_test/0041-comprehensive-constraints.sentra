@@ -3,10 +3,13 @@ namespace com.example.constraints
 policy string_constraints {
     let email_str = "user@example.com" @email
     let url_str = "https://example.com" @url
-    let uuid_str = "550e8400-e29b-41d4-a716-446655440000" @uuid
+    let uuid_v4_str = "550e8400-e29b-41d4-a716-446655440000" @uuid
+    let uuid_v7_str = "018c4a6c-7b5e-7c5e-8b5e-7c5e8b5e7c5e" @uuid
     let alphanumeric_str = "abc123" @alphanumeric
     let alpha_str = "hello" @alpha
-    let numeric_str = "12345" @numeric
+    let numeric_int_str = "12345" @numeric
+    let numeric_float_str = "123.45" @numeric
+    let numeric_negative_str = "-123.45" @numeric
     let lowercase_str = "hello world" @lowercase
     let uppercase_str = "HELLO WORLD" @uppercase
     let trimmed_str = "hello" @trimmed

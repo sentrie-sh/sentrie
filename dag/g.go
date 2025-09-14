@@ -49,8 +49,8 @@ func (e ErrCycle) Error() string {
 	return fmt.Sprintf("cycle detected: %v", strings.Join(e.Path, " -> "))
 }
 
-// AddEdge adds a directed edge from source to destination, preventing cycles.
-// Strategy: reject if there's already a path dest ->* source (reachability check).
+// AddEdge adds a directed edge from source to destination.
+// This function does not check for cycles. It errors only if the source or destination node is missing or self-looping.
 func (d *gImpl[T]) AddEdge(sourceID, destID T) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
@@ -72,6 +72,7 @@ func (d *gImpl[T]) AddEdge(sourceID, destID T) error {
 }
 
 // Strategy: DFS
+// Returns an error if the graph contains a cycle.
 func (d *gImpl[T]) TopoSort() ([]T, error) {
 	d.lock.RLock()
 	defer d.lock.RUnlock()

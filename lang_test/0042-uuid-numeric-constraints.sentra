@@ -1,0 +1,35 @@
+namespace com.example.uuid_numeric
+
+policy uuid_constraints {
+    // Valid UUID v4 examples
+    let uuid_v4_1 = "550e8400-e29b-41d4-a716-446655440000" @uuid
+    let uuid_v4_2 = "6ba7b810-9dad-11d1-80b4-00c04fd430c8" @uuid
+    let uuid_v4_3 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8" @uuid
+    
+    // Valid UUID v7 examples (time-based)
+    let uuid_v7_1 = "018c4a6c-7b5e-7c5e-8b5e-7c5e8b5e7c5e" @uuid
+    let uuid_v7_2 = "018c4a6c-7b5f-7c5f-8b5f-7c5f8b5f7c5f" @uuid
+    
+    rule outcome {
+        yield "UUID constraints validated"
+    }
+}
+
+policy numeric_string_constraints {
+    // Integer strings
+    let int_str = "12345" @numeric
+    let negative_int_str = "-12345" @numeric
+    let zero_str = "0" @numeric
+    
+    // Float strings
+    let float_str = "123.45" @numeric
+    let negative_float_str = "-123.45" @numeric
+    let scientific_str = "1.23e+10" @numeric
+    let negative_scientific_str = "-1.23e-10" @numeric
+    let decimal_str = ".5" @numeric
+    let negative_decimal_str = "-.5" @numeric
+    
+    rule outcome {
+        yield "numeric string constraints validated"
+    }
+}
