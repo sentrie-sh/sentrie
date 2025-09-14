@@ -39,7 +39,6 @@ const (
 	KeywordRule      Kind = "rule"
 	KeywordFact      Kind = "fact"
 	KeywordExport    Kind = "export"
-	KeywordValue     Kind = "value"
 	KeywordDecision  Kind = "decision"
 	KeywordOf        Kind = "of"
 	KeywordAttach    Kind = "attach"
@@ -126,7 +125,6 @@ func IsKeyword(str string) (Kind, bool) {
 // Keywords map for fast lookup
 var keywords = map[string]Kind{
 	"decision":  KeywordDecision,
-	"value":     KeywordValue,
 	"yield":     KeywordYield,
 	"transform": KeywordTransform,
 	"count":     KeywordCount,

@@ -49,6 +49,16 @@ func parseThePolicyStatement(ctx context.Context, p *Parser) ast.Statement {
 			continue
 		}
 		policy.Statements = append(policy.Statements, stmt)
+
+		// consume the optional semicolon
+		if p.canExpect(tokens.PunctSemicolon) {
+			p.advance()
+		}
+
+		// consume trailing comments
+		for p.canExpectAnyOf(tokens.TrailingComment, tokens.LineComment) {
+			p.advance()
+		}
 	}
 
 	if !p.expect(tokens.PunctRightCurly) {
@@ -59,10 +69,10 @@ func parseThePolicyStatement(ctx context.Context, p *Parser) ast.Statement {
 }
 
 func parsePolicyStatement(ctx context.Context, p *Parser) ast.Statement {
-	if handler, ok := p.policyStatementHandlers[p.current.Kind]; ok {
+	if handler, ok := p.policyStatementHandlers[p.head().Kind]; ok {
 		return handler(ctx, p)
 	}
-	p.errorf("unexpected token '%s' at %s", p.current.Kind, p.current.Position)
+	p.errorf("unexpected token '%s' at %s", p.head().Kind, p.head().Position)
 	return nil
 }
 

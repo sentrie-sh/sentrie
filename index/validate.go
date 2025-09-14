@@ -135,7 +135,7 @@ func (idx *Index) detectShapeCycle(ctx context.Context) error {
 				// find the shape with the FQN
 				withShape, ok := ns.Shapes[shape.Complex.WithFQN.String()]
 				if !ok {
-					return errors.Wrapf(ErrIndex, "shape not found: %s at %s", shape.Complex.WithFQN.String(), shape.Node.Pos)
+					return errors.Wrapf(ErrIndex, "shape not found: %s at %s", shape.Complex.WithFQN.String(), shape.Statement.Pos)
 				}
 				if err := shapeDag.AddEdge(shape, withShape); err != nil {
 					return errors.Wrapf(ErrIndex, "error adding edge: %s", err)
@@ -153,7 +153,7 @@ func (idx *Index) detectShapeCycle(ctx context.Context) error {
 					// find the shape with the FQN
 					withShape, ok := ns.Shapes[shape.Complex.WithFQN.String()]
 					if !ok {
-						return errors.Wrapf(ErrIndex, "shape not found: %s at %s", shape.Complex.WithFQN.String(), shape.Node.Pos)
+						return errors.Wrapf(ErrIndex, "shape not found: %s at %s", shape.Complex.WithFQN.String(), shape.Statement.Pos)
 					}
 					if err := shapeDag.AddEdge(shape, withShape); err != nil {
 						return errors.Wrapf(ErrIndex, "error adding edge: %s", err)

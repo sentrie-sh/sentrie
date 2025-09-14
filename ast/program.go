@@ -52,10 +52,6 @@ func (p PolicyStatement) statementNode() {}
 var _ Statement = &PolicyStatement{}
 
 type Program struct {
-	Namespace    *NamespaceStatement
-	Policies     []*PolicyStatement
-	Shapes       []*ShapeStatement
-	ShapeExports []*ShapeExportStatement
-
-	Reference string
+	Statements []Statement
+	Reference  string
 }

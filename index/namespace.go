@@ -21,7 +21,7 @@ import (
 
 // Namespace is an index of policies and shapes visible within (namespace & sub-namespaces).
 type Namespace struct {
-	Node         *ast.NamespaceStatement
+	Statement    *ast.NamespaceStatement
 	FQN          ast.FQN // this is always the FQN
 	Parent       *Namespace
 	Children     []*Namespace
@@ -32,7 +32,7 @@ type Namespace struct {
 
 func createNamespace(node *ast.NamespaceStatement) *Namespace {
 	return &Namespace{
-		Node:         node,
+		Statement:    node,
 		FQN:          node.Name,
 		Parent:       nil,
 		Children:     make([]*Namespace, 0),
@@ -44,7 +44,7 @@ func createNamespace(node *ast.NamespaceStatement) *Namespace {
 
 func (n *Namespace) addPolicy(policy *Policy) error {
 	if _, ok := n.Policies[policy.Name]; ok {
-		return errors.Wrapf(ErrIndex, "policy name conflict: '%s' at %s", policy.Name, policy.Node.Position())
+		return errors.Wrapf(ErrIndex, "policy name conflict: '%s' at %s", policy.Name, policy.Statement.Position())
 	}
 
 	n.Policies[policy.Name] = policy
@@ -53,7 +53,7 @@ func (n *Namespace) addPolicy(policy *Policy) error {
 
 func (n *Namespace) addShape(shape *Shape) error {
 	if _, ok := n.Shapes[shape.Name]; ok {
-		return errors.Wrapf(ErrIndex, "shape name conflict: '%s' at %s", shape.Name, shape.Node.Position())
+		return errors.Wrapf(ErrIndex, "shape name conflict: '%s' at %s", shape.Name, shape.Statement.Position())
 	}
 
 	n.Shapes[shape.Name] = shape
@@ -62,7 +62,7 @@ func (n *Namespace) addShape(shape *Shape) error {
 
 func (n *Namespace) addShapeExport(export *ExportedShape) error {
 	if _, ok := n.ShapeExports[export.Name]; ok {
-		return errors.Wrapf(ErrIndex, "shape export conflict: '%s' at %s", export.Name, export.Node.Position())
+		return errors.Wrapf(ErrIndex, "shape export conflict: '%s' at %s", export.Name, export.Statement.Position())
 	}
 
 	n.ShapeExports[export.Name] = export

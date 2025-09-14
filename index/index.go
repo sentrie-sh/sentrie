@@ -26,14 +26,14 @@ type Index struct {
 	theLock    *sync.RWMutex
 	Pack       *pack.PackFile
 	Namespaces map[string]*Namespace
-	Programs   map[string]*ast.Program
+	Programs   map[string]*Program
 }
 
 func CreateIndex() *Index {
 	return &Index{
 		theLock:    &sync.RWMutex{},
 		Namespaces: make(map[string]*Namespace),
-		Programs:   make(map[string]*ast.Program),
+		Programs:   make(map[string]*Program),
 	}
 }
 
@@ -45,7 +45,7 @@ func (idx *Index) SetPack(ctx context.Context, p *pack.PackFile) error {
 	return nil
 }
 
-func (idx *Index) AddProgram(ctx context.Context, program *ast.Program) error {
+func (idx *Index) AddProgram(ctx context.Context, astProgram *ast.Program) error {
 	idx.theLock.Lock()
 	defer idx.theLock.Unlock()
 
@@ -53,6 +53,8 @@ func (idx *Index) AddProgram(ctx context.Context, program *ast.Program) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
+
+	program := createProgram(astProgram)
 
 	ns := idx.ensureNamespace(ctx, program.Namespace)
 
@@ -68,7 +70,7 @@ func (idx *Index) AddProgram(ctx context.Context, program *ast.Program) error {
 	}
 
 	for _, policy := range program.Policies {
-		p, err := createPolicy(ns, policy, program)
+		p, err := createPolicy(ns, policy, astProgram)
 		if err != nil {
 			return err
 		}
@@ -79,12 +81,12 @@ func (idx *Index) AddProgram(ctx context.Context, program *ast.Program) error {
 	}
 
 	for _, export := range program.ShapeExports {
-		if err := ns.addShapeExport(&ExportedShape{Name: export.Name, Node: export}); err != nil {
+		if err := ns.addShapeExport(&ExportedShape{Name: export.Name, Statement: export}); err != nil {
 			return err
 		}
 	}
 
-	idx.Programs[program.Reference] = program
+	idx.Programs[astProgram.Reference] = program
 
 	return nil
 }

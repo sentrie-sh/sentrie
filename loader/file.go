@@ -53,6 +53,9 @@ func LoadPrograms(ctx context.Context, packFile *pack.PackFile) ([]*ast.Program,
 		if err != nil {
 			return err
 		}
+		if program == nil {
+			return nil
+		}
 
 		programs = append(programs, program)
 

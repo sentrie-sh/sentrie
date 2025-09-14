@@ -1,7 +1,7 @@
 /* Sentra Language Grammar - PEG Version */
 
 /* Program Structure */
-Program = NamespaceDecl (TopLevelDecl / Comment)*
+Program = (Comment)* NamespaceDecl (TopLevelDecl / Comment)*
 TopLevelDecl = PolicyDecl / ShapeDecl / ExportShape
 NamespaceDecl = "namespace" FQN
 FQN = IDENT ("/" IDENT)*
@@ -25,7 +25,7 @@ PolicyStatement = Comment
    An unexported shape is visible to the containing namespace and its descendants only. */
 ExportShape = "export" "shape" IDENT
 
-VarDecl = "let" IDENT "=" Expr
+VarDecl = "let" IDENT (":" TypeRef)? "=" Expr
 RuleDecl = "rule" IDENT "=" ("default" Expr)? ("when" Expr)? (BlockExpr / RuleImportClause)
 
 /* Imports and Exports */

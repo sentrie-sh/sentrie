@@ -39,7 +39,7 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 	case *ast.Identifier:
 		return evalIdent(ctx, ec, exec, p, t.Value)
 
-	case *ast.TriStateLiteral:
+	case *ast.TrinaryLiteral:
 		n, done := trace.New("literal", "tristate", t, map[string]any{})
 		defer done()
 

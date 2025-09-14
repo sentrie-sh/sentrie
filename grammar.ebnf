@@ -1,7 +1,7 @@
 /* Sentrie Language Grammar */
 
 /* Program Structure */
-program             ::= namespaceDecl ( toplevelDecl | comment )*
+program             ::= (comment)* namespaceDecl ( toplevelDecl | comment )*
 toplevelDecl        ::= policyDecl | shapeDecl | exportShape
 namespaceDecl       ::= 'namespace' FQN
 FQN                 ::= IDENT ('/' IDENT)*

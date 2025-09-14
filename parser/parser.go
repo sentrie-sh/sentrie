@@ -70,11 +70,11 @@ func (p *Parser) advance() tokens.Instance {
 	if p.atEof {
 		return tokens.Err(p.current.Position, "cannot advance, already at EOF")
 	}
-	if p.head().IsOfKind(tokens.Error) {
+	if p.current.IsOfKind(tokens.Error) {
 		p.errorf(p.current.Value)
 		return p.current
 	}
-	current := p.head()
+	current := p.current
 	p.current = p.next
 	if p.current.Kind == tokens.EOF {
 		p.atEof = true
@@ -85,8 +85,9 @@ func (p *Parser) advance() tokens.Instance {
 }
 
 func (p *Parser) advanceExpected(kind tokens.Kind) (tokens.Instance, bool) {
-	token := p.head()
+	token := p.current
 	if !token.IsOfKind(kind) {
+		p.errorf("expected %s, got %s at %s", kind, p.current.Kind, p.current.Position)
 		return tokens.Err(p.current.Position, fmt.Sprintf("expected %s, got %s", kind, p.current.Kind)), false
 	}
 	return p.advance(), true

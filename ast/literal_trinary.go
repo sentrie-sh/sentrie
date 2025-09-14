@@ -19,20 +19,20 @@ import (
 	"github.com/binaek/sentra/trinary"
 )
 
-// TriStateLiteral represents a tri-state literal
-type TriStateLiteral struct {
+// TrinaryLiteral represents a trinary literal
+type TrinaryLiteral struct {
 	Pos   tokens.Position
 	Value trinary.Value
 }
 
-func (b *TriStateLiteral) String() string {
+func (b *TrinaryLiteral) String() string {
 	return b.Value.String()
 }
 
-func (b *TriStateLiteral) Position() tokens.Position {
+func (b *TrinaryLiteral) Position() tokens.Position {
 	return b.Pos
 }
 
-func (b *TriStateLiteral) expressionNode() {}
+func (b *TrinaryLiteral) expressionNode() {}
 
-var _ Expression = &TriStateLiteral{}
+var _ Expression = &TrinaryLiteral{}

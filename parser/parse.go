@@ -28,37 +28,103 @@ func (p *Parser) ParseProgram(ctx context.Context) (*ast.Program, error) {
 		Reference: p.reference,
 	}
 
+	// First non-comment statement must be namespace
+	if !p.hasTokens() {
+		// we can have empty files
+		return nil, nil
+	}
+
+	prg.Statements = make([]ast.Statement, 0)
+
+	// lets start parsing
+	// Skip comment statements to find the first non-comment statement
+	var firstStmt ast.Statement
+	for p.hasTokens() {
+		stmt := parseStatement(ctx, p)
+		if p.err != nil {
+			return nil, p.err
+		}
+
+		// Check if it's a comment statement
+		if _, isComment := stmt.(*ast.CommentStatement); isComment {
+			prg.Statements = append(prg.Statements, stmt)
+			// consume trailing comments
+			if p.canExpect(tokens.TrailingComment) {
+				comment := p.advance()
+				prg.Statements = append(prg.Statements, &ast.CommentStatement{
+					Content: comment.Value,
+					Pos:     comment.Position,
+				})
+			}
+			continue
+		}
+		firstStmt = stmt
+		break
+	}
+
+	if firstStmt == nil {
+		err := errors.Wrapf(ErrParse, "no namespace in program at %s", p.reference)
+		p.err = err
+		return nil, err
+	}
+
+	// Check if first non-comment statement is namespace
+	_, ok := firstStmt.(*ast.NamespaceStatement)
+	if !ok {
+		err := fmt.Errorf("program must start with namespace, got %T at %s", firstStmt, firstStmt.Position())
+		p.err = err
+		return nil, err
+	}
+	prg.Statements = append(prg.Statements, firstStmt)
+
+	// consume the optional semicolon after namespace
+	if p.canExpect(tokens.PunctSemicolon) {
+		p.advance()
+	}
+
+	// consume trailing comments after namespace
+	if p.canExpect(tokens.TrailingComment) {
+		comment := p.advance()
+		prg.Statements = append(prg.Statements, &ast.CommentStatement{
+			Content: comment.Value,
+			Pos:     comment.Position,
+		})
+	}
+
+	// Parse remaining statements
 	for p.hasTokens() {
 		stmt := parseStatement(ctx, p)
 		if p.err != nil {
 			return nil, p.err
 		}
 		if stmt == nil {
-			return nil, fmt.Errorf("failed to parse statement at %s", p.current.Position)
+			err := fmt.Errorf("failed to parse statement at %s", p.current.Position)
+			p.err = err
+			return nil, err
 		}
 
-		switch stmt := stmt.(type) {
-		case *ast.NamespaceStatement:
-			if prg.Namespace != nil {
-				return nil, fmt.Errorf("multiple namespace statements at %s", stmt.Position())
-			}
-			prg.Namespace = stmt
-		case *ast.PolicyStatement:
-			prg.Policies = append(prg.Policies, stmt)
-		case *ast.ShapeStatement:
-			prg.Shapes = append(prg.Shapes, stmt)
-		case *ast.ShapeExportStatement:
-			prg.ShapeExports = append(prg.ShapeExports, stmt)
+		// this MUST not be a namespace statement
+		_, ok := stmt.(*ast.NamespaceStatement)
+		if ok {
+			err := fmt.Errorf("namespace cannot be declared after namespace declaration at %s", stmt.Position())
+			p.err = err
+			return nil, err
+		}
+
+		prg.Statements = append(prg.Statements, stmt)
+
+		if p.canExpect(tokens.TrailingComment) {
+			comment := p.advance()
+			prg.Statements = append(prg.Statements, &ast.CommentStatement{
+				Content: comment.Value,
+				Pos:     comment.Position,
+			})
 		}
 
 		// consume the optional semicolon
 		if p.canExpect(tokens.PunctSemicolon) {
 			p.advance()
 		}
-	}
-
-	if prg.Namespace == nil {
-		return nil, errors.Wrapf(ErrParse, "no namespace in program at %s", p.reference)
 	}
 
 	return prg, nil

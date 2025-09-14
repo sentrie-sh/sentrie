@@ -72,6 +72,11 @@ func parseComplexShape(ctx context.Context, p *Parser) *ast.Cmplx {
 			return nil
 		}
 		stmt.Fields[field.Name] = field
+
+		// consume trailing comments
+		for p.canExpectAnyOf(tokens.TrailingComment, tokens.LineComment) {
+			p.advance()
+		}
 	}
 
 	if !p.expect(tokens.PunctRightCurly) {

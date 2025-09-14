@@ -56,7 +56,7 @@ func parseRuleExportStatement(ctx context.Context, p *Parser) ast.Statement {
 	return stmt
 }
 
-func parseAttachmentClause(ctx context.Context, p *Parser) *ast.AttachmentClause {
+func parseAttachmentClause(_ context.Context, p *Parser) *ast.AttachmentClause {
 	pos := p.head().Position
 
 	attachment := &ast.AttachmentClause{

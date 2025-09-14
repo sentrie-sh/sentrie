@@ -9,7 +9,7 @@ import (
 )
 
 type Shape struct {
-	Node      *ast.ShapeStatement
+	Statement *ast.ShapeStatement
 	Namespace *Namespace
 	Policy    *Policy
 	Name      string
@@ -27,8 +27,8 @@ type Cmplx struct {
 }
 
 type ExportedShape struct {
-	Node *ast.ShapeExportStatement
-	Name string
+	Statement *ast.ShapeExportStatement
+	Name      string
 }
 
 type ShapeField struct {
@@ -122,7 +122,7 @@ func createShape(ns *Namespace, p *Policy, stmt *ast.ShapeStatement) (*Shape, er
 		fqn = ast.CreateFQN(ns.FQN, stmt.Name)
 	}
 	shape := &Shape{
-		Node:      stmt,
+		Statement: stmt,
 		Namespace: ns,
 		Policy:    p,
 		Name:      stmt.Name,

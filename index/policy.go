@@ -33,7 +33,7 @@ type ExportedRule struct {
 
 // Policy holds the AST statements and exports.
 type Policy struct {
-	Node       *ast.PolicyStatement
+	Statement  *ast.PolicyStatement
 	Namespace  *Namespace
 	Name       string
 	FQN        ast.FQN
@@ -60,7 +60,7 @@ type positionable interface {
 
 func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Program) (*Policy, error) {
 	p := &Policy{
-		Node:             policy,
+		Statement:        policy,
 		Namespace:        ns,
 		Name:             policy.Name,
 		FQN:              ast.CreateFQN(ns.FQN, policy.Name),
@@ -100,7 +100,6 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 			}
 
 		case *ast.RuleStatement:
-
 			if err := p.AddRule(stmt); err != nil {
 				return nil, err
 			}
@@ -129,6 +128,11 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 			_ = stmt
 		}
 	}
+
+	if len(p.RuleExports) == 0 {
+		return nil, errors.Wrapf(ErrIndex, "Policy '%s' at '%s' does not export any rules", policy.Name, policy.Position())
+	}
+
 	return p, nil
 }
 
@@ -160,7 +164,7 @@ func (p *Policy) AddRule(rule *ast.RuleStatement) error {
 
 func (p *Policy) AddShape(shape *ast.ShapeStatement) error {
 	if s, ok := p.Shapes[shape.Name]; ok {
-		return errors.Wrapf(ErrIndex, "shape name conflict: '%s' at %s with %s", shape.Name, shape.Position(), s.Node.Pos)
+		return errors.Wrapf(ErrIndex, "shape name conflict: '%s' at %s with %s", shape.Name, shape.Position(), s.Statement.Pos)
 	}
 
 	s, err := createShape(p.Namespace, p, shape)

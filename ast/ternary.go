@@ -28,7 +28,7 @@ type TernaryExpression struct {
 }
 
 func (t *TernaryExpression) String() string {
-	return fmt.Sprintf("%s ? %s : %s", t.Condition.String(), t.ThenBranch.String(), t.ElseBranch.String())
+	return fmt.Sprintf("(%s ? %s : %s)", t.Condition.String(), t.ThenBranch.String(), t.ElseBranch.String())
 }
 
 func (t *TernaryExpression) Position() tokens.Position {

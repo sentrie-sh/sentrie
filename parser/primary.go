@@ -36,7 +36,7 @@ func parseNullLiteral(ctx context.Context, p *Parser) ast.Expression {
 func parseTrinaryLiteral(ctx context.Context, p *Parser) ast.Expression {
 	token := p.advance()
 	tristateValue := trinary.FromToken(token)
-	return &ast.TriStateLiteral{
+	return &ast.TrinaryLiteral{
 		Pos:   token.Position,
 		Value: tristateValue,
 	}

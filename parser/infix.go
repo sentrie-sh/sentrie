@@ -24,6 +24,11 @@ func parseInfixExpression(ctx context.Context, p *Parser, left ast.Expression, p
 	operatorToken := p.advance()
 	right := p.parseExpression(ctx, precedence)
 
+	// Check if right operand parsing failed
+	if right == nil || p.err != nil {
+		return nil
+	}
+
 	return &ast.InfixExpression{
 		Pos:      operatorToken.Position,
 		Left:     left,

@@ -119,11 +119,11 @@ func (s *ExpressionTestSuite) TestParseExpressionBooleanLiteral() {
 
 		if tc.input == "unknown" {
 			// unknown should be parsed as a tristate literal
-			tristate, ok := expr.(*ast.TriStateLiteral)
+			tristate, ok := expr.(*ast.TrinaryLiteral)
 			s.True(ok)
 			s.Equal(trinary.Unknown, tristate.Value)
 		} else {
-			tristate, ok := expr.(*ast.TriStateLiteral)
+			tristate, ok := expr.(*ast.TrinaryLiteral)
 			s.True(ok)
 			if tc.expected == true {
 				s.Equal(trinary.True, tristate.Value)
@@ -143,13 +143,14 @@ func (s *ExpressionTestSuite) TestParseExpressionTrinaryLiteral() {
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.NotNil(expr)
 
-		tristate, ok := expr.(*ast.TriStateLiteral)
+		tristate, ok := expr.(*ast.TrinaryLiteral)
 		s.True(ok)
-		if tc == "true" {
+		switch tc {
+		case "true":
 			s.Equal(trinary.True, tristate.Value)
-		} else if tc == "false" {
+		case "false":
 			s.Equal(trinary.False, tristate.Value)
-		} else if tc == "unknown" {
+		case "unknown":
 			s.Equal(trinary.Unknown, tristate.Value)
 		}
 	}

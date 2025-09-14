@@ -26,7 +26,7 @@ type InfixExpression struct {
 }
 
 func (e *InfixExpression) String() string {
-	return e.Left.String() + " " + e.Operator + " " + e.Right.String()
+	return "(" + e.Left.String() + " " + e.Operator + " " + e.Right.String() + ")"
 }
 
 func (e *InfixExpression) Position() tokens.Position {

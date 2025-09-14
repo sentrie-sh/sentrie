@@ -46,6 +46,7 @@ func (p *Parser) registerParseFns() {
 
 	p.registerPrefix(tokens.TokenBang, parseUnaryExpression)
 	p.registerPrefix(tokens.TokenMinus, parseUnaryExpression)
+	p.registerPrefix(tokens.TokenPlus, parseUnaryExpression)
 	p.registerPrefix(tokens.KeywordTransform, parseTransformExpression)
 
 	p.registerPrefix(tokens.PunctLeftParentheses, parseGroupedExpression)
@@ -91,6 +92,7 @@ func (p *Parser) registerParseFns() {
 	p.statementHandlers = make(map[tokens.Kind]statementParser)
 	p.registerStatementHandler(tokens.KeywordNamespace, parseNamespaceStatement)
 	p.registerStatementHandler(tokens.LineComment, parseCommentStatement)
+	p.registerStatementHandler(tokens.TrailingComment, parseCommentStatement)
 	p.registerStatementHandler(tokens.KeywordPolicy, parseThePolicyStatement)
 	p.registerStatementHandler(tokens.KeywordShape, parseShapeStatement)
 	p.registerStatementHandler(tokens.KeywordExport, parseShapeExportStatement)
@@ -98,6 +100,7 @@ func (p *Parser) registerParseFns() {
 	// policyStatementHandlers
 	p.policyStatementHandlers = make(map[tokens.Kind]statementParser)
 	p.registerPolicyStatementHandler(tokens.LineComment, parseCommentStatement)
+	p.registerPolicyStatementHandler(tokens.TrailingComment, parseCommentStatement)
 	p.registerPolicyStatementHandler(tokens.KeywordRule, parseRuleStatement)
 	p.registerPolicyStatementHandler(tokens.KeywordFact, parseFactStatement)
 	p.registerPolicyStatementHandler(tokens.KeywordExport, parseRuleExportStatement)

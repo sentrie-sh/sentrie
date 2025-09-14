@@ -35,6 +35,7 @@ func parseRuleStatement(ctx context.Context, parser *Parser) ast.Statement {
 	}
 	stmt.RuleName = name.Value
 
+	// Assignment operator is required for rule declarations
 	if !parser.expect(tokens.TokenAssign) {
 		return nil // Error in parsing the rule statement
 	}
@@ -57,25 +58,21 @@ func parseRuleStatement(ctx context.Context, parser *Parser) ast.Statement {
 		stmt.When = whenExpr
 	}
 
-	if !parser.canExpectAnyOf(tokens.PunctLeftCurly, tokens.KeywordImport) {
-		parser.errorf("expected '{' or 'import', got %s at %s", parser.peek().Kind, parser.peek().Position)
-		return nil
-	}
-
-	if parser.head().IsOfKind(tokens.PunctLeftCurly) {
-		// If we have a block, parse it
-		expression := parseBlockExpression(ctx, parser)
-		if expression == nil {
-			return nil // Error in parsing the rule body
-		}
-		stmt.Body = expression
-	} else if parser.head().IsOfKind(tokens.KeywordImport) {
+	// Parse rule body - can be import clause or expression (including block expressions)
+	if parser.canExpect(tokens.KeywordImport) {
 		// If we have an import clause, parse it
 		importClause := parseImportExpression(ctx, parser)
 		if importClause == nil {
 			return nil // Error in parsing the import clause
 		}
 		stmt.Body = importClause
+	} else {
+		// Parse as expression (handles direct expressions, block expressions, etc.)
+		expression := parser.parseExpression(ctx, LOWEST)
+		if expression == nil {
+			return nil // Error in parsing the rule body
+		}
+		stmt.Body = expression
 	}
 
 	return stmt
