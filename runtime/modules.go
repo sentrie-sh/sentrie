@@ -1,0 +1,79 @@
+// Copyright 2025 Binaek Sarkar
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package runtime
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/dop251/goja"
+	"github.com/jackc/puddle/v2"
+)
+
+// JSInstance is a context-aware binding for an alias VM.
+type JSInstance struct {
+	VM      *goja.Runtime
+	Exports map[string]goja.Value
+}
+
+type ModuleBinding struct {
+	Alias  string
+	VMPool *puddle.Pool[*JSInstance]
+}
+
+func (m ModuleBinding) Call(ctx context.Context, fn string, args ...any) (any, error) {
+	if m.VMPool == nil {
+		return nil, fmt.Errorf("module has no JS binding")
+	}
+	binding, err := m.VMPool.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer binding.Release()
+
+	vm := binding.Value()
+	val, ok := vm.Exports[fn]
+	if !ok {
+		return nil, fmt.Errorf("function %q not found in module %q", fn, m.Alias)
+	}
+	fnc, ok := goja.AssertFunction(val)
+	if !ok {
+		return nil, fmt.Errorf("export %q is not callable", fn)
+	}
+
+	// Honor context cancel by installing an interrupt
+	done := make(chan struct{})
+	if ctx != nil {
+		vm.VM.ClearInterrupt()
+		go func() {
+			select {
+			case <-ctx.Done():
+				vm.VM.Interrupt(ctx.Err())
+			case <-done:
+			}
+		}()
+		defer close(done)
+	}
+
+	ga := make([]goja.Value, 0, len(args))
+	for _, a := range args {
+		ga = append(ga, vm.VM.ToValue(a))
+	}
+	out, err := fnc(goja.Undefined(), ga...)
+	if err != nil {
+		return nil, err
+	}
+	return out.Export(), nil
+}
