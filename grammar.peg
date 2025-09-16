@@ -30,10 +30,10 @@ RuleDecl = "rule" IDENT "=" ("default" Expr)? ("when" Expr)? (BlockExpr / RuleIm
 
 /* Imports and Exports */
 ExportRule = "export" "decision" "of" IDENT AttachClause*
-AttachClause = "attach" IDENT ("as" IDENT)?
+AttachClause = "attach" IDENT "as" Expr
 
 RuleImportClause = "import" "decision" IDENT "from" FQN WithClause*
-WithClause = "with" IDENT "as" IDENT
+WithClause = "with" IDENT "as" Expr
 
 /* Expressions - ordered by precedence (highest to lowest) */
 Expr = TernaryExpr

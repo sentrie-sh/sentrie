@@ -30,10 +30,10 @@ ruleDecl            ::= 'rule' IDENT '=' ('default' expr)? ('when' expr)? (block
 
 /* Imports and Exports */
 exportRule          ::= 'export' 'decision' 'of' IDENT ( attachClause )*
-attachClause        ::= 'attach' IDENT ('as' IDENT)?
+attachClause        ::= 'attach' IDENT 'as' expr
 
 ruleImportClause    ::= 'import' 'decision' IDENT 'from' FQN ( withClause )*
-withClause          ::= 'with' IDENT 'as' IDENT
+withClause          ::= 'with' IDENT 'as' expr
 
 /* Expressions */
 expr                ::= ternaryExpr
