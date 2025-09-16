@@ -37,6 +37,23 @@ func CreateFQN(base FQN, lastSegment string) FQN {
 	return append(base, lastSegment)
 }
 
+// LastSegment returns the last segment of the FQN
+func (f FQN) LastSegment() string {
+	if len(f) == 0 {
+		return ""
+	}
+	return f[len(f)-1]
+}
+
+// Parent returns the parent of the FQN
+func (f FQN) Parent() FQN {
+	if len(f) == 0 {
+		return FQN{}
+	}
+	return f[:len(f)-1]
+}
+
+// IsChildOf returns true if the FQN is a child of another FQN
 func (f FQN) IsChildOf(another FQN) bool {
 	// ["com","example","foo"] child of ["com","example"]
 	// ["com","example","foo"] not child of ["com","example","bar"]
