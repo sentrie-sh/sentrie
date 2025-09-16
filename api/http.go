@@ -21,7 +21,6 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -227,88 +226,6 @@ func (api *HTTPAPI) StopServer(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// handleDecision handles POST /decision/{namespace...} requests
-func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
-	// Set CORS headers
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	path := r.PathValue("target")
-	if path == "" {
-		api.writeErrorResponse(w, r, http.StatusBadRequest, "Invalid Path", "The path parameter is required but was not provided")
-		return
-	}
-
-	slog.InfoContext(r.Context(), "handleDecision", "path", path)
-
-	namespace, policy, rule, err := api.executor.Index().SegmentsFromPath(strings.TrimPrefix(path, "/decision/"))
-	if err != nil {
-		api.writeErrorResponse(w, r, http.StatusBadRequest, "Invalid Path", fmt.Sprintf("The provided path could not be parsed: %s", err.Error()))
-		return
-	}
-
-	// Handle preflight OPTIONS requests
-	if r.Method == "OPTIONS" {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	// Only allow POST requests
-	if r.Method != "POST" {
-		api.writeErrorResponse(w, r, http.StatusMethodNotAllowed, "Method Not Allowed", "Only POST requests are supported for this endpoint")
-		return
-	}
-
-	// Parse query parameters for runconfig
-	runConfig := make(map[string]string)
-	for key, values := range r.URL.Query() {
-		if len(values) > 0 {
-			runConfig[key] = values[0]
-		}
-	}
-
-	// Parse request body
-	var req DecisionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		api.writeErrorResponse(w, r, http.StatusBadRequest, "Invalid JSON", "The request body could not be parsed as valid JSON")
-		return
-	}
-
-	// Execute the rule
-	var d *runtime.Decision
-	var attachments runtime.DecisionAttachments
-	var traceNode *trace.Node
-
-	switch len(rule) {
-	case 0:
-		d, attachments, traceNode, err = api.executor.ExecPolicy(r.Context(), namespace, policy, req.Facts)
-	default:
-		d, attachments, traceNode, err = api.executor.ExecRule(r.Context(), namespace, policy, rule, req.Facts)
-	}
-
-	if err != nil {
-		// Use the error message directly
-		api.writeErrorResponse(w, r, http.StatusInternalServerError, "Rule Execution Failed", fmt.Sprintf("An error occurred while executing the rule: %s", err.Error()))
-		return
-	}
-
-	// Prepare response
-	response := DecisionResponse{
-		Decision:    d,
-		Attachments: attachments,
-		Trace:       traceNode,
-	}
-
-	// Write JSON response
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		slog.DebugContext(r.Context(), "Error encoding response", "error", err)
-	}
 }
 
 // handleHealth handles GET /health requests
