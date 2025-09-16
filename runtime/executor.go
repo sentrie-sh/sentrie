@@ -82,6 +82,10 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 
 // ExecRule executes an exported rule and returns (value, attachments, tree) as a RuleOutcome.
 func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, facts map[string]any) (*Decision, DecisionAttachments, *trace.Node, error) {
+	if len(rule) == 0 {
+		return e.ExecPolicy(ctx, namespace, policy, facts)
+	}
+
 	// Validate exported
 	p, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
@@ -167,16 +171,11 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 		for _, attachment := range ex.Attachments {
 			attachmentNode, done := trace.New("attachment", attachment.Name, nil, map[string]any{
 				"name":  attachment.Name,
-				"alias": attachment.Alias,
+				"value": attachment.Value,
 			})
 			defer done()
 
-			if attachment.Name == "aUnknown" {
-				str := "aUnknown"
-				_ = str
-			}
-
-			v, node, err := evalIdent(ctx, ec, e, p, attachment.Name)
+			v, node, err := eval(ctx, ec, e, p, attachment.Value)
 			attachmentNode.Attach(node)
 			if err != nil {
 				return nil, nil, nil, err

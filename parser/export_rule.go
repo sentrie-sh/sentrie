@@ -56,7 +56,8 @@ func parseRuleExportStatement(ctx context.Context, p *Parser) ast.Statement {
 	return stmt
 }
 
-func parseAttachmentClause(_ context.Context, p *Parser) *ast.AttachmentClause {
+// 'attach @ident as @expr'
+func parseAttachmentClause(ctx context.Context, p *Parser) *ast.AttachmentClause {
 	pos := p.head().Position
 
 	attachment := &ast.AttachmentClause{
@@ -69,17 +70,18 @@ func parseAttachmentClause(_ context.Context, p *Parser) *ast.AttachmentClause {
 	if !found {
 		return nil
 	}
-	attachment.What = what.Value // Set the attachment what
-	attachment.As = what.Value   // Set the attachment alias as the what
 
-	if p.canExpect(tokens.KeywordAs) {
-		p.advance() // consume 'as'
-		alias, found := p.advanceExpected(tokens.Ident)
-		if !found {
-			return nil
-		}
-		attachment.As = alias.Value // Set the attachment alias
+	if !p.expect(tokens.KeywordAs) {
+		return nil
 	}
+
+	asExpr := p.parseExpression(ctx, LOWEST)
+	if asExpr == nil {
+		return nil
+	}
+
+	attachment.What = what.Value // Set the attachment what
+	attachment.As = asExpr
 
 	return attachment
 }

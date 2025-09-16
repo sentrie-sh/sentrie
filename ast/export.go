@@ -37,5 +37,5 @@ var _ Statement = &RuleExportStatement{}
 type AttachmentClause struct {
 	Pos  tokens.Position // Position in the source code
 	What string          // Name of the attachment
-	As   string          // Value of the attachment
+	As   Expression      // Value of the attachment
 }
