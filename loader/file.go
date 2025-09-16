@@ -19,8 +19,10 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/binaek/sentra/ast"
+	"github.com/binaek/sentra/constants"
 	"github.com/binaek/sentra/pack"
 	"github.com/binaek/sentra/parser"
 )
@@ -39,9 +41,11 @@ func LoadPrograms(ctx context.Context, packFile *pack.PackFile) ([]*ast.Program,
 		if d.IsDir() {
 			return nil
 		}
-		if filepath.Ext(d.Name()) != ".sentra" {
+
+		if !strings.HasSuffix(filepath.Ext(d.Name()), constants.PolicyFileExtension) {
 			return nil
 		}
+
 		path = filepath.Join(packFile.Location, path)
 		file, err := os.Open(path)
 		if err != nil {

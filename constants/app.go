@@ -17,4 +17,7 @@ package constants
 const (
 	APPNAME    = "sentra"
 	APPVERSION = "0.1.0"
+
+	PackFileExtension   = "pack.toml"
+	PolicyFileExtension = APPNAME
 )

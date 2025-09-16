@@ -33,7 +33,7 @@ var (
 )
 
 var (
-	PackFileName = (constants.APPNAME + ".pack.toml")
+	PackFileName = (constants.APPNAME + "." + constants.PackFileExtension)
 )
 
 func LoadPack(ctx context.Context, root string) (_ *pack.PackFile, e error) {
