@@ -12,6 +12,7 @@ import (
 type G[T fmt.Stringer] interface {
 	AddNode(T)
 	AddEdge(T, T) error
+	TopoSort() ([]T, error)
 	DetectAllCycles() [][]T
 }
 
@@ -112,8 +113,6 @@ func (d *gImpl[T]) TopoSort() ([]T, error) {
 			return nil, err
 		}
 	}
-
-	slices.Reverse(stack)
 
 	nodes := make([]T, 0, len(stack))
 	for _, node := range stack {
