@@ -19,6 +19,7 @@ import (
 	"sync"
 
 	"github.com/binaek/sentra/ast"
+	"github.com/binaek/sentra/dag"
 	"github.com/binaek/sentra/pack"
 )
 
@@ -27,13 +28,28 @@ type Index struct {
 	Pack       *pack.PackFile
 	Namespaces map[string]*Namespace
 	Programs   map[string]*Program
+
+	ruleDag  dag.G[*Rule]
+	shapeDag dag.G[*Shape]
+
+	validated       uint32 // 0 = not validated, 1 = validated
+	validationError error
+	validationOnce  *sync.Once
+
+	committed   uint32 // 0 = not committed, 1 = committed
+	commitError error
+	commitOnce  *sync.Once
 }
 
 func CreateIndex() *Index {
 	return &Index{
-		theLock:    &sync.RWMutex{},
-		Namespaces: make(map[string]*Namespace),
-		Programs:   make(map[string]*Program),
+		theLock:        &sync.RWMutex{},
+		Namespaces:     make(map[string]*Namespace),
+		Programs:       make(map[string]*Program),
+		validated:      0,
+		validationOnce: &sync.Once{},
+		committed:      0,
+		commitOnce:     &sync.Once{},
 	}
 }
 

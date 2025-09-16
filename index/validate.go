@@ -1,6 +1,7 @@
 package index
 
 import (
+	"cmp"
 	"context"
 	"strings"
 
@@ -13,28 +14,56 @@ import (
 // Checks for:
 // - Cyclic dependencies
 func (idx *Index) Validate(ctx context.Context) error {
-	if err := idx.detectRuleCycle(ctx); err != nil {
+	idx.validationOnce.Do(func() {
+		idx.validationError = idx.validate(ctx)
+		idx.validationError = errors.Wrapf(idx.validationError, "validation error")
+		idx.validated = 1
+
+		if idx.validationError != nil {
+			// we couldn't validate the index, so we can't commit
+			return
+		}
+
+		if err := idx.Commit(ctx); err != nil {
+			return
+		}
+	})
+	return idx.validationError
+}
+
+func (idx *Index) IsValid(ctx context.Context) error {
+	return idx.Validate(ctx)
+}
+
+func (idx *Index) validate(ctx context.Context) error {
+	rg, err := idx.detectRuleCycle(ctx)
+	if err != nil {
 		return err
 	}
-	if err := idx.detectShapeCycle(ctx); err != nil {
+	sg, err := idx.detectShapeCycle(ctx)
+	if err != nil {
 		return err
 	}
+
+	idx.ruleDag = rg
+	idx.shapeDag = sg
+
 	return nil
 }
 
-func (idx *Index) detectRuleCycle(ctx context.Context) error {
+func (idx *Index) detectRuleCycle(ctx context.Context) (dag.G[*Rule], error) {
 	ruleDag := dag.New[*Rule]()
 
 	for _, ns := range idx.Namespaces {
 		select {
 		case <-ctx.Done():
-			return errors.Wrapf(ErrIndex, "validation cancelled")
+			return nil, errors.Wrapf(ErrIndex, "validation cancelled")
 		default:
 		}
 
 		for _, policy := range ns.Policies {
 			if ctx.Err() != nil {
-				return errors.Wrapf(ErrIndex, "validation cancelled")
+				return nil, errors.Wrapf(ErrIndex, "validation cancelled")
 			}
 			for _, rule := range policy.Rules {
 				ruleDag.AddNode(rule)
@@ -45,17 +74,17 @@ func (idx *Index) detectRuleCycle(ctx context.Context) error {
 	// now that we added all the nodes, we need to add the edges
 	for _, ns := range idx.Namespaces {
 		if ctx.Err() != nil {
-			return errors.Wrapf(ErrIndex, "validation cancelled")
+			return nil, errors.Wrapf(ErrIndex, "validation cancelled")
 		}
 
 		for _, policy := range ns.Policies {
 			if ctx.Err() != nil {
-				return errors.Wrapf(ErrIndex, "validation cancelled")
+				return nil, errors.Wrapf(ErrIndex, "validation cancelled")
 			}
 			// add the edges for the policy rules
 			for _, rule := range policy.Rules {
 				if ctx.Err() != nil {
-					return errors.Wrapf(ErrIndex, "validation cancelled")
+					return nil, errors.Wrapf(ErrIndex, "validation cancelled")
 				}
 				if importClause, ok := rule.Body.(*ast.ImportClause); ok {
 					var ns, pol string
@@ -71,10 +100,10 @@ func (idx *Index) detectRuleCycle(ctx context.Context) error {
 
 					p, err := idx.ResolvePolicy(ns, pol)
 					if err != nil {
-						return errors.Wrapf(ErrIndex, "error resolving policy: %s", err)
+						return nil, errors.Wrapf(ErrIndex, "error resolving policy: %s", err)
 					}
 					if err := ruleDag.AddEdge(rule, p.Rules[importClause.RuleToImport]); err != nil {
-						return errors.Wrapf(ErrIndex, "error adding edge: %s", err)
+						return nil, errors.Wrapf(ErrIndex, "error adding edge: %s", err)
 					}
 				}
 			}
@@ -87,32 +116,32 @@ func (idx *Index) detectRuleCycle(ctx context.Context) error {
 		for _, node := range paths[0] {
 			pathStr = append(pathStr, node.String())
 		}
-		return errors.Wrapf(ErrIndex, "detected cyclic dependency in rules: %s", strings.Join(pathStr, " -> "))
+		return nil, errors.Wrapf(ErrIndex, "detected cyclic dependency in rules: %s", strings.Join(pathStr, " -> "))
 	}
 
-	return nil
+	return ruleDag, nil
 }
 
-func (idx *Index) detectShapeCycle(ctx context.Context) error {
+func (idx *Index) detectShapeCycle(ctx context.Context) (dag.G[*Shape], error) {
 	shapeDag := dag.New[*Shape]()
 
 	for _, ns := range idx.Namespaces {
 		select {
 		case <-ctx.Done():
-			return errors.Wrapf(ErrIndex, "validation cancelled")
+			return nil, errors.Wrapf(ErrIndex, "validation cancelled")
 		default:
 		}
 
 		for _, shape := range ns.Shapes {
 			if ctx.Err() != nil {
-				return errors.Wrapf(ErrIndex, "validation cancelled")
+				return nil, errors.Wrapf(ErrIndex, "validation cancelled")
 			}
 			shapeDag.AddNode(shape)
 		}
 
 		for _, policy := range ns.Policies {
 			if ctx.Err() != nil {
-				return errors.Wrapf(ErrIndex, "validation cancelled")
+				return nil, errors.Wrapf(ErrIndex, "validation cancelled")
 			}
 			for _, shape := range policy.Shapes {
 				shapeDag.AddNode(shape)
@@ -124,28 +153,35 @@ func (idx *Index) detectShapeCycle(ctx context.Context) error {
 
 	for _, ns := range idx.Namespaces {
 		if ctx.Err() != nil {
-			return errors.Wrapf(ErrIndex, "validation cancelled")
+			return nil, errors.Wrapf(ErrIndex, "validation cancelled")
 		}
 		// add the edges for the namespace shapes
 		for _, shape := range ns.Shapes {
 			if ctx.Err() != nil {
-				return errors.Wrapf(ErrIndex, "validation cancelled")
+				return nil, errors.Wrapf(ErrIndex, "validation cancelled")
 			}
-			if shape.Complex != nil && len(shape.Complex.WithFQN) > 0 {
-				// find the shape with the FQN
-				withShape, ok := ns.Shapes[shape.Complex.WithFQN.String()]
-				if !ok {
-					return errors.Wrapf(ErrIndex, "shape not found: %s at %s", shape.Complex.WithFQN.String(), shape.Statement.Pos)
-				}
-				if err := shapeDag.AddEdge(shape, withShape); err != nil {
-					return errors.Wrapf(ErrIndex, "error adding edge: %s", err)
-				}
+			if shape.Complex == nil || len(shape.Complex.WithFQN) == 0 {
+				continue
+			}
+
+			withShape, err := idx.ResolveShape(
+				cmp.Or( // if there's no parent namespace, use the namespace FQN
+					shape.Complex.WithFQN.Parent().String(),
+					shape.Namespace.FQN.String(),
+				),
+				shape.Complex.WithFQN.LastSegment())
+			if err != nil {
+				return nil, errors.Wrapf(ErrIndex, "error resolving shape: %s", err)
+			}
+			// find the shape with the FQN
+			if err := shapeDag.AddEdge(shape, withShape); err != nil {
+				return nil, errors.Wrapf(ErrIndex, "error adding edge: %s", err)
 			}
 		}
 
 		for _, policy := range ns.Policies {
 			if ctx.Err() != nil {
-				return errors.Wrapf(ErrIndex, "validation cancelled")
+				return nil, errors.Wrapf(ErrIndex, "validation cancelled")
 			}
 			// add the edges for the policy shapes
 			for _, shape := range policy.Shapes {
@@ -153,10 +189,10 @@ func (idx *Index) detectShapeCycle(ctx context.Context) error {
 					// find the shape with the FQN
 					withShape, ok := ns.Shapes[shape.Complex.WithFQN.String()]
 					if !ok {
-						return errors.Wrapf(ErrIndex, "shape not found: %s at %s", shape.Complex.WithFQN.String(), shape.Statement.Pos)
+						return nil, errors.Wrapf(ErrIndex, "shape not found: %s at %s", shape.Complex.WithFQN.String(), shape.Statement.Pos)
 					}
 					if err := shapeDag.AddEdge(shape, withShape); err != nil {
-						return errors.Wrapf(ErrIndex, "error adding edge: %s", err)
+						return nil, errors.Wrapf(ErrIndex, "error adding edge: %s", err)
 					}
 				}
 			}
@@ -169,8 +205,8 @@ func (idx *Index) detectShapeCycle(ctx context.Context) error {
 		for _, node := range paths[0] {
 			pathStr = append(pathStr, node.String())
 		}
-		return errors.Wrapf(ErrIndex, "detected cyclic dependencies in shapes: %s", strings.Join(pathStr, " -> "))
+		return nil, errors.Wrapf(ErrIndex, "detected cyclic dependencies in shapes: %s", strings.Join(pathStr, " -> "))
 	}
 
-	return nil
+	return shapeDag, nil
 }

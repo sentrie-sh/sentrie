@@ -22,7 +22,7 @@ import (
 
 type RuleExportAttachment struct {
 	Name  string
-	Alias string
+	Value ast.Expression
 }
 
 // ExportedRule captures an exported rule's name and its attachment names.
@@ -75,12 +75,10 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 		knownIdentifiers: make(map[string]positionable),
 	}
 
-	for _, stmt := range policy.Statements {
+	for idx, stmt := range policy.Statements {
 		if _, ok := stmt.(*ast.CommentStatement); ok {
 			continue
 		}
-
-		p.Statements = append(p.Statements, stmt)
 
 		switch stmt := stmt.(type) {
 		case *ast.ShapeStatement:
@@ -88,13 +86,28 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 				return nil, err
 			}
 		case *ast.UseStatement:
+			// nothing should precede a use statement expect comments and facts
+			if idx > 0 {
+				if _, ok := policy.Statements[idx-1].(*ast.CommentStatement); !ok {
+					if _, ok := policy.Statements[idx-1].(*ast.FactStatement); !ok {
+						return nil, errors.Wrapf(ErrIndex, "'use' statement must be immediately after facts have been declared in a policy at %s", stmt.Position())
+					}
+				}
+			}
 			p.Uses = append(p.Uses, stmt)
+
 		case *ast.VarDeclaration:
 			if err := p.AddLet(stmt); err != nil {
 				return nil, err
 			}
 
 		case *ast.FactStatement:
+			// nothing should precede a fact statement expect comments
+			if idx > 0 {
+				if _, ok := policy.Statements[idx-1].(*ast.CommentStatement); !ok {
+					return nil, errors.Wrapf(ErrIndex, "fact statement must be the first statement in a policy at %s", stmt.Position())
+				}
+			}
 			if err := p.AddFact(stmt); err != nil {
 				return nil, err
 			}
@@ -120,7 +133,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 					return nil, errors.Wrapf(ErrIndex, "rule export attachment conflict: '%s' at %s", a.What, a.Pos)
 				}
 
-				att = append(att, &RuleExportAttachment{Name: a.What, Alias: a.As})
+				att = append(att, &RuleExportAttachment{Name: a.What, Value: a.As})
 			}
 			p.RuleExports[stmt.Of] = ExportedRule{RuleName: stmt.Of, Attachments: att}
 		default:

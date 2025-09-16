@@ -20,71 +20,7 @@ import (
 
 	"github.com/binaek/sentra/ast"
 	"github.com/binaek/sentra/xerr"
-	"github.com/pkg/errors"
 )
-
-// Extract components according to the specification:
-// - Last segment is the rule name (optional)
-// - Second to last segment is the policy name
-// - Everything before that is the namespace
-func (idx *Index) SegmentsFromPath(path string) (ns, policy, rule string, err error) {
-	// split by .
-	parts := strings.Split(path, "/")
-	// start joining the parts, until we have a namespace, or we run out of parts
-
-	nsName := ""
-	for {
-		nextPart := parts[0]
-		parts = parts[1:]
-
-		if nextPart == "" {
-			continue
-		}
-		if len(nsName) == 0 {
-			nsName = nextPart
-		} else {
-			nsName = strings.Join([]string{nsName, nextPart}, ast.FQNSeparator)
-		}
-		n, err := idx.ResolveNamespace(nsName)
-		if errors.Is(err, xerr.NotFoundError{}) {
-			continue
-		}
-
-		// if we have an error, and it's not a namespace not found error, return the error
-		if err != nil {
-			return "", "", "", err
-		}
-
-		if n != nil {
-			nsName = n.FQN.String()
-			break
-		}
-		if len(parts) == 0 {
-			return "", "", "", xerr.ErrNamespaceNotFound(path)
-		}
-	}
-
-	// if we do not have at least 1 part left, return an error - it's a problem - we MUST have a policy name
-	if len(parts) == 0 {
-		return "", "", "", xerr.ErrPolicyNotFound(path)
-	}
-
-	// we have a namespace, the next segment is the policy name
-	policyName, parts := parts[0], parts[1:]
-	_, err = idx.ResolvePolicy(nsName, policyName)
-	if err != nil {
-		return "", "", "", err
-	}
-
-	// we have a policy, the next segment is the rule name
-	ruleName := ""
-
-	if len(parts) > 0 {
-		ruleName = parts[0]
-	}
-
-	return nsName, policyName, ruleName, nil
-}
 
 func (idx *Index) ResolveNamespace(ns string) (*Namespace, error) {
 	n := idx.Namespaces[ns]
@@ -133,7 +69,18 @@ func (p Policy) VerifyRuleExported(rule string) error {
 	return nil
 }
 
+func (ns Namespace) VerifyShapeExported(shape string) error {
+	if _, ok := ns.ShapeExports[shape]; !ok {
+		return xerr.ErrNotExported(ShapeFQN(ns.FQN.String(), shape))
+	}
+	return nil
+}
+
 // FQN utilities
 func RuleFQN(ns, policy, rule string) string {
-	return ns + ast.FQNSeparator + policy + ast.FQNSeparator + rule
+	return strings.Join([]string{ns, policy, rule}, ast.FQNSeparator)
+}
+
+func ShapeFQN(ns, shape string) string {
+	return strings.Join([]string{ns, shape}, ast.FQNSeparator)
 }
