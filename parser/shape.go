@@ -44,6 +44,10 @@ func parseShapeStatement(ctx context.Context, p *Parser) ast.Statement {
 		stmt.Simple = parseTypeRef(ctx, p)
 	}
 
+	if stmt.Simple == nil && stmt.Complex == nil /* both cannot be nil */ {
+		return nil
+	}
+
 	return stmt
 }
 

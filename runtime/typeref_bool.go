@@ -24,7 +24,7 @@ import (
 
 func validateAgainstBoolTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.BoolTypeRef) error {
 	if _, ok := v.(bool); !ok {
-		return errors.Errorf("value %v is not a bool", v)
+		return errors.Errorf("value '%v' is not a bool", v)
 	}
 	return nil
 }

@@ -95,7 +95,7 @@ func (p *Parser) advanceExpected(kind tokens.Kind) (tokens.Instance, bool) {
 
 func (p *Parser) expect(kind tokens.Kind) bool {
 	if p.current.Kind != kind {
-		p.errorf("expected %s, got %s at %s", kind, p.current.Kind, p.current.Position)
+		p.errorf("expected '%s', got %s at %s", kind, p.current.Kind, p.current.Position)
 		return false
 	}
 	_ = p.advance()

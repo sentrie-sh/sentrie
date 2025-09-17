@@ -30,22 +30,30 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 	shapeFqn := typeRef.Ref.String()
 
 	// look for the shape in the policy
-	if s, ok := p.Shapes[shapeFqn]; ok {
-		shape = s
-	}
+	shape, ok := p.Shapes[shapeFqn]
 
-	if shape == nil {
-		if len(typeRef.Ref) < 2 {
-			// this is a problem - we can't have a shape without a namespace and name
-			return xerr.ErrShapeNotFound(shapeFqn)
-		}
-		// if the fqn is a fully qualified name, try to resolve it
-		shapeName, ns := typeRef.Ref[len(typeRef.Ref)-1], typeRef.Ref[:len(typeRef.Ref)-1]
-		s, err := exec.Index().ResolveShape(ns.String(), shapeName)
+	// we couldn't find the shape in the policy - go global.
+	// lookup the index with the shape
+	if !ok && len(typeRef.Ref) > 2 {
+		ns := typeRef.Ref.Parent()
+		name := typeRef.Ref.LastSegment()
+
+		// get the namespace
+		nnamepace, err := exec.Index().ResolveNamespace(ns.String())
 		if err != nil {
 			return err
 		}
-		shape = s
+		if nnamepace == nil {
+			return xerr.ErrNamespaceNotFound(ns.String())
+		}
+		if err := nnamepace.VerifyShapeExported(name); err != nil {
+			return err
+		}
+
+		shape, err = exec.Index().ResolveShape(ns.String(), name)
+		if err != nil {
+			return err
+		}
 	}
 
 	// if we still don't have a shape, return an error

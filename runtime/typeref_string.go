@@ -65,6 +65,26 @@ var stringContraintCheckers map[string]constraintChecker[string] = map[string]co
 		}
 		return nil
 	},
+	"minlength": func(ctx context.Context, p *index.Policy, val string, args []any) error {
+		if len(args) != 1 {
+			return fmt.Errorf("minlength constraint requires 1 argument")
+		}
+		expectedLen := args[0].(int64)
+		if len(val) < int(expectedLen) {
+			return fmt.Errorf("string length %d is not greater than or equal to %d", len(val), expectedLen)
+		}
+		return nil
+	},
+	"maxlength": func(ctx context.Context, p *index.Policy, val string, args []any) error {
+		if len(args) != 1 {
+			return fmt.Errorf("maxlength constraint requires 1 argument")
+		}
+		expectedLen := args[0].(int64)
+		if len(val) > int(expectedLen) {
+			return fmt.Errorf("string length %d is not less than or equal to %d", len(val), expectedLen)
+		}
+		return nil
+	},
 	"regexp": func(ctx context.Context, p *index.Policy, val string, args []any) error {
 		if len(args) != 1 {
 			return fmt.Errorf("regexp constraint requires 1 argument")
@@ -198,5 +218,17 @@ var stringContraintCheckers map[string]constraintChecker[string] = map[string]co
 			}
 		}
 		return fmt.Errorf("string %q is not one of the allowed values", val)
+	},
+	"not_one_of": func(ctx context.Context, p *index.Policy, val string, args []any) error {
+		if len(args) < 1 {
+			return fmt.Errorf("not_one_of constraint requires at least 1 argument")
+		}
+		for _, arg := range args {
+			if val == arg.(string) {
+				return fmt.Errorf("string %q is one of the allowed values", val)
+			}
+		}
+
+		return nil
 	},
 }

@@ -112,7 +112,7 @@ func getTarget(_ context.Context, ec *ExecutionContext, p *index.Policy, c *ast.
 
 	modulebinding, ok := ec.Module(module)
 	if !ok {
-		e := xerr.ErrImportResolution(module, p.Namespace.FQN.String())
+		e := xerr.ErrModuleInvocation(module, fn)
 		return nil, e
 	}
 

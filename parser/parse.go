@@ -20,7 +20,6 @@ import (
 
 	"github.com/binaek/sentra/ast"
 	"github.com/binaek/sentra/tokens"
-	"github.com/pkg/errors"
 )
 
 func (p *Parser) ParseProgram(ctx context.Context) (*ast.Program, error) {
@@ -63,9 +62,8 @@ func (p *Parser) ParseProgram(ctx context.Context) (*ast.Program, error) {
 	}
 
 	if firstStmt == nil {
-		err := errors.Wrapf(ErrParse, "no namespace in program at %s", p.reference)
-		p.err = err
-		return nil, err
+		// nothing to do here - a file with a bunch of comments is valid
+		return prg, nil
 	}
 
 	// Check if first non-comment statement is namespace
