@@ -40,7 +40,7 @@ type ExecutionContext struct {
 
 	locals map[string]any // evaluated local values
 
-	modules map[string]ModuleBinding // alias -> module binding (for `use`)
+	modules map[string]*ModuleBinding // alias -> module binding (for `use`)
 }
 
 func NewExecutionContext(policy *index.Policy) *ExecutionContext {
@@ -50,7 +50,7 @@ func NewExecutionContext(policy *index.Policy) *ExecutionContext {
 		facts:   make(map[string]any),
 		locals:  make(map[string]any),
 		lets:    make(map[string]*ast.VarDeclaration),
-		modules: make(map[string]ModuleBinding),
+		modules: make(map[string]*ModuleBinding),
 	}
 }
 
@@ -66,7 +66,7 @@ func (ec *ExecutionContext) AttachedChildContext() *ExecutionContext {
 		facts:   nil,       // a child context should not have facts at all
 		locals:  make(map[string]any),
 		lets:    make(map[string]*ast.VarDeclaration),
-		modules: ec.modules,
+		modules: ec.modules, // inherit the module bindings from the parent
 	}
 }
 
@@ -153,13 +153,13 @@ func (ec *ExecutionContext) GetLet(name string) (*ast.VarDeclaration, bool) {
 	return v, ok
 }
 
-func (ec *ExecutionContext) BindModule(alias string, m ModuleBinding) {
+func (ec *ExecutionContext) BindModule(alias string, m *ModuleBinding) {
 	ec.mu.Lock()
 	defer ec.mu.Unlock()
 	ec.modules[alias] = m
 }
 
-func (ec *ExecutionContext) Module(alias string) (ModuleBinding, bool) {
+func (ec *ExecutionContext) Module(alias string) (*ModuleBinding, bool) {
 	ec.mu.Lock()
 	defer ec.mu.Unlock()
 	m, ok := ec.modules[alias]

@@ -68,7 +68,6 @@ func (r *Registry) RegisterGoBuiltin(name string, provider GoModuleProvider) {
 // Resolve a "use" style reference into a canonical registry key + filesystem path.
 func (r *Registry) resolveUse(localFrom string, libFrom []string, fileDir string) (key, path, dir string, builtin bool, err error) {
 	if len(libFrom) > 0 {
-		// we have a use statement with a `@vendor/lib/sublib` style reference
 		switch libFrom[0] {
 		case constants.APPNAME:
 			key = "@" + constants.APPNAME + "/" + filepath.ToSlash(filepath.Join(libFrom[1:]...))

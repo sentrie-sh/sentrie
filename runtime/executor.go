@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/binaek/sentra/ast"
 	"github.com/binaek/sentra/index"
@@ -49,6 +50,7 @@ type Executor interface {
 type executorImpl struct {
 	index            *index.Index
 	jsRegistry       *js.Registry
+	moduleBinding    *perch.Perch[*ModuleBinding] // --> (policy.useAlias) -> module binding
 	callMemoizePerch *perch.Perch[any]
 }
 
@@ -57,6 +59,7 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) Executor {
 	exec := &executorImpl{
 		index:            idx,
 		jsRegistry:       js.NewRegistry(idx.Pack.Location),
+		moduleBinding:    perch.New[*ModuleBinding](100 << 20 /* 100 MB */), // --> (policy.useAlias) -> module binding
 		callMemoizePerch: perch.New[any](10 << 20 /* 10 MB */),
 	}
 
@@ -226,13 +229,31 @@ func (e *executorImpl) bindUses(ctx context.Context, ec *ExecutionContext, p *in
 	if err != nil {
 		return err
 	}
+
 	for _, use := range p.Uses {
-		// Resolve and ensure program exists
 		ms, err := e.jsRegistry.PrepareUse(use.RelativeFrom, use.LibFrom, fileDir)
 		if err != nil {
 			return err
 		}
 
+		// Resolve and ensure program exists
+		binding, err := e.getModuleBinding(ctx, use, ms)
+		if err != nil {
+			return err
+		}
+
+		ec.BindModule(use.As, binding)
+	}
+	return nil
+}
+
+// getModuleBinding resolves and caches a module binding for a given use statement and module spec.
+func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStatement, ms *js.ModuleSpec) (*ModuleBinding, error) {
+	// we will cache the module binding for 1 hour
+	// TODO: make this configurable
+	cacheDuration := 1 * time.Hour
+
+	return e.moduleBinding.Get(ctx, ms.KeyOrPath(), cacheDuration, func(ctx context.Context, _ string) (*ModuleBinding, error) {
 		vmPool, err := puddle.NewPool(&puddle.Config[*JSInstance]{
 			Constructor: func(ctx context.Context) (*JSInstance, error) {
 				return e.jsBindingConstructor(ctx, use, ms)
@@ -242,22 +263,18 @@ func (e *executorImpl) bindUses(ctx context.Context, ec *ExecutionContext, p *in
 			},
 			MaxSize: 10,
 		})
-
 		if err != nil {
-			return err
+			return nil, err
 		}
-
 		// warm up the pool - this will create a couple of VMs - and also verify that we can actually acquire them
 		if err := vmPool.CreateResource(ctx); err != nil {
-			return err
+			return nil, err
 		}
-
-		ec.BindModule(use.As, ModuleBinding{
+		return &ModuleBinding{
 			Alias:  use.As,
 			VMPool: vmPool,
-		})
-	}
-	return nil
+		}, nil
+	})
 }
 
 // evaluateRuleOutcome drives rule evaluation and returns (value, node, error).
