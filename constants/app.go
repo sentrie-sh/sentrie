@@ -15,7 +15,7 @@
 package constants
 
 const (
-	APPNAME    = "sentra"
+	APPNAME    = "sentrie"
 	APPVERSION = "0.1.0"
 
 	PackFileExtension   = "pack.toml"

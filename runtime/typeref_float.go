@@ -25,7 +25,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func validateAgainstFloatTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.FloatTypeRef) error {
+func validateAgainstFloatTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.FloatTypeRef, expr ast.Expression) error {
 	if _, ok := v.(float64); !ok {
 		return errors.Errorf("value %v is not a float64", v)
 	}
@@ -40,11 +40,11 @@ func validateAgainstFloatTypeRef(ctx context.Context, ec *ExecutionContext, exec
 			args[i] = csArg
 		}
 		if _, ok := floatContraintCheckers[constraint.Name]; !ok {
-			return errors.Errorf("unknown constraint: %s applied to float64 at %s", constraint.Name, typeRef.Position())
+			return ErrUnknownConstraint(constraint)
 		}
 
 		if err := floatContraintCheckers[constraint.Name](ctx, p, v.(float64), args); err != nil {
-			return errors.Wrapf(err, "constraint is not valid")
+			return ErrConstraintFailed(expr, constraint, err)
 		}
 	}
 	return nil

@@ -22,10 +22,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-func validateAgainstDocumentTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.DocumentTypeRef) error {
+func validateAgainstDocumentTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.DocumentTypeRef, expr ast.Expression) error {
 	// just validate that it's a map
 	if _, ok := v.(map[string]any); !ok {
-		return errors.Errorf("value %v is not a document", v)
+		return errors.Errorf("value %v is not a document at %s - expected document", v, expr.Position())
 	}
 
 	for _, constraint := range typeRef.GetConstraints() {
@@ -38,11 +38,11 @@ func validateAgainstDocumentTypeRef(ctx context.Context, ec *ExecutionContext, e
 			args[i] = csArg
 		}
 		if _, ok := documentContraintCheckers[constraint.Name]; !ok {
-			return errors.Errorf("unknown constraint: %s applied to document at %s", constraint.Name, typeRef.Position())
+			return ErrUnknownConstraint(constraint)
 		}
 
 		if err := documentContraintCheckers[constraint.Name](ctx, p, v.(map[string]any), args); err != nil {
-			return errors.Wrapf(err, "constraint is not valid")
+			return ErrConstraintFailed(expr, constraint, err)
 		}
 	}
 

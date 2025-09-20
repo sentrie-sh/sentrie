@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func validateAgainstMapTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.MapTypeRef) error {
+func validateAgainstMapTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.MapTypeRef, expr ast.Expression) error {
 	if _, ok := v.(map[string]any); !ok {
 		return errors.Errorf("value %v is not a map", v)
 	}
@@ -37,11 +37,11 @@ func validateAgainstMapTypeRef(ctx context.Context, ec *ExecutionContext, exec E
 			args[i] = csArg
 		}
 		if _, ok := mapContraintCheckers[constraint.Name]; !ok {
-			return errors.Errorf("unknown constraint: %s applied to map at %s", constraint.Name, typeRef.Position())
+			return ErrUnknownConstraint(constraint)
 		}
 
 		if err := mapContraintCheckers[constraint.Name](ctx, p, v.(map[string]any), args); err != nil {
-			return errors.Wrapf(err, "constraint is not valid")
+			return ErrConstraintFailed(expr, constraint, err)
 		}
 	}
 

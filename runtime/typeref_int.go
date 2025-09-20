@@ -9,9 +9,9 @@ import (
 	"github.com/binaek/sentra/index"
 )
 
-func validateAgainstIntTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, val any, typeRef *ast.IntTypeRef) error {
+func validateAgainstIntTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, val any, typeRef *ast.IntTypeRef, expr ast.Expression) error {
 	if _, ok := val.(int64); !ok {
-		return fmt.Errorf("value %v is not an int64", val)
+		return fmt.Errorf("value %v is not an int at %s - expected int", val, expr.Position())
 	}
 
 	for _, constraint := range typeRef.GetConstraints() {
@@ -24,11 +24,11 @@ func validateAgainstIntTypeRef(ctx context.Context, ec *ExecutionContext, exec E
 			args[i] = csArg
 		}
 		if _, ok := intContraintCheckers[constraint.Name]; !ok {
-			return fmt.Errorf("unknown constraint: %s applied to int64 at %s", constraint.Name, typeRef.Position())
+			return ErrUnknownConstraint(constraint)
 		}
 
 		if err := intContraintCheckers[constraint.Name](ctx, p, val.(int64), args); err != nil {
-			return err
+			return ErrConstraintFailed(expr, constraint, err)
 		}
 	}
 
@@ -42,7 +42,7 @@ var intContraintCheckers map[string]constraintChecker[int64] = map[string]constr
 		}
 		arg := args[0].(int64)
 		if val < arg {
-			return fmt.Errorf("value %v is not an int64", val)
+			return fmt.Errorf("value %v is not greater than or equal to %v", val, arg)
 		}
 		return nil
 	},
@@ -52,7 +52,7 @@ var intContraintCheckers map[string]constraintChecker[int64] = map[string]constr
 		}
 		arg := args[0].(int64)
 		if val > arg {
-			return fmt.Errorf("value %v is not an int64", val)
+			return fmt.Errorf("value %v is not less than or equal to %v", val, arg)
 		}
 		return nil
 	},
@@ -62,7 +62,7 @@ var intContraintCheckers map[string]constraintChecker[int64] = map[string]constr
 		}
 		arg := args[0].(int64)
 		if val != arg {
-			return fmt.Errorf("value %v is not an int64", val)
+			return fmt.Errorf("value %v is not equal to %v", val, arg)
 		}
 		return nil
 	},
@@ -72,7 +72,7 @@ var intContraintCheckers map[string]constraintChecker[int64] = map[string]constr
 		}
 		arg := args[0].(int64)
 		if val == arg {
-			return fmt.Errorf("value %v is not an int64", val)
+			return fmt.Errorf("value %v is not not equal to %v", val, arg)
 		}
 		return nil
 	},
@@ -82,7 +82,7 @@ var intContraintCheckers map[string]constraintChecker[int64] = map[string]constr
 		}
 		arg := args[0].(int64)
 		if val <= arg {
-			return fmt.Errorf("value %v is not an int64", val)
+			return fmt.Errorf("value %v is not greater than %v", val, arg)
 		}
 		return nil
 	},
@@ -92,7 +92,7 @@ var intContraintCheckers map[string]constraintChecker[int64] = map[string]constr
 		}
 		arg := args[0].(int64)
 		if val >= arg {
-			return fmt.Errorf("value %v is not an int64", val)
+			return fmt.Errorf("value %v is not less than %v", val, arg)
 		}
 		return nil
 	},
@@ -109,7 +109,7 @@ var intContraintCheckers map[string]constraintChecker[int64] = map[string]constr
 			set = []int64{args[0].(int64)}
 		}
 		if !slices.Contains(set, val) {
-			return fmt.Errorf("value %v is not an int64", val)
+			return fmt.Errorf("value %v is not in the set - expected in the set", val)
 		}
 		return nil
 	},
@@ -127,7 +127,7 @@ var intContraintCheckers map[string]constraintChecker[int64] = map[string]constr
 		}
 
 		if slices.Contains(set, val) {
-			return fmt.Errorf("value %v is in the set", val)
+			return fmt.Errorf("value %v is in the set - expected not in the set", val)
 		}
 		return nil
 	},
@@ -157,37 +157,37 @@ var intContraintCheckers map[string]constraintChecker[int64] = map[string]constr
 	},
 	"even": func(ctx context.Context, p *index.Policy, val int64, args []any) error {
 		if val%2 != 0 {
-			return fmt.Errorf("value %v is not even", val)
+			return fmt.Errorf("value %v is not even - expected even", val)
 		}
 		return nil
 	},
 	"odd": func(ctx context.Context, p *index.Policy, val int64, args []any) error {
 		if val%2 == 0 {
-			return fmt.Errorf("value %v is not odd", val)
+			return fmt.Errorf("value %v is not odd - expected odd", val)
 		}
 		return nil
 	},
 	"positive": func(ctx context.Context, p *index.Policy, val int64, args []any) error {
 		if val <= 0 {
-			return fmt.Errorf("value %v is not positive", val)
+			return fmt.Errorf("value %v is not positive - expected positive", val)
 		}
 		return nil
 	},
 	"negative": func(ctx context.Context, p *index.Policy, val int64, args []any) error {
 		if val >= 0 {
-			return fmt.Errorf("value %v is not negative", val)
+			return fmt.Errorf("value %v is not negative - expected negative", val)
 		}
 		return nil
 	},
 	"non_negative": func(ctx context.Context, p *index.Policy, val int64, args []any) error {
 		if val < 0 {
-			return fmt.Errorf("value %v is negative", val)
+			return fmt.Errorf("value %v is negative - expected non-negative", val)
 		}
 		return nil
 	},
 	"non_positive": func(ctx context.Context, p *index.Policy, val int64, args []any) error {
 		if val > 0 {
-			return fmt.Errorf("value %v is positive", val)
+			return fmt.Errorf("value %v is positive - expected non-positive", val)
 		}
 		return nil
 	},

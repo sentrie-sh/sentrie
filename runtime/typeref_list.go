@@ -23,14 +23,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-func validateAgainstListTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.ListTypeRef) error {
+func validateAgainstListTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.ListTypeRef, expr ast.Expression) error {
 	if _, ok := v.([]any); !ok {
-		return errors.Errorf("value %v is not an array", v)
+		return errors.Errorf("value %v is not an array at %s - expected array", v, expr.Position())
 	}
 
 	for _, item := range v.([]any) {
-		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, item, typeRef.ElemType); err != nil {
-			return errors.Wrapf(err, "item is not valid")
+		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, item, typeRef.ElemType, expr); err != nil {
+			return errors.Wrapf(err, "item is not valid at %s", expr.Position()) // TODO: improve this error message
 		}
 	}
 
@@ -44,11 +44,11 @@ func validateAgainstListTypeRef(ctx context.Context, ec *ExecutionContext, exec 
 			args[i] = csArg
 		}
 		if _, ok := listContraintCheckers[constraint.Name]; !ok {
-			return errors.Errorf("unknown constraint: %s applied to int64 at %s", constraint.Name, typeRef.Position())
+			return ErrUnknownConstraint(constraint)
 		}
 
 		if err := listContraintCheckers[constraint.Name](ctx, p, v.([]any), args); err != nil {
-			return errors.Wrapf(err, "constraint is not valid")
+			return ErrConstraintFailed(expr, constraint, err)
 		}
 	}
 
@@ -58,7 +58,7 @@ func validateAgainstListTypeRef(ctx context.Context, ec *ExecutionContext, exec 
 var listContraintCheckers map[string]constraintChecker[[]any] = map[string]constraintChecker[[]any]{
 	"not_empty": func(ctx context.Context, p *index.Policy, val []any, args []any) error {
 		if len(val) == 0 {
-			return fmt.Errorf("list is empty")
+			return fmt.Errorf("list is empty - expected non-empty list")
 		}
 		return nil
 	},

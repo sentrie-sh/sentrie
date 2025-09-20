@@ -155,8 +155,7 @@ func resolveBindings(port int, listen []string) ([]string, error) {
 	return addresses, nil
 }
 
-// StartServer starts the HTTP server on the specified addresses
-func (api *HTTPAPI) StartServer(ctx context.Context, port int64, listen []string) error {
+func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error {
 	mux := http.NewServeMux()
 
 	// Register the decision endpoint using Go 1.24 syntax
@@ -165,7 +164,7 @@ func (api *HTTPAPI) StartServer(ctx context.Context, port int64, listen []string
 	// Health check endpoint
 	mux.Handle("GET /health", http.HandlerFunc(api.handleHealth))
 
-	bindings, err := resolveBindings(int(port), listen)
+	bindings, err := resolveBindings(port, listen)
 	if err != nil {
 		return err
 	}
@@ -192,7 +191,11 @@ func (api *HTTPAPI) StartServer(ctx context.Context, port int64, listen []string
 		}))
 		slog.DebugContext(ctx, "Listening on server", "binding", binding)
 	}
+	return nil
+}
 
+// StartServer starts the HTTP server on the specified addresses
+func (api *HTTPAPI) StartServer(ctx context.Context, port int, listen []string) {
 	// Start serving on all listeners
 	var wg sync.WaitGroup
 	errChan := make(chan error, len(api.listeners))
@@ -200,8 +203,17 @@ func (api *HTTPAPI) StartServer(ctx context.Context, port int64, listen []string
 	for _, ln := range api.listeners {
 		server := ln.Server
 		wg.Go(func() {
-			slog.DebugContext(ctx, "Decision endpoint available", "method", "POST", "url", fmt.Sprintf("http://%s/decision/{namespace}/{policy}/{rule}", ln.Listener.Addr().String()))
-			slog.DebugContext(ctx, "Health check endpoint available", "method", "GET", "url", fmt.Sprintf("http://%s/health", ln.Listener.Addr().String()))
+			slog.DebugContext(ctx,
+				"Decision endpoint available",
+				"method", "POST",
+				"address", ln.Listener.Addr().String(),
+				"url", fmt.Sprintf("http://%s/decision/{namespace}/{policy}/{rule}", ln.Listener.Addr().String()))
+
+			slog.DebugContext(ctx,
+				"Health check endpoint available",
+				slog.String("method", "GET"),
+				slog.String("address", ln.Listener.Addr().String()),
+				slog.String("url", fmt.Sprintf("http://%s/health", ln.Listener.Addr().String())))
 			if err := server.Serve(ln.Listener); err != nil && err != http.ErrServerClosed {
 				errChan <- err
 			}
@@ -213,7 +225,6 @@ func (api *HTTPAPI) StartServer(ctx context.Context, port int64, listen []string
 		close(errChan)
 	}()
 
-	return nil
 }
 
 // StopServer gracefully stops the HTTP server

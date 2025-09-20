@@ -43,7 +43,7 @@ func parseBlockExpression(ctx context.Context, p *Parser) ast.Expression {
 	var statements []ast.Statement
 
 	for p.canExpectAnyOf(tokens.KeywordLet, tokens.LineComment) {
-		stmt := parseStatement(ctx, p)
+		stmt := parsePolicyStatement(ctx, p)
 		if stmt == nil {
 			return nil // Error in parsing the block expression
 		}

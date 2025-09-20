@@ -35,25 +35,25 @@ func (r *RuntimeTestSuite) TestValidateAgainstBoolTypeRef() {
 			name:          "should return an error if the value is a string",
 			value:         "not a bool",
 			expectError:   true,
-			expectedError: "value 'not a bool' is not a bool",
+			expectedError: "value 'not a bool' is not a bool at :2:2 - expected bool",
 		},
 		{
 			name:          "should return an error if the value is an int64",
 			value:         int64(123),
 			expectError:   true,
-			expectedError: "value '123' is not a bool",
+			expectedError: "value '123' is not a bool at :2:2 - expected bool",
 		},
 		{
 			name:          "should return an error if the value is a float64",
 			value:         float64(123),
 			expectError:   true,
-			expectedError: "value '123' is not a bool",
+			expectedError: "value '123' is not a bool at :2:2 - expected bool",
 		},
 		{
 			name:          "should return an error if the value is a string number",
 			value:         "123",
 			expectError:   true,
-			expectedError: "value '123' is not a bool",
+			expectedError: "value '123' is not a bool at :2:2 - expected bool",
 		},
 		{
 			name:        "should not return an error if the value is true",
@@ -69,7 +69,12 @@ func (r *RuntimeTestSuite) TestValidateAgainstBoolTypeRef() {
 
 	for _, tt := range tests {
 		r.Run(tt.name, func() {
-			err := validateAgainstBoolTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef)
+			// Create a mock expression for the test
+			mockExpr := &ast.Identifier{
+				Pos:   tokens.Position{Line: 1, Column: 1},
+				Value: "test",
+			}
+			err := validateAgainstBoolTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
 
 			if tt.expectError {
 				r.Error(err)

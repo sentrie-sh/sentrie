@@ -20,9 +20,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/binaek/perch"
 	"github.com/binaek/sentra/ast"
 	"github.com/binaek/sentra/index"
-	"github.com/binaek/sentra/perch"
 	"github.com/binaek/sentra/runtime/js"
 	"github.com/binaek/sentra/runtime/trace"
 	"github.com/binaek/sentra/trinary"
@@ -55,7 +55,7 @@ type executorImpl struct {
 }
 
 // NewExecutor builds an Executor with built-in @sentra/* modules registered.
-func NewExecutor(idx *index.Index, opts ...NewExecutorOption) Executor {
+func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) {
 	exec := &executorImpl{
 		index:            idx,
 		jsRegistry:       js.NewRegistry(idx.Pack.Location),
@@ -71,7 +71,16 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) Executor {
 		opt(exec)
 	}
 
-	return exec
+	// Reserve the cache slots
+	if err := exec.moduleBinding.Reserve(); err != nil {
+		return nil, err
+	}
+
+	if err := exec.callMemoizePerch.Reserve(); err != nil {
+		return nil, err
+	}
+
+	return exec, nil
 }
 
 func (e *executorImpl) Index() *index.Index {
@@ -237,7 +246,7 @@ func (e *executorImpl) bindUses(ctx context.Context, ec *ExecutionContext, p *in
 		}
 
 		// Resolve and ensure program exists
-		binding, err := e.getModuleBinding(ctx, use, ms)
+		binding, _, err := e.getModuleBinding(ctx, use, ms)
 		if err != nil {
 			return err
 		}
@@ -248,7 +257,7 @@ func (e *executorImpl) bindUses(ctx context.Context, ec *ExecutionContext, p *in
 }
 
 // getModuleBinding resolves and caches a module binding for a given use statement and module spec.
-func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStatement, ms *js.ModuleSpec) (*ModuleBinding, error) {
+func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStatement, ms *js.ModuleSpec) (binding *ModuleBinding, _ bool, err error) {
 	// we will cache the module binding for 1 hour
 	// TODO: make this configurable
 	cacheDuration := 1 * time.Hour
@@ -283,7 +292,7 @@ func evaluateRuleOutcome(ctx context.Context, ec *ExecutionContext, e *executorI
 	defer done()
 
 	// `when` gate: (`when` is `true` by default)
-	whenVal := trinary.False
+	whenVal := trinary.True
 
 	// evaluate the when gate
 	if r.When != nil {
@@ -326,6 +335,6 @@ func evaluateRuleOutcome(ctx context.Context, ec *ExecutionContext, e *executorI
 	rb.Attach(bodyNode).SetResult(val).SetErr(err)
 	rn.Attach(rb)
 
-	// Otherwise, coerce to a *Decision using tristate.From(val)
+	// Coerce to a *Decision using tristate.From(val)
 	return DecisionOf(val), rn, err
 }

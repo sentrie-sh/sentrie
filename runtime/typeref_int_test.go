@@ -35,25 +35,25 @@ func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRef() {
 			name:          "should return an error if the value is a string",
 			value:         "not an int",
 			expectError:   true,
-			expectedError: "value not an int is not an int64",
+			expectedError: "value not an int is not an int at :2:2 - expected int",
 		},
 		{
 			name:          "should return an error if the value is a float64",
 			value:         float64(123.45),
 			expectError:   true,
-			expectedError: "value 123.45 is not an int64",
+			expectedError: "value 123.45 is not an int at :2:2 - expected int",
 		},
 		{
 			name:          "should return an error if the value is a bool",
 			value:         true,
 			expectError:   true,
-			expectedError: "value true is not an int64",
+			expectedError: "value true is not an int at :2:2 - expected int",
 		},
 		{
 			name:          "should return an error if the value is a string number",
 			value:         "123",
 			expectError:   true,
-			expectedError: "value 123 is not an int64",
+			expectedError: "value 123 is not an int at :2:2 - expected int",
 		},
 		{
 			name:        "should not return an error if the value is a positive int64",
@@ -74,7 +74,12 @@ func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRef() {
 
 	for _, tt := range tests {
 		r.Run(tt.name, func() {
-			err := validateAgainstIntTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef)
+			// Create a mock expression for the test
+			mockExpr := &ast.Identifier{
+				Pos:   tokens.Position{Line: 1, Column: 1},
+				Value: "test",
+			}
+			err := validateAgainstIntTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
 
 			if tt.expectError {
 				r.Error(err)
@@ -120,19 +125,24 @@ func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRefWithConstraints() {
 			name:          "should fail when value is zero",
 			value:         int64(0),
 			expectError:   true,
-			expectedError: "value 0 is not positive",
+			expectedError: "constraint failed",
 		},
 		{
 			name:          "should fail when value is negative",
 			value:         int64(-5),
 			expectError:   true,
-			expectedError: "value -5 is not positive",
+			expectedError: "constraint failed",
 		},
 	}
 
 	for _, tt := range tests {
 		r.Run(tt.name, func() {
-			err := validateAgainstIntTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef)
+			// Create a mock expression for the test
+			mockExpr := &ast.Identifier{
+				Pos:   tokens.Position{Line: 1, Column: 1},
+				Value: "test",
+			}
+			err := validateAgainstIntTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
 
 			if tt.expectError {
 				r.Error(err)
@@ -188,25 +198,30 @@ func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRefEdgeCases() {
 			name:          "should fail when value is odd",
 			value:         int64(3),
 			expectError:   true,
-			expectedError: "value 3 is not even",
+			expectedError: "constraint failed",
 		},
 		{
 			name:          "should fail when value is a large odd number",
 			value:         int64(1000001),
 			expectError:   true,
-			expectedError: "value 1000001 is not even",
+			expectedError: "constraint failed",
 		},
 		{
 			name:          "should fail when value is a negative odd number",
 			value:         int64(-3),
 			expectError:   true,
-			expectedError: "value -3 is not even",
+			expectedError: "constraint failed",
 		},
 	}
 
 	for _, tt := range tests {
 		r.Run(tt.name, func() {
-			err := validateAgainstIntTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef)
+			// Create a mock expression for the test
+			mockExpr := &ast.Identifier{
+				Pos:   tokens.Position{Line: 1, Column: 1},
+				Value: "test",
+			}
+			err := validateAgainstIntTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
 
 			if tt.expectError {
 				r.Error(err)

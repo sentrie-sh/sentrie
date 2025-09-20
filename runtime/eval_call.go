@@ -66,7 +66,8 @@ func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *
 		loader := func(ctx context.Context, key string) (any, error) {
 			return target(ctx, args...)
 		}
-		return exec.callMemoizePerch.Get(ctx, hashKey, ttl, loader)
+		out, _, err := exec.callMemoizePerch.Get(ctx, hashKey, ttl, loader)
+		return out, err
 	}
 
 	// call the target

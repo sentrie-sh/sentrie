@@ -22,9 +22,29 @@ import (
 	"github.com/pkg/errors"
 )
 
-func validateAgainstBoolTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.BoolTypeRef) error {
+func validateAgainstBoolTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.BoolTypeRef, expr ast.Expression) error {
 	if _, ok := v.(bool); !ok {
-		return errors.Errorf("value '%v' is not a bool", v)
+		return errors.Errorf("value '%v' is not a bool at %s - expected bool", v, expr.Position())
+	}
+
+	for _, constraint := range typeRef.GetConstraints() {
+		args := make([]any, len(constraint.Args))
+		for i, argExpr := range constraint.Args {
+			csArg, _, err := eval(ctx, ec, exec.(*executorImpl), p, argExpr)
+			if err != nil {
+				return err
+			}
+			args[i] = csArg
+		}
+		if _, ok := boolContraintCheckers[constraint.Name]; !ok {
+			return ErrUnknownConstraint(constraint)
+		}
+
+		if err := boolContraintCheckers[constraint.Name](ctx, p, v.(bool), args); err != nil {
+			return ErrConstraintFailed(expr, constraint, err)
+		}
 	}
 	return nil
 }
+
+var boolContraintCheckers map[string]constraintChecker[bool] = map[string]constraintChecker[bool]{}

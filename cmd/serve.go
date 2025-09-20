@@ -35,7 +35,7 @@ func addServeCmd(cli *cling.CLI) {
 }
 
 type serveCmdArgs struct {
-	Port         int64    `cling-name:"port"`
+	Port         int      `cling-name:"port"`
 	PackLocation string   `cling-name:"pack-location"`
 	Listen       []string `cling-name:"listen"`
 }
@@ -72,15 +72,21 @@ func serveCmd(ctx context.Context, args []string) error {
 		return err
 	}
 
-	exec := runtime.NewExecutor(idx)
+	exec, err := runtime.NewExecutor(idx)
+	if err != nil {
+		return err
+	}
 
-	api := api.NewHTTPAPI(exec)
+	server := api.NewHTTPAPI(exec)
+	if err := server.Setup(ctx, input.Port, input.Listen); err != nil {
+		return err
+	}
 
 	go func() {
-		err = api.StartServer(ctx, input.Port, input.Listen)
+		server.StartServer(ctx, input.Port, input.Listen)
 	}()
 
 	<-ctx.Done()
 
-	return err
+	return server.StopServer(ctx)
 }

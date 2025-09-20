@@ -23,26 +23,26 @@ import (
 
 type constraintChecker[T any] func(ctx context.Context, p *index.Policy, val T, args []any) error
 
-func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef ast.TypeRef) error {
+func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef ast.TypeRef, expr ast.Expression) error {
 	switch t := typeRef.(type) {
 	case *ast.IntTypeRef:
-		return validateAgainstIntTypeRef(ctx, ec, exec, p, v, t)
+		return validateAgainstIntTypeRef(ctx, ec, exec, p, v, t, expr)
 	case *ast.StringTypeRef:
-		return validateAgainstStringTypeRef(ctx, ec, exec, p, v, t)
+		return validateAgainstStringTypeRef(ctx, ec, exec, p, v, t, expr)
 	case *ast.BoolTypeRef:
-		return validateAgainstBoolTypeRef(ctx, ec, exec, p, v, t)
+		return validateAgainstBoolTypeRef(ctx, ec, exec, p, v, t, expr)
 	case *ast.FloatTypeRef:
-		return validateAgainstFloatTypeRef(ctx, ec, exec, p, v, t)
+		return validateAgainstFloatTypeRef(ctx, ec, exec, p, v, t, expr)
 	case *ast.ListTypeRef:
-		return validateAgainstListTypeRef(ctx, ec, exec, p, v, t)
+		return validateAgainstListTypeRef(ctx, ec, exec, p, v, t, expr)
 	case *ast.MapTypeRef:
-		return validateAgainstMapTypeRef(ctx, ec, exec, p, v, t)
+		return validateAgainstMapTypeRef(ctx, ec, exec, p, v, t, expr)
 	case *ast.ShapeTypeRef:
-		return validateAgainstShapeTypeRef(ctx, ec, exec, p, v, t)
+		return validateAgainstShapeTypeRef(ctx, ec, exec, p, v, t, expr)
 	case *ast.DocumentTypeRef:
-		return validateAgainstDocumentTypeRef(ctx, ec, exec, p, v, t)
+		return validateAgainstDocumentTypeRef(ctx, ec, exec, p, v, t, expr)
 	case *ast.RecordTypeRef:
-		return validateAgainstRecordTypeRef(ctx, ec, exec, p, v, t)
+		return validateAgainstRecordTypeRef(ctx, ec, exec, p, v, t, expr)
 	}
 
 	return nil

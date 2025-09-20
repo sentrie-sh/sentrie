@@ -76,7 +76,12 @@ func (r *RuntimeTestSuite) TestValidateAgainstFloatTypeRef() {
 
 	for _, tt := range tests {
 		r.Run(tt.name, func() {
-			err := validateAgainstFloatTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef)
+			// Create a mock expression for the test
+			mockExpr := &ast.Identifier{
+				Pos:   tokens.Position{Line: 1, Column: 1},
+				Value: "test",
+			}
+			err := validateAgainstFloatTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
 
 			if tt.expectError {
 				r.Error(err)
@@ -122,19 +127,24 @@ func (r *RuntimeTestSuite) TestValidateAgainstFloatTypeRefWithConstraints() {
 			name:          "should fail when value is zero",
 			value:         float64(0),
 			expectError:   true,
-			expectedError: "constraint is not valid: value 0 is not positive",
+			expectedError: "constraint failed",
 		},
 		{
 			name:          "should fail when value is negative",
 			value:         float64(-5.0),
 			expectError:   true,
-			expectedError: "constraint is not valid: value -5 is not positive",
+			expectedError: "constraint failed",
 		},
 	}
 
 	for _, tt := range tests {
 		r.Run(tt.name, func() {
-			err := validateAgainstFloatTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef)
+			// Create a mock expression for the test
+			mockExpr := &ast.Identifier{
+				Pos:   tokens.Position{Line: 1, Column: 1},
+				Value: "test",
+			}
+			err := validateAgainstFloatTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
 
 			if tt.expectError {
 				r.Error(err)
@@ -190,25 +200,30 @@ func (r *RuntimeTestSuite) TestValidateAgainstFloatTypeRefEdgeCases() {
 			name:          "should fail when value is positive infinity",
 			value:         math.Inf(1),
 			expectError:   true,
-			expectedError: "constraint is not valid: value +Inf is not finite",
+			expectedError: "constraint failed",
 		},
 		{
 			name:          "should fail when value is negative infinity",
 			value:         math.Inf(-1),
 			expectError:   true,
-			expectedError: "constraint is not valid: value -Inf is not finite",
+			expectedError: "constraint failed",
 		},
 		{
 			name:          "should fail when value is NaN",
 			value:         math.NaN(),
 			expectError:   true,
-			expectedError: "constraint is not valid: value NaN is not finite",
+			expectedError: "constraint failed",
 		},
 	}
 
 	for _, tt := range tests {
 		r.Run(tt.name, func() {
-			err := validateAgainstFloatTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef)
+			// Create a mock expression for the test
+			mockExpr := &ast.Identifier{
+				Pos:   tokens.Position{Line: 1, Column: 1},
+				Value: "test",
+			}
+			err := validateAgainstFloatTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
 
 			if tt.expectError {
 				r.Error(err)

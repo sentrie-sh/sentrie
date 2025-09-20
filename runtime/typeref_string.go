@@ -28,7 +28,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func validateAgainstStringTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.StringTypeRef) error {
+func validateAgainstStringTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.StringTypeRef, expr ast.Expression) error {
 	if _, ok := v.(string); !ok {
 		return errors.Errorf("value %v is not a string", v)
 	}
@@ -43,11 +43,11 @@ func validateAgainstStringTypeRef(ctx context.Context, ec *ExecutionContext, exe
 			args[i] = csArg
 		}
 		if _, ok := stringContraintCheckers[constraint.Name]; !ok {
-			return errors.Errorf("unknown constraint: %s applied to string at %s", constraint.Name, typeRef.Position())
+			return ErrUnknownConstraint(constraint)
 		}
 
 		if err := stringContraintCheckers[constraint.Name](ctx, p, v.(string), args); err != nil {
-			return errors.Wrapf(err, "constraint is not valid")
+			return ErrConstraintFailed(expr, constraint, err)
 		}
 	}
 

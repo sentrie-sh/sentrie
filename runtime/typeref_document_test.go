@@ -131,7 +131,12 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 			exec := &executorImpl{}
 			p := &index.Policy{}
 
-			err := validateAgainstDocumentTypeRef(context.Background(), ec, exec, p, tt.value, typeRef)
+			// Create a mock expression for the test
+			mockExpr := &ast.Identifier{
+				Pos:   tokens.Position{Line: 1, Column: 1},
+				Value: "test",
+			}
+			err := validateAgainstDocumentTypeRef(context.Background(), ec, exec, p, tt.value, typeRef, mockExpr)
 
 			if tt.expectError {
 				r.Error(err)
@@ -170,7 +175,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefWithConstraints() {
 			name:          "should return an error for unknown constraint",
 			value:         map[string]interface{}{"key": "value"},
 			expectError:   true,
-			expectedError: "unknown constraint: minlength applied to document at",
+			expectedError: "unknown constraint: 'minlength' at :1:1: unknown constraint: typeref error",
 		},
 	}
 
@@ -181,7 +186,12 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefWithConstraints() {
 			exec := &executorImpl{}
 			p := &index.Policy{}
 
-			err := validateAgainstDocumentTypeRef(context.Background(), ec, exec, p, tt.value, typeRef)
+			// Create a mock expression for the test
+			mockExpr := &ast.Identifier{
+				Pos:   tokens.Position{Line: 1, Column: 1},
+				Value: "test",
+			}
+			err := validateAgainstDocumentTypeRef(context.Background(), ec, exec, p, tt.value, typeRef, mockExpr)
 
 			if tt.expectError {
 				r.Error(err)
@@ -261,7 +271,12 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefEdgeCases() {
 			exec := &executorImpl{}
 			p := &index.Policy{}
 
-			err := validateAgainstDocumentTypeRef(context.Background(), ec, exec, p, tt.value, typeRef)
+			// Create a mock expression for the test
+			mockExpr := &ast.Identifier{
+				Pos:   tokens.Position{Line: 1, Column: 1},
+				Value: "test",
+			}
+			err := validateAgainstDocumentTypeRef(context.Background(), ec, exec, p, tt.value, typeRef, mockExpr)
 
 			if tt.expectError {
 				r.Error(err)

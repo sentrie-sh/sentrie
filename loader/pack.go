@@ -46,12 +46,23 @@ func LoadPack(ctx context.Context, root string) (_ *pack.PackFile, e error) {
 		return nil, errors.Wrap(err, "locate pack file")
 	}
 
-	b, err := os.ReadFile(packPath)
+	stat, err := os.Stat(packPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "read pack")
+		return nil, errors.Wrap(err, "stat pack file")
 	}
+
+	if stat.Size() == 0 {
+		return nil, errors.New("pack file is empty")
+	}
+
+	f, err := os.Open(packPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "open pack file")
+	}
+
 	var p pack.PackFile
-	if err := toml.Unmarshal(b, &p); err != nil {
+	decoder := toml.NewDecoder(f)
+	if err := decoder.Decode(&p); err != nil {
 		return nil, errors.Wrap(err, "parse pack file failed")
 	}
 
@@ -91,9 +102,12 @@ func locatePackFile(ctx context.Context, root string) (string, error) {
 		return root, nil
 	}
 
+	// the name is not "sentrie.pack.toml", we try to find it in the parent directory
+	packFilePath := filepath.Join(root, PackFileName)
+
 	// if we have a packfile here - we use it
-	if _, err := os.Stat(filepath.Join(root, PackFileName)); err == nil {
-		return filepath.Join(root, PackFileName), nil
+	if _, err := os.Stat(packFilePath); err == nil {
+		return packFilePath, nil
 	}
 
 	// otherwise, we walk up the directory tree till we find it or we reach root

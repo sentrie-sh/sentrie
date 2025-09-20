@@ -48,7 +48,7 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 
 		// check the type of the let declaration
 		if v.Type != nil {
-			if err := validateValueAgainstTypeRef(ctx, ec, exec, p, val, v.Type); err != nil {
+			if err := validateValueAgainstTypeRef(ctx, ec, exec, p, val, v.Type, v.Value); err != nil {
 				return nil, n.SetErr(errors.Wrapf(err, "invalid value for let declaration %s", i)), err
 			}
 		}

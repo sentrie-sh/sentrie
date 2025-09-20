@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func validateAgainstRecordTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.RecordTypeRef) error {
+func validateAgainstRecordTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.RecordTypeRef, expr ast.Expression) error {
 	var value []any
 	if arr, ok := v.([]any); ok {
 		value = arr
@@ -35,7 +35,7 @@ func validateAgainstRecordTypeRef(ctx context.Context, ec *ExecutionContext, exe
 	}
 
 	for i, field := range typeRef.Fields {
-		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, value[i], field); err != nil {
+		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, value[i], field, expr); err != nil {
 			return errors.Wrapf(err, "%v is not a valid record field", v)
 		}
 	}
@@ -50,11 +50,11 @@ func validateAgainstRecordTypeRef(ctx context.Context, ec *ExecutionContext, exe
 			args[i] = csArg
 		}
 		if _, ok := recordContraintCheckers[constraint.Name]; !ok {
-			return errors.Errorf("unknown constraint: %s applied to record at %s", constraint.Name, typeRef.Position())
+			return ErrUnknownConstraint(constraint)
 		}
 
 		if err := recordContraintCheckers[constraint.Name](ctx, p, v.([]any), args); err != nil {
-			return errors.Wrapf(err, "constraint is not valid")
+			return ErrConstraintFailed(expr, constraint, err)
 		}
 	}
 

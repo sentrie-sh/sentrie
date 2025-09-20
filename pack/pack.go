@@ -14,7 +14,10 @@
 
 package pack
 
-import "github.com/binaek/sentra/ast"
+import (
+	"github.com/Masterminds/semver/v3"
+	"github.com/binaek/sentra/ast"
+)
 
 type Pack struct {
 	Pack     *PackFile
@@ -22,21 +25,29 @@ type Pack struct {
 }
 
 type PackFile struct {
-	SchemaVersion string            `toml:"schema_version"`
+	SchemaVersion *semver.Version   `toml:"schema_version"`
 	Name          string            `toml:"name"`
-	Version       string            `toml:"version,omitempty"`
+	Version       *semver.Version   `toml:"version,omitempty"`
 	Description   string            `toml:"description,omitempty"`
 	License       string            `toml:"license,omitempty"`
 	Repository    string            `toml:"repository,omitempty"`
-	Engines       Engines           `toml:"engines"`
+	Engines       Engines           `toml:"engines,omitempty"`
 	Authors       map[string]string `toml:"authors,omitempty"`
-	Permissions   Permissions       `toml:"permissions"`
+	Permissions   Permissions       `toml:"permissions,omitempty"`
 	Metadata      map[string]any    `toml:"metadata,omitempty"`
 	Location      string            `toml:"-"`
 }
 
+func NewPackFile(name string) *PackFile {
+	return &PackFile{
+		SchemaVersion: semver.MustParse("0.1.0"),
+		Name:          name,
+		Version:       semver.MustParse("0.1.0"),
+	}
+}
+
 type Engines struct {
-	Sentrie string `toml:"sentrie"`
+	Sentrie *semver.Constraints `toml:"sentrie"`
 }
 
 type Permissions struct {

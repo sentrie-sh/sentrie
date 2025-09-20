@@ -24,13 +24,22 @@ import (
 	"github.com/pkg/errors"
 )
 
-func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.ShapeTypeRef) error {
+func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.ShapeTypeRef, expr ast.Expression) error {
 	var shape *index.Shape
 
 	shapeFqn := typeRef.Ref.String()
 
-	// look for the shape in the policy
+	// look for the shape in the policy - this will override any shape that may have been defined in the namespace
 	shape, ok := p.Shapes[shapeFqn]
+
+	// couldn't find the shape in the policy - check if it's in the namespace of the policy
+	if !ok {
+		s, o := p.Namespace.Shapes[shapeFqn]
+		if o {
+			shape = s
+		}
+		ok = o
+	}
 
 	// we couldn't find the shape in the policy - go global.
 	// lookup the index with the shape
@@ -39,14 +48,14 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 		name := typeRef.Ref.LastSegment()
 
 		// get the namespace
-		nnamepace, err := exec.Index().ResolveNamespace(ns.String())
+		namespace, err := exec.Index().ResolveNamespace(ns.String())
 		if err != nil {
 			return err
 		}
-		if nnamepace == nil {
+		if namespace == nil {
 			return xerr.ErrNamespaceNotFound(ns.String())
 		}
-		if err := nnamepace.VerifyShapeExported(name); err != nil {
+		if err := namespace.VerifyShapeExported(name); err != nil {
 			return err
 		}
 
@@ -58,19 +67,19 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 
 	// if we still don't have a shape, return an error
 	if shape == nil {
-		return xerr.ErrShapeNotFound(shapeFqn)
+		return xerr.ErrShapeNotFound(fmt.Sprintf("shape '%s' not found at %s", shapeFqn, typeRef.Position()))
 	}
 
 	// a simple shape is an alias to another typeref
 	if shape.Simple != nil {
-		return validateValueAgainstTypeRef(ctx, ec, exec, p, v, shape.Simple)
+		return validateValueAgainstTypeRef(ctx, ec, exec, p, v, shape.Simple, expr)
 	}
 
 	// at this point, we know it's a complex shape
 	// so we need to validate the value against the complex shape
 	vm, ok := v.(map[string]any)
 	if !ok {
-		return fmt.Errorf("value %v is not a shape", v)
+		return fmt.Errorf("value %v is not a shape at %s - expected shape", v, expr.Position())
 	}
 
 	// check the fields
@@ -80,16 +89,16 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 
 		if !field.Optional {
 			if _, ok := vm[field.Name]; !ok {
-				return errors.Errorf("field %s is required", field.Name)
+				return errors.Errorf("field %s is required at %s - expected field", field.Name, expr.Position())
 			}
 		}
 
 		if field.NotNullable && !field.Optional && vm[field.Name] == nil {
-			return errors.Errorf("field %s cannot be null", field.Name)
+			return errors.Errorf("field %s cannot be null at %s - expected field", field.Name, expr.Position())
 		}
 
 		value := vm[field.Name]
-		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, value, field.TypeRef); err != nil {
+		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, value, field.TypeRef, expr); err != nil {
 			return errors.Wrapf(err, "field '%s' is not valid", field.Name)
 		}
 	}
@@ -104,11 +113,11 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 			args[i] = csArg
 		}
 		if _, ok := shapeContraintCheckers[constraint.Name]; !ok {
-			return errors.Errorf("unknown constraint: %s applied to shape at %s", constraint.Name, typeRef.Position())
+			return ErrUnknownConstraint(constraint)
 		}
 
 		if err := shapeContraintCheckers[constraint.Name](ctx, p, v.(map[string]any), args); err != nil {
-			return errors.Wrapf(err, "constraint is not valid")
+			return ErrConstraintFailed(expr, constraint, err)
 		}
 	}
 
