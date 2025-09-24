@@ -38,6 +38,10 @@ func evalAny(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 		return nil, node.SetErr(err), err
 	}
 
+	if IsUndefined(col) {
+		return false, node, nil
+	}
+
 	list, ok := col.([]any)
 	if !ok {
 		return nil, node.SetErr(fmt.Errorf("any expects list source")), fmt.Errorf("any expects list source")
@@ -46,9 +50,9 @@ func evalAny(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 	for idx, item := range list {
 		childContext := ec.AttachedChildContext()
 		if q.IndexIterator != "" {
-			childContext.SetLocal(q.IndexIterator, idx)
+			childContext.SetLocal(q.IndexIterator, idx, true)
 		}
-		childContext.SetLocal(q.ValueIterator, item)
+		childContext.SetLocal(q.ValueIterator, item, true)
 		res, resNode, err := eval(ctx, childContext, exec, p, q.Predicate)
 		if err != nil {
 			return nil, node.SetErr(err), err
@@ -81,6 +85,10 @@ func evalAll(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 		return nil, node.SetErr(err), err
 	}
 
+	if IsUndefined(col) {
+		return false, node, nil
+	}
+
 	list, ok := col.([]any)
 	if !ok {
 		return nil, node.SetErr(fmt.Errorf("all expects list source")), fmt.Errorf("all expects list source")
@@ -89,9 +97,9 @@ func evalAll(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 	for idx, item := range list {
 		childContext := ec.AttachedChildContext()
 		if q.IndexIterator != "" {
-			childContext.SetLocal(q.IndexIterator, idx)
+			childContext.SetLocal(q.IndexIterator, idx, true)
 		}
-		childContext.SetLocal(q.ValueIterator, item)
+		childContext.SetLocal(q.ValueIterator, item, true)
 		res, resNode, err := eval(ctx, childContext, exec, p, q.Predicate)
 		if err != nil {
 			return nil, node.SetErr(err), err
@@ -123,6 +131,10 @@ func evalFilter(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p
 		return nil, node.SetErr(err), err
 	}
 
+	if IsUndefined(col) {
+		return []any{}, node, nil
+	}
+
 	list, ok := col.([]any)
 	if !ok {
 		return nil, node.SetErr(fmt.Errorf("filter expects list source")), fmt.Errorf("filter expects list source")
@@ -132,9 +144,9 @@ func evalFilter(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p
 	for idx, item := range list {
 		childContext := ec.AttachedChildContext()
 		if q.IndexIterator != "" {
-			childContext.SetLocal(q.IndexIterator, idx)
+			childContext.SetLocal(q.IndexIterator, idx, true)
 		}
-		childContext.SetLocal(q.ValueIterator, item)
+		childContext.SetLocal(q.ValueIterator, item, true)
 		res, resNode, err := eval(ctx, childContext, exec, p, q.Predicate)
 		if err != nil {
 			return nil, node.SetErr(err), err

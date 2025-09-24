@@ -2,10 +2,11 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
+
+	"github.com/binaek/sentra/runtime"
 )
 
 // handleDecision handles POST /decision/{namespace...} requests
@@ -56,20 +57,19 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Execute the rule
-	d, attachments, traceNode, err := api.executor.ExecRule(r.Context(), namespace, policy, rule, req.Facts)
-
-	if err != nil {
-		// Use the error message directly
-		api.writeErrorResponse(w, r, http.StatusInternalServerError, "Rule Execution Failed", fmt.Sprintf("An error occurred while executing the rule: %s", err.Error()))
-		return
+	var outputs map[string]*runtime.ExecutorOutput
+	var runErr error
+	if len(rule) == 0 {
+		outputs, runErr = api.executor.ExecPolicy(r.Context(), namespace, policy, req.Facts)
+	} else {
+		output, e := api.executor.ExecRule(r.Context(), namespace, policy, rule, req.Facts)
+		outputs = map[string]*runtime.ExecutorOutput{rule: output}
+		runErr = e
 	}
 
-	// Prepare response
 	response := DecisionResponse{
-		Decision:    d,
-		Attachments: attachments,
-		Trace:       traceNode,
+		Decisions: outputs,
+		Error:     runErr.Error(),
 	}
 
 	// Write JSON response

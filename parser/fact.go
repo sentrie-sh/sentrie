@@ -39,6 +39,11 @@ func parseFactStatement(ctx context.Context, p *Parser) ast.Statement {
 	stmt.Name = name.Value  // Set the fact name
 	stmt.Alias = name.Value // Set the fact alias
 
+	if p.canExpect(tokens.TokenBang) {
+		p.advance() // consume '!'
+		stmt.Required = true
+	}
+
 	if !p.expect(tokens.PunctColon) {
 		return nil
 	}

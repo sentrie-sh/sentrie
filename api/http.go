@@ -26,7 +26,6 @@ import (
 
 	"github.com/binaek/gocoll/collection"
 	"github.com/binaek/sentra/runtime"
-	"github.com/binaek/sentra/runtime/trace"
 	"golang.org/x/exp/slices"
 )
 
@@ -69,10 +68,8 @@ type DecisionRequest struct {
 
 // DecisionResponse represents the response from rule execution
 type DecisionResponse struct {
-	Decision    any            `json:"decision"`
-	Attachments map[string]any `json:"attachments,omitempty"`
-	Trace       *trace.Node    `json:"trace,omitempty"`
-	Error       string         `json:"error,omitempty"`
+	Decisions map[string]*runtime.ExecutorOutput `json:"decisions"`
+	Error     string                             `json:"error,omitempty"`
 }
 
 // ProblemDetails represents an RFC 9457 Problem Details for HTTP APIs

@@ -17,12 +17,14 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/binaek/sentra/ast"
 	"github.com/binaek/sentra/index"
 	"github.com/binaek/sentra/runtime/trace"
 	"github.com/binaek/sentra/trinary"
+	"github.com/pkg/errors"
 )
 
 func isString(v any) bool {
@@ -48,6 +50,11 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		return nil, node.SetErr(err), err
 	}
 
+	// If any of the operands is undefined, return undefined
+	if IsUndefined(l) || IsUndefined(r) {
+		return Undefined, node.SetResult(Undefined), nil
+	}
+
 	switch in.Operator {
 	case "+":
 		// If any of the operands is a string, we coerce the other operand to a string and concatenate
@@ -55,7 +62,6 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 			out := fmt.Sprintf("%v%v", l, r)
 			return out, node.SetResult(out), nil
 		}
-
 		out := num(l) + num(r)
 		return out, node.SetResult(out), nil
 	case "-":
@@ -98,15 +104,17 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		out := or(l, r)
 		return out, node.SetResult(out), nil
 
-	case "in":
+	case "in", "contains":
 		out := contains(r, l)
 		return out, node.SetResult(out), nil
-	case "contains":
-		out := contains(l, r)
-		return out, node.SetResult(out), nil
+
 	case "matches":
-		out := matches(l, r)
+		out, err := matches(l, r)
+		if err != nil {
+			return nil, node.SetErr(err), err
+		}
 		return out, node.SetResult(out), nil
+
 	default:
 		err := fmt.Errorf("unsupported infix op: %s", in.Operator)
 		return nil, node.SetErr(err), err
@@ -146,18 +154,19 @@ func equals(a, b any) bool {
 	case bool:
 		bv, ok := b.(bool)
 		return ok && av == bv
-	case int, int64, float64:
+	case int64, float64:
 		return num(a) == num(b)
 	}
 	return a == b
 }
 
-func matches(pattern, haystack any) bool {
-	switch p := pattern.(type) {
-	case string:
-		return strings.Contains(haystack.(string), p)
+func matches(haystack, pattern any) (bool, error) {
+	if h, ok := haystack.(string); ok {
+		if p, ok := pattern.(string); ok {
+			return regexp.MatchString(p, h)
+		}
 	}
-	return false
+	return false, errors.New("haystack and pattern must be strings")
 }
 
 func contains(haystack, needle any) bool {
@@ -178,6 +187,18 @@ func contains(haystack, needle any) bool {
 		if s, ok := needle.(string); ok {
 			_, ok2 := h[s]
 			return ok2
+		}
+		if s, ok := needle.(map[string]any); ok {
+			for k, v := range s {
+				_, ok2 := h[k]
+				if !ok2 {
+					return false
+				}
+				if !equals(v, h[k]) {
+					return false
+				}
+			}
+			return true
 		}
 		return false
 	default:

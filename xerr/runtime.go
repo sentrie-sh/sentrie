@@ -28,6 +28,14 @@ func ErrInvalidInvocation(reason string) error {
 	return errors.Wrap(InvalidInvocationError{}, reason)
 }
 
+func ErrUnresolvableFact(name string) error {
+	return errors.Wrapf(InvalidInvocationError{}, "unresolvable fact: %s", name)
+}
+
+func ErrRequiredFact(name string) error {
+	return errors.Wrapf(InvalidInvocationError{}, "required fact not found: %s", name)
+}
+
 func ErrRuleNotFound(fqn string) error {
 	return errors.Wrapf(NotFoundError{}, "rule: %s", fqn)
 }

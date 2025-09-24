@@ -53,7 +53,7 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 			}
 		}
 
-		ec.SetLocal(i, val)
+		ec.SetLocal(i, val, false)
 		return val, n.SetResult(val), nil
 	}
 
@@ -63,7 +63,7 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		if err != nil {
 			return nil, n.SetErr(err), err
 		}
-		ec.SetLocal(i, decision)
+		ec.SetLocal(i, decision, false)
 		return decision, n.SetResult(decision), nil
 	}
 

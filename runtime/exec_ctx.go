@@ -94,7 +94,14 @@ func (ec *ExecutionContext) InjectLet(name string, v *ast.VarDeclaration) {
 
 // SetLocal sets a local value in the current context if and only if the current context supplied an identifier
 // with that name.
-func (ec *ExecutionContext) SetLocal(name string, value any) {
+func (ec *ExecutionContext) SetLocal(name string, value any, force bool) {
+	if force {
+		ec.mu.Lock()
+		defer ec.mu.Unlock()
+		ec.locals[name] = value
+		return
+	}
+
 	// Only set if we have a fact, let, or rule with this name in the current context
 	if _, ok := ec.GetFact(name); ok {
 		ec.locals[name] = value
@@ -114,7 +121,7 @@ func (ec *ExecutionContext) SetLocal(name string, value any) {
 	}
 
 	if ec.parent != nil {
-		ec.parent.SetLocal(name, value)
+		ec.parent.SetLocal(name, value, false)
 	}
 }
 

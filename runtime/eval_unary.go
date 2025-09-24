@@ -33,6 +33,10 @@ func evalUnary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		return nil, node.SetErr(err), err
 	}
 
+	if IsUndefined(v) {
+		return Undefined, node, nil
+	}
+
 	switch u.Operator {
 	case "not":
 		fallthrough

@@ -46,8 +46,8 @@ func evalMap(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 	transformed := make([]any, 0, len(list))
 	for idx, item := range list {
 		childContext := ec.AttachedChildContext()
-		childContext.SetLocal(m.IndexIterator, idx)
-		childContext.SetLocal(m.ValueIterator, item)
+		childContext.SetLocal(m.IndexIterator, idx, true)
+		childContext.SetLocal(m.ValueIterator, item, true)
 		res, resNode, err := eval(ctx, childContext, exec, p, m.Transform)
 		node.Attach(resNode)
 		if err != nil {

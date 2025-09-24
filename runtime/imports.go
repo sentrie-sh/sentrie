@@ -17,21 +17,15 @@ package runtime
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/binaek/sentra/ast"
 	"github.com/binaek/sentra/index"
 	"github.com/binaek/sentra/runtime/trace"
 )
 
-type ImportDecisionResult struct {
-	Decision    *Decision
-	Attachments DecisionAttachments
-}
-
 // ImportDecision resolves an ImportClause with `with` facts for sandboxed execution,
 // and returns (value+attachments-map, node, error).
-func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContext, currentPolicy *index.Policy, imp *ast.ImportClause) (*ImportDecisionResult, *trace.Node, error) {
+func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContext, currentPolicy *index.Policy, imp *ast.ImportClause) (*ExecutorOutput, *trace.Node, error) {
 	n, done := trace.New("import", imp.RuleToImport, imp, map[string]any{
 		"what": imp.RuleToImport,
 		"from": imp.FromPolicyFQN,
@@ -50,53 +44,49 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 	if len(imp.FromPolicyFQN) == 1 {
 		// we only have a policy name - the namespace is the current policy's namespace
 		ns = currentPolicy.Namespace.FQN.String()
-		pol = imp.FromPolicyFQN[0]
 	} else {
 		// we have a namespace and policy name
-		ns = strings.Join(imp.FromPolicyFQN[:len(imp.FromPolicyFQN)-1], ast.FQNSeparator)
-		pol = imp.FromPolicyFQN[len(imp.FromPolicyFQN)-1]
+		ns = imp.FromPolicyFQN.Parent().String()
 	}
-
-	p, err := exec.index.ResolvePolicy(ns, pol)
-	if err != nil {
-		return nil, n.SetErr(err), err
-	}
-
-	if err := p.VerifyRuleExported(rule); err != nil {
-		return nil, n.SetErr(err), err
-	}
-
+	pol = imp.FromPolicyFQN.LastSegment()
 	facts := make(map[string]any)
-	for _, with := range imp.Withs {
-		// find the fact in the target policy
-		if _, ok := p.Facts[with.Name]; !ok {
-			// no point evaluating - the target policy does not need this fact
-			continue
-		}
 
-		// evaluate the with expression in the context of this execution context
-		val, trace, err := eval(ctx, ec, exec, p, with.Expr)
+	{ // resolve the policy and verify the rule is exported
+		p, err := exec.index.ResolvePolicy(ns, pol)
 		if err != nil {
 			return nil, n.SetErr(err), err
 		}
-		n.Attach(trace)
 
-		facts[with.Name] = val
+		if err := p.VerifyRuleExported(rule); err != nil {
+			return nil, n.SetErr(err), err
+		}
+
+		for _, with := range imp.Withs {
+			// find the fact in the target policy
+			if _, ok := p.Facts[with.Name]; !ok {
+				// no point evaluating - the target policy does not need this fact
+				continue
+			}
+
+			// evaluate the with expression in the context of this execution context
+			val, trace, err := eval(ctx, ec, exec, ec.policy, with.Expr)
+			if err != nil {
+				return nil, n.SetErr(err), err
+			}
+			n.Attach(trace)
+
+			facts[with.Name] = val
+		}
 	}
 
-	decision, attachments, node, err := exec.ExecRule(ctx, ns, pol, rule, facts)
-	n = n.Attach(node)
+	output, err := exec.ExecRule(ctx, ns, pol, rule, facts)
+	n = n.Attach(output.RuleNode)
 	if err != nil {
 		n.SetErr(err)
 		return nil, n, err
 	}
 
-	importDecisionResult := &ImportDecisionResult{
-		Decision:    decision,
-		Attachments: attachments,
-	}
+	n.SetResult(output)
 
-	n.SetResult(importDecisionResult)
-
-	return importDecisionResult, n, nil
+	return output, n, nil
 }

@@ -40,6 +40,10 @@ func evalReduce(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p
 		return nil, node.SetErr(err), err
 	}
 
+	if IsUndefined(col) {
+		return Undefined, node, nil
+	}
+
 	list, ok := col.([]any)
 	if !ok {
 		return nil, node.SetErr(fmt.Errorf("filter expects list source")), fmt.Errorf("filter expects list source")
@@ -53,10 +57,10 @@ func evalReduce(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p
 
 	for idx, item := range list {
 		childContext := ec.AttachedChildContext()
-		childContext.SetLocal(r.ValueIterator, item)
-		childContext.SetLocal(r.Accumulator, accumulator)
+		childContext.SetLocal(r.ValueIterator, item, true)
+		childContext.SetLocal(r.Accumulator, accumulator, true)
 		if r.IndexIterator != "" {
-			childContext.SetLocal(r.IndexIterator, idx)
+			childContext.SetLocal(r.IndexIterator, idx, true)
 		}
 		r, itNode, err := eval(ctx, childContext, exec, p, r.Reducer)
 		node.Attach(itNode)

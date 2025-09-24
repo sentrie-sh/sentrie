@@ -17,11 +17,12 @@ package ast
 import "github.com/binaek/sentra/tokens"
 
 type FactStatement struct {
-	Pos     tokens.Position // Position in the source code
-	Name    string          // Name of the fact
-	Type    TypeRef         // Type of the fact
-	Alias   string          // Exposed name of the fact
-	Default Expression      // Default value expression (optional)
+	Pos      tokens.Position // Position in the source code
+	Name     string          // Name of the fact
+	Type     TypeRef         // Type of the fact
+	Alias    string          // Exposed name of the fact
+	Default  Expression      // Default value expression (optional)
+	Required bool            // Whether the fact is required
 }
 
 func (f FactStatement) String() string {

@@ -36,9 +36,6 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 		// evaluate the wrapped expression, then return the value
 		return eval(ctx, ec, exec, p, t.Wrap)
 
-	case *ast.Identifier:
-		return evalIdent(ctx, ec, exec, p, t.Value)
-
 	case *ast.TrinaryLiteral:
 		n, done := trace.New("literal", "tristate", t, map[string]any{})
 		defer done()
@@ -59,9 +56,6 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 
 		n.SetResult(t.Value)
 		return t.Value, n, nil
-
-	case *ast.CastExpression:
-		return evalCast(ctx, ec, exec, p, t)
 
 	case *ast.StringLiteral:
 		n, done := trace.New("literal", "string", t, map[string]any{})
@@ -100,6 +94,12 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 		}
 		return m, n.SetResult(m), nil
 
+	case *ast.Identifier:
+		return evalIdent(ctx, ec, exec, p, t.Value)
+
+	case *ast.CastExpression:
+		return evalCast(ctx, ec, exec, p, t)
+
 	case *ast.UnaryExpression:
 		return evalUnary(ctx, ec, exec, p, t)
 
@@ -110,35 +110,10 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 		return evalBlock(ctx, ec, exec, p, t)
 
 	case *ast.FieldAccessExpression:
-		recv, rn, err := eval(ctx, ec, exec, p, t.Left)
-		node, done := trace.New("field", t.Field, t, map[string]any{})
-		defer done()
-
-		node.Attach(rn)
-		if err != nil {
-			return nil, node.SetErr(err), err
-		}
-		out, err := accessField(ctx, recv, t.Field)
-		node.SetResult(out).SetErr(err)
-		return out, node, err
+		return evalFieldAccess(ctx, ec, exec, p, t)
 
 	case *ast.IndexAccessExpression:
-		col, cn, err := eval(ctx, ec, exec, p, t.Left)
-		node, done := trace.New("index", "", t, map[string]any{})
-		defer done()
-
-		node.Attach(cn)
-		if err != nil {
-			return nil, node.SetErr(err), err
-		}
-		idx, in, err := eval(ctx, ec, exec, p, t.Index)
-		node.Attach(in)
-		if err != nil {
-			return nil, node.SetErr(err), err
-		}
-		out, err := accessIndex(ctx, col, idx)
-		node.SetResult(out).SetErr(err)
-		return out, node, err
+		return evalIndexAccess(ctx, ec, exec, p, t)
 
 	case *ast.CallExpression:
 		return evalCall(ctx, ec, exec, p, t)

@@ -16,8 +16,10 @@ package runtime
 
 import (
 	"context"
+	stdErr "errors"
 	"fmt"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/binaek/perch"
@@ -29,6 +31,7 @@ import (
 	"github.com/binaek/sentra/xerr"
 	"github.com/dop251/goja"
 	"github.com/jackc/puddle/v2"
+	"github.com/pkg/errors"
 )
 
 type NewExecutorOption func(*executorImpl)
@@ -40,9 +43,22 @@ func WithCallMemoizeCacheSize(size int) NewExecutorOption {
 	}
 }
 
+type ExecutorOutput struct {
+	PolicyName  string              `json:"policy"`
+	Namespace   string              `json:"namespace"`
+	RuleName    string              `json:"rule"`
+	Decision    *Decision           `json:"decision"`
+	Attachments DecisionAttachments `json:"attachments"`
+	RuleNode    *trace.Node         `json:"trace"`
+}
+
+func (e *ExecutorOutput) ToTrinary() trinary.Value {
+	return e.Decision.State
+}
+
 type Executor interface {
-	ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) (*Decision, DecisionAttachments, *trace.Node, error)
-	ExecRule(ctx context.Context, namespace, policy, rule string, facts map[string]any) (*Decision, DecisionAttachments, *trace.Node, error)
+	ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) (map[string]*ExecutorOutput, error)
+	ExecRule(ctx context.Context, namespace, policy, rule string, facts map[string]any) (*ExecutorOutput, error)
 	Index() *index.Index
 }
 
@@ -88,23 +104,43 @@ func (e *executorImpl) Index() *index.Index {
 }
 
 // ExecPolicy uses policy's `outcome` rule; returns (value, attachments, tree) as a RuleOutcome.
-func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) (*Decision, DecisionAttachments, *trace.Node, error) {
-	return e.ExecRule(ctx, namespace, policy, "outcome", facts)
+func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) (map[string]*ExecutorOutput, error) {
+	p, err := e.index.ResolvePolicy(namespace, policy)
+	if err != nil {
+		return nil, err
+	}
+
+	theLock := &sync.Mutex{}
+	var compositeErr error
+	outputs := make(map[string]*ExecutorOutput, len(p.RuleExports))
+	wg := &sync.WaitGroup{}
+	for _, ruleExport := range p.RuleExports {
+		wg.Go(func() {
+			output, err := e.ExecRule(ctx, namespace, policy, ruleExport.RuleName, facts)
+			theLock.Lock()
+			defer theLock.Unlock()
+
+			if err != nil {
+				compositeErr = stdErr.Join(compositeErr, err)
+				return
+			}
+			outputs[ruleExport.RuleName] = output
+		})
+	}
+	wg.Wait()
+
+	return outputs, compositeErr
 }
 
 // ExecRule executes an exported rule and returns (value, attachments, tree) as a RuleOutcome.
-func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, facts map[string]any) (*Decision, DecisionAttachments, *trace.Node, error) {
-	if len(rule) == 0 {
-		return e.ExecPolicy(ctx, namespace, policy, facts)
-	}
-
+func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, facts map[string]any) (*ExecutorOutput, error) {
 	// Validate exported
 	p, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 	if err := p.VerifyRuleExported(rule); err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	ec := NewExecutionContext(p)
@@ -114,26 +150,30 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 		// look for a value for this fact in the passed in facts map
 		if _, ok := facts[factName]; ok {
 			if err := ec.InjectFact(ctx, factName, facts[factName], factStatement.Type); err != nil {
-				return nil, nil, nil, err
+				return nil, err
 			}
 			continue // move on to the next fact
+		}
+
+		if factStatement.Required {
+			return nil, xerr.ErrRequiredFact(factName)
 		}
 
 		// no value supplied for this fact, and if the fact has no default value, we error.
 		// this is an invalid invocation.
 		if factStatement.Default == nil {
-			return nil, nil, nil, xerr.ErrInvalidInvocation(fmt.Sprintf("fact %q has no default value", factName))
+			return nil, xerr.ErrInvalidInvocation(fmt.Sprintf("fact %q has no default value", factName))
 		}
 
 		// evaluate the default value, this will be injected into the context
 		val, _, err := eval(ctx, ec, e, p, factStatement.Default)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, errors.Wrap(xerr.ErrUnresolvableFact(factName), err.Error())
 		}
 
 		// inject the default value
 		if err := ec.InjectFact(ctx, factStatement.Name, val, factStatement.Type); err != nil {
-			return nil, nil, nil, err
+			return nil, err
 		}
 	}
 
@@ -144,11 +184,21 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 
 	// Bind `use` modules
 	if err := e.bindUses(ctx, ec, p); err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	decision, attachments, ruleNode, err := e.execRule(ctx, ec, namespace, policy, rule)
-	return decision, attachments, ruleNode, err
+	if err != nil && decision == nil {
+		decision = DecisionOf(trinary.Unknown)
+	}
+	return &ExecutorOutput{
+		PolicyName:  policy,
+		Namespace:   namespace,
+		RuleName:    rule,
+		Decision:    decision,
+		Attachments: attachments,
+		RuleNode:    ruleNode,
+	}, err
 }
 
 func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, namespace, policy, rule string) (*Decision, DecisionAttachments, *trace.Node, error) {
