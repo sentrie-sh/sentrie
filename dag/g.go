@@ -96,7 +96,6 @@ func (d *gImpl[T]) TopoSort() ([]T, error) {
 		visiting = append(visiting, node) // push
 		defer func() {
 			visiting = visiting[:len(visiting)-1] // pop
-			stack = append(stack, node)
 		}()
 
 		visited[node] = struct{}{}
@@ -105,6 +104,8 @@ func (d *gImpl[T]) TopoSort() ([]T, error) {
 				return err
 			}
 		}
+		// Add node to stack after all its dependencies have been processed
+		stack = append(stack, node)
 		return nil
 	}
 
@@ -113,6 +114,9 @@ func (d *gImpl[T]) TopoSort() ([]T, error) {
 			return nil, err
 		}
 	}
+
+	// Reverse the stack to get the correct topological order
+	slices.Reverse(stack)
 
 	nodes := make([]T, 0, len(stack))
 	for _, node := range stack {
