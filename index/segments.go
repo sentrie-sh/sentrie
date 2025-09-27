@@ -5,7 +5,6 @@ import (
 
 	"github.com/binaek/sentra/ast"
 	"github.com/binaek/sentra/xerr"
-	"github.com/pkg/errors"
 )
 
 func (idx *Index) ResolveSegments(path string) (ns, policy, rule string, err error) {
@@ -13,41 +12,53 @@ func (idx *Index) ResolveSegments(path string) (ns, policy, rule string, err err
 	parts := strings.Split(path, "/")
 	// start joining the parts, until we have a namespace, or we run out of parts
 
+	// Handle empty path case - check if all parts are empty
+	allEmpty := true
+	for _, part := range parts {
+		if part != "" {
+			allEmpty = false
+			break
+		}
+	}
+	if allEmpty {
+		return "", "", "", xerr.ErrNamespaceNotFound(path)
+	}
+
+	// Try to find the longest possible namespace by building it greedily
 	nsName := ""
-	for {
-		nextPart := parts[0]
-		parts = parts[1:]
+	foundNamespace := false
+	lastValidNamespace := ""
+	lastValidParts := parts
+
+	for i := 0; i < len(parts); i++ {
+		nextPart := parts[i]
 
 		if nextPart == "" {
 			continue
 		}
+
 		if len(nsName) == 0 {
 			nsName = nextPart
 		} else {
 			nsName = strings.Join([]string{nsName, nextPart}, ast.FQNSeparator)
 		}
+
 		n, err := idx.ResolveNamespace(nsName)
-		if errors.Is(err, xerr.NotFoundError{}) {
-			if len(parts) == 0 {
-				// if we have no more parts, and we still don't have a namespace, return an error
-				return "", "", "", xerr.ErrNamespaceNotFound(path)
-			}
-			continue
-		}
-
-		// if we have an error, and it's not a namespace not found error, return the error
-		if err != nil {
-			return "", "", "", err
-		}
-
-		if n != nil {
-			nsName = n.FQN.String()
-			break
-		}
-		if len(parts) == 0 {
-			return "", "", "", xerr.ErrNamespaceNotFound(path)
+		if err == nil && n != nil {
+			// Found a namespace, remember it but continue to see if we can find a longer one
+			foundNamespace = true
+			lastValidNamespace = n.FQN.String()
+			lastValidParts = parts[i+1:]
 		}
 	}
+
+	if !foundNamespace {
+		return "", "", "", xerr.ErrNamespaceNotFound(path)
+	}
+
+	// Use the longest namespace we found
+	nsName = lastValidNamespace
+	parts = lastValidParts
 
 	// if we do not have at least 1 part left, return an error - it's a problem - we MUST have a policy name
 	if len(parts) == 0 {

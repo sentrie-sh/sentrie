@@ -30,6 +30,35 @@ type Namespace struct {
 	ShapeExports map[string]*ExportedShape
 }
 
+func (ns *Namespace) addChild(child *Namespace) error {
+	baseName := child.FQN.LastSegment()
+
+	if err := ns.checkNameAvailable(baseName); err != nil {
+		return err
+	}
+
+	ns.Children = append(ns.Children, child)
+	child.Parent = ns
+	return nil
+}
+
+func (ns *Namespace) checkNameAvailable(name string) error {
+	if _, ok := ns.Policies[name]; ok {
+		return errors.Wrapf(ErrIndex, "name conflict: '%s' at %s", name, ns.Statement.Position())
+	}
+	if _, ok := ns.Shapes[name]; ok {
+		return errors.Wrapf(ErrIndex, "name conflict: '%s' at %s", name, ns.Statement.Position())
+	}
+	// there shouldn't be a child namespace
+	for _, child := range ns.Children {
+		cName := child.FQN.LastSegment()
+		if cName == name {
+			return errors.Wrapf(ErrIndex, "namespace conflict: '%s' at %s", cName, ns.Statement.Position())
+		}
+	}
+	return nil
+}
+
 func createNamespace(node *ast.NamespaceStatement) *Namespace {
 	return &Namespace{
 		Statement:    node,
@@ -43,6 +72,11 @@ func createNamespace(node *ast.NamespaceStatement) *Namespace {
 }
 
 func (n *Namespace) addPolicy(policy *Policy) error {
+	baseName := policy.FQN.LastSegment()
+	if err := n.checkNameAvailable(baseName); err != nil {
+		return err
+	}
+
 	if _, ok := n.Policies[policy.Name]; ok {
 		return errors.Wrapf(ErrIndex, "policy name conflict: '%s' at %s", policy.Name, policy.Statement.Position())
 	}
@@ -52,6 +86,11 @@ func (n *Namespace) addPolicy(policy *Policy) error {
 }
 
 func (n *Namespace) addShape(shape *Shape) error {
+	baseName := shape.FQN.LastSegment()
+	if err := n.checkNameAvailable(baseName); err != nil {
+		return err
+	}
+
 	if _, ok := n.Shapes[shape.Name]; ok {
 		return errors.Wrapf(ErrIndex, "shape name conflict: '%s' at %s", shape.Name, shape.Statement.Position())
 	}

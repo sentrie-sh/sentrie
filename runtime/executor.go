@@ -57,7 +57,7 @@ func (e *ExecutorOutput) ToTrinary() trinary.Value {
 }
 
 type Executor interface {
-	ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) (map[string]*ExecutorOutput, error)
+	ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) ([]*ExecutorOutput, error)
 	ExecRule(ctx context.Context, namespace, policy, rule string, facts map[string]any) (*ExecutorOutput, error)
 	Index() *index.Index
 }
@@ -104,7 +104,7 @@ func (e *executorImpl) Index() *index.Index {
 }
 
 // ExecPolicy uses policy's `outcome` rule; returns (value, attachments, tree) as a RuleOutcome.
-func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) (map[string]*ExecutorOutput, error) {
+func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) ([]*ExecutorOutput, error) {
 	p, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
 		return nil, err
@@ -112,7 +112,7 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 
 	theLock := &sync.Mutex{}
 	var compositeErr error
-	outputs := make(map[string]*ExecutorOutput, len(p.RuleExports))
+	outputs := make([]*ExecutorOutput, 0, len(p.RuleExports))
 	wg := &sync.WaitGroup{}
 	for _, ruleExport := range p.RuleExports {
 		wg.Go(func() {
@@ -124,7 +124,7 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 				compositeErr = stdErr.Join(compositeErr, err)
 				return
 			}
-			outputs[ruleExport.RuleName] = output
+			outputs = append(outputs, output)
 		})
 	}
 	wg.Wait()

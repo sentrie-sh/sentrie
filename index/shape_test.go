@@ -44,7 +44,8 @@ func TestShapeDependency_SimpleShapeWithoutDependencies(t *testing.T) {
 		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example"},
 	}
-	ns := idx.ensureNamespace(ctx, nsStmt)
+	ns, err := idx.ensureNamespace(ctx, nsStmt)
+	require.NoError(t, err)
 
 	shape, err := createShape(ns, nil, shapeStmt)
 	require.NoError(t, err)
@@ -79,7 +80,8 @@ func TestShapeDependency_ShapeWithMissingDependency(t *testing.T) {
 		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example"},
 	}
-	ns := idx.ensureNamespace(ctx, nsStmt)
+	ns, err := idx.ensureNamespace(ctx, nsStmt)
+	require.NoError(t, err)
 
 	// Create shape with missing dependency
 	shapeStmt := &ast.ShapeStatement{
@@ -125,7 +127,8 @@ func TestShapeDependency_ShapeWithCircularDependency(t *testing.T) {
 		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example"},
 	}
-	ns := idx.ensureNamespace(ctx, nsStmt)
+	ns, err := idx.ensureNamespace(ctx, nsStmt)
+	require.NoError(t, err)
 
 	// Create first shape that depends on second
 	shape1Stmt := &ast.ShapeStatement{
@@ -198,7 +201,8 @@ func TestShapeDependency_ShapeWithComplexDependencyChain(t *testing.T) {
 		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example"},
 	}
-	ns := idx.ensureNamespace(ctx, nsStmt)
+	ns, err := idx.ensureNamespace(ctx, nsStmt)
+	require.NoError(t, err)
 
 	// Create base shape (no dependencies)
 	baseShapeStmt := &ast.ShapeStatement{
@@ -307,7 +311,8 @@ func TestShapeDependency_ShapeWithSelfDependency(t *testing.T) {
 		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example"},
 	}
-	ns := idx.ensureNamespace(ctx, nsStmt)
+	ns, err := idx.ensureNamespace(ctx, nsStmt)
+	require.NoError(t, err)
 
 	// Create shape that depends on itself
 	shapeStmt := &ast.ShapeStatement{
@@ -351,7 +356,8 @@ func TestShapeDependency_MultipleShapesDependingOnSameBase(t *testing.T) {
 		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example"},
 	}
-	ns := idx.ensureNamespace(ctx, nsStmt)
+	ns, err := idx.ensureNamespace(ctx, nsStmt)
+	require.NoError(t, err)
 
 	// Create base shape
 	baseShapeStmt := &ast.ShapeStatement{
@@ -459,7 +465,8 @@ func TestShapeDependency_DeepDependencyChain(t *testing.T) {
 		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example"},
 	}
-	ns := idx.ensureNamespace(ctx, nsStmt)
+	ns, err := idx.ensureNamespace(ctx, nsStmt)
+	require.NoError(t, err)
 
 	// Create a chain of 5 shapes: A -> B -> C -> D -> E
 	shapes := []struct {
@@ -509,7 +516,7 @@ func TestShapeDependency_DeepDependencyChain(t *testing.T) {
 	}
 
 	// Validate the index - should pass
-	err := idx.Validate(ctx)
+	err = idx.Validate(ctx)
 	require.NoError(t, err)
 
 	// Verify all shapes are properly indexed
@@ -531,7 +538,8 @@ func TestShapeDependency_ShapeWithEmptyWithFQN(t *testing.T) {
 		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example"},
 	}
-	ns := idx.ensureNamespace(ctx, nsStmt)
+	ns, err := idx.ensureNamespace(ctx, nsStmt)
+	require.NoError(t, err)
 
 	// Create shape with empty WithFQN
 	shapeStmt := &ast.ShapeStatement{
@@ -581,7 +589,8 @@ func TestShapeDependency_ShapeWithNilComplex(t *testing.T) {
 		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example"},
 	}
-	ns := idx.ensureNamespace(ctx, nsStmt)
+	ns, err := idx.ensureNamespace(ctx, nsStmt)
+	require.NoError(t, err)
 
 	// Create shape with nil Complex
 	shapeStmt := &ast.ShapeStatement{
@@ -619,7 +628,8 @@ func TestShapeDependency_ShapeWithDuplicateFieldNames(t *testing.T) {
 		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example"},
 	}
-	ns := idx.ensureNamespace(ctx, nsStmt)
+	ns, err := idx.ensureNamespace(ctx, nsStmt)
+	require.NoError(t, err)
 
 	// Create base shape
 	baseShapeStmt := &ast.ShapeStatement{
@@ -697,7 +707,8 @@ func TestShapeDependency_ShapeWithVeryLongFQN(t *testing.T) {
 		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example", "very", "long", "namespace", "name", "for", "testing"},
 	}
-	ns := idx.ensureNamespace(ctx, nsStmt)
+	ns, err := idx.ensureNamespace(ctx, nsStmt)
+	require.NoError(t, err)
 
 	// Create shape with very long name
 	shapeStmt := &ast.ShapeStatement{
@@ -737,7 +748,8 @@ func TestShapeDependency_ShapeWithSpecialCharacters(t *testing.T) {
 		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example"},
 	}
-	ns := idx.ensureNamespace(ctx, nsStmt)
+	ns, err := idx.ensureNamespace(ctx, nsStmt)
+	require.NoError(t, err)
 
 	// Create shape with special characters in name
 	shapeStmt := &ast.ShapeStatement{
@@ -777,7 +789,8 @@ func TestShapeDependency_ShapeWithMultipleFields(t *testing.T) {
 		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example"},
 	}
-	ns := idx.ensureNamespace(ctx, nsStmt)
+	ns, err := idx.ensureNamespace(ctx, nsStmt)
+	require.NoError(t, err)
 
 	// Create shape with multiple fields
 	shapeStmt := &ast.ShapeStatement{
@@ -855,7 +868,8 @@ func TestShapeDependency_ComplexNestedDependency(t *testing.T) {
 		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example"},
 	}
-	ns := idx.ensureNamespace(ctx, nsStmt)
+	ns, err := idx.ensureNamespace(ctx, nsStmt)
+	require.NoError(t, err)
 
 	// Create base shape
 	baseShapeStmt := &ast.ShapeStatement{
@@ -964,14 +978,16 @@ func TestShapeDependency_CompositionWithUnexportedShapeCrossNamespace(t *testing
 		Pos:  tokens.Position{Filename: "test1.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example", "shared"},
 	}
-	ns1 := idx.ensureNamespace(ctx, ns1Stmt)
+	ns1, err := idx.ensureNamespace(ctx, ns1Stmt)
+	require.NoError(t, err)
 
 	// Create second namespace
 	ns2Stmt := &ast.NamespaceStatement{
 		Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example", "app"},
 	}
-	ns2 := idx.ensureNamespace(ctx, ns2Stmt)
+	ns2, err := idx.ensureNamespace(ctx, ns2Stmt)
+	require.NoError(t, err)
 
 	// Create unexported shape in first namespace (no export statement)
 	unexportedShapeStmt := &ast.ShapeStatement{
@@ -1052,14 +1068,16 @@ func TestShapeDependency_CompositionWithExportedShapeCrossNamespace(t *testing.T
 		Pos:  tokens.Position{Filename: "test1.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example", "shared"},
 	}
-	ns1 := idx.ensureNamespace(ctx, ns1Stmt)
+	ns1, err := idx.ensureNamespace(ctx, ns1Stmt)
+	require.NoError(t, err)
 
 	// Create second namespace
 	ns2Stmt := &ast.NamespaceStatement{
 		Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example", "app"},
 	}
-	ns2 := idx.ensureNamespace(ctx, ns2Stmt)
+	ns2, err := idx.ensureNamespace(ctx, ns2Stmt)
+	require.NoError(t, err)
 
 	// Create exported shape in first namespace
 	exportedShapeStmt := &ast.ShapeStatement{
@@ -1150,14 +1168,16 @@ func TestShapeDependency_CompositionWithNonExistentShapeCrossNamespaceNegative(t
 		Pos:  tokens.Position{Filename: "test1.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example", "shared"},
 	}
-	ns1 := idx.ensureNamespace(ctx, ns1Stmt)
+	ns1, err := idx.ensureNamespace(ctx, ns1Stmt)
+	require.NoError(t, err)
 
 	// Create second namespace
 	ns2Stmt := &ast.NamespaceStatement{
 		Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 0},
 		Name: []string{"com", "example", "app"},
 	}
-	ns2 := idx.ensureNamespace(ctx, ns2Stmt)
+	ns2, err := idx.ensureNamespace(ctx, ns2Stmt)
+	require.NoError(t, err)
 
 	// Create a different shape in first namespace (not the one we'll try to reference)
 	existingShapeStmt := &ast.ShapeStatement{

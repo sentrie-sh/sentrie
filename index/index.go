@@ -72,7 +72,10 @@ func (idx *Index) AddProgram(ctx context.Context, astProgram *ast.Program) error
 
 	program := createProgram(astProgram)
 
-	ns := idx.ensureNamespace(ctx, program.Namespace)
+	ns, err := idx.ensureNamespace(ctx, program.Namespace)
+	if err != nil {
+		return err
+	}
 
 	for _, shape := range program.Shapes {
 		shape, err := createShape(ns, nil, shape)
@@ -107,9 +110,9 @@ func (idx *Index) AddProgram(ctx context.Context, astProgram *ast.Program) error
 	return nil
 }
 
-func (idx *Index) ensureNamespace(_ context.Context, namespace *ast.NamespaceStatement) *Namespace {
+func (idx *Index) ensureNamespace(_ context.Context, namespace *ast.NamespaceStatement) (*Namespace, error) {
 	if ns, ok := idx.Namespaces[namespace.String()]; ok {
-		return ns
+		return ns, nil
 	}
 
 	theNew := createNamespace(namespace)
@@ -117,17 +120,19 @@ func (idx *Index) ensureNamespace(_ context.Context, namespace *ast.NamespaceSta
 	// now iterate through all known namespaces and resolve the parent/child relationships
 	for _, indexed := range idx.Namespaces {
 		if theNew.IsChildOf(indexed) {
-			theNew.Parent = indexed
-			indexed.Children = append(indexed.Children, theNew)
+			if err := indexed.addChild(theNew); err != nil {
+				return nil, err
+			}
 		}
 
 		if theNew.IsParentOf(indexed) {
-			indexed.Parent = theNew
-			theNew.Children = append(theNew.Children, indexed)
+			if err := theNew.addChild(indexed); err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	idx.Namespaces[namespace.String()] = theNew
 
-	return theNew
+	return theNew, nil
 }
