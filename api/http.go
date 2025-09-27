@@ -68,8 +68,8 @@ type DecisionRequest struct {
 
 // DecisionResponse represents the response from rule execution
 type DecisionResponse struct {
-	Decisions map[string]*runtime.ExecutorOutput `json:"decisions"`
-	Error     string                             `json:"error,omitempty"`
+	Decisions []*runtime.ExecutorOutput `json:"decisions"`
+	Error     string                    `json:"error,omitempty"`
 }
 
 // ProblemDetails represents an RFC 9457 Problem Details for HTTP APIs

@@ -57,13 +57,13 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var outputs map[string]*runtime.ExecutorOutput
+	var outputs []*runtime.ExecutorOutput
 	var runErr error
 	if len(rule) == 0 {
 		outputs, runErr = api.executor.ExecPolicy(r.Context(), namespace, policy, req.Facts)
 	} else {
 		output, e := api.executor.ExecRule(r.Context(), namespace, policy, rule, req.Facts)
-		outputs = map[string]*runtime.ExecutorOutput{rule: output}
+		outputs = []*runtime.ExecutorOutput{output}
 		runErr = e
 	}
 
