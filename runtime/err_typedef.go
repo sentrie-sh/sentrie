@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"github.com/binaek/sentra/ast"
+	"github.com/binaek/sentra/tokens"
 	"github.com/pkg/errors"
 )
 
@@ -15,8 +16,8 @@ func ErrUnknownConstraint(c *ast.TypeRefConstraint) error {
 	return errors.Wrapf(errUnknownConstraint, "unknown constraint: '%s' at %s", c.Name, c.Pos)
 }
 
-func ErrConstraintFailed(expr ast.Expression, c *ast.TypeRefConstraint, err error) error {
-	return errors.Wrapf(errConstraintFailed, "constraint failed: '%s' at %s", c.Name, expr.Position())
+func ErrConstraintFailed(pos tokens.Position, c *ast.TypeRefConstraint, err error) error {
+	return errors.Wrapf(errConstraintFailed, "constraint failed: '%s' at %s", c.Name, pos)
 }
 
 func IsUnknownConstraint(err error) bool {

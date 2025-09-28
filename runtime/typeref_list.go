@@ -20,17 +20,18 @@ import (
 
 	"github.com/binaek/sentra/ast"
 	"github.com/binaek/sentra/index"
+	"github.com/binaek/sentra/tokens"
 	"github.com/pkg/errors"
 )
 
-func validateAgainstListTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.ListTypeRef, expr ast.Expression) error {
+func validateAgainstListTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.ListTypeRef, pos tokens.Position) error {
 	if _, ok := v.([]any); !ok {
-		return errors.Errorf("value %v is not an array at %s - expected array", v, expr.Position())
+		return errors.Errorf("value %v is not an array at %s - expected array", v, pos)
 	}
 
 	for _, item := range v.([]any) {
-		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, item, typeRef.ElemType, expr); err != nil {
-			return errors.Wrapf(err, "item is not valid at %s", expr.Position()) // TODO: improve this error message
+		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, item, typeRef.ElemType, pos); err != nil {
+			return errors.Wrapf(err, "item is not valid at %s", pos) // TODO: improve this error message
 		}
 	}
 
@@ -48,7 +49,7 @@ func validateAgainstListTypeRef(ctx context.Context, ec *ExecutionContext, exec 
 		}
 
 		if err := listContraintCheckers[constraint.Name](ctx, p, v.([]any), args); err != nil {
-			return ErrConstraintFailed(expr, constraint, err)
+			return ErrConstraintFailed(pos, constraint, err)
 		}
 	}
 

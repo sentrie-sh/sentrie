@@ -19,30 +19,31 @@ import (
 
 	"github.com/binaek/sentra/ast"
 	"github.com/binaek/sentra/index"
+	"github.com/binaek/sentra/tokens"
 )
 
 type constraintChecker[T any] func(ctx context.Context, p *index.Policy, val T, args []any) error
 
-func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef ast.TypeRef, expr ast.Expression) error {
+func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef ast.TypeRef, pos tokens.Position) error {
 	switch t := typeRef.(type) {
 	case *ast.IntTypeRef:
-		return validateAgainstIntTypeRef(ctx, ec, exec, p, v, t, expr)
+		return validateAgainstIntTypeRef(ctx, ec, exec, p, v, t, pos)
 	case *ast.StringTypeRef:
-		return validateAgainstStringTypeRef(ctx, ec, exec, p, v, t, expr)
+		return validateAgainstStringTypeRef(ctx, ec, exec, p, v, t, pos)
 	case *ast.BoolTypeRef:
-		return validateAgainstBoolTypeRef(ctx, ec, exec, p, v, t, expr)
+		return validateAgainstBoolTypeRef(ctx, ec, exec, p, v, t, pos)
 	case *ast.FloatTypeRef:
-		return validateAgainstFloatTypeRef(ctx, ec, exec, p, v, t, expr)
+		return validateAgainstFloatTypeRef(ctx, ec, exec, p, v, t, pos)
 	case *ast.ListTypeRef:
-		return validateAgainstListTypeRef(ctx, ec, exec, p, v, t, expr)
+		return validateAgainstListTypeRef(ctx, ec, exec, p, v, t, pos)
 	case *ast.MapTypeRef:
-		return validateAgainstMapTypeRef(ctx, ec, exec, p, v, t, expr)
+		return validateAgainstMapTypeRef(ctx, ec, exec, p, v, t, pos)
 	case *ast.ShapeTypeRef:
-		return validateAgainstShapeTypeRef(ctx, ec, exec, p, v, t, expr)
+		return validateAgainstShapeTypeRef(ctx, ec, exec, p, v, t, pos)
 	case *ast.DocumentTypeRef:
-		return validateAgainstDocumentTypeRef(ctx, ec, exec, p, v, t, expr)
+		return validateAgainstDocumentTypeRef(ctx, ec, exec, p, v, t, pos)
 	case *ast.RecordTypeRef:
-		return validateAgainstRecordTypeRef(ctx, ec, exec, p, v, t, expr)
+		return validateAgainstRecordTypeRef(ctx, ec, exec, p, v, t, pos)
 	}
 
 	return nil

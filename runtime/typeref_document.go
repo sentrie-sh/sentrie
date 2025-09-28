@@ -19,13 +19,14 @@ import (
 
 	"github.com/binaek/sentra/ast"
 	"github.com/binaek/sentra/index"
+	"github.com/binaek/sentra/tokens"
 	"github.com/pkg/errors"
 )
 
-func validateAgainstDocumentTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.DocumentTypeRef, expr ast.Expression) error {
+func validateAgainstDocumentTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.DocumentTypeRef, pos tokens.Position) error {
 	// just validate that it's a map
 	if _, ok := v.(map[string]any); !ok {
-		return errors.Errorf("value %v is not a document at %s - expected document", v, expr.Position())
+		return errors.Errorf("value %v is not a document at %s - expected document", v, pos)
 	}
 
 	for _, constraint := range typeRef.GetConstraints() {
@@ -42,7 +43,7 @@ func validateAgainstDocumentTypeRef(ctx context.Context, ec *ExecutionContext, e
 		}
 
 		if err := documentContraintCheckers[constraint.Name](ctx, p, v.(map[string]any), args); err != nil {
-			return ErrConstraintFailed(expr, constraint, err)
+			return ErrConstraintFailed(pos, constraint, err)
 		}
 	}
 

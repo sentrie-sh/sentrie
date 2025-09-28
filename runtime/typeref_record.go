@@ -19,10 +19,11 @@ import (
 
 	"github.com/binaek/sentra/ast"
 	"github.com/binaek/sentra/index"
+	"github.com/binaek/sentra/tokens"
 	"github.com/pkg/errors"
 )
 
-func validateAgainstRecordTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.RecordTypeRef, expr ast.Expression) error {
+func validateAgainstRecordTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.RecordTypeRef, pos tokens.Position) error {
 	var value []any
 	if arr, ok := v.([]any); ok {
 		value = arr
@@ -35,7 +36,7 @@ func validateAgainstRecordTypeRef(ctx context.Context, ec *ExecutionContext, exe
 	}
 
 	for i, field := range typeRef.Fields {
-		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, value[i], field, expr); err != nil {
+		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, value[i], field, pos); err != nil {
 			return errors.Wrapf(err, "%v is not a valid record field", v)
 		}
 	}
@@ -54,7 +55,7 @@ func validateAgainstRecordTypeRef(ctx context.Context, ec *ExecutionContext, exe
 		}
 
 		if err := recordContraintCheckers[constraint.Name](ctx, p, v.([]any), args); err != nil {
-			return ErrConstraintFailed(expr, constraint, err)
+			return ErrConstraintFailed(pos, constraint, err)
 		}
 	}
 

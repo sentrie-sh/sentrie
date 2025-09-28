@@ -24,11 +24,12 @@ import (
 
 	"github.com/binaek/sentra/ast"
 	"github.com/binaek/sentra/index"
+	"github.com/binaek/sentra/tokens"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
-func validateAgainstStringTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.StringTypeRef, expr ast.Expression) error {
+func validateAgainstStringTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.StringTypeRef, pos tokens.Position) error {
 	if _, ok := v.(string); !ok {
 		return errors.Errorf("value %v is not a string", v)
 	}
@@ -47,7 +48,7 @@ func validateAgainstStringTypeRef(ctx context.Context, ec *ExecutionContext, exe
 		}
 
 		if err := stringContraintCheckers[constraint.Name](ctx, p, v.(string), args); err != nil {
-			return ErrConstraintFailed(expr, constraint, err)
+			return ErrConstraintFailed(pos, constraint, err)
 		}
 	}
 

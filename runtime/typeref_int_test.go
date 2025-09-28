@@ -79,7 +79,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRef() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstIntTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstIntTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -142,7 +142,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRefWithConstraints() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstIntTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstIntTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -221,7 +221,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRefEdgeCases() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstIntTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstIntTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)

@@ -19,12 +19,13 @@ import (
 
 	"github.com/binaek/sentra/ast"
 	"github.com/binaek/sentra/index"
+	"github.com/binaek/sentra/tokens"
 	"github.com/pkg/errors"
 )
 
-func validateAgainstBoolTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.BoolTypeRef, expr ast.Expression) error {
+func validateAgainstBoolTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.BoolTypeRef, pos tokens.Position) error {
 	if _, ok := v.(bool); !ok {
-		return errors.Errorf("value '%v' is not a bool at %s - expected bool", v, expr.Position())
+		return errors.Errorf("value '%v' is not a bool at %s - expected bool", v, pos)
 	}
 
 	for _, constraint := range typeRef.GetConstraints() {
@@ -41,7 +42,7 @@ func validateAgainstBoolTypeRef(ctx context.Context, ec *ExecutionContext, exec 
 		}
 
 		if err := boolContraintCheckers[constraint.Name](ctx, p, v.(bool), args); err != nil {
-			return ErrConstraintFailed(expr, constraint, err)
+			return ErrConstraintFailed(pos, constraint, err)
 		}
 	}
 	return nil

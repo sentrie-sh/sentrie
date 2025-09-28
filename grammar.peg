@@ -8,7 +8,7 @@ FQN = IDENT ("/" IDENT)*
 
 /* Declarations */
 PolicyDecl = "policy" IDENT "{" PolicyStatement* "}"
-FactDecl = "fact" IDENT ":" TypeRef "as" IDENT "default" Expr
+FactDecl = "fact" IDENT ("!")? ":" TypeRef "as" IDENT "default" Expr
 
 UseStmt = "use" IDENT ("," IDENT)* "from" ExecSource "as" IDENT
 ExecSource = STRING / ("@" IDENT "/" IDENT)

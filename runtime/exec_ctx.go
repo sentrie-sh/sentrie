@@ -26,6 +26,12 @@ import (
 
 var ErrIllegalFactInjection = fmt.Errorf("fact injection not allowed in child context")
 
+type injectedFact struct {
+	value     any
+	typeRef   ast.TypeRef
+	isDefault bool
+}
+
 // ExecutionContext holds ephemeral state for a single rule execution.
 // It owns an arena and is disposed immediately after the run.
 type ExecutionContext struct {
@@ -35,7 +41,7 @@ type ExecutionContext struct {
 
 	parent *ExecutionContext
 
-	facts map[string]any                 // injected via WITH
+	facts map[string]injectedFact        // injected via WITH
 	lets  map[string]*ast.VarDeclaration // policy-scoped lets
 
 	locals map[string]any // evaluated local values
@@ -47,7 +53,7 @@ func NewExecutionContext(policy *index.Policy) *ExecutionContext {
 	return &ExecutionContext{
 		parent:  nil,
 		policy:  policy,
-		facts:   make(map[string]any),
+		facts:   make(map[string]injectedFact),
 		locals:  make(map[string]any),
 		lets:    make(map[string]*ast.VarDeclaration),
 		modules: make(map[string]*ModuleBinding),
@@ -72,7 +78,7 @@ func (ec *ExecutionContext) AttachedChildContext() *ExecutionContext {
 
 // Inject facts into the current context.
 // It is illegal to inject facts into a child context.
-func (ec *ExecutionContext) InjectFact(ctx context.Context, name string, v any, typeRef ast.TypeRef) error {
+func (ec *ExecutionContext) InjectFact(ctx context.Context, name string, v any, isDefault bool, typeRef ast.TypeRef) error {
 	ec.mu.Lock()
 	defer ec.mu.Unlock()
 
@@ -80,8 +86,19 @@ func (ec *ExecutionContext) InjectFact(ctx context.Context, name string, v any, 
 		return errors.Wrap(ErrIllegalFactInjection, name)
 	}
 
-	ec.facts[name] = v
+	ec.facts[name] = injectedFact{
+		value:     v,
+		isDefault: isDefault,
+		typeRef:   typeRef,
+	}
 	return nil
+}
+
+func (ec *ExecutionContext) IsFactInjected(name string) bool {
+	ec.mu.Lock()
+	defer ec.mu.Unlock()
+	_, ok := ec.facts[name]
+	return ok
 }
 
 // Inject local let declarations into the current context.
@@ -145,7 +162,10 @@ func (ec *ExecutionContext) GetFact(name string) (any, bool) {
 		return ec.parent.GetFact(name)
 	}
 	v, ok := ec.facts[name]
-	return v, ok
+	if !ok {
+		return Undefined, false
+	}
+	return v.value, ok
 }
 
 func (ec *ExecutionContext) GetLet(name string) (*ast.VarDeclaration, bool) {

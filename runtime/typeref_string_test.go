@@ -73,7 +73,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRef() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -136,7 +136,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefLengthConstraint() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -198,7 +198,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefMinLengthConstraint()
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -260,7 +260,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefMaxLengthConstraint()
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -333,7 +333,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefRegexpConstraint() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -401,7 +401,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefStartsWithConstraint(
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -469,7 +469,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefEndsWithConstraint() 
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -541,7 +541,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefHasSubstringConstrain
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -609,7 +609,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefEmailConstraint() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -677,7 +677,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefUrlConstraint() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -740,7 +740,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefUuidConstraint() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -808,7 +808,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefAlphanumericConstrain
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -876,7 +876,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefAlphaConstraint() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -944,7 +944,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefNumericConstraint() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -1012,7 +1012,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefLowercaseConstraint()
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -1080,7 +1080,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefUppercaseConstraint()
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -1149,7 +1149,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefTrimmedConstraint() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -1213,7 +1213,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefNotEmptyConstraint() 
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -1294,7 +1294,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefOneOfConstraint() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstStringTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)

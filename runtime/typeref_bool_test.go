@@ -74,7 +74,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstBoolTypeRef() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstBoolTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstBoolTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)

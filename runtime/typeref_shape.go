@@ -20,11 +20,12 @@ import (
 
 	"github.com/binaek/sentra/ast"
 	"github.com/binaek/sentra/index"
+	"github.com/binaek/sentra/tokens"
 	"github.com/binaek/sentra/xerr"
 	"github.com/pkg/errors"
 )
 
-func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.ShapeTypeRef, expr ast.Expression) error {
+func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.ShapeTypeRef, pos tokens.Position) error {
 	var shape *index.Shape
 
 	shapeFqn := typeRef.Ref.String()
@@ -72,14 +73,14 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 
 	// a simple shape is an alias to another typeref
 	if shape.Simple != nil {
-		return validateValueAgainstTypeRef(ctx, ec, exec, p, v, shape.Simple, expr)
+		return validateValueAgainstTypeRef(ctx, ec, exec, p, v, shape.Simple, pos)
 	}
 
 	// at this point, we know it's a complex shape
 	// so we need to validate the value against the complex shape
 	vm, ok := v.(map[string]any)
 	if !ok {
-		return fmt.Errorf("value %v is not a shape at %s - expected shape", v, expr.Position())
+		return fmt.Errorf("value %v is not a shape at %s - expected shape", v, pos)
 	}
 
 	// check the fields
@@ -89,16 +90,16 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 
 		if !field.Optional {
 			if _, ok := vm[field.Name]; !ok {
-				return errors.Errorf("field %s is required at %s - expected field", field.Name, expr.Position())
+				return errors.Errorf("field %s is required at %s - expected field", field.Name, pos)
 			}
 		}
 
 		if field.NotNullable && !field.Optional && vm[field.Name] == nil {
-			return errors.Errorf("field %s cannot be null at %s - expected field", field.Name, expr.Position())
+			return errors.Errorf("field %s cannot be null at %s - expected field", field.Name, pos)
 		}
 
 		value := vm[field.Name]
-		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, value, field.TypeRef, expr); err != nil {
+		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, value, field.TypeRef, pos); err != nil {
 			return errors.Wrapf(err, "field '%s' is not valid", field.Name)
 		}
 	}
@@ -117,7 +118,7 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 		}
 
 		if err := shapeContraintCheckers[constraint.Name](ctx, p, v.(map[string]any), args); err != nil {
-			return ErrConstraintFailed(expr, constraint, err)
+			return ErrConstraintFailed(pos, constraint, err)
 		}
 	}
 

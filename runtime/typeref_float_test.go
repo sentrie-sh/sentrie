@@ -81,7 +81,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstFloatTypeRef() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstFloatTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstFloatTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -144,7 +144,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstFloatTypeRefWithConstraints() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstFloatTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstFloatTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -223,7 +223,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstFloatTypeRefEdgeCases() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstFloatTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr)
+			err := validateAgainstFloatTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)

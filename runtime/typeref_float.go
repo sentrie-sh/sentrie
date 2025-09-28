@@ -22,10 +22,11 @@ import (
 
 	"github.com/binaek/sentra/ast"
 	"github.com/binaek/sentra/index"
+	"github.com/binaek/sentra/tokens"
 	"github.com/pkg/errors"
 )
 
-func validateAgainstFloatTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.FloatTypeRef, expr ast.Expression) error {
+func validateAgainstFloatTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.FloatTypeRef, pos tokens.Position) error {
 	if _, ok := v.(float64); !ok {
 		return errors.Errorf("value %v is not a float64", v)
 	}
@@ -44,7 +45,7 @@ func validateAgainstFloatTypeRef(ctx context.Context, ec *ExecutionContext, exec
 		}
 
 		if err := floatContraintCheckers[constraint.Name](ctx, p, v.(float64), args); err != nil {
-			return ErrConstraintFailed(expr, constraint, err)
+			return ErrConstraintFailed(pos, constraint, err)
 		}
 	}
 	return nil

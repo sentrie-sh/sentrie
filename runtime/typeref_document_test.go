@@ -136,7 +136,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstDocumentTypeRef(context.Background(), ec, exec, p, tt.value, typeRef, mockExpr)
+			err := validateAgainstDocumentTypeRef(context.Background(), ec, exec, p, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -191,7 +191,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefWithConstraints() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstDocumentTypeRef(context.Background(), ec, exec, p, tt.value, typeRef, mockExpr)
+			err := validateAgainstDocumentTypeRef(context.Background(), ec, exec, p, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -276,7 +276,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefEdgeCases() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstDocumentTypeRef(context.Background(), ec, exec, p, tt.value, typeRef, mockExpr)
+			err := validateAgainstDocumentTypeRef(context.Background(), ec, exec, p, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)

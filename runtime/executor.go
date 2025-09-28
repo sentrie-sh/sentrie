@@ -133,7 +133,7 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 }
 
 // ExecRule executes an exported rule and returns (value, attachments, tree) as a RuleOutcome.
-func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, facts map[string]any) (*ExecutorOutput, error) {
+func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, injectFacts map[string]any) (*ExecutorOutput, error) {
 	// Validate exported
 	p, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
@@ -148,33 +148,37 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 
 	for factName, factStatement := range p.Facts {
 		// look for a value for this fact in the passed in facts map
-		if _, ok := facts[factName]; ok {
-			if err := ec.InjectFact(ctx, factName, facts[factName], factStatement.Type); err != nil {
+		if _, ok := injectFacts[factName]; ok {
+			if err := ec.InjectFact(ctx, factName, injectFacts[factName], false, factStatement.Type); err != nil {
 				return nil, err
 			}
 			continue // move on to the next fact
 		}
 
+		// if the fact is required, and no value was passed in, we error
 		if factStatement.Required {
 			return nil, xerr.ErrRequiredFact(factName)
 		}
 
-		// no value supplied for this fact, and if the fact has no default value, we error.
-		// this is an invalid invocation.
-		if factStatement.Default == nil {
-			return nil, xerr.ErrInvalidInvocation(fmt.Sprintf("fact %q has no default value", factName))
+		// if the fact has a default value, evaluate it and inject it into the context
+		if factStatement.Default != nil {
+			// evaluate the default value, this will be injected into the context
+			val, _, err := eval(ctx, ec, e, p, factStatement.Default)
+			if err != nil {
+				return nil, errors.Wrap(xerr.ErrUnresolvableFact(factName), err.Error())
+			}
+
+			// inject the default value
+			if err := ec.InjectFact(ctx, factStatement.Name, val, true, factStatement.Type); err != nil {
+				return nil, err
+			}
 		}
 
-		// evaluate the default value, this will be injected into the context
-		val, _, err := eval(ctx, ec, e, p, factStatement.Default)
-		if err != nil {
-			return nil, errors.Wrap(xerr.ErrUnresolvableFact(factName), err.Error())
+		// if the fact is required, and no value was passed in, and no default value was provided, we error
+		if factStatement.Required && !ec.IsFactInjected(factName) {
+			return nil, xerr.ErrRequiredFact(factName)
 		}
 
-		// inject the default value
-		if err := ec.InjectFact(ctx, factStatement.Name, val, factStatement.Type); err != nil {
-			return nil, err
-		}
 	}
 
 	// bind lets
@@ -218,6 +222,19 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 		"policy":    policy,
 	})
 	defer done()
+
+	// validate the facts against the type
+	for name, value := range ec.facts {
+		if value.typeRef == nil {
+			// if there's no shape indication, we skip validation
+			continue
+		}
+		stmt := p.Facts[name]
+		// validate the value against the type
+		if err := validateValueAgainstTypeRef(ctx, ec, e, p, value.value, value.typeRef, stmt.Position()); err != nil {
+			return nil, nil, nil, err
+		}
+	}
 
 	d, node, err := evaluateRuleOutcome(ctx, ec, e, p, r)
 	ruleNode.Attach(node)
