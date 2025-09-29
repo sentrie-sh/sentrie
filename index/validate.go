@@ -5,9 +5,9 @@ import (
 	"context"
 	"strings"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/dag"
 	"github.com/pkg/errors"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/dag"
 )
 
 // Validate the index for consistency and correctness.

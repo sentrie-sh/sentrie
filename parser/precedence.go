@@ -14,7 +14,7 @@
 
 package parser
 
-import "github.com/binaek/sentra/tokens"
+import "github.com/sentrie-sh/sentrie/tokens"
 
 // Precedence levels for Pratt parser
 type Precedence uint8

@@ -3,8 +3,8 @@ package index
 import (
 	"strings"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/xerr"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 func (idx *Index) ResolveSegments(path string) (ns, policy, rule string, err error) {

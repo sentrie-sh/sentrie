@@ -17,9 +17,9 @@ package runtime
 import (
 	"context"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/index"
-	"github.com/binaek/sentra/tokens"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 type constraintChecker[T any] func(ctx context.Context, p *index.Policy, val T, args []any) error

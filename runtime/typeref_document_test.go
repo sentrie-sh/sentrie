@@ -18,9 +18,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/index"
-	"github.com/binaek/sentra/tokens"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {

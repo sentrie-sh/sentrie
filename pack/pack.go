@@ -16,7 +16,7 @@ package pack
 
 import (
 	"github.com/Masterminds/semver/v3"
-	"github.com/binaek/sentra/ast"
+	"github.com/sentrie-sh/sentrie/ast"
 )
 
 type Pack struct {

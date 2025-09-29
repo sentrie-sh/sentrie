@@ -20,11 +20,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/index"
-	"github.com/binaek/sentra/runtime/trace"
-	"github.com/binaek/sentra/xerr"
 	"github.com/mitchellh/hashstructure/v2"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/runtime/trace"
+	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, c *ast.CallExpression) (response any, traceNode *trace.Node, err error) {

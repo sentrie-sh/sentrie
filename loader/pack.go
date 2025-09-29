@@ -21,10 +21,10 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/binaek/sentra/constants"
-	"github.com/binaek/sentra/pack"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/pkg/errors"
+	"github.com/sentrie-sh/sentrie/constants"
+	"github.com/sentrie-sh/sentrie/pack"
 )
 
 var (

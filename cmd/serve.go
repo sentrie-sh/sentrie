@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/binaek/cling"
-	"github.com/binaek/sentra/api"
-	"github.com/binaek/sentra/index"
-	"github.com/binaek/sentra/loader"
-	"github.com/binaek/sentra/runtime"
+	"github.com/sentrie-sh/sentrie/api"
+	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/loader"
+	"github.com/sentrie-sh/sentrie/runtime"
 )
 
 func addServeCmd(cli *cling.CLI) {

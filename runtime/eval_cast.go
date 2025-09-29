@@ -19,9 +19,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/index"
-	"github.com/binaek/sentra/runtime/trace"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/runtime/trace"
 )
 
 func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *index.Policy, cast *ast.CastExpression) (any, *trace.Node, error) {

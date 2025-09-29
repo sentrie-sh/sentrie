@@ -1,7 +1,7 @@
 package ast
 
 import (
-	"github.com/binaek/sentra/tokens"
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 // TestNodeInterface tests the Node interface implementation

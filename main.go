@@ -22,9 +22,9 @@ import (
 	"os/signal"
 	"strings"
 
-	"github.com/binaek/sentra/cmd"
-	"github.com/binaek/sentra/constants"
 	"github.com/google/uuid"
+	"github.com/sentrie-sh/sentrie/cmd"
+	"github.com/sentrie-sh/sentrie/constants"
 )
 
 var version = "0.1.0"

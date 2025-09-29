@@ -18,9 +18,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/dag"
-	"github.com/binaek/sentra/pack"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/dag"
+	"github.com/sentrie-sh/sentrie/pack"
 )
 
 type Index struct {

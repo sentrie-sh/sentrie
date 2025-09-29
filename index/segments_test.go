@@ -18,10 +18,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/tokens"
-	"github.com/binaek/sentra/xerr"
 	"github.com/pkg/errors"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/tokens"
+	"github.com/sentrie-sh/sentrie/xerr"
 	"github.com/stretchr/testify/suite"
 )
 

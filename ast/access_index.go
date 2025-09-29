@@ -14,7 +14,7 @@
 
 package ast
 
-import "github.com/binaek/sentra/tokens"
+import "github.com/sentrie-sh/sentrie/tokens"
 
 type IndexAccessExpression struct {
 	Pos   tokens.Position

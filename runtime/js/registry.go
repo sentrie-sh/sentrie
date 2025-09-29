@@ -21,8 +21,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/binaek/sentra/constants"
 	"github.com/dop251/goja"
+	"github.com/sentrie-sh/sentrie/constants"
 )
 
 type ModuleSpec struct {

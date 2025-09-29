@@ -17,7 +17,7 @@ package parser
 import (
 	"context"
 
-	"github.com/binaek/sentra/ast"
+	"github.com/sentrie-sh/sentrie/ast"
 )
 
 func parseCommentStatement(ctx context.Context, parser *Parser) ast.Statement {

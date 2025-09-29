@@ -17,7 +17,7 @@ package ast
 import (
 	"fmt"
 
-	"github.com/binaek/sentra/tokens"
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 // FloatLiteral represents a float literal

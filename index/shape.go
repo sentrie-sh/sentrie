@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/xerr"
 	"github.com/pkg/errors"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 type Shape struct {

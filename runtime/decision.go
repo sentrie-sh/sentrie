@@ -14,7 +14,7 @@
 
 package runtime
 
-import "github.com/binaek/sentra/trinary"
+import "github.com/sentrie-sh/sentrie/trinary"
 
 type Decision struct {
 	State trinary.Value `json:"state"`

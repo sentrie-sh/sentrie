@@ -18,9 +18,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/pack"
-	"github.com/binaek/sentra/tokens"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/pack"
+	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/stretchr/testify/suite"
 )
 

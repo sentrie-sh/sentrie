@@ -20,8 +20,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/binaek/sentra/lexer"
-	"github.com/binaek/sentra/tokens"
+	"github.com/sentrie-sh/sentrie/lexer"
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 type Parser struct {

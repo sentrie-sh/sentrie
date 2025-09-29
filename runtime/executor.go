@@ -23,15 +23,15 @@ import (
 	"time"
 
 	"github.com/binaek/perch"
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/index"
-	"github.com/binaek/sentra/runtime/js"
-	"github.com/binaek/sentra/runtime/trace"
-	"github.com/binaek/sentra/trinary"
-	"github.com/binaek/sentra/xerr"
 	"github.com/dop251/goja"
 	"github.com/jackc/puddle/v2"
 	"github.com/pkg/errors"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/runtime/js"
+	"github.com/sentrie-sh/sentrie/runtime/trace"
+	"github.com/sentrie-sh/sentrie/trinary"
+	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 type NewExecutorOption func(*executorImpl)

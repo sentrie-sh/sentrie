@@ -24,8 +24,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/binaek/sentra/tokens"
 	"github.com/pkg/errors"
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 type Lexer struct {

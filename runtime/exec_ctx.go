@@ -19,9 +19,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/index"
 	"github.com/pkg/errors"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/index"
 )
 
 var ErrIllegalFactInjection = fmt.Errorf("fact injection not allowed in child context")

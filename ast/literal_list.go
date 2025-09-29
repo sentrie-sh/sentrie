@@ -17,7 +17,7 @@ package ast
 import (
 	"bytes"
 
-	"github.com/binaek/sentra/tokens"
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 type ListLiteral struct {

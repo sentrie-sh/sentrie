@@ -18,10 +18,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/index"
-	"github.com/binaek/sentra/runtime/trace"
-	"github.com/binaek/sentra/trinary"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/runtime/trace"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 // eval walks an ast.Expression and returns (value, decision node, error).

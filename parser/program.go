@@ -14,7 +14,7 @@
 
 package parser
 
-import "github.com/binaek/sentra/ast"
+import "github.com/sentrie-sh/sentrie/ast"
 
 type Program struct {
 	Statements []ast.Statement

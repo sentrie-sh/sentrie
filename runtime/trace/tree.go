@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/binaek/sentra/ast"
+	"github.com/sentrie-sh/sentrie/ast"
 )
 
 // Node captures a single evaluation step in the decision tree.

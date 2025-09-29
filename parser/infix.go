@@ -17,7 +17,7 @@ package parser
 import (
 	"context"
 
-	"github.com/binaek/sentra/ast"
+	"github.com/sentrie-sh/sentrie/ast"
 )
 
 func parseInfixExpression(ctx context.Context, p *Parser, left ast.Expression, precedence Precedence) ast.Expression {

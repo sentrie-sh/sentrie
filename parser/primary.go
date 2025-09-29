@@ -19,9 +19,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/tokens"
-	"github.com/binaek/sentra/trinary"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/tokens"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 func parseNullLiteral(ctx context.Context, p *Parser) ast.Expression {

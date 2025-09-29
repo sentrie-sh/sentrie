@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 
 	"github.com/binaek/cling"
-	"github.com/binaek/sentra/loader"
-	"github.com/binaek/sentra/pack"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/pkg/errors"
+	"github.com/sentrie-sh/sentrie/loader"
+	"github.com/sentrie-sh/sentrie/pack"
 )
 
 func addInitCmd(cli *cling.CLI) {
@@ -57,6 +57,7 @@ func initCmd(ctx context.Context, args []string) error {
 	defer f.Close()
 
 	encoder := toml.NewEncoder(f)
+	encoder.SetTablesInline(true)
 	if err := encoder.Encode(packFile); err != nil {
 		return errors.Wrapf(err, "could not encode pack file")
 	}

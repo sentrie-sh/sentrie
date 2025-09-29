@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/binaek/gocoll/collection"
-	"github.com/binaek/sentra/runtime"
+	"github.com/sentrie-sh/sentrie/runtime"
 	"golang.org/x/exp/slices"
 )
 

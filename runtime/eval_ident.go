@@ -18,9 +18,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/binaek/sentra/index"
-	"github.com/binaek/sentra/runtime/trace"
 	"github.com/pkg/errors"
+	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/runtime/trace"
 )
 
 func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, i string) (any, *trace.Node, error) {

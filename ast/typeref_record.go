@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/binaek/sentra/tokens"
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 type RecordTypeRef struct {

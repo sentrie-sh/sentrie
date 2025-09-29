@@ -19,7 +19,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binaek/sentra/tokens"
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 type CallExpression struct {

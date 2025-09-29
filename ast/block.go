@@ -17,7 +17,7 @@ package ast
 import (
 	"strings"
 
-	"github.com/binaek/sentra/tokens"
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 type BlockExpression struct /* implements Expression */ {

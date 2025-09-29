@@ -14,7 +14,7 @@
 
 package runtime
 
-import "github.com/binaek/sentra/trinary"
+import "github.com/sentrie-sh/sentrie/trinary"
 
 // Runtime values are plain Go values:
 //  - bool, int64, float64, string

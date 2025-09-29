@@ -17,8 +17,8 @@ package lexer
 import (
 	"fmt"
 
-	"github.com/binaek/sentra/tokens"
 	"github.com/pkg/errors"
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 type LexerError struct {

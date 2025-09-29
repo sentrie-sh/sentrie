@@ -1,8 +1,9 @@
-module github.com/binaek/sentra
+module github.com/sentrie-sh/sentrie
 
 go 1.25.0
 
 require (
+	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/binaek/cling v0.3.5
 	github.com/binaek/gocoll v0.2.0
 	github.com/binaek/perch v0.0.1

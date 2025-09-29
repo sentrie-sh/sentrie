@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/binaek/sentra/runtime"
+	"github.com/sentrie-sh/sentrie/runtime"
 )
 
 // handleDecision handles POST /decision/{namespace...} requests

@@ -15,8 +15,8 @@
 package index
 
 import (
-	"github.com/binaek/sentra/ast"
 	"github.com/pkg/errors"
+	"github.com/sentrie-sh/sentrie/ast"
 )
 
 // Namespace is an index of policies and shapes visible within (namespace & sub-namespaces).

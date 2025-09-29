@@ -20,11 +20,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/index"
-	"github.com/binaek/sentra/runtime/trace"
-	"github.com/binaek/sentra/trinary"
 	"github.com/pkg/errors"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/runtime/trace"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 func isString(v any) bool {

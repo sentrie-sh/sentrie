@@ -17,7 +17,7 @@ package parser
 import (
 	"context"
 
-	"github.com/binaek/sentra/ast"
+	"github.com/sentrie-sh/sentrie/ast"
 )
 
 func parseUnaryExpression(ctx context.Context, p *Parser) ast.Expression {

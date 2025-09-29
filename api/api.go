@@ -15,7 +15,7 @@
 package api
 
 import (
-	"github.com/binaek/sentra/runtime"
+	"github.com/sentrie-sh/sentrie/runtime"
 )
 
 // API is the main entry point for the Sentra API.

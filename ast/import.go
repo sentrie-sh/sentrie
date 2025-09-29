@@ -14,7 +14,7 @@
 
 package ast
 
-import "github.com/binaek/sentra/tokens"
+import "github.com/sentrie-sh/sentrie/tokens"
 
 // 'import value|decision @ident from @string { @WithClause }'
 type ImportClause struct {

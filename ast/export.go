@@ -14,7 +14,7 @@
 
 package ast
 
-import "github.com/binaek/sentra/tokens"
+import "github.com/sentrie-sh/sentrie/tokens"
 
 type RuleExportStatement struct {
 	Pos         tokens.Position     // Position in the source code

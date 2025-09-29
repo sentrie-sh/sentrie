@@ -21,10 +21,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/constants"
-	"github.com/binaek/sentra/pack"
-	"github.com/binaek/sentra/parser"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/constants"
+	"github.com/sentrie-sh/sentrie/pack"
+	"github.com/sentrie-sh/sentrie/parser"
 )
 
 func LoadPrograms(ctx context.Context, packFile *pack.PackFile) ([]*ast.Program, error) {

@@ -18,8 +18,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/tokens"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 func parseCallExpression(ctx context.Context, p *Parser, left ast.Expression, precedence Precedence) ast.Expression {

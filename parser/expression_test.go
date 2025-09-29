@@ -18,8 +18,8 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/binaek/sentra/ast"
-	"github.com/binaek/sentra/trinary"
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/stretchr/testify/suite"
 )
 

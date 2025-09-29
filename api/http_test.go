@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/binaek/sentra/ast"
+	"github.com/sentrie-sh/sentrie/ast"
 )
 
 func TestPathParsing(t *testing.T) {

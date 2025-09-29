@@ -15,8 +15,8 @@
 package ast
 
 import (
-	"github.com/binaek/sentra/tokens"
-	"github.com/binaek/sentra/trinary"
+	"github.com/sentrie-sh/sentrie/tokens"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 // TrinaryLiteral represents a trinary literal
