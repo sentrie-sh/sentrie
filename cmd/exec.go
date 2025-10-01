@@ -179,17 +179,25 @@ func formatOutput(m ExecutorOutputMap) {
 				fmt.Printf("  ✓ %s: %v\n", ruleName, ruleData.Decision.Value)
 			}
 			fmt.Println()
-			fmt.Printf("Attachments: \n")
-			for ruleName, ruleData := range policyData {
-				if len(ruleData.Attachments) == 0 {
-					continue
-				}
-				fmt.Printf("  ✓ %s:\n", ruleName)
-				for name, value := range ruleData.Attachments {
-					formatAttachment(name, value)
-				}
+
+			numAttachments := 0
+			for _, ruleData := range policyData {
+				numAttachments += len(ruleData.Attachments)
 			}
-			fmt.Println()
+
+			if numAttachments > 0 {
+				fmt.Printf("Attachments: \n")
+				for ruleName, ruleData := range policyData {
+					if len(ruleData.Attachments) == 0 {
+						continue
+					}
+					fmt.Printf("  ✓ %s:\n", ruleName)
+					for name, value := range ruleData.Attachments {
+						formatAttachment(name, value)
+					}
+				}
+				fmt.Println()
+			}
 
 		}
 	}
