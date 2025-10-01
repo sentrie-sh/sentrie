@@ -10,7 +10,7 @@ FQN = IDENT ("/" IDENT)*
 PolicyDecl = "policy" IDENT "{" PolicyStatement* "}"
 FactDecl = "fact" IDENT ("!")? ":" TypeRef "as" IDENT "default" Expr
 
-UseStmt = "use" IDENT ("," IDENT)* "from" ExecSource "as" IDENT
+UseStmt = "use" "{" IDENT ("," IDENT)* "}" "from" ExecSource ("as" IDENT)?
 ExecSource = STRING / ("@" IDENT "/" IDENT)
 
 PolicyStatement = Comment

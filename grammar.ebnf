@@ -11,7 +11,7 @@ policyDecl          ::= 'policy' IDENT '{' ( policyStatement )* '}'
 factDecl            ::= 'fact' IDENT ('!')? ':' typeRef 'as' IDENT 'default' expr
 
 
-useStmt             ::= 'use' IDENT ( ',' IDENT )* 'from' execSource 'as' IDENT
+useStmt             ::= 'use' '{' IDENT ( ',' IDENT )* '}' 'from' execSource ('as' IDENT)?
 execSource          ::= STRING | ('@' IDENT '/' IDENT)
 
 policyStatement     ::= comment

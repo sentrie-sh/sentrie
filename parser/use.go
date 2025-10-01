@@ -34,6 +34,10 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 
 	fns := []string{}
 
+	if !p.expect(tokens.PunctLeftCurly) {
+		return nil
+	}
+
 	firstModuleName, found := p.advanceExpected(tokens.Ident)
 	if !found {
 		return nil
@@ -47,6 +51,10 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 			return nil
 		}
 		fns = append(fns, fn.Value)
+	}
+
+	if !p.expect(tokens.PunctRightCurly) {
+		return nil
 	}
 
 	stmt.Modules = fns
