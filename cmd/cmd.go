@@ -22,6 +22,7 @@ func Setup(ctx context.Context, version string) *cling.CLI {
 	addServeCmd(cli)
 	addInitCmd(cli)
 	addExecCmd(cli)
+	addValidateCmd(cli)
 
 	return cli
 }
