@@ -59,11 +59,20 @@ func LoadPack(ctx context.Context, root string) (_ *pack.PackFile, e error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "open pack file")
 	}
+	defer f.Close()
 
 	var p pack.PackFile
 	decoder := toml.NewDecoder(f)
 	if err := decoder.Decode(&p); err != nil {
 		return nil, errors.Wrap(err, "parse pack file failed")
+	}
+
+	if p.SchemaVersion == nil {
+		return nil, errors.New("schema version is required")
+	}
+
+	if p.Name == "" {
+		return nil, errors.New("name is required")
 	}
 
 	p.Location = filepath.Dir(packPath)
