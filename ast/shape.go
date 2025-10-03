@@ -34,7 +34,7 @@ type ShapeField struct {
 	Pos         tokens.Position
 	Name        string
 	NotNullable bool // true if field is not nullable
-	Optional    bool // true if field is optional
+	Required    bool // true if field is required to be present
 	Type        TypeRef
 	Node        Node
 }

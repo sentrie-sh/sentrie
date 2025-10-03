@@ -21,38 +21,42 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-// CAST expr as <type>
-func parseCastExpression(ctx context.Context, p *Parser) ast.Expression {
-	start := p.head()
+func parseDistinctExpression(ctx context.Context, parser *Parser) ast.Expression {
+	head := parser.head()
 
-	// consume the 'cast' token
-	if !p.expect(tokens.KeywordCast) {
+	collection := parser.parseExpression(ctx, LOWEST)
+	if collection == nil {
 		return nil
 	}
 
-	// parse the expression to cast
-	what := p.parseExpression(ctx, LOWEST)
-	if what == nil {
+	if !parser.expect(tokens.KeywordAs) {
 		return nil
 	}
 
-	if !p.expect(tokens.KeywordAs) {
+	leftIterator, found := parser.advanceExpected(tokens.Ident) // the iterator token
+	if !found {
 		return nil
 	}
 
-	// parse the type to cast to
-	typeRef := parseTypeRef(ctx, p)
-	if typeRef == nil {
-		if p.err == nil {
-			// if there is no error, add one
-			p.errorf("expected type after 'as' in 'cast', got %s", p.head().Kind)
-		}
+	if !parser.expect(tokens.PunctComma) {
 		return nil
 	}
 
-	return &ast.CastExpression{
-		Pos:        start.Position,
-		Expr:       what,
-		TargetType: typeRef,
+	rightIterator, found := parser.advanceExpected(tokens.Ident) // the iterator token
+	if !found {
+		return nil
+	}
+
+	predicateBlock := parseBlockExpression(ctx, parser)
+	if predicateBlock == nil {
+		return nil
+	}
+
+	return &ast.DistinctExpression{
+		Pos:           head.Position,
+		Collection:    collection,
+		LeftIterator:  leftIterator.Value,
+		RightIterator: rightIterator.Value,
+		Predicate:     predicateBlock,
 	}
 }

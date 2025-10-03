@@ -160,16 +160,16 @@ func (idx *Index) detectShapeCycle(ctx context.Context) (dag.G[*Shape], error) {
 			if ctx.Err() != nil {
 				return nil, errors.Wrapf(ErrIndex, "validation cancelled")
 			}
-			if shape.Complex == nil || len(shape.Complex.WithFQN) == 0 {
+			if shape.Model == nil || len(shape.Model.WithFQN) == 0 {
 				continue
 			}
 
 			withShape, err := idx.ResolveShape(
 				cmp.Or( // if there's no parent namespace, use the namespace FQN
-					shape.Complex.WithFQN.Parent().String(),
+					shape.Model.WithFQN.Parent().String(),
 					shape.Namespace.FQN.String(),
 				),
-				shape.Complex.WithFQN.LastSegment())
+				shape.Model.WithFQN.LastSegment())
 			if err != nil {
 				return nil, errors.Wrapf(ErrIndex, "error resolving shape: %s", err)
 			}
@@ -185,11 +185,11 @@ func (idx *Index) detectShapeCycle(ctx context.Context) (dag.G[*Shape], error) {
 			}
 			// add the edges for the policy shapes
 			for _, shape := range policy.Shapes {
-				if shape.Complex != nil && len(shape.Complex.WithFQN) > 0 {
+				if shape.Model != nil && len(shape.Model.WithFQN) > 0 {
 					// find the shape with the FQN
-					withShape, ok := ns.Shapes[shape.Complex.WithFQN.String()]
+					withShape, ok := ns.Shapes[shape.Model.WithFQN.String()]
 					if !ok {
-						return nil, errors.Wrapf(ErrIndex, "shape not found: %s at %s", shape.Complex.WithFQN.String(), shape.Statement.Pos)
+						return nil, errors.Wrapf(ErrIndex, "shape not found: %s at %s", shape.Model.WithFQN.String(), shape.Statement.Pos)
 					}
 					if err := shapeDag.AddEdge(shape, withShape); err != nil {
 						return nil, errors.Wrapf(ErrIndex, "error adding edge: %s", err)

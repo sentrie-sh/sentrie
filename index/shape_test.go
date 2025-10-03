@@ -54,8 +54,8 @@ func TestShapeDependency_SimpleShapeWithoutDependencies(t *testing.T) {
 	// Verify shape properties
 	assert.Equal(t, "User", shape.Name)
 	assert.Equal(t, "com/example/User", shape.FQN.String())
-	assert.Nil(t, shape.Complex)
-	assert.NotNil(t, shape.Simple)
+	assert.Nil(t, shape.Model)
+	assert.NotNil(t, shape.AliasOf)
 
 	// Add shape to namespace
 	err = ns.addShape(shape)
@@ -95,7 +95,7 @@ func TestShapeDependency_ShapeWithMissingDependency(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
 					Name:        "field",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 10},
 					},
@@ -142,7 +142,7 @@ func TestShapeDependency_ShapeWithCircularDependency(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
 					Name:        "fieldA",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 10},
 					},
@@ -163,7 +163,7 @@ func TestShapeDependency_ShapeWithCircularDependency(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 6, Column: 4},
 					Name:        "fieldB",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 6, Column: 10},
 					},
@@ -216,7 +216,7 @@ func TestShapeDependency_ShapeWithComplexDependencyChain(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
 					Name:        "id",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 8},
 					},
@@ -237,7 +237,7 @@ func TestShapeDependency_ShapeWithComplexDependencyChain(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 6, Column: 4},
 					Name:        "name",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 6, Column: 10},
 					},
@@ -258,7 +258,7 @@ func TestShapeDependency_ShapeWithComplexDependencyChain(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 10, Column: 4},
 					Name:        "role",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 10, Column: 10},
 					},
@@ -293,9 +293,9 @@ func TestShapeDependency_ShapeWithComplexDependencyChain(t *testing.T) {
 	assert.Contains(t, ns.Shapes, "AdminUser")
 
 	// Verify dependency chain
-	assert.Nil(t, baseShape.Complex.WithFQN)
-	assert.Equal(t, "BaseEntity", intermediateShape.Complex.WithFQN.String())
-	assert.Equal(t, "User", finalShape.Complex.WithFQN.String())
+	assert.Nil(t, baseShape.Model.WithFQN)
+	assert.Equal(t, "BaseEntity", intermediateShape.Model.WithFQN.String())
+	assert.Equal(t, "User", finalShape.Model.WithFQN.String())
 
 	// Verify shape DAG is created correctly
 	assert.NotNil(t, idx.shapeDag)
@@ -326,7 +326,7 @@ func TestShapeDependency_ShapeWithSelfDependency(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
 					Name:        "field",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 10},
 					},
@@ -371,7 +371,7 @@ func TestShapeDependency_MultipleShapesDependingOnSameBase(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
 					Name:        "id",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 8},
 					},
@@ -392,7 +392,7 @@ func TestShapeDependency_MultipleShapesDependingOnSameBase(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 6, Column: 4},
 					Name:        "name",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 6, Column: 10},
 					},
@@ -413,7 +413,7 @@ func TestShapeDependency_MultipleShapesDependingOnSameBase(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 10, Column: 4},
 					Name:        "title",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 10, Column: 10},
 					},
@@ -448,8 +448,8 @@ func TestShapeDependency_MultipleShapesDependingOnSameBase(t *testing.T) {
 	assert.Contains(t, ns.Shapes, "Product")
 
 	// Verify both dependent shapes reference the same base
-	assert.Equal(t, "BaseEntity", userShape.Complex.WithFQN.String())
-	assert.Equal(t, "BaseEntity", productShape.Complex.WithFQN.String())
+	assert.Equal(t, "BaseEntity", userShape.Model.WithFQN.String())
+	assert.Equal(t, "BaseEntity", productShape.Model.WithFQN.String())
 
 	// Verify shape DAG is created correctly
 	assert.NotNil(t, idx.shapeDag)
@@ -500,7 +500,7 @@ func TestShapeDependency_DeepDependencyChain(t *testing.T) {
 						Pos:         tokens.Position{Filename: "test.sentra", Line: shapeInfo.line + 1, Column: 4},
 						Name:        shapeInfo.field,
 						NotNullable: true,
-						Optional:    false,
+						Required:    true,
 						Type: &ast.StringTypeRef{
 							Pos: tokens.Position{Filename: "test.sentra", Line: shapeInfo.line + 1, Column: 10},
 						},
@@ -553,7 +553,7 @@ func TestShapeDependency_ShapeWithEmptyWithFQN(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
 					Name:        "field",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 10},
 					},
@@ -576,7 +576,7 @@ func TestShapeDependency_ShapeWithEmptyWithFQN(t *testing.T) {
 	assert.Contains(t, ns.Shapes, "EmptyDependencyShape")
 
 	// Verify the shape has empty WithFQN
-	assert.Equal(t, "", shape.Complex.WithFQN.String())
+	assert.Equal(t, "", shape.Model.WithFQN.String())
 }
 
 // Shape with nil Complex - verify shapes without complex structure work correctly
@@ -614,8 +614,8 @@ func TestShapeDependency_ShapeWithNilComplex(t *testing.T) {
 	assert.Contains(t, ns.Shapes, "SimpleShape")
 
 	// Verify the shape has nil Complex
-	assert.Nil(t, shape.Complex)
-	assert.NotNil(t, shape.Simple)
+	assert.Nil(t, shape.Model)
+	assert.NotNil(t, shape.AliasOf)
 }
 
 // Shape with duplicate field names in composition - verify error handling for duplicate fields
@@ -643,7 +643,7 @@ func TestShapeDependency_ShapeWithDuplicateFieldNames(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
 					Name:        "id",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 8},
 					},
@@ -664,7 +664,7 @@ func TestShapeDependency_ShapeWithDuplicateFieldNames(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 6, Column: 4},
 					Name:        "id",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 6, Column: 8},
 					},
@@ -694,7 +694,7 @@ func TestShapeDependency_ShapeWithDuplicateFieldNames(t *testing.T) {
 	assert.Contains(t, ns.Shapes, "UserWithDuplicateField")
 
 	// Verify dependency relationship
-	assert.Equal(t, "BaseEntity", dependentShape.Complex.WithFQN.String())
+	assert.Equal(t, "BaseEntity", dependentShape.Model.WithFQN.String())
 }
 
 // Shape with very long FQN - verify shapes with long names work correctly
@@ -804,7 +804,7 @@ func TestShapeDependency_ShapeWithMultipleFields(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
 					Name:        "id",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 8},
 					},
@@ -813,7 +813,7 @@ func TestShapeDependency_ShapeWithMultipleFields(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 3, Column: 4},
 					Name:        "name",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 3, Column: 10},
 					},
@@ -822,7 +822,7 @@ func TestShapeDependency_ShapeWithMultipleFields(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 4, Column: 4},
 					Name:        "email",
 					NotNullable: false,
-					Optional:    true,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 4, Column: 10},
 					},
@@ -845,17 +845,17 @@ func TestShapeDependency_ShapeWithMultipleFields(t *testing.T) {
 	assert.Contains(t, ns.Shapes, "MultiFieldShape")
 
 	// Verify all fields are present
-	assert.Contains(t, shape.Complex.Fields, "id")
-	assert.Contains(t, shape.Complex.Fields, "name")
-	assert.Contains(t, shape.Complex.Fields, "email")
+	assert.Contains(t, shape.Model.Fields, "id")
+	assert.Contains(t, shape.Model.Fields, "name")
+	assert.Contains(t, shape.Model.Fields, "email")
 
 	// Verify field properties
-	assert.True(t, shape.Complex.Fields["id"].NotNullable)
-	assert.False(t, shape.Complex.Fields["id"].Optional)
-	assert.True(t, shape.Complex.Fields["name"].NotNullable)
-	assert.False(t, shape.Complex.Fields["name"].Optional)
-	assert.False(t, shape.Complex.Fields["email"].NotNullable)
-	assert.True(t, shape.Complex.Fields["email"].Optional)
+	assert.True(t, shape.Model.Fields["id"].NotNullable)
+	assert.True(t, shape.Model.Fields["id"].Required)
+	assert.True(t, shape.Model.Fields["name"].NotNullable)
+	assert.True(t, shape.Model.Fields["name"].Required)
+	assert.False(t, shape.Model.Fields["email"].NotNullable)
+	assert.True(t, shape.Model.Fields["email"].Required)
 }
 
 // Shape with complex nested dependency - verify complex nested dependencies work correctly
@@ -883,7 +883,7 @@ func TestShapeDependency_ComplexNestedDependency(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
 					Name:        "id",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 8},
 					},
@@ -904,7 +904,7 @@ func TestShapeDependency_ComplexNestedDependency(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 6, Column: 4},
 					Name:        "name",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 6, Column: 10},
 					},
@@ -925,7 +925,7 @@ func TestShapeDependency_ComplexNestedDependency(t *testing.T) {
 					Pos:         tokens.Position{Filename: "test.sentra", Line: 10, Column: 4},
 					Name:        "description",
 					NotNullable: false,
-					Optional:    true,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test.sentra", Line: 10, Column: 15},
 					},
@@ -960,9 +960,9 @@ func TestShapeDependency_ComplexNestedDependency(t *testing.T) {
 	assert.Contains(t, ns.Shapes, "FinalEntity")
 
 	// Verify dependency chain
-	assert.Nil(t, baseShape.Complex.WithFQN)
-	assert.Equal(t, "BaseEntity", intermediateShape.Complex.WithFQN.String())
-	assert.Equal(t, "IntermediateEntity", finalShape.Complex.WithFQN.String())
+	assert.Nil(t, baseShape.Model.WithFQN)
+	assert.Equal(t, "BaseEntity", intermediateShape.Model.WithFQN.String())
+	assert.Equal(t, "IntermediateEntity", finalShape.Model.WithFQN.String())
 
 	// Verify shape DAG is created correctly
 	assert.NotNil(t, idx.shapeDag)
@@ -1001,7 +1001,7 @@ func TestShapeDependency_CompositionWithUnexportedShapeCrossNamespace(t *testing
 					Pos:         tokens.Position{Filename: "test1.sentra", Line: 2, Column: 4},
 					Name:        "id",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test1.sentra", Line: 2, Column: 8},
 					},
@@ -1022,7 +1022,7 @@ func TestShapeDependency_CompositionWithUnexportedShapeCrossNamespace(t *testing
 					Pos:         tokens.Position{Filename: "test2.sentra", Line: 2, Column: 4},
 					Name:        "name",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test2.sentra", Line: 2, Column: 10},
 					},
@@ -1052,7 +1052,7 @@ func TestShapeDependency_CompositionWithUnexportedShapeCrossNamespace(t *testing
 	assert.Contains(t, ns2.Shapes, "AppShape")
 
 	// Verify dependency relationship
-	assert.Equal(t, "com/example/shared/UnexportedShape", dependentShape.Complex.WithFQN.String())
+	assert.Equal(t, "com/example/shared/UnexportedShape", dependentShape.Model.WithFQN.String())
 
 	// Verify shape DAG is created correctly
 	assert.NotNil(t, idx.shapeDag)
@@ -1091,7 +1091,7 @@ func TestShapeDependency_CompositionWithExportedShapeCrossNamespace(t *testing.T
 					Pos:         tokens.Position{Filename: "test1.sentra", Line: 2, Column: 4},
 					Name:        "id",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test1.sentra", Line: 2, Column: 8},
 					},
@@ -1118,7 +1118,7 @@ func TestShapeDependency_CompositionWithExportedShapeCrossNamespace(t *testing.T
 					Pos:         tokens.Position{Filename: "test2.sentra", Line: 2, Column: 4},
 					Name:        "name",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test2.sentra", Line: 2, Column: 10},
 					},
@@ -1152,7 +1152,7 @@ func TestShapeDependency_CompositionWithExportedShapeCrossNamespace(t *testing.T
 	assert.Contains(t, ns2.Shapes, "AppShape")
 
 	// Verify dependency relationship
-	assert.Equal(t, "com/example/shared/ExportedShape", dependentShape.Complex.WithFQN.String())
+	assert.Equal(t, "com/example/shared/ExportedShape", dependentShape.Model.WithFQN.String())
 
 	// Verify shape DAG is created correctly
 	assert.NotNil(t, idx.shapeDag)
@@ -1191,7 +1191,7 @@ func TestShapeDependency_CompositionWithNonExistentShapeCrossNamespaceNegative(t
 					Pos:         tokens.Position{Filename: "test1.sentra", Line: 2, Column: 4},
 					Name:        "id",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test1.sentra", Line: 2, Column: 8},
 					},
@@ -1212,7 +1212,7 @@ func TestShapeDependency_CompositionWithNonExistentShapeCrossNamespaceNegative(t
 					Pos:         tokens.Position{Filename: "test2.sentra", Line: 2, Column: 4},
 					Name:        "name",
 					NotNullable: true,
-					Optional:    false,
+					Required:    true,
 					Type: &ast.StringTypeRef{
 						Pos: tokens.Position{Filename: "test2.sentra", Line: 2, Column: 10},
 					},
@@ -1243,5 +1243,5 @@ func TestShapeDependency_CompositionWithNonExistentShapeCrossNamespaceNegative(t
 	assert.Contains(t, ns2.Shapes, "AppShape")
 
 	// Verify dependency relationship is set (even though validation fails)
-	assert.Equal(t, "com/example/shared/NonExistentShape", dependentShape.Complex.WithFQN.String())
+	assert.Equal(t, "com/example/shared/NonExistentShape", dependentShape.Model.WithFQN.String())
 }

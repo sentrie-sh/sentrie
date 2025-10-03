@@ -72,8 +72,8 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 	}
 
 	// a simple shape is an alias to another typeref
-	if shape.Simple != nil {
-		return validateValueAgainstTypeRef(ctx, ec, exec, p, v, shape.Simple, pos)
+	if shape.AliasOf != nil {
+		return validateValueAgainstTypeRef(ctx, ec, exec, p, v, shape.AliasOf, pos)
 	}
 
 	// at this point, we know it's a complex shape
@@ -84,17 +84,16 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 	}
 
 	// check the fields
-	for _, field := range shape.Complex.Fields {
+	for _, field := range shape.Model.Fields {
 		// if not nullable, the field MUST exist and MUST NOT be null
 		// if optional, the field MAY exist and MAY be null
 
-		if !field.Optional {
-			if _, ok := vm[field.Name]; !ok {
-				return errors.Errorf("field %s is required at %s - expected field", field.Name, pos)
-			}
+		// if required, the field MUST exist
+		if _, ok := vm[field.Name]; !ok && field.Required {
+			return errors.Errorf("field %s is required at %s - expected field", field.Name, pos)
 		}
 
-		if field.NotNullable && !field.Optional && vm[field.Name] == nil {
+		if field.NotNullable && vm[field.Name] == nil {
 			return errors.Errorf("field %s cannot be null at %s - expected field", field.Name, pos)
 		}
 

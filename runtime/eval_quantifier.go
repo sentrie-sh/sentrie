@@ -161,3 +161,73 @@ func evalFilter(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p
 
 	return filtered, node, nil
 }
+
+func evalCount(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, c *ast.CountExpression) (any, *trace.Node, error) {
+	node, done := trace.New("count", "", c, map[string]any{
+		"collection": c.Collection.String(),
+	})
+	defer done()
+
+	col, colNode, err := eval(ctx, ec, exec, p, c.Collection)
+	node.Attach(colNode)
+	if err != nil {
+		return nil, node.SetErr(err), err
+	}
+
+	var count int
+	switch v := col.(type) {
+	case []any:
+		// List - count elements
+		count = len(v)
+	case map[string]any:
+		// Map - count key-value pairs
+		count = len(v)
+	case string:
+		// String - count characters
+		count = len(v)
+	default:
+		err := fmt.Errorf("count expects list, map, or string, got %T", col)
+		return nil, node.SetErr(err), err
+	}
+
+	return count, node.SetResult(count), nil
+}
+
+func evalMap(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, m *ast.MapExpression) (any, *trace.Node, error) {
+	node, done := trace.New("map", "", m, map[string]any{
+		"collection": m.Collection.String(),
+		"value_iter": m.ValueIterator,
+		"index_iter": m.IndexIterator,
+		"transform":  m.Transform.String(),
+	})
+	defer done()
+
+	col, colNode, err := eval(ctx, ec, exec, p, m.Collection)
+	node.Attach(colNode)
+	if err != nil {
+		return nil, node.SetErr(err), err
+	}
+
+	list, ok := col.([]any)
+	if !ok {
+		return nil, node.SetErr(fmt.Errorf("map expects list source")), fmt.Errorf("map expects list source")
+	}
+
+	transformed := make([]any, 0, len(list))
+	for idx, item := range list {
+		childContext := ec.AttachedChildContext()
+		childContext.SetLocal(m.IndexIterator, idx, true)
+		childContext.SetLocal(m.ValueIterator, item, true)
+		res, resNode, err := eval(ctx, childContext, exec, p, m.Transform)
+		node.Attach(resNode)
+		if err != nil {
+			return nil, node.SetErr(err), err
+		}
+		childContext.Dispose()
+		transformed = append(transformed, res)
+	}
+
+	return transformed, node, nil
+}
+
+// TBD: DISTINCT

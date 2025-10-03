@@ -104,16 +104,34 @@ func parseShapeField(ctx context.Context, p *Parser) *ast.ShapeField {
 	}
 	field.Name = name.Value
 
-	// ! or ?
-	if p.canExpectAnyOf(tokens.TokenBang, tokens.TokenQuestion) {
+	// Parse field modifiers (! and ?)
+	// Default: Required field that can be null
+	field.Required = true
+	field.NotNullable = false
+
+	/*
+		Field modifier combinations:
+		- Default: Required field that can be null
+		- `!`: Required field that cannot be null
+		- `?`: Optional field that can be null
+		- `!?`: Optional field that cannot be null (if present)
+		- `?!`: Same as `!?` (order doesn't matter)
+
+		Examples:
+		name!: string           -- Required, cannot be null
+		age: int                -- Required, can be null
+		email?: string          -- Optional, can be omitted
+		phone!?: string         -- Optional, but if present cannot be null
+		phone?!: string         -- Same as above
+	*/
+
+	// Parse modifiers (both can be present)
+	for p.canExpectAnyOf(tokens.TokenBang, tokens.TokenQuestion) {
 		if p.head().IsOfKind(tokens.TokenBang) {
 			field.NotNullable = true
-			field.Optional = false // if not nullable, it cannot be optional
-		} else {
-			field.Optional = true
-			field.NotNullable = false // if optional, it cannot be not nullable
+		} else if p.head().IsOfKind(tokens.TokenQuestion) {
+			field.Required = false
 		}
-
 		p.advance()
 	}
 

@@ -15,16 +15,16 @@ type Shape struct {
 	Policy    *Policy
 	Name      string
 	FQN       ast.FQN
-	Complex   *Cmplx
-	Simple    ast.TypeRef
+	Model     *ShapeModel
+	AliasOf   ast.TypeRef
 	FilePath  string
 
 	hydrated uint32 // 0 = not hydrated, 1 = hydrated
 }
 
-type Cmplx struct {
+type ShapeModel struct {
 	WithFQN ast.FQN
-	Fields  map[string]*ShapeField
+	Fields  map[string]*ShapeModelField
 }
 
 type ExportedShape struct {
@@ -32,11 +32,11 @@ type ExportedShape struct {
 	Name      string
 }
 
-type ShapeField struct {
+type ShapeModelField struct {
 	Node        *ast.ShapeField
 	Name        string
 	NotNullable bool
-	Optional    bool
+	Required    bool
 	TypeRef     ast.TypeRef
 }
 
@@ -53,38 +53,30 @@ func (s *Shape) resolveDependency(idx *Index, inPolicy *Policy) error {
 		atomic.StoreUint32(&s.hydrated, 1)
 	}()
 
-	if s.Complex == nil {
+	if s.Model == nil {
 		// nothing to do
 		return nil
 	}
 
-	if len(s.Complex.WithFQN) == 0 {
+	if len(s.Model.WithFQN) == 0 {
 		// nothing to do
 		return nil
 	}
 
 	var withShape *Shape
-	withName := s.Complex.WithFQN.LastSegment()
+	withName := s.Model.WithFQN.LastSegment()
 
 	// if we have a policy, look for it in the policy's shapes
 	if inPolicy != nil {
 		// check the policy's shapes
 		if shape, ok := inPolicy.Shapes[withName]; ok {
 			withShape = shape
-			// hydrate the with shape
-			if err := withShape.resolveDependency(idx, inPolicy); err != nil {
-				return err
-			}
 		}
 	}
 
-	// check that we have the shape in the containing namespace
+	// check if we have the shape in the containing namespace
 	if shape, ok := s.Namespace.Shapes[withName]; ok {
 		withShape = shape
-		// hydrate the with shape
-		if err := withShape.resolveDependency(idx, nil); err != nil {
-			return err
-		}
 	}
 
 	if withShape == nil {
@@ -112,18 +104,22 @@ func (s *Shape) resolveDependency(idx *Index, inPolicy *Policy) error {
 
 	// if by this point we don't have a shape, we need to error
 	if withShape == nil {
-		return errors.Wrapf(ErrIndex, "shape '%s' not found at %s", s.Complex.WithFQN.String(), s.Statement.Position())
+		return errors.Wrapf(ErrIndex, "shape '%s' not found at %s", s.Model.WithFQN.String(), s.Statement.Position())
+	}
+
+	if withShape.AliasOf != nil {
+		return errors.Wrapf(ErrIndex, "cannot compose '%s' with alias of shape '%s' at %s", s.FQN.String(), withShape.FQN.String(), withShape.Statement.Position())
 	}
 
 	// at this point we have the shape, we are going to assume it's hydrated
 	// the assumption is not unfounded, since we traverse the shapes in a topological order
 
 	// now we bring in the fields
-	for name, field := range withShape.Complex.Fields {
-		if _, ok := s.Complex.Fields[name]; ok {
-			return errors.Wrapf(ErrIndex, "cannot compose with duplicate shape field '%s' at %s and %s", name, field.Node.Pos, s.Complex.Fields[name].Node.Pos)
+	for name, field := range withShape.Model.Fields {
+		if _, ok := s.Model.Fields[name]; ok {
+			return errors.Wrapf(ErrIndex, "cannot compose with duplicate shape field '%s' at %s and %s", name, field.Node.Pos, s.Model.Fields[name].Node.Pos)
 		}
-		s.Complex.Fields[name] = field
+		s.Model.Fields[name] = field
 	}
 
 	return nil
@@ -146,27 +142,27 @@ func createShape(ns *Namespace, p *Policy, stmt *ast.ShapeStatement) (*Shape, er
 	}
 
 	if stmt.Complex != nil {
-		shape.Complex = &Cmplx{WithFQN: stmt.Complex.With, Fields: make(map[string]*ShapeField)}
+		shape.Model = &ShapeModel{WithFQN: stmt.Complex.With, Fields: make(map[string]*ShapeModelField)}
 		for _, field := range stmt.Complex.Fields {
 			if field.Name == "" {
 				continue
 			}
 
 			// if we already have the field, we need to error
-			if _, ok := shape.Complex.Fields[field.Name]; ok {
+			if _, ok := shape.Model.Fields[field.Name]; ok {
 				return nil, fmt.Errorf("duplicate shape field '%s' at %s", field.Name, field.Node.Position())
 			}
 
-			shape.Complex.Fields[field.Name] = &ShapeField{
+			shape.Model.Fields[field.Name] = &ShapeModelField{
 				Node:        field,
 				Name:        field.Name,
 				NotNullable: field.NotNullable,
-				Optional:    field.Optional,
+				Required:    field.Required,
 				TypeRef:     field.Type,
 			}
 		}
 	} else {
-		shape.Simple = stmt.Simple
+		shape.AliasOf = stmt.Simple
 	}
 
 	return shape, nil

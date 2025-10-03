@@ -161,6 +161,9 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 	case *ast.CountExpression:
 		return evalCount(ctx, ec, exec, p, t)
 
+	case *ast.DistinctExpression:
+		return evalDistinct(ctx, ec, exec, p, t)
+
 	default:
 		err := fmt.Errorf("unsupported expression node: %T", t)
 		return nil, trace.UnsupportedExpression(t).SetErr(err), err

@@ -55,8 +55,8 @@ type MapExpression struct {
 type DistinctExpression struct {
 	Pos           tokens.Position
 	Collection    Expression
-	ValueIterator string
-	IndexIterator string
+	LeftIterator  string
+	RightIterator string
 	Predicate     Expression
 }
 
@@ -134,14 +134,12 @@ func (f *FilterExpression) String() string {
 }
 func (d *DistinctExpression) String() string {
 	b := strings.Builder{}
-	b.WriteString("any ")
+	b.WriteString("distinct ")
 	b.WriteString(d.Collection.String())
 	b.WriteString(" as ")
-	b.WriteString(d.ValueIterator)
-	if d.IndexIterator != "" {
-		b.WriteString(", ")
-		b.WriteString(d.IndexIterator)
-	}
+	b.WriteString(d.LeftIterator)
+	b.WriteString(", ")
+	b.WriteString(d.RightIterator)
 	b.WriteString("{ ")
 	b.WriteString(d.Predicate.String())
 	b.WriteString(" }")
