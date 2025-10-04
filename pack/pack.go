@@ -15,6 +15,8 @@
 package pack
 
 import (
+	"slices"
+
 	"github.com/Masterminds/semver/v3"
 	"github.com/sentrie-sh/sentrie/ast"
 )
@@ -53,4 +55,9 @@ type Engines struct {
 type Permissions struct {
 	FSRead []string `toml:"fs_read,omitempty"`
 	Net    []string `toml:"net,omitempty"`
+	Env    []string `toml:"env,omitempty"`
+}
+
+func (p *Permissions) CheckEnvAccess(name string) bool {
+	return slices.Contains(p.Env, name)
 }

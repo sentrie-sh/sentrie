@@ -64,31 +64,31 @@ type Executor interface {
 
 // executorImpl ties together the index, JS loader, and evaluation.
 type executorImpl struct {
-	index            *index.Index
-	jsRegistry       *js.Registry
-	moduleBinding    *perch.Perch[*ModuleBinding] // --> (policy.useAlias) -> module binding
-	callMemoizePerch *perch.Perch[any]
+	index              *index.Index
+	jsRegistry         *js.Registry
+	moduleBindingPerch *perch.Perch[*ModuleBinding] // --> (policy.useAlias) -> module binding
+	callMemoizePerch   *perch.Perch[any]
 }
 
 // NewExecutor builds an Executor with built-in @sentra/* modules registered.
 func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) {
 	exec := &executorImpl{
-		index:            idx,
-		jsRegistry:       js.NewRegistry(idx.Pack.Location),
-		moduleBinding:    perch.New[*ModuleBinding](100 << 20 /* 100 MB */), // --> (policy.useAlias) -> module binding
-		callMemoizePerch: perch.New[any](10 << 20 /* 10 MB */),
+		index:              idx,
+		jsRegistry:         js.NewRegistry(idx.Pack.Location),
+		moduleBindingPerch: perch.New[*ModuleBinding](100 << 20 /* 100 MB */), // --> (policy.useAlias) -> module binding
+		callMemoizePerch:   perch.New[any](10 << 20 /* 10 MB */),
 	}
 
-	exec.jsRegistry.RegisterGoBuiltin("uuid", js.BuiltinUuidGo)
-	exec.jsRegistry.RegisterGoBuiltin("crypto", js.BuiltinCryptoGo)
-	exec.jsRegistry.RegisterGoBuiltin("base64", js.BuiltinBase64Go)
+	exec.jsRegistry.RegisterBuiltin("uuid", js.BuiltinUuidGo)
+	exec.jsRegistry.RegisterBuiltin("crypto", js.BuiltinCryptoGo)
+	exec.jsRegistry.RegisterBuiltin("base64", js.BuiltinBase64Go)
 
 	for _, opt := range opts {
 		opt(exec)
 	}
 
 	// Reserve the cache slots
-	if err := exec.moduleBinding.Reserve(); err != nil {
+	if err := exec.moduleBindingPerch.Reserve(); err != nil {
 		return nil, err
 	}
 
@@ -271,6 +271,9 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 func (e *executorImpl) jsBindingConstructor(ctx context.Context, use *ast.UseStatement, ms *js.ModuleSpec) (*JSInstance, error) {
 	// Per-alias VM with require cache
 	ar := js.NewAliasRuntime(e.jsRegistry, ms.Dir)
+	if err := ar.SetupStdLib(ctx, e.index.Pack); err != nil {
+		return nil, err
+	}
 
 	// Load the top-level module (exports object)
 	exObj, err := ar.Require(ctx, ms.Dir, ms.KeyOrPath())
@@ -329,8 +332,8 @@ func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStateme
 	// TODO: make this configurable
 	cacheDuration := 1 * time.Hour
 
-	return e.moduleBinding.Get(ctx, ms.KeyOrPath(), cacheDuration, func(ctx context.Context, _ string) (*ModuleBinding, error) {
-		vmPool, err := puddle.NewPool(&puddle.Config[*JSInstance]{
+	return e.moduleBindingPerch.Get(ctx, ms.KeyOrPath(), cacheDuration, func(ctx context.Context, _ string) (*ModuleBinding, error) {
+		jsInstancePool, err := puddle.NewPool(&puddle.Config[*JSInstance]{
 			Constructor: func(ctx context.Context) (*JSInstance, error) {
 				return e.jsBindingConstructor(ctx, use, ms)
 			},
@@ -343,12 +346,12 @@ func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStateme
 			return nil, err
 		}
 		// warm up the pool - this will create a couple of VMs - and also verify that we can actually acquire them
-		if err := vmPool.CreateResource(ctx); err != nil {
+		if err := jsInstancePool.CreateResource(ctx); err != nil {
 			return nil, err
 		}
 		return &ModuleBinding{
 			Alias:  use.As,
-			VMPool: vmPool,
+			VMPool: jsInstancePool,
 		}, nil
 	})
 }

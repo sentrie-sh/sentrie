@@ -271,10 +271,10 @@ func (s *StatementTestSuite) TestParseUseStatement() {
 		input    string
 		expected string
 	}{
-		{"use fn1, fn2 from @lib/name as alias", "alias"},
-		{"use func from @sentra/std as std", "std"},
-		{"use helper from @local/utils as utils", "utils"},
-		{"use helper from \"./fn.ts\"", "fn.ts"},
+		{"use {fn1, fn2} from @lib/name as alias", "alias"},
+		{"use {func} from @sentra/std as std", "std"},
+		{"use {helper} from @local/utils as utils", "utils"},
+		{"use {helper} from \"./fn.ts\"", "fn.ts"},
 	}
 
 	for _, tc := range testCases {

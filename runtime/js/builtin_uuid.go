@@ -22,27 +22,22 @@ import (
 var BuiltinUuidGo = func(vm *goja.Runtime) (*goja.Object, error) {
 	ex := vm.NewObject()
 
-	// Helpers produce goja.Callable that honor JS numbers
-	_ = func(name string, fn func(a, b float64) (float64, error)) error {
-		return ex.Set(name, func(call goja.FunctionCall) goja.Value {
-			a := call.Argument(0).ToFloat()
-			b := call.Argument(1).ToFloat()
-			out, err := fn(a, b)
-			if err != nil {
-				panic(vm.ToValue(err))
-			}
-			return vm.ToValue(out)
-		})
-	}
-
 	_ = ex.Set("v4", func(call goja.FunctionCall) goja.Value {
 		return vm.ToValue(uuid.New().String())
+	})
+
+	_ = ex.Set("v6", func(call goja.FunctionCall) goja.Value {
+		v6, err := uuid.NewV6()
+		if err != nil {
+			return vm.NewGoError(err)
+		}
+		return vm.ToValue(v6.String())
 	})
 
 	_ = ex.Set("v7", func(call goja.FunctionCall) goja.Value {
 		v7, err := uuid.NewV7()
 		if err != nil {
-			panic(vm.ToValue(err))
+			return vm.NewGoError(err)
 		}
 		return vm.ToValue(v7.String())
 	})

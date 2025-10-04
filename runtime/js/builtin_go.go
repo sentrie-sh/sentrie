@@ -14,8 +14,14 @@
 
 package js
 
-import "github.com/dop251/goja"
+import (
+	"errors"
 
-// GoModuleProvider constructs a CommonJS `module.exports` object in the given VM.
+	"github.com/dop251/goja"
+)
+
+// ModuleProvider constructs a CommonJS `module.exports` object in the given VM.
 // Return the object you want to be `module.exports`.
-type GoModuleProvider func(vm *goja.Runtime) (*goja.Object, error)
+type ModuleProvider func(vm *goja.Runtime) (*goja.Object, error)
+
+var ErrPermissionDenied = errors.New("permissions denied")

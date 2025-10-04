@@ -33,16 +33,15 @@ type ModuleSpec struct {
 	SourceTS string        // original TS/JS (for builtins or disk)
 	Program  *goja.Program // compiled IIFE function returning factory (require,module,exports)=>void
 
-	GoProvider GoModuleProvider // if non-nil, this module is native Go-backed
-	once       sync.Once
-	err        error
+	BuiltInProvider ModuleProvider // if non-nil, this module is native Go-backed
+	once            sync.Once
+	err             error
 }
 
 type Registry struct {
 	PackRoot string
 
-	builtins   map[string]string           // name -> TS source
-	gobuiltins map[string]GoModuleProvider // name -> Go module provider
+	builtins map[string]ModuleProvider // name -> Go module provider
 
 	modsMu sync.RWMutex
 	mods   map[string]*ModuleSpec
@@ -50,19 +49,14 @@ type Registry struct {
 
 func NewRegistry(packRoot string) *Registry {
 	return &Registry{
-		PackRoot:   packRoot,
-		builtins:   map[string]string{},
-		gobuiltins: map[string]GoModuleProvider{},
-		mods:       map[string]*ModuleSpec{},
+		PackRoot: packRoot,
+		builtins: map[string]ModuleProvider{},
+		mods:     map[string]*ModuleSpec{},
 	}
 }
 
-func (r *Registry) RegisterTSBuiltin(name, tsSource string) {
-	r.builtins[fmt.Sprintf("@%s/%s", constants.APPNAME, name)] = tsSource
-}
-
-func (r *Registry) RegisterGoBuiltin(name string, provider GoModuleProvider) {
-	r.gobuiltins[fmt.Sprintf("@%s/%s", constants.APPNAME, name)] = provider
+func (r *Registry) RegisterBuiltin(name string, provider ModuleProvider) {
+	r.builtins[fmt.Sprintf("@%s/%s", constants.APPNAME, name)] = provider
 }
 
 // Resolve a "use" style reference into a canonical registry key + filesystem path.
@@ -139,13 +133,8 @@ func (r *Registry) getOrCreateModule(key, path, dir string, builtin bool) *Modul
 	}
 	if builtin {
 		// prefer Go module provider over TS source
-		if gp, ok := r.gobuiltins[key]; ok {
-			m.GoProvider = gp
-		}
-
-		// fallback to TS source - if exists
-		if src, ok := r.builtins[key]; ok && m.GoProvider == nil {
-			m.SourceTS = src
+		if gp, ok := r.builtins[key]; ok {
+			m.BuiltInProvider = gp
 		}
 	} else {
 		if filepath.Ext(path) == "" {
@@ -157,6 +146,11 @@ func (r *Registry) getOrCreateModule(key, path, dir string, builtin bool) *Modul
 		}
 		m.Path = path
 	}
+
+	if m.Path == "" && m.BuiltInProvider == nil {
+		return nil
+	}
+
 	r.mods[key] = m
 	return m
 }
@@ -169,6 +163,10 @@ func (r *Registry) PrepareUse(localFrom string, libFrom []string, fileDir string
 	}
 	mod := r.getOrCreateModule(key, path, dir, builtin)
 
+	if mod == nil {
+		return nil, fmt.Errorf("module %s not found", key)
+	}
+
 	// Warm compile best-effort
 	_, err = r.programFor(mod)
 	return mod, err
@@ -176,7 +174,7 @@ func (r *Registry) PrepareUse(localFrom string, libFrom []string, fileDir string
 
 // programFor ensures the module is compiled to a goja.Program returning a factory function.
 func (r *Registry) programFor(m *ModuleSpec) (*goja.Program, error) {
-	if m.GoProvider != nil {
+	if m.BuiltInProvider != nil {
 		// No JS program to run — Go provider will fabricate exports.
 		return nil, nil
 	}
@@ -229,6 +227,9 @@ func (r *Registry) LoadRequire(fromDir, spec string) (*ModuleSpec, error) {
 		return nil, err
 	}
 	mod := r.getOrCreateModule(key, path, dir, builtin)
+	if mod == nil {
+		return nil, fmt.Errorf("module %s not found", key)
+	}
 	_, err = r.programFor(mod)
 	return mod, err
 }

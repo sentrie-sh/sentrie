@@ -17,8 +17,11 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"slices"
 
 	"github.com/dop251/goja"
+	"github.com/fatih/structs"
 	"github.com/jackc/puddle/v2"
 )
 
@@ -46,11 +49,11 @@ func (m ModuleBinding) Call(ctx context.Context, fn string, args ...any) (any, e
 	vm := binding.Value()
 	val, ok := vm.Exports[fn]
 	if !ok {
-		return nil, fmt.Errorf("function %q not found in module %q", fn, m.Alias)
+		return nil, fmt.Errorf("function '%q' not found in module %q", fn, m.Alias)
 	}
 	fnc, ok := goja.AssertFunction(val)
 	if !ok {
-		return nil, fmt.Errorf("export %q is not callable", fn)
+		return nil, fmt.Errorf("export '%q' is not callable", fn)
 	}
 
 	// Honor context cancel by installing an interrupt
@@ -62,6 +65,8 @@ func (m ModuleBinding) Call(ctx context.Context, fn string, args ...any) (any, e
 			case <-ctx.Done():
 				vm.VM.Interrupt(ctx.Err())
 			case <-done:
+				// clear the interrupt
+				vm.VM.ClearInterrupt()
 			}
 		}()
 		defer close(done)
@@ -75,5 +80,28 @@ func (m ModuleBinding) Call(ctx context.Context, fn string, args ...any) (any, e
 	if err != nil {
 		return nil, err
 	}
-	return out.Export(), nil
+
+	acceptedReturnTypes := []reflect.Kind{
+		reflect.Map,
+		reflect.Slice,
+		reflect.Array,
+		reflect.String,
+		reflect.Int64,
+		reflect.Float64,
+		reflect.Bool,
+		reflect.Struct,
+	}
+
+	if !slices.Contains(acceptedReturnTypes, out.ExportType().Kind()) {
+		return nil, fmt.Errorf("unexpected return type %T", out.ExportType())
+	}
+
+	result := out.Export()
+
+	// if it's a struct, convert to a map[string]any
+	if structs.IsStruct(result) {
+		result = structs.Map(result)
+	}
+
+	return result, nil
 }

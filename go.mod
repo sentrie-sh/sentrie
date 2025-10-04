@@ -9,6 +9,7 @@ require (
 	github.com/binaek/perch v0.0.1
 	github.com/dop251/goja v0.0.0-20250630131328-58d95d85e994
 	github.com/evanw/esbuild v0.25.9
+	github.com/fatih/structs v1.1.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/puddle/v2 v2.2.2
 	github.com/mitchellh/hashstructure/v2 v2.0.2

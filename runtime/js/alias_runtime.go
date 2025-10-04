@@ -70,8 +70,8 @@ func (ar *AliasRuntime) Require(ctx context.Context, fromDir, spec string) (*goj
 	key := mod.KeyOrPath()
 
 	// Go-native path: fabricate exports directly, no program execution
-	if mod.GoProvider != nil {
-		ex, gerr := mod.GoProvider(ar.VM)
+	if mod.BuiltInProvider != nil {
+		ex, gerr := mod.BuiltInProvider(ar.VM)
 		if gerr != nil {
 			ar.cacheMu.Lock()
 			delete(ar.cache, key)
