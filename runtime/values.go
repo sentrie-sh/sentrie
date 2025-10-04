@@ -61,6 +61,10 @@ func IsUndefined(v any) bool {
 
 type undefined struct{}
 
+func (undefined) IsUndefined() bool {
+	return true
+}
+
 var Undefined = &undefined{}
 
 func (u *undefined) String() string {

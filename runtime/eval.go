@@ -36,6 +36,13 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 		// evaluate the wrapped expression, then return the value
 		return eval(ctx, ec, exec, p, t.Wrap)
 
+	case *ast.NullLiteral:
+		n, done := trace.New("literal", "nil", t, map[string]any{})
+		defer done()
+
+		n.SetResult(nil)
+		return nil, n, nil
+
 	case *ast.TrinaryLiteral:
 		n, done := trace.New("literal", "tristate", t, map[string]any{})
 		defer done()

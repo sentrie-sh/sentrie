@@ -11,6 +11,10 @@ type HasTrinary interface {
 	ToTrinary() Value
 }
 
+type IsUndefined interface {
+	IsUndefined() bool
+}
+
 // Value represents a trinary outcome: True, False, or Unknown.
 type Value int
 
@@ -172,16 +176,28 @@ func From(v any) Value {
 	return False
 }
 
+// IsTruthy checks if a value is truthy.
+// - nil → false
+// - IsUndefined → false
+// - bool → as-is
+// - string → len > 0
+// - int, uint, float → != 0
+// - slice, array → > len > 0
+// - map → > len > 0
+// - ptr, interface → !IsNil()
+// - struct → non-nil struct
+// - default → true
 func IsTruthy(v any) bool {
 	if v == nil {
 		return false
 	}
 
-	switch val := v.(type) {
-	case bool:
-		return val
-	case string:
-		return val != ""
+	if u, ok := v.(HasTrinary); ok {
+		return u.ToTrinary().IsTrue()
+	}
+
+	if u, ok := v.(IsUndefined); ok && u.IsUndefined() {
+		return false
 	}
 
 	rv := reflect.ValueOf(v)
@@ -193,10 +209,9 @@ func IsTruthy(v any) bool {
 		return rv.Uint() != 0
 	case reflect.Float32, reflect.Float64:
 		return rv.Float() != 0
-	case reflect.Slice, reflect.Array:
-		return rv.Len() > 0
-	case reflect.Map:
-		// ✅ non-empty maps are truthy
+	case reflect.Bool:
+		return rv.Bool()
+	case reflect.Slice, reflect.Array, reflect.Map, reflect.String:
 		return rv.Len() > 0
 	case reflect.Ptr, reflect.Interface:
 		if rv.IsNil() {
