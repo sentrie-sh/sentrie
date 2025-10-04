@@ -25,11 +25,11 @@ const (
 	OR                    // or
 	XOR                   // xor
 	AND                   // and
-	EQUALITY              // == !=
-	COMPARISON            // > < >= <=
+	EQUALITY              // == != is
+	COMPARISON            // > < >= <= matches contains in
 	SUM                   // + -
 	PRODUCT               // * / %
-	UNARY                 // !x -x +x
+	UNARY                 // !x -x +x not
 	CALL                  // myFunction(X)
 	INDEX                 // array[index], obj.field
 	PRIMARY               // base precedence for primary expressions
@@ -50,7 +50,8 @@ var precedences = map[tokens.Kind]Precedence{
 	tokens.KeywordIn:            COMPARISON,
 	tokens.KeywordMatches:       COMPARISON,
 	tokens.KeywordContains:      COMPARISON,
-	tokens.KeywordNot:           COMPARISON,
+	tokens.KeywordNot:           UNARY,
+	tokens.TokenBang:            UNARY,
 	tokens.TokenPlus:            SUM,
 	tokens.TokenMinus:           SUM,
 	tokens.TokenDiv:             PRODUCT,
