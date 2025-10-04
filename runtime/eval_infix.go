@@ -71,10 +71,20 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		out := num(l) * num(r)
 		return out, node.SetResult(out), nil
 	case "/":
-		out := num(l) / num(r)
+		lnum := num(l)
+		rnum := num(r)
+		if rnum == 0 {
+			return 0, node.SetErr(fmt.Errorf("divide by zero")), nil
+		}
+		out := lnum / rnum
 		return out, node.SetResult(out), nil
 	case "%":
-		out := float64(int64(num(l)) % int64(num(r)))
+		lnum := num(l)
+		rnum := num(r)
+		if rnum == 0 {
+			return 0, node.SetErr(fmt.Errorf("divide by zero")), nil
+		}
+		out := float64(int64(lnum) % int64(rnum))
 		return out, node.SetResult(out), nil
 
 	case "==":
@@ -104,6 +114,10 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		out := or(l, r)
 		return out, node.SetResult(out), nil
 
+	case "xor":
+		out := xor(l, r)
+		return out, node.SetResult(out), nil
+
 	case "in", "contains":
 		out := contains(r, l)
 		return out, node.SetResult(out), nil
@@ -119,6 +133,13 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		err := fmt.Errorf("unsupported infix op: %s", in.Operator)
 		return nil, node.SetErr(err), err
 	}
+}
+
+func xor(l, r any) trinary.Value {
+	left := trinary.From(l)
+	right := trinary.From(r)
+	// XOR = (A OR B) AND NOT (A AND B)
+	return left.Or(right).And(left.And(right).Not())
 }
 
 func and(l, r any) trinary.Value {
