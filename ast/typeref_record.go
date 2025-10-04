@@ -28,6 +28,7 @@ type RecordTypeRef struct {
 }
 
 var _ TypeRef = &RecordTypeRef{}
+var _ Node = &RecordTypeRef{}
 
 func (r *RecordTypeRef) typeref()                  {}
 func (r *RecordTypeRef) Position() tokens.Position { return r.Pos }

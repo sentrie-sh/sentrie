@@ -36,3 +36,4 @@ func (e *InfixExpression) Position() tokens.Position {
 func (e *InfixExpression) expressionNode() {}
 
 var _ Expression = &InfixExpression{}
+var _ Node = &InfixExpression{}

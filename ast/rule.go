@@ -33,3 +33,6 @@ func (r RuleStatement) Position() tokens.Position {
 }
 
 func (r RuleStatement) statementNode() {}
+
+var _ Statement = &RuleStatement{}
+var _ Node = &RuleStatement{}

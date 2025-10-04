@@ -22,6 +22,7 @@ type DocumentTypeRef struct {
 }
 
 var _ TypeRef = &DocumentTypeRef{}
+var _ Node = &DocumentTypeRef{}
 
 func (d *DocumentTypeRef) typeref()                  {}
 func (d *DocumentTypeRef) Position() tokens.Position { return d.Pos }

@@ -22,6 +22,7 @@ type FloatTypeRef struct {
 }
 
 var _ TypeRef = &FloatTypeRef{}
+var _ Node = &FloatTypeRef{}
 
 func (i *FloatTypeRef) typeref()                  {}
 func (s *FloatTypeRef) Position() tokens.Position { return s.Pos }

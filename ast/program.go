@@ -33,6 +33,9 @@ func (n NamespaceStatement) Position() tokens.Position {
 
 func (n NamespaceStatement) statementNode() {}
 
+var _ Statement = &NamespaceStatement{}
+var _ Node = &NamespaceStatement{}
+
 type PolicyStatement struct {
 	Pos        tokens.Position
 	Name       string
@@ -50,6 +53,7 @@ func (p PolicyStatement) Position() tokens.Position {
 func (p PolicyStatement) statementNode() {}
 
 var _ Statement = &PolicyStatement{}
+var _ Node = &PolicyStatement{}
 
 type Program struct {
 	Statements []Statement

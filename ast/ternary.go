@@ -38,3 +38,4 @@ func (t *TernaryExpression) Position() tokens.Position {
 func (t *TernaryExpression) expressionNode() {}
 
 var _ Expression = &TernaryExpression{}
+var _ Node = &TernaryExpression{}

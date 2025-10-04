@@ -45,3 +45,4 @@ func (c *CallExpression) Position() tokens.Position {
 func (c *CallExpression) expressionNode() {}
 
 var _ Expression = &CallExpression{}
+var _ Node = &CallExpression{}

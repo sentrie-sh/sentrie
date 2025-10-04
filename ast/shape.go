@@ -48,3 +48,6 @@ func (s *ShapeStatement) String() string {
 }
 
 func (s *ShapeStatement) statementNode() {}
+
+var _ Statement = &ShapeStatement{}
+var _ Node = &ShapeStatement{}

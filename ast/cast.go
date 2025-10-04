@@ -33,3 +33,4 @@ func (c *CastExpression) Position() tokens.Position {
 func (c *CastExpression) expressionNode() {}
 
 var _ Expression = (*CastExpression)(nil)
+var _ Node = (*CastExpression)(nil)

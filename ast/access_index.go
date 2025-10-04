@@ -33,3 +33,4 @@ func (i *IndexAccessExpression) Position() tokens.Position {
 func (i *IndexAccessExpression) expressionNode() {}
 
 var _ Expression = &IndexAccessExpression{}
+var _ Node = &IndexAccessExpression{}

@@ -48,3 +48,4 @@ func (l *ListLiteral) Position() tokens.Position {
 }
 
 var _ Expression = &ListLiteral{}
+var _ Node = &ListLiteral{}

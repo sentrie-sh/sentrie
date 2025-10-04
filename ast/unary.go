@@ -33,3 +33,4 @@ func (u *UnaryExpression) Position() tokens.Position {
 func (u *UnaryExpression) expressionNode() {}
 
 var _ Expression = &UnaryExpression{}
+var _ Node = &UnaryExpression{}

@@ -35,3 +35,4 @@ func (i *Identifier) Position() tokens.Position {
 func (i *Identifier) expressionNode() {}
 
 var _ Expression = &Identifier{}
+var _ Node = &Identifier{}

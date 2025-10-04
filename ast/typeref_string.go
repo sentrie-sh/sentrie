@@ -22,6 +22,7 @@ type StringTypeRef struct {
 }
 
 var _ TypeRef = &StringTypeRef{}
+var _ Node = &StringTypeRef{}
 
 func (s *StringTypeRef) typeref()                  {}
 func (s *StringTypeRef) Position() tokens.Position { return s.Pos }

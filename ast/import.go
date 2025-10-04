@@ -43,3 +43,4 @@ func (i ImportClause) Position() tokens.Position {
 func (i ImportClause) expressionNode() {}
 
 var _ Expression = &ImportClause{}
+var _ Node = &ImportClause{}

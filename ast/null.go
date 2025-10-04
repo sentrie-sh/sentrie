@@ -31,3 +31,4 @@ func (n *NullLiteral) Position() tokens.Position {
 func (n *NullLiteral) expressionNode() {}
 
 var _ Expression = &NullLiteral{}
+var _ Node = &NullLiteral{}

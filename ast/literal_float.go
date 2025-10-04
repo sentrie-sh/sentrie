@@ -38,3 +38,4 @@ func (f *FloatLiteral) Position() tokens.Position {
 }
 
 var _ Expression = &FloatLiteral{}
+var _ Node = &FloatLiteral{}

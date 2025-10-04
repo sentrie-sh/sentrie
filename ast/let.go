@@ -38,3 +38,4 @@ func (v VarDeclaration) Position() tokens.Position {
 func (v VarDeclaration) statementNode() {}
 
 var _ Statement = &VarDeclaration{}
+var _ Node = &VarDeclaration{}

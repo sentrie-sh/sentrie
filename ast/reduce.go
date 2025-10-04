@@ -53,3 +53,6 @@ func (r *ReduceExpression) Position() tokens.Position {
 }
 
 func (r *ReduceExpression) expressionNode() {}
+
+var _ Expression = &ReduceExpression{}
+var _ Node = &ReduceExpression{}

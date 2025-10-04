@@ -23,6 +23,7 @@ type MapTypeRef struct {
 }
 
 var _ TypeRef = &MapTypeRef{}
+var _ Node = &MapTypeRef{}
 
 func (m *MapTypeRef) typeref()                  {}
 func (m *MapTypeRef) Position() tokens.Position { return m.Pos }

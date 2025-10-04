@@ -21,6 +21,7 @@ import (
 )
 
 type TypeRef interface {
+	Node
 	typeref()
 	String() string
 	Position() tokens.Position

@@ -20,12 +20,9 @@ import (
 
 type Node interface {
 	String() string
+	// Equal(other Node) bool
+	// Compare(other Node) int
 	Position() tokens.Position
-}
-
-type Codeable interface {
-	Node
-	Code() string
 }
 
 type Statement interface {

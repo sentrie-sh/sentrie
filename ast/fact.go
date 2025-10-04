@@ -36,3 +36,4 @@ func (f FactStatement) Position() tokens.Position {
 func (f FactStatement) statementNode() {}
 
 var _ Statement = &FactStatement{}
+var _ Node = &FactStatement{}

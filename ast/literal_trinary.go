@@ -36,3 +36,4 @@ func (b *TrinaryLiteral) Position() tokens.Position {
 func (b *TrinaryLiteral) expressionNode() {}
 
 var _ Expression = &TrinaryLiteral{}
+var _ Node = &TrinaryLiteral{}

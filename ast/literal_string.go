@@ -37,3 +37,4 @@ func (s *StringLiteral) Position() tokens.Position {
 }
 
 var _ Expression = &StringLiteral{}
+var _ Node = &StringLiteral{}

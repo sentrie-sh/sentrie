@@ -30,3 +30,6 @@ func (s ShapeExportStatement) statementNode() {}
 func (s ShapeExportStatement) String() string {
 	return s.Name
 }
+
+var _ Statement = &ShapeExportStatement{}
+var _ Node = &ShapeExportStatement{}

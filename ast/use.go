@@ -37,3 +37,6 @@ func (s *UseStatement) String() string {
 }
 
 func (s *UseStatement) statementNode() {}
+
+var _ Statement = &UseStatement{}
+var _ Node = &UseStatement{}

@@ -23,6 +23,7 @@ type ShapeTypeRef struct {
 }
 
 var _ TypeRef = &ShapeTypeRef{}
+var _ Node = &ShapeTypeRef{}
 
 func (s *ShapeTypeRef) typeref()                  {}
 func (s *ShapeTypeRef) Position() tokens.Position { return s.Pos }

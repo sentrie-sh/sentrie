@@ -33,6 +33,7 @@ func (v RuleExportStatement) Position() tokens.Position {
 func (v RuleExportStatement) statementNode() {}
 
 var _ Statement = &RuleExportStatement{}
+var _ Node = &RuleExportStatement{}
 
 type AttachmentClause struct {
 	Pos  tokens.Position // Position in the source code

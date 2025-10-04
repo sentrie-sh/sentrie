@@ -66,11 +66,17 @@ type CountExpression struct {
 }
 
 var _ Expression = &FilterExpression{}
+var _ Node = &FilterExpression{}
 var _ Expression = &AnyExpression{}
+var _ Node = &AnyExpression{}
 var _ Expression = &AllExpression{}
+var _ Node = &AllExpression{}
 var _ Expression = &MapExpression{}
+var _ Node = &MapExpression{}
 var _ Expression = &DistinctExpression{}
+var _ Node = &DistinctExpression{}
 var _ Expression = &CountExpression{}
+var _ Node = &CountExpression{}
 
 func (a *AnyExpression) String() string {
 	b := strings.Builder{}

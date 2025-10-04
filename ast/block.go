@@ -39,3 +39,6 @@ func (b *BlockExpression) String() string {
 	}
 	return "{" + strings.Join(stmts, ";") + "; yield " + b.Yield.String() + "}"
 }
+
+var _ Expression = &BlockExpression{}
+var _ Node = &BlockExpression{}

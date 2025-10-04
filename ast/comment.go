@@ -69,6 +69,9 @@ func (p PrecedingCommentExpression) expressionNode() {}
 
 var (
 	_ Statement  = &CommentStatement{}
+	_ Node       = &CommentStatement{}
 	_ Expression = &TrailingCommentExpression{}
+	_ Node       = &TrailingCommentExpression{}
 	_ Expression = &PrecedingCommentExpression{}
+	_ Node       = &PrecedingCommentExpression{}
 )

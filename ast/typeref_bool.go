@@ -22,6 +22,7 @@ type BoolTypeRef struct {
 }
 
 var _ TypeRef = &BoolTypeRef{}
+var _ Node = &BoolTypeRef{}
 
 func (b *BoolTypeRef) typeref()                  {}
 func (s *BoolTypeRef) Position() tokens.Position { return s.Pos }

@@ -22,6 +22,7 @@ type IntTypeRef struct {
 }
 
 var _ TypeRef = &IntTypeRef{}
+var _ Node = &IntTypeRef{}
 
 func (i *IntTypeRef) typeref()                  {}
 func (s *IntTypeRef) Position() tokens.Position { return s.Pos }

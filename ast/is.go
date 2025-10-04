@@ -46,4 +46,6 @@ func (e *IsDefinedExpression) expressionNode() {}
 func (e *IsEmptyExpression) expressionNode()   {}
 
 var _ Expression = &IsDefinedExpression{}
+var _ Node = &IsDefinedExpression{}
 var _ Expression = &IsEmptyExpression{}
+var _ Node = &IsEmptyExpression{}

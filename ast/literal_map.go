@@ -46,3 +46,6 @@ func (m *MapLiteral) Position() tokens.Position {
 }
 
 func (m *MapLiteral) expressionNode() {}
+
+var _ Expression = &MapLiteral{}
+var _ Node = &MapLiteral{}

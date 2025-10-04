@@ -35,3 +35,4 @@ func (f *FieldAccessExpression) Position() tokens.Position {
 func (f *FieldAccessExpression) expressionNode() {}
 
 var _ Expression = &FieldAccessExpression{}
+var _ Node = &FieldAccessExpression{}

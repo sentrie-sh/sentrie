@@ -33,3 +33,4 @@ func (t *TransformExpression) Position() tokens.Position {
 func (t *TransformExpression) expressionNode() {}
 
 var _ Expression = &TransformExpression{}
+var _ Node = &TransformExpression{}

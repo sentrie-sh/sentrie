@@ -38,3 +38,4 @@ func (i *IntegerLiteral) Position() tokens.Position {
 }
 
 var _ Expression = &IntegerLiteral{}
+var _ Node = &IntegerLiteral{}
