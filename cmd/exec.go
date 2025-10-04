@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/binaek/cling"
 	"github.com/sentrie-sh/sentrie/index"
@@ -193,7 +194,7 @@ func formatOutput(m ExecutorOutputMap) {
 					}
 					fmt.Printf("  ✓ %s:\n", ruleName)
 					for name, value := range ruleData.Attachments {
-						formatAttachment(name, value)
+						formatAttachment(name, value, 0)
 					}
 				}
 				fmt.Println()
@@ -231,20 +232,23 @@ func formatTrinaryState(state any) string {
 }
 
 // formatAttachment formats attachment values with proper indentation
-func formatAttachment(name string, value any) {
+func formatAttachment(name string, value any, indent int) {
+	indentStr := strings.Repeat(" ", indent)
 	if list, ok := value.([]any); ok {
-		fmt.Printf("       %s:\n", name)
+		fmt.Printf("%s     %s:\n", indentStr, name)
 		for _, item := range list {
-			fmt.Printf("        %s\n", item)
+			fmt.Printf("%s      - %v\n", indentStr, item)
 		}
 		return
 	}
+
 	if m, ok := value.(map[string]any); ok {
-		fmt.Printf("       %s:\n", name)
+		fmt.Printf("%s     %s:\n", indentStr, name)
 		for key, val := range m {
-			fmt.Printf("        %s: %s\n", key, val)
+			formatAttachment(key, val, indent+1)
 		}
 		return
 	}
-	fmt.Printf("     %s: %s\n", name, value)
+
+	fmt.Printf("%s     %s: %v\n", indentStr, name, value)
 }
