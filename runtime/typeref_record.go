@@ -19,6 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/constraints"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
@@ -50,16 +51,15 @@ func validateAgainstRecordTypeRef(ctx context.Context, ec *ExecutionContext, exe
 			}
 			args[i] = csArg
 		}
-		if _, ok := recordContraintCheckers[constraint.Name]; !ok {
+		checker, ok := constraints.RecordContraintCheckers[constraint.Name]
+		if !ok {
 			return ErrUnknownConstraint(constraint)
 		}
 
-		if err := recordContraintCheckers[constraint.Name](ctx, p, v.([]any), args); err != nil {
+		if err := checker.Checker(ctx, p, v.([]any), args); err != nil {
 			return ErrConstraintFailed(pos, constraint, err)
 		}
 	}
 
 	return nil
 }
-
-var recordContraintCheckers map[string]constraintChecker[[]any] = map[string]constraintChecker[[]any]{}

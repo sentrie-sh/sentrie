@@ -32,25 +32,9 @@ func (d *DocumentTypeRef) GetConstraints() []*TypeRefConstraint {
 }
 
 func (d *DocumentTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
-	if err := validateConstraint(constraint, documentConstraints); err != nil {
+	if err := validateConstraint(constraint, genDocumentConstraints); err != nil {
 		return err
 	}
 	d.constraints = append(d.constraints, constraint)
 	return nil
 }
-
-var documentConstraints = func() map[string]int {
-	constraints := [...]v{
-		{name: "minlength", arglen: 1},
-		{name: "maxlength", arglen: 1},
-		{name: "length", arglen: 1},
-		{name: "keys", arglen: 1},
-		{name: "required", arglen: 1},
-		{name: "schema", arglen: 1},
-	}
-	constraintsMap := make(map[string]int)
-	for _, v := range constraints {
-		constraintsMap[v.name] = v.arglen
-	}
-	return constraintsMap
-}()

@@ -19,14 +19,18 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/constraints"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 func validateAgainstBoolTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.BoolTypeRef, pos tokens.Position) error {
-	if _, ok := v.(bool); !ok {
+	if _, ok := v.(trinary.Value); !ok {
 		return errors.Errorf("value '%v' is not a bool at %s - expected bool", v, pos)
 	}
+
+	tv := v.(trinary.Value)
 
 	for _, constraint := range typeRef.GetConstraints() {
 		args := make([]any, len(constraint.Args))
@@ -37,15 +41,14 @@ func validateAgainstBoolTypeRef(ctx context.Context, ec *ExecutionContext, exec 
 			}
 			args[i] = csArg
 		}
-		if _, ok := boolContraintCheckers[constraint.Name]; !ok {
+		checker, ok := constraints.BoolConstraintCheckers[constraint.Name]
+		if !ok {
 			return ErrUnknownConstraint(constraint)
 		}
 
-		if err := boolContraintCheckers[constraint.Name](ctx, p, v.(bool), args); err != nil {
+		if err := checker.Checker(ctx, p, tv, args); err != nil {
 			return ErrConstraintFailed(pos, constraint, err)
 		}
 	}
 	return nil
 }
-
-var boolContraintCheckers map[string]constraintChecker[bool] = map[string]constraintChecker[bool]{}

@@ -32,31 +32,9 @@ func (a *ListTypeRef) GetConstraints() []*TypeRefConstraint {
 	return a.constraints
 }
 func (a *ListTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
-	if err := validateConstraint(constraint, arrayConstraints); err != nil {
+	if err := validateConstraint(constraint, genListConstraints); err != nil {
 		return err
 	}
 	a.constraints = append(a.constraints, constraint)
 	return nil
 }
-
-var arrayConstraints = func() map[string]int {
-	constraints := [...]v{
-		{name: "minlength", arglen: 1},
-		{name: "maxlength", arglen: 1},
-		{name: "length", arglen: 1},
-		{name: "unique", arglen: 0},
-		{name: "not_empty", arglen: 0},
-		{name: "sorted", arglen: 0},
-		{name: "sorted_desc", arglen: 0},
-		{name: "has_item", arglen: 1},
-		{name: "not_has_item", arglen: 1},
-		{name: "subset_of", arglen: 1},
-		{name: "superset_of", arglen: 1},
-		{name: "disjoint_from", arglen: 1},
-	}
-	constraintsMap := make(map[string]int)
-	for _, v := range constraints {
-		constraintsMap[v.name] = v.arglen
-	}
-	return constraintsMap
-}()

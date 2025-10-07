@@ -31,30 +31,9 @@ func (i *FloatTypeRef) GetConstraints() []*TypeRefConstraint {
 	return i.constraints
 }
 func (i *FloatTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
-	if err := validateConstraint(constraint, floatConstraints); err != nil {
+	if err := validateConstraint(constraint, genFloatConstraints); err != nil {
 		return err
 	}
 	i.constraints = append(i.constraints, constraint)
 	return nil
 }
-
-var floatConstraints = func() map[string]int {
-	constraints := [...]v{
-		{name: "min", arglen: 1},
-		{name: "max", arglen: 1},
-		{name: "range", arglen: 2},
-		{name: "multiple_of", arglen: 1},
-		{name: "positive", arglen: 0},
-		{name: "negative", arglen: 0},
-		{name: "non_negative", arglen: 0},
-		{name: "non_positive", arglen: 0},
-		{name: "finite", arglen: 0},
-		{name: "infinite", arglen: 0},
-		{name: "nan", arglen: 0},
-	}
-	constraintsMap := make(map[string]int)
-	for _, v := range constraints {
-		constraintsMap[v.name] = v.arglen
-	}
-	return constraintsMap
-}()

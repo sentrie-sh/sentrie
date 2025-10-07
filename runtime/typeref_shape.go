@@ -20,6 +20,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/constraints"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/sentrie-sh/sentrie/xerr"
@@ -112,16 +113,15 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 			}
 			args[i] = csArg
 		}
-		if _, ok := shapeContraintCheckers[constraint.Name]; !ok {
+		checker, ok := constraints.ShapeContraintCheckers[constraint.Name]
+		if !ok {
 			return ErrUnknownConstraint(constraint)
 		}
 
-		if err := shapeContraintCheckers[constraint.Name](ctx, p, v.(map[string]any), args); err != nil {
+		if err := checker.Checker(ctx, p, v.(map[string]any), args); err != nil {
 			return ErrConstraintFailed(pos, constraint, err)
 		}
 	}
 
 	return nil
 }
-
-var shapeContraintCheckers map[string]constraintChecker[map[string]any] = map[string]constraintChecker[map[string]any]{}

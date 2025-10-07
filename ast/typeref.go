@@ -35,11 +35,6 @@ type TypeRefConstraint struct {
 	Args []Expression
 }
 
-type v struct {
-	name   string
-	arglen int
-}
-
 // validateConstraint checks if a constraint is valid for the given type
 func validateConstraint(constraint *TypeRefConstraint, constraints map[string]int) error {
 	expectedArgs, ok := constraints[constraint.Name]

@@ -32,21 +32,9 @@ func (s *ShapeTypeRef) GetConstraints() []*TypeRefConstraint {
 	return s.constraints
 }
 func (s *ShapeTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
-	if err := validateConstraint(constraint, shapeConstraints); err != nil {
+	if err := validateConstraint(constraint, genShapeConstraints); err != nil {
 		return err
 	}
 	s.constraints = append(s.constraints, constraint)
 	return nil
 }
-
-var shapeConstraints = func() map[string]int {
-	constraints := [...]v{
-		{name: "required", arglen: 0},
-		{name: "optional", arglen: 0},
-	}
-	constraintsMap := make(map[string]int)
-	for _, v := range constraints {
-		constraintsMap[v.name] = v.arglen
-	}
-	return constraintsMap
-}()

@@ -289,24 +289,3 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefEdgeCases() {
 		})
 	}
 }
-
-func (r *RuntimeTestSuite) TestDocumentConstraintCheckers() {
-	// Test that the document constraint checkers map is properly initialized
-	r.NotNil(documentContraintCheckers)
-	r.IsType(map[string]constraintChecker[map[string]interface{}]{}, documentContraintCheckers)
-
-	// Test that we can add constraint checkers (for future implementation)
-	originalLen := len(documentContraintCheckers)
-
-	// Add a test constraint checker
-	documentContraintCheckers["test"] = func(ctx context.Context, p *index.Policy, val map[string]interface{}, args []interface{}) error {
-		return nil
-	}
-
-	r.Equal(originalLen+1, len(documentContraintCheckers))
-	r.Contains(documentContraintCheckers, "test")
-
-	// Clean up
-	delete(documentContraintCheckers, "test")
-	r.Equal(originalLen, len(documentContraintCheckers))
-}

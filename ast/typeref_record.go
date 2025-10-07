@@ -36,25 +36,12 @@ func (r *RecordTypeRef) GetConstraints() []*TypeRefConstraint {
 	return r.constraints
 }
 func (r *RecordTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
-	if err := validateConstraint(constraint, recordConstraints); err != nil {
+	if err := validateConstraint(constraint, genRecordConstraints); err != nil {
 		return err
 	}
 	r.constraints = append(r.constraints, constraint)
 	return nil
 }
-
-var recordConstraints = func() map[string]int {
-	constraints := [...]v{
-		{name: "required", arglen: 0},
-		{name: "optional", arglen: 0},
-		{name: "fields", arglen: 1},
-	}
-	constraintsMap := make(map[string]int)
-	for _, v := range constraints {
-		constraintsMap[v.name] = v.arglen
-	}
-	return constraintsMap
-}()
 
 func (r *RecordTypeRef) String() string {
 	b := bytes.Buffer{}

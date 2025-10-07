@@ -19,6 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/constraints"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
@@ -37,16 +38,15 @@ func validateAgainstMapTypeRef(ctx context.Context, ec *ExecutionContext, exec E
 			}
 			args[i] = csArg
 		}
-		if _, ok := mapContraintCheckers[constraint.Name]; !ok {
+		checker, ok := constraints.MapContraintCheckers[constraint.Name]
+		if !ok {
 			return ErrUnknownConstraint(constraint)
 		}
 
-		if err := mapContraintCheckers[constraint.Name](ctx, p, v.(map[string]any), args); err != nil {
+		if err := checker.Checker(ctx, p, v.(map[string]any), args); err != nil {
 			return ErrConstraintFailed(pos, constraint, err)
 		}
 	}
 
 	return nil
 }
-
-var mapContraintCheckers map[string]constraintChecker[map[string]any] = map[string]constraintChecker[map[string]any]{}

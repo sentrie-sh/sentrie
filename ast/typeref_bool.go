@@ -31,20 +31,9 @@ func (b *BoolTypeRef) GetConstraints() []*TypeRefConstraint {
 	return b.constraints
 }
 func (b *BoolTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
-	if err := validateConstraint(constraint, boolConstraints); err != nil {
+	if err := validateConstraint(constraint, genBoolConstraints); err != nil {
 		return err
 	}
 	b.constraints = append(b.constraints, constraint)
 	return nil
 }
-
-var boolConstraints = func() map[string]int {
-	constraints := [...]v{
-		{name: "required", arglen: 0},
-	}
-	constraintsMap := make(map[string]int)
-	for _, v := range constraints {
-		constraintsMap[v.name] = v.arglen
-	}
-	return constraintsMap
-}()

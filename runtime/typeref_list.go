@@ -16,10 +16,10 @@ package runtime
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/constraints"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
@@ -44,23 +44,15 @@ func validateAgainstListTypeRef(ctx context.Context, ec *ExecutionContext, exec 
 			}
 			args[i] = csArg
 		}
-		if _, ok := listContraintCheckers[constraint.Name]; !ok {
+		checker, ok := constraints.ListContraintCheckers[constraint.Name]
+		if !ok {
 			return ErrUnknownConstraint(constraint)
 		}
 
-		if err := listContraintCheckers[constraint.Name](ctx, p, v.([]any), args); err != nil {
+		if err := checker.Checker(ctx, p, v.([]any), args); err != nil {
 			return ErrConstraintFailed(pos, constraint, err)
 		}
 	}
 
 	return nil
-}
-
-var listContraintCheckers map[string]constraintChecker[[]any] = map[string]constraintChecker[[]any]{
-	"not_empty": func(ctx context.Context, p *index.Policy, val []any, args []any) error {
-		if len(val) == 0 {
-			return fmt.Errorf("list is empty - expected non-empty list")
-		}
-		return nil
-	},
 }
