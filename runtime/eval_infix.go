@@ -87,7 +87,7 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		out := float64(int64(lnum) % int64(rnum))
 		return out, node.SetResult(out), nil
 
-	case "==":
+	case "==", "is":
 		out := equals(l, r)
 		return out, node.SetResult(out), nil
 	case "!=":
@@ -118,8 +118,12 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		out := xor(l, r)
 		return out, node.SetResult(out), nil
 
-	case "in", "contains":
+	case "in":
 		out := contains(r, l)
+		return out, node.SetResult(out), nil
+
+	case "contains":
+		out := contains(l, r)
 		return out, node.SetResult(out), nil
 
 	case "matches":
