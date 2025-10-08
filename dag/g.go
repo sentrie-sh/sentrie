@@ -13,7 +13,7 @@ type G[T fmt.Stringer] interface {
 	AddNode(T)
 	AddEdge(T, T) error
 	TopoSort() ([]T, error)
-	DetectAllCycles() [][]T
+	DetectFirstCycle() []T
 }
 
 type gImpl[T fmt.Stringer] struct {
@@ -125,23 +125,21 @@ func (d *gImpl[T]) TopoSort() ([]T, error) {
 	return nodes, nil
 }
 
-func (d *gImpl[T]) DetectAllCycles() [][]T {
+func (d *gImpl[T]) DetectFirstCycle() []T {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
-
-	detectedCycles := make([][]string, 0, len(d.edges)) // start pessimistically, we cannot have more cycles than edges
 
 	visited := make(map[string]struct{})
 	stack := make([]string, 0, len(d.nodes))
 	visiting := make([]string, 0, len(d.nodes))
 
-	var dfs func(node string) error
-	dfs = func(node string) error {
+	var dfs func(node string) []string
+	dfs = func(node string) []string {
 		if slices.Contains(visiting, node) {
 			// if we are already visiting this node, we have a cycle
 			idx := slices.Index(visiting, node)
 			path := append(visiting[idx:], node)
-			return ErrCycle{Path: path}
+			return path
 		}
 		if _, ok := visited[node]; ok {
 			return nil
@@ -154,14 +152,6 @@ func (d *gImpl[T]) DetectAllCycles() [][]T {
 
 		visited[node] = struct{}{}
 		for neighbor := range d.edges[node] {
-			if slices.Contains(visiting, neighbor) {
-				idx := slices.Index(visiting, neighbor)
-				path := append(visiting[idx:], neighbor)
-				detectedCycles = append(detectedCycles, path)
-				// ignore this edge and move on
-				continue
-			}
-
 			if err := dfs(neighbor); err != nil {
 				return err
 			}
@@ -170,20 +160,15 @@ func (d *gImpl[T]) DetectAllCycles() [][]T {
 	}
 
 	for node := range d.nodes {
-		if err := dfs(node); err != nil {
-			return nil
+		if cycle := dfs(node); len(cycle) > 0 {
+			// Convert cycle path to []T
+			result := make([]T, len(cycle))
+			for i, nodeStr := range cycle {
+				result[i] = d.nodes[nodeStr]
+			}
+			return result
 		}
 	}
 
-	slices.Reverse(stack)
-
-	cycles := make([][]T, 0, len(detectedCycles))
-	for _, cycle := range detectedCycles {
-		thisCycle := make([]T, 0, len(cycle))
-		for _, n := range cycle {
-			thisCycle = append(thisCycle, d.nodes[n])
-		}
-		cycles = append(cycles, thisCycle)
-	}
-	return cycles
+	return []T{}
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
+	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 func evalBlock(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, block *ast.BlockExpression) (any, *trace.Node, error) {
@@ -32,6 +33,10 @@ func evalBlock(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 	for _, s := range block.Statements {
 		switch st := s.(type) {
 		case *ast.VarDeclaration:
+			if ec.IsLetInjected(st.Name) {
+				e := xerr.ErrConflict(st.Name)
+				return nil, n.SetErr(e), e
+			}
 			ec.InjectLet(st.Name, st)
 		case *ast.CommentStatement:
 			_ = "noop"

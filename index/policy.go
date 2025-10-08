@@ -47,7 +47,7 @@ type Policy struct {
 	Uses        []*ast.UseStatement
 	Shapes      map[string]*Shape // policy-local shapes
 
-	knownIdentifiers map[string]positionable
+	seenIdentifiers map[string]positionable
 }
 
 func (p *Policy) String() string {
@@ -60,19 +60,19 @@ type positionable interface {
 
 func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Program) (*Policy, error) {
 	p := &Policy{
-		Statement:        policy,
-		Namespace:        ns,
-		Name:             policy.Name,
-		FQN:              ast.CreateFQN(ns.FQN, policy.Name),
-		FilePath:         program.Reference,
-		Statements:       policy.Statements,
-		Lets:             make(map[string]*ast.VarDeclaration),
-		Facts:            make(map[string]*ast.FactStatement),
-		Rules:            make(map[string]*Rule),
-		RuleExports:      make(map[string]ExportedRule),
-		Uses:             make([]*ast.UseStatement, 0),
-		Shapes:           make(map[string]*Shape),
-		knownIdentifiers: make(map[string]positionable),
+		Statement:       policy,
+		Namespace:       ns,
+		Name:            policy.Name,
+		FQN:             ast.CreateFQN(ns.FQN, policy.Name),
+		FilePath:        program.Reference,
+		Statements:      policy.Statements,
+		Lets:            make(map[string]*ast.VarDeclaration),
+		Facts:           make(map[string]*ast.FactStatement),
+		Rules:           make(map[string]*Rule),
+		RuleExports:     make(map[string]ExportedRule),
+		Uses:            make([]*ast.UseStatement, 0),
+		Shapes:          make(map[string]*Shape),
+		seenIdentifiers: make(map[string]positionable), // a map of seen identifiers
 	}
 
 	for idx, stmt := range policy.Statements {
@@ -150,12 +150,12 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 }
 
 func (p *Policy) AddLet(let *ast.VarDeclaration) error {
-	if _, ok := p.knownIdentifiers[let.Name]; ok {
-		return errors.Wrapf(ErrIndex, "let name conflict: '%s' at %s with %s", let.Name, let.Position(), p.knownIdentifiers[let.Name].Position())
+	if _, ok := p.seenIdentifiers[let.Name]; ok {
+		return errors.Wrapf(ErrIndex, "let name conflict: '%s' at %s with %s", let.Name, let.Position(), p.seenIdentifiers[let.Name].Position())
 	}
 
 	p.Lets[let.Name] = let
-	p.knownIdentifiers[let.Name] = let
+	p.seenIdentifiers[let.Name] = let
 	return nil
 }
 
@@ -165,12 +165,12 @@ func (p *Policy) AddRule(rule *ast.RuleStatement) error {
 		return err
 	}
 
-	if _, ok := p.knownIdentifiers[rule.RuleName]; ok {
-		return errors.Wrapf(ErrIndex, "rule name conflict: '%s' at %s with %s", rule.RuleName, rule.Position(), p.knownIdentifiers[rule.RuleName].Position())
+	if _, ok := p.seenIdentifiers[rule.RuleName]; ok {
+		return errors.Wrapf(ErrIndex, "rule name conflict: '%s' at %s with %s", rule.RuleName, rule.Position(), p.seenIdentifiers[rule.RuleName].Position())
 	}
 
 	p.Rules[rule.RuleName] = r
-	p.knownIdentifiers[rule.RuleName] = r
+	p.seenIdentifiers[rule.RuleName] = r
 
 	return nil
 }
@@ -190,11 +190,11 @@ func (p *Policy) AddShape(shape *ast.ShapeStatement) error {
 }
 
 func (p *Policy) AddFact(fact *ast.FactStatement) error {
-	if _, ok := p.knownIdentifiers[fact.Alias]; ok {
-		return errors.Wrapf(ErrIndex, "fact alias conflict: '%s' at %s with %s", fact.Alias, fact.Position(), p.knownIdentifiers[fact.Alias].Position())
+	if _, ok := p.seenIdentifiers[fact.Alias]; ok {
+		return errors.Wrapf(ErrIndex, "fact alias conflict: '%s' at %s with %s", fact.Alias, fact.Position(), p.seenIdentifiers[fact.Alias].Position())
 	}
 
 	p.Facts[fact.Alias] = fact
-	p.knownIdentifiers[fact.Alias] = fact
+	p.seenIdentifiers[fact.Alias] = fact
 	return nil
 }

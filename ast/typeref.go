@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/sentrie-sh/sentrie/tokens"
+	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 type TypeRef interface {
@@ -39,7 +40,7 @@ type TypeRefConstraint struct {
 func validateConstraint(constraint *TypeRefConstraint, constraints map[string]int) error {
 	expectedArgs, ok := constraints[constraint.Name]
 	if !ok {
-		return fmt.Errorf("constraint %s not found", constraint.Name)
+		return xerr.NotFoundError{}
 	}
 	if expectedArgs == -1 {
 		// Variable arguments - at least 1 required

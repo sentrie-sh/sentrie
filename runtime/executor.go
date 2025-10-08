@@ -216,6 +216,12 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 		return nil, nil, nil, xerr.ErrRuleNotFound(index.RuleFQN(namespace, policy, rule))
 	}
 
+	// Check for infinite recursion before evaluating the rule
+	if err := ec.PushRefStack(rule); err != nil {
+		return nil, nil, nil, err
+	}
+	defer ec.PopRefStack()
+
 	// Wrap rule evaluation in a decision node
 	ruleNode, done := trace.New("rule-outcome", rule, r, map[string]any{
 		"namespace": namespace,

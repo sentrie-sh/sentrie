@@ -112,7 +112,7 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 			return nil
 		}
 		if err := ref.AddConstraint(constraint); err != nil {
-			p.errorf("cannot add constraint %s: %s", constraint.Name, err)
+			p.errorf("cannot add constraint %s: %s at %s", constraint.Name, err, constraint.Pos)
 			return nil
 		}
 	}

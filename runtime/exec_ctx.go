@@ -17,11 +17,13 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 var ErrIllegalFactInjection = fmt.Errorf("fact injection not allowed in child context")
@@ -41,6 +43,8 @@ type ExecutionContext struct {
 
 	parent *ExecutionContext
 
+	refStack []string // reference stack for cycle detection
+
 	facts map[string]injectedFact        // injected via WITH
 	lets  map[string]*ast.VarDeclaration // policy-scoped lets
 
@@ -49,14 +53,22 @@ type ExecutionContext struct {
 	modules map[string]*ModuleBinding // alias -> module binding (for `use`)
 }
 
+func (ec *ExecutionContext) IsLetInjected(name string) bool {
+	ec.mu.Lock()
+	defer ec.mu.Unlock()
+	_, ok := ec.lets[name]
+	return ok
+}
+
 func NewExecutionContext(policy *index.Policy) *ExecutionContext {
 	return &ExecutionContext{
-		parent:  nil,
-		policy:  policy,
-		facts:   make(map[string]injectedFact),
-		locals:  make(map[string]any),
-		lets:    make(map[string]*ast.VarDeclaration),
-		modules: make(map[string]*ModuleBinding),
+		parent:   nil,
+		policy:   policy,
+		refStack: make([]string, 0), // reference stack
+		facts:    make(map[string]injectedFact),
+		locals:   make(map[string]any),
+		lets:     make(map[string]*ast.VarDeclaration),
+		modules:  make(map[string]*ModuleBinding),
 	}
 }
 
@@ -66,13 +78,20 @@ func (ec *ExecutionContext) Dispose() {}
 // AttachedChildContext creates a child context. All lookups will be
 // performed in the child context first, then the parent context.
 func (ec *ExecutionContext) AttachedChildContext() *ExecutionContext {
+	ec.mu.Lock()
+	defer ec.mu.Unlock()
+
+	stack := make([]string, len(ec.refStack))
+	copy(stack, ec.refStack)
+
 	return &ExecutionContext{
-		parent:  ec,
-		policy:  ec.policy, // inherit the policy from the parent
-		facts:   nil,       // a child context should not have facts at all
-		locals:  make(map[string]any),
-		lets:    make(map[string]*ast.VarDeclaration),
-		modules: ec.modules, // inherit the module bindings from the parent
+		parent:   ec,
+		refStack: stack,     // inherit the call stack from the parent
+		policy:   ec.policy, // inherit the policy from the parent
+		facts:    nil,       // a child context should not have facts at all
+		locals:   make(map[string]any),
+		lets:     make(map[string]*ast.VarDeclaration),
+		modules:  ec.modules, // inherit the module bindings from the parent
 	}
 }
 
@@ -190,4 +209,38 @@ func (ec *ExecutionContext) Module(alias string) (*ModuleBinding, bool) {
 	defer ec.mu.Unlock()
 	m, ok := ec.modules[alias]
 	return m, ok
+}
+
+// PushRefStack adds an item to the reference stack for cycle detection
+func (ec *ExecutionContext) PushRefStack(item string) error {
+	ec.mu.Lock()
+	defer ec.mu.Unlock()
+
+	// Check if this rule is already in the stack (cycle detection)
+	if slices.Contains(ec.refStack, item) {
+		return errors.Wrapf(xerr.ErrInfiniteRecursion(append(ec.refStack, item)), "'%s' references itself", item)
+	}
+
+	ec.refStack = append(ec.refStack, item)
+	return nil
+}
+
+// PopRefStack removes the last item from the call stack
+func (ec *ExecutionContext) PopRefStack() {
+	ec.mu.Lock()
+	defer ec.mu.Unlock()
+
+	if len(ec.refStack) > 0 {
+		ec.refStack = ec.refStack[:len(ec.refStack)-1]
+	}
+}
+
+// GetCallStack returns a copy of the current reference stack
+func (ec *ExecutionContext) GetRefStack() []string {
+	ec.mu.Lock()
+	defer ec.mu.Unlock()
+
+	stack := make([]string, len(ec.refStack))
+	copy(stack, ec.refStack)
+	return stack
 }

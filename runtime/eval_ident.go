@@ -39,6 +39,12 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 
 	// we couldn't find anything yet - look for a let declaration in the ExecutionContext
 	if v, ok := ec.GetLet(i); ok {
+		// Check for infinite recursion before evaluating the let declaration
+		if err := ec.PushRefStack(i); err != nil {
+			return nil, n.SetErr(err), err
+		}
+		defer ec.PopRefStack()
+
 		// we found a let declaration - evaluate it and set the local
 		val, letEvalNode, err := eval(ctx, ec, exec, p, v.Value)
 		n.Attach(letEvalNode)

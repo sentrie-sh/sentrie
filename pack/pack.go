@@ -33,9 +33,9 @@ type PackFile struct {
 	Description   string            `toml:"description,omitempty"`
 	License       string            `toml:"license,omitempty"`
 	Repository    string            `toml:"repository,omitempty"`
-	Engines       Engines           `toml:"engines,omitempty"`
+	Engine        *Engine           `toml:"engine,omitempty"`
 	Authors       map[string]string `toml:"authors,omitempty"`
-	Permissions   Permissions       `toml:"permissions,omitempty"`
+	Permissions   *Permissions      `toml:"permissions,omitempty"`
 	Metadata      map[string]any    `toml:"metadata,omitempty"`
 	Location      string            `toml:"-"`
 }
@@ -48,7 +48,7 @@ func NewPackFile(name string) *PackFile {
 	}
 }
 
-type Engines struct {
+type Engine struct {
 	Sentrie *semver.Constraints `toml:"sentrie"`
 }
 

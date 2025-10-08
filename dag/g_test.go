@@ -296,7 +296,7 @@ func (s *DagTestSuite) TestTopoSortWithCycle() {
 func (s *DagTestSuite) TestDetectAllCycles() {
 	// Test empty graph
 	graph := New[TestNode]()
-	cycles := graph.DetectAllCycles()
+	cycles := graph.DetectFirstCycle()
 	s.Empty(cycles)
 
 	// Test acyclic graph
@@ -310,7 +310,7 @@ func (s *DagTestSuite) TestDetectAllCycles() {
 	graph.AddEdge(nodeA, nodeB)
 	graph.AddEdge(nodeB, nodeC)
 
-	cycles = graph.DetectAllCycles()
+	cycles = graph.DetectFirstCycle()
 	s.Empty(cycles)
 
 	// Test single cycle: A -> B -> A
@@ -322,11 +322,10 @@ func (s *DagTestSuite) TestDetectAllCycles() {
 	graph.AddEdge(nodeA, nodeB)
 	graph.AddEdge(nodeB, nodeA)
 
-	cycles = graph.DetectAllCycles()
-	s.Len(cycles, 1)
-	s.Len(cycles[0], 3) // A -> B -> A
-	s.Contains(cycles[0], nodeA)
-	s.Contains(cycles[0], nodeB)
+	cycles = graph.DetectFirstCycle()
+	s.Len(cycles, 3)
+	s.Contains(cycles, nodeA)
+	s.Contains(cycles, nodeB)
 
 	// Test multiple cycles in a connected graph
 	graph = New[TestNode]()
@@ -344,18 +343,10 @@ func (s *DagTestSuite) TestDetectAllCycles() {
 	graph.AddEdge(nodeC, nodeD)
 	graph.AddEdge(nodeD, nodeC) // Cycle 2: C -> D -> C
 
-	cycles = graph.DetectAllCycles()
+	cycles = graph.DetectFirstCycle()
 	s.NotEmpty(cycles, "Should detect at least one cycle")
 
-	// Verify cycles are detected (the exact number may vary based on algorithm implementation)
-	cycleFound := false
-	for _, cycle := range cycles {
-		if len(cycle) >= 3 {
-			cycleFound = true
-			break
-		}
-	}
-	s.True(cycleFound, "At least one cycle should be detected")
+	s.True(len(cycles) > 0, "At least one cycle should be detected")
 }
 
 // TestComplexGraphStructures tests complex graph structures
@@ -449,7 +440,7 @@ func (s *DagTestSuite) TestConcurrency() {
 	for i := 0; i < 5; i++ {
 		go func() {
 			s.topoSort(graph)
-			graph.DetectAllCycles()
+			graph.DetectFirstCycle()
 			done <- true
 		}()
 	}
@@ -472,7 +463,7 @@ func (s *DagTestSuite) TestEdgeCases() {
 	s.Len(nodes, 1)
 	s.Equal(node, nodes[0])
 
-	cycles := graph.DetectAllCycles()
+	cycles := graph.DetectFirstCycle()
 	s.Empty(cycles)
 
 	// Test graph with nodes but no edges

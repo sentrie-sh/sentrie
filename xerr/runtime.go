@@ -15,8 +15,30 @@
 package xerr
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 )
+
+type InfiniteRecursionError struct{ stack []string }
+
+func (e InfiniteRecursionError) Error() string {
+	return "infinite recursion: " + strings.Join(e.stack, " -> ")
+}
+
+type ConflictError struct{ name string }
+
+func (e ConflictError) Error() string {
+	return "conflict: " + e.name
+}
+
+func ErrConflict(name string) error {
+	return ConflictError{name: name}
+}
+
+func ErrInfiniteRecursion(stack []string) error {
+	return InfiniteRecursionError{stack: stack}
+}
 
 type InvalidInvocationError struct{}
 

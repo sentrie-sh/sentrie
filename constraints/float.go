@@ -10,12 +10,12 @@ import (
 )
 
 var FloatContraintCheckers map[string]ConstraintDefinition[float64] = map[string]ConstraintDefinition[float64]{
-	"gte": {
-		Name:    "gte",
+	"min": {
+		Name:    "min",
 		NumArgs: 1,
 		Checker: func(ctx context.Context, p *index.Policy, val float64, args []any) error {
 			if len(args) != 1 {
-				return fmt.Errorf("gte constraint requires 1 argument")
+				return fmt.Errorf("min constraint requires 1 argument")
 			}
 			arg := args[0].(float64)
 			if val < arg {
@@ -24,12 +24,12 @@ var FloatContraintCheckers map[string]ConstraintDefinition[float64] = map[string
 			return nil
 		},
 	},
-	"lte": {
-		Name:    "lte",
+	"max": {
+		Name:    "max",
 		NumArgs: 1,
 		Checker: func(ctx context.Context, p *index.Policy, val float64, args []any) error {
 			if len(args) != 1 {
-				return fmt.Errorf("lte constraint requires 1 argument")
+				return fmt.Errorf("max constraint requires 1 argument")
 			}
 			arg := args[0].(float64)
 			if val > arg {
@@ -148,6 +148,26 @@ var FloatContraintCheckers map[string]ConstraintDefinition[float64] = map[string
 			max := args[1].(float64)
 			if val < min || val > max {
 				return fmt.Errorf("value %v is not in range [%v, %v]", val, min, max)
+			}
+			return nil
+		},
+	},
+	"even": {
+		Name:    "even",
+		NumArgs: 0,
+		Checker: func(ctx context.Context, p *index.Policy, val float64, args []any) error {
+			if math.Mod(val, 2) != 0 {
+				return fmt.Errorf("value %v is not even", val)
+			}
+			return nil
+		},
+	},
+	"odd": {
+		Name:    "odd",
+		NumArgs: 0,
+		Checker: func(ctx context.Context, p *index.Policy, val float64, args []any) error {
+			if math.Mod(val, 2) == 0 {
+				return fmt.Errorf("value %v is not odd", val)
 			}
 			return nil
 		},

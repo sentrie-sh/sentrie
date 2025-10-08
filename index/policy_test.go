@@ -111,7 +111,7 @@ func (suite *PolicyTestSuite) TestCreatePolicy() {
 	suite.NotNil(policy.RuleExports)
 	suite.NotNil(policy.Uses)
 	suite.NotNil(policy.Shapes)
-	suite.NotNil(policy.knownIdentifiers)
+	suite.NotNil(policy.seenIdentifiers)
 
 	// Check that facts, rules, and exports were processed
 	suite.Len(policy.Facts, 1)
@@ -364,19 +364,19 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithDuplicateRuleExport() {
 
 func (suite *PolicyTestSuite) TestAddLet() {
 	policy := &Policy{
-		Statement:        &ast.PolicyStatement{},
-		Namespace:        suite.namespace,
-		Name:             "testPolicy",
-		FQN:              ast.FQN{"com", "example", "testPolicy"},
-		FilePath:         "test.sentra",
-		Statements:       []ast.Statement{},
-		Lets:             make(map[string]*ast.VarDeclaration),
-		Facts:            make(map[string]*ast.FactStatement),
-		Rules:            make(map[string]*Rule),
-		RuleExports:      make(map[string]ExportedRule),
-		Uses:             make([]*ast.UseStatement, 0),
-		Shapes:           make(map[string]*Shape),
-		knownIdentifiers: make(map[string]positionable),
+		Statement:       &ast.PolicyStatement{},
+		Namespace:       suite.namespace,
+		Name:            "testPolicy",
+		FQN:             ast.FQN{"com", "example", "testPolicy"},
+		FilePath:        "test.sentra",
+		Statements:      []ast.Statement{},
+		Lets:            make(map[string]*ast.VarDeclaration),
+		Facts:           make(map[string]*ast.FactStatement),
+		Rules:           make(map[string]*Rule),
+		RuleExports:     make(map[string]ExportedRule),
+		Uses:            make([]*ast.UseStatement, 0),
+		Shapes:          make(map[string]*Shape),
+		seenIdentifiers: make(map[string]positionable),
 	}
 
 	letStmt := &ast.VarDeclaration{
@@ -397,25 +397,25 @@ func (suite *PolicyTestSuite) TestAddLet() {
 	suite.Len(policy.Lets, 1)
 	suite.Contains(policy.Lets, "testVar")
 	suite.Equal(letStmt, policy.Lets["testVar"])
-	suite.Contains(policy.knownIdentifiers, "testVar")
-	suite.Equal(letStmt, policy.knownIdentifiers["testVar"])
+	suite.Contains(policy.seenIdentifiers, "testVar")
+	suite.Equal(letStmt, policy.seenIdentifiers["testVar"])
 }
 
 func (suite *PolicyTestSuite) TestAddLetWithNameConflict() {
 	policy := &Policy{
-		Statement:        &ast.PolicyStatement{},
-		Namespace:        suite.namespace,
-		Name:             "testPolicy",
-		FQN:              ast.FQN{"com", "example", "testPolicy"},
-		FilePath:         "test.sentra",
-		Statements:       []ast.Statement{},
-		Lets:             make(map[string]*ast.VarDeclaration),
-		Facts:            make(map[string]*ast.FactStatement),
-		Rules:            make(map[string]*Rule),
-		RuleExports:      make(map[string]ExportedRule),
-		Uses:             make([]*ast.UseStatement, 0),
-		Shapes:           make(map[string]*Shape),
-		knownIdentifiers: make(map[string]positionable),
+		Statement:       &ast.PolicyStatement{},
+		Namespace:       suite.namespace,
+		Name:            "testPolicy",
+		FQN:             ast.FQN{"com", "example", "testPolicy"},
+		FilePath:        "test.sentra",
+		Statements:      []ast.Statement{},
+		Lets:            make(map[string]*ast.VarDeclaration),
+		Facts:           make(map[string]*ast.FactStatement),
+		Rules:           make(map[string]*Rule),
+		RuleExports:     make(map[string]ExportedRule),
+		Uses:            make([]*ast.UseStatement, 0),
+		Shapes:          make(map[string]*Shape),
+		seenIdentifiers: make(map[string]positionable),
 	}
 
 	// Add first let
@@ -455,19 +455,19 @@ func (suite *PolicyTestSuite) TestAddLetWithNameConflict() {
 
 func (suite *PolicyTestSuite) TestAddRule() {
 	policy := &Policy{
-		Statement:        &ast.PolicyStatement{},
-		Namespace:        suite.namespace,
-		Name:             "testPolicy",
-		FQN:              ast.FQN{"com", "example", "testPolicy"},
-		FilePath:         "test.sentra",
-		Statements:       []ast.Statement{},
-		Lets:             make(map[string]*ast.VarDeclaration),
-		Facts:            make(map[string]*ast.FactStatement),
-		Rules:            make(map[string]*Rule),
-		RuleExports:      make(map[string]ExportedRule),
-		Uses:             make([]*ast.UseStatement, 0),
-		Shapes:           make(map[string]*Shape),
-		knownIdentifiers: make(map[string]positionable),
+		Statement:       &ast.PolicyStatement{},
+		Namespace:       suite.namespace,
+		Name:            "testPolicy",
+		FQN:             ast.FQN{"com", "example", "testPolicy"},
+		FilePath:        "test.sentra",
+		Statements:      []ast.Statement{},
+		Lets:            make(map[string]*ast.VarDeclaration),
+		Facts:           make(map[string]*ast.FactStatement),
+		Rules:           make(map[string]*Rule),
+		RuleExports:     make(map[string]ExportedRule),
+		Uses:            make([]*ast.UseStatement, 0),
+		Shapes:          make(map[string]*Shape),
+		seenIdentifiers: make(map[string]positionable),
 	}
 
 	ruleStmt := &ast.RuleStatement{
@@ -488,7 +488,7 @@ func (suite *PolicyTestSuite) TestAddRule() {
 	suite.NoError(err)
 	suite.Len(policy.Rules, 1)
 	suite.Contains(policy.Rules, "testRule")
-	suite.Contains(policy.knownIdentifiers, "testRule")
+	suite.Contains(policy.seenIdentifiers, "testRule")
 
 	rule := policy.Rules["testRule"]
 	suite.Equal("testRule", rule.Name)
@@ -499,19 +499,19 @@ func (suite *PolicyTestSuite) TestAddRule() {
 
 func (suite *PolicyTestSuite) TestAddRuleWithNameConflict() {
 	policy := &Policy{
-		Statement:        &ast.PolicyStatement{},
-		Namespace:        suite.namespace,
-		Name:             "testPolicy",
-		FQN:              ast.FQN{"com", "example", "testPolicy"},
-		FilePath:         "test.sentra",
-		Statements:       []ast.Statement{},
-		Lets:             make(map[string]*ast.VarDeclaration),
-		Facts:            make(map[string]*ast.FactStatement),
-		Rules:            make(map[string]*Rule),
-		RuleExports:      make(map[string]ExportedRule),
-		Uses:             make([]*ast.UseStatement, 0),
-		Shapes:           make(map[string]*Shape),
-		knownIdentifiers: make(map[string]positionable),
+		Statement:       &ast.PolicyStatement{},
+		Namespace:       suite.namespace,
+		Name:            "testPolicy",
+		FQN:             ast.FQN{"com", "example", "testPolicy"},
+		FilePath:        "test.sentra",
+		Statements:      []ast.Statement{},
+		Lets:            make(map[string]*ast.VarDeclaration),
+		Facts:           make(map[string]*ast.FactStatement),
+		Rules:           make(map[string]*Rule),
+		RuleExports:     make(map[string]ExportedRule),
+		Uses:            make([]*ast.UseStatement, 0),
+		Shapes:          make(map[string]*Shape),
+		seenIdentifiers: make(map[string]positionable),
 	}
 
 	// Add first rule
@@ -553,19 +553,19 @@ func (suite *PolicyTestSuite) TestAddRuleWithNameConflict() {
 
 func (suite *PolicyTestSuite) TestAddShape() {
 	policy := &Policy{
-		Statement:        &ast.PolicyStatement{},
-		Namespace:        suite.namespace,
-		Name:             "testPolicy",
-		FQN:              ast.FQN{"com", "example", "testPolicy"},
-		FilePath:         "test.sentra",
-		Statements:       []ast.Statement{},
-		Lets:             make(map[string]*ast.VarDeclaration),
-		Facts:            make(map[string]*ast.FactStatement),
-		Rules:            make(map[string]*Rule),
-		RuleExports:      make(map[string]ExportedRule),
-		Uses:             make([]*ast.UseStatement, 0),
-		Shapes:           make(map[string]*Shape),
-		knownIdentifiers: make(map[string]positionable),
+		Statement:       &ast.PolicyStatement{},
+		Namespace:       suite.namespace,
+		Name:            "testPolicy",
+		FQN:             ast.FQN{"com", "example", "testPolicy"},
+		FilePath:        "test.sentra",
+		Statements:      []ast.Statement{},
+		Lets:            make(map[string]*ast.VarDeclaration),
+		Facts:           make(map[string]*ast.FactStatement),
+		Rules:           make(map[string]*Rule),
+		RuleExports:     make(map[string]ExportedRule),
+		Uses:            make([]*ast.UseStatement, 0),
+		Shapes:          make(map[string]*Shape),
+		seenIdentifiers: make(map[string]positionable),
 	}
 
 	shapeStmt := &ast.ShapeStatement{
@@ -592,19 +592,19 @@ func (suite *PolicyTestSuite) TestAddShape() {
 
 func (suite *PolicyTestSuite) TestAddShapeWithNameConflict() {
 	policy := &Policy{
-		Statement:        &ast.PolicyStatement{},
-		Namespace:        suite.namespace,
-		Name:             "testPolicy",
-		FQN:              ast.FQN{"com", "example", "testPolicy"},
-		FilePath:         "test.sentra",
-		Statements:       []ast.Statement{},
-		Lets:             make(map[string]*ast.VarDeclaration),
-		Facts:            make(map[string]*ast.FactStatement),
-		Rules:            make(map[string]*Rule),
-		RuleExports:      make(map[string]ExportedRule),
-		Uses:             make([]*ast.UseStatement, 0),
-		Shapes:           make(map[string]*Shape),
-		knownIdentifiers: make(map[string]positionable),
+		Statement:       &ast.PolicyStatement{},
+		Namespace:       suite.namespace,
+		Name:            "testPolicy",
+		FQN:             ast.FQN{"com", "example", "testPolicy"},
+		FilePath:        "test.sentra",
+		Statements:      []ast.Statement{},
+		Lets:            make(map[string]*ast.VarDeclaration),
+		Facts:           make(map[string]*ast.FactStatement),
+		Rules:           make(map[string]*Rule),
+		RuleExports:     make(map[string]ExportedRule),
+		Uses:            make([]*ast.UseStatement, 0),
+		Shapes:          make(map[string]*Shape),
+		seenIdentifiers: make(map[string]positionable),
 	}
 
 	// Add first shape
@@ -636,19 +636,19 @@ func (suite *PolicyTestSuite) TestAddShapeWithNameConflict() {
 
 func (suite *PolicyTestSuite) TestAddFact() {
 	policy := &Policy{
-		Statement:        &ast.PolicyStatement{},
-		Namespace:        suite.namespace,
-		Name:             "testPolicy",
-		FQN:              ast.FQN{"com", "example", "testPolicy"},
-		FilePath:         "test.sentra",
-		Statements:       []ast.Statement{},
-		Lets:             make(map[string]*ast.VarDeclaration),
-		Facts:            make(map[string]*ast.FactStatement),
-		Rules:            make(map[string]*Rule),
-		RuleExports:      make(map[string]ExportedRule),
-		Uses:             make([]*ast.UseStatement, 0),
-		Shapes:           make(map[string]*Shape),
-		knownIdentifiers: make(map[string]positionable),
+		Statement:       &ast.PolicyStatement{},
+		Namespace:       suite.namespace,
+		Name:            "testPolicy",
+		FQN:             ast.FQN{"com", "example", "testPolicy"},
+		FilePath:        "test.sentra",
+		Statements:      []ast.Statement{},
+		Lets:            make(map[string]*ast.VarDeclaration),
+		Facts:           make(map[string]*ast.FactStatement),
+		Rules:           make(map[string]*Rule),
+		RuleExports:     make(map[string]ExportedRule),
+		Uses:            make([]*ast.UseStatement, 0),
+		Shapes:          make(map[string]*Shape),
+		seenIdentifiers: make(map[string]positionable),
 	}
 
 	factStmt := &ast.FactStatement{
@@ -670,25 +670,25 @@ func (suite *PolicyTestSuite) TestAddFact() {
 	suite.Len(policy.Facts, 1)
 	suite.Contains(policy.Facts, "user")
 	suite.Equal(factStmt, policy.Facts["user"])
-	suite.Contains(policy.knownIdentifiers, "user")
-	suite.Equal(factStmt, policy.knownIdentifiers["user"])
+	suite.Contains(policy.seenIdentifiers, "user")
+	suite.Equal(factStmt, policy.seenIdentifiers["user"])
 }
 
 func (suite *PolicyTestSuite) TestAddFactWithNameConflict() {
 	policy := &Policy{
-		Statement:        &ast.PolicyStatement{},
-		Namespace:        suite.namespace,
-		Name:             "testPolicy",
-		FQN:              ast.FQN{"com", "example", "testPolicy"},
-		FilePath:         "test.sentra",
-		Statements:       []ast.Statement{},
-		Lets:             make(map[string]*ast.VarDeclaration),
-		Facts:            make(map[string]*ast.FactStatement),
-		Rules:            make(map[string]*Rule),
-		RuleExports:      make(map[string]ExportedRule),
-		Uses:             make([]*ast.UseStatement, 0),
-		Shapes:           make(map[string]*Shape),
-		knownIdentifiers: make(map[string]positionable),
+		Statement:       &ast.PolicyStatement{},
+		Namespace:       suite.namespace,
+		Name:            "testPolicy",
+		FQN:             ast.FQN{"com", "example", "testPolicy"},
+		FilePath:        "test.sentra",
+		Statements:      []ast.Statement{},
+		Lets:            make(map[string]*ast.VarDeclaration),
+		Facts:           make(map[string]*ast.FactStatement),
+		Rules:           make(map[string]*Rule),
+		RuleExports:     make(map[string]ExportedRule),
+		Uses:            make([]*ast.UseStatement, 0),
+		Shapes:          make(map[string]*Shape),
+		seenIdentifiers: make(map[string]positionable),
 	}
 
 	// Add first fact
@@ -730,19 +730,19 @@ func (suite *PolicyTestSuite) TestAddFactWithNameConflict() {
 
 func (suite *PolicyTestSuite) TestPolicyString() {
 	policy := &Policy{
-		Statement:        &ast.PolicyStatement{},
-		Namespace:        suite.namespace,
-		Name:             "testPolicy",
-		FQN:              ast.FQN{"com", "example", "testPolicy"},
-		FilePath:         "test.sentra",
-		Statements:       []ast.Statement{},
-		Lets:             make(map[string]*ast.VarDeclaration),
-		Facts:            make(map[string]*ast.FactStatement),
-		Rules:            make(map[string]*Rule),
-		RuleExports:      make(map[string]ExportedRule),
-		Uses:             make([]*ast.UseStatement, 0),
-		Shapes:           make(map[string]*Shape),
-		knownIdentifiers: make(map[string]positionable),
+		Statement:       &ast.PolicyStatement{},
+		Namespace:       suite.namespace,
+		Name:            "testPolicy",
+		FQN:             ast.FQN{"com", "example", "testPolicy"},
+		FilePath:        "test.sentra",
+		Statements:      []ast.Statement{},
+		Lets:            make(map[string]*ast.VarDeclaration),
+		Facts:           make(map[string]*ast.FactStatement),
+		Rules:           make(map[string]*Rule),
+		RuleExports:     make(map[string]ExportedRule),
+		Uses:            make([]*ast.UseStatement, 0),
+		Shapes:          make(map[string]*Shape),
+		seenIdentifiers: make(map[string]positionable),
 	}
 
 	suite.Equal("com/example/testPolicy", policy.String())

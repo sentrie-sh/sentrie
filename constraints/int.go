@@ -9,12 +9,12 @@ import (
 )
 
 var IntContraintCheckers map[string]ConstraintDefinition[int64] = map[string]ConstraintDefinition[int64]{
-	"gte": {
-		Name:    "gte",
+	"min": {
+		Name:    "min",
 		NumArgs: 1,
 		Checker: func(ctx context.Context, p *index.Policy, val int64, args []any) error {
 			if len(args) != 1 {
-				return fmt.Errorf("gte constraint requires 1 argument")
+				return fmt.Errorf("min constraint requires 1 argument")
 			}
 			arg := args[0].(int64)
 			if val < arg {
@@ -23,12 +23,12 @@ var IntContraintCheckers map[string]ConstraintDefinition[int64] = map[string]Con
 			return nil
 		},
 	},
-	"lte": {
-		Name:    "lte",
+	"max": {
+		Name:    "max",
 		NumArgs: 1,
 		Checker: func(ctx context.Context, p *index.Policy, val int64, args []any) error {
 			if len(args) != 1 {
-				return fmt.Errorf("lte constraint requires 1 argument")
+				return fmt.Errorf("max constraint requires 1 argument")
 			}
 			arg := args[0].(int64)
 			if val > arg {
