@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/binaek/cling"
@@ -27,6 +28,13 @@ func addExecCmd(cli *cling.CLI) {
 				AsFlag(),
 			).
 			WithFlag(cling.
+				NewStringCmdInput("output").
+				WithDefault("table").
+				WithValidator(cling.NewEnumValidator("table", "json")).
+				WithDescription("Output format to use. One of: table, json").
+				AsFlag(),
+			).
+			WithFlag(cling.
 				NewStringCmdInput("facts").
 				WithDefault("{}").
 				WithDescription("Facts to execute the rule with").
@@ -39,6 +47,7 @@ type execCmdArgs struct {
 	PackLocation string `cling-name:"pack-location"`
 	Rule         string `cling-name:"rule"`
 	Facts        string `cling-name:"facts"`
+	Output       string `cling-name:"output"`
 }
 
 func execCmd(ctx context.Context, args []string) error {
@@ -99,22 +108,20 @@ func execCmd(ctx context.Context, args []string) error {
 	}
 
 	// now that we have the outputs, lets map it by namespace and policy
-
 	if runErr != nil {
 		return runErr
 	}
 
-	m := sortOutputs(outputs)
-	formatOutput(m)
+	if input.Output == "json" {
+		formatOutputJSON(outputs)
+	} else {
+		formatOutputTable(outputs)
+	}
 
 	return nil
 }
 
 type ExecutorOutputMap map[string]map[string]map[string]*runtime.ExecutorOutput
-
-func (m ExecutorOutputMap) Format() {
-	formatOutput(m)
-}
 
 func sortOutputs(outputs []*runtime.ExecutorOutput) ExecutorOutputMap {
 	m := ExecutorOutputMap{}
@@ -136,7 +143,13 @@ func sortOutputs(outputs []*runtime.ExecutorOutput) ExecutorOutputMap {
 	return m
 }
 
-// formatOutput formats the decision output in the specified format
+func formatOutputJSON(m []*runtime.ExecutorOutput) {
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	enc.Encode(m)
+}
+
+// formatOutputTable formats the decision output in the specified format
 //
 // Examples:
 //
@@ -164,7 +177,8 @@ func sortOutputs(outputs []*runtime.ExecutorOutput) ExecutorOutputMap {
 //		  NAME:
 //		    mapKey1: mapValue1
 //		    mapKey2: mapValue2
-func formatOutput(m ExecutorOutputMap) {
+func formatOutputTable(x []*runtime.ExecutorOutput) {
+	m := sortOutputs(x)
 	for namespace, policies := range m {
 		fmt.Printf("Namespace: %s\n", namespace)
 		for policyName, policyData := range policies {
