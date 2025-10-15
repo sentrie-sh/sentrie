@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"strings"
 
@@ -35,6 +37,12 @@ func addExecCmd(cli *cling.CLI) {
 				AsFlag(),
 			).
 			WithFlag(cling.
+				NewStringCmdInput("fact-file").
+				WithDefault("").
+				WithDescription("File to load facts from").
+				AsFlag(),
+			).
+			WithFlag(cling.
 				NewStringCmdInput("facts").
 				WithDefault("{}").
 				WithDescription("Facts to execute the rule with").
@@ -47,6 +55,7 @@ type execCmdArgs struct {
 	PackLocation string `cling-name:"pack-location"`
 	Rule         string `cling-name:"rule"`
 	Facts        string `cling-name:"facts"`
+	FactFile     string `cling-name:"fact-file"`
 	Output       string `cling-name:"output"`
 }
 
@@ -54,6 +63,19 @@ func execCmd(ctx context.Context, args []string) error {
 	input := execCmdArgs{}
 	if err := cling.Hydrate(ctx, args, &input); err != nil {
 		return err
+	}
+
+	factFileMap := make(map[string]any)
+	// if the fact file is provided, load the facts from the file
+	if input.FactFile != "" {
+		content, err := os.ReadFile(input.FactFile)
+		if err != nil {
+			return err
+		}
+		decoder := json.NewDecoder(bytes.NewReader(content))
+		if err := decoder.Decode(&factFileMap); err != nil {
+			return err
+		}
 	}
 
 	pack, err := loader.LoadPack(ctx, input.PackLocation)
@@ -87,10 +109,17 @@ func execCmd(ctx context.Context, args []string) error {
 		return err
 	}
 
-	facts := make(map[string]any)
-	if err := json.Unmarshal([]byte(input.Facts), &facts); err != nil {
+	var factFlagMap map[string]any
+	decoder := json.NewDecoder(bytes.NewReader([]byte(input.Facts)))
+	if err := decoder.Decode(&factFlagMap); err != nil {
 		return err
 	}
+
+	facts := make(map[string]any)
+
+	// merge in the values from the different sources
+	maps.Copy(facts, factFileMap)
+	maps.Copy(facts, factFlagMap)
 
 	namespace, policy, rule, err := exec.Index().ResolveSegments(input.Rule)
 	if err != nil {
