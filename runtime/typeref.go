@@ -22,8 +22,6 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-type constraintChecker[T any] func(ctx context.Context, p *index.Policy, val T, args []any) error
-
 func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef ast.TypeRef, pos tokens.Position) error {
 	switch t := typeRef.(type) {
 	case *ast.IntTypeRef:
