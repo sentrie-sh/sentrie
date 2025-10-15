@@ -88,10 +88,12 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 		case *ast.UseStatement:
 			// nothing should precede a use statement expect comments and facts
 			if idx > 0 {
-				if _, ok := policy.Statements[idx-1].(*ast.CommentStatement); !ok {
-					if _, ok := policy.Statements[idx-1].(*ast.FactStatement); !ok {
-						return nil, errors.Wrapf(ErrIndex, "'use' statement must be immediately after facts have been declared in a policy at %s", stmt.Position())
-					}
+				_, isPrecedingComment := policy.Statements[idx-1].(*ast.CommentStatement)
+				_, isPrecedingFact := policy.Statements[idx-1].(*ast.FactStatement)
+				_, isPrecedingUse := policy.Statements[idx-1].(*ast.UseStatement)
+
+				if !isPrecedingComment && !isPrecedingFact && !isPrecedingUse {
+					return nil, errors.Wrapf(ErrIndex, "'use' statement must be immediately after facts have been declared in a policy at %s", stmt.Position())
 				}
 			}
 			p.Uses = append(p.Uses, stmt)
@@ -104,7 +106,10 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 		case *ast.FactStatement:
 			// nothing should precede a fact statement expect comments
 			if idx > 0 {
-				if _, ok := policy.Statements[idx-1].(*ast.CommentStatement); !ok {
+				_, isPrecedingComment := policy.Statements[idx-1].(*ast.CommentStatement)
+				_, isPrecedingFact := policy.Statements[idx-1].(*ast.FactStatement)
+
+				if !isPrecedingComment && !isPrecedingFact {
 					return nil, errors.Wrapf(ErrIndex, "fact statement must be the first statement in a policy at %s", stmt.Position())
 				}
 			}
