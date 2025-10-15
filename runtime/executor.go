@@ -103,7 +103,7 @@ func (e *executorImpl) Index() *index.Index {
 	return e.index
 }
 
-// ExecPolicy uses policy's `outcome` rule; returns (value, attachments, tree) as a RuleOutcome.
+// ExecPolicy executes all exported rules and returns the results
 func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) ([]*ExecutorOutput, error) {
 	p, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
@@ -113,17 +113,21 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 	theLock := &sync.Mutex{}
 	var compositeErr error
 	outputs := make([]*ExecutorOutput, 0, len(p.RuleExports))
-	wg := &sync.WaitGroup{}
+	wg := &sync.WaitGroup{} // should this be a WaitGroup or an ErrorGroup?
 	for _, ruleExport := range p.RuleExports {
 		wg.Go(func() {
 			output, err := e.ExecRule(ctx, namespace, policy, ruleExport.RuleName, facts)
+
+			// now that we have the output, we can add it to the outputs slice,
+			// but we need to lock the mutex to avoid race conditions
 			theLock.Lock()
 			defer theLock.Unlock()
-
 			if err != nil {
 				compositeErr = stdErr.Join(compositeErr, err)
 				return
 			}
+
+			// add the output to the outputs slice
 			outputs = append(outputs, output)
 		})
 	}
@@ -132,7 +136,7 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 	return outputs, compositeErr
 }
 
-// ExecRule executes an exported rule and returns (value, attachments, tree) as a RuleOutcome.
+// ExecRule executes an exported rule and returns the result
 func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, injectFacts map[string]any) (*ExecutorOutput, error) {
 	// Validate exported
 	p, err := e.index.ResolvePolicy(namespace, policy)
@@ -247,7 +251,7 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 	ruleNode.SetResult(d)
 	ruleNode.SetErr(err)
 	if err != nil {
-		return nil, nil, nil, err
+		return d, nil, ruleNode, err
 	}
 
 	// Compute attachment values if exported
@@ -263,7 +267,7 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 			v, node, err := eval(ctx, ec, e, p, attachment.Value)
 			attachmentNode.Attach(node)
 			if err != nil {
-				return nil, nil, nil, err
+				return d, attachments, ruleNode, err
 			}
 			attachments[attachment.Name] = v
 			ruleNode.Attach(attachmentNode)

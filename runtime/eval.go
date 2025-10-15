@@ -21,7 +21,6 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
-	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 // eval walks an ast.Expression and returns (value, decision node, error).
@@ -126,26 +125,10 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 		return evalCall(ctx, ec, exec, p, t)
 
 	case *ast.ImportClause:
-		val, n, err := ImportDecision(ctx, exec, ec, p, t)
-		return val, n, err
+		return ImportDecision(ctx, exec, ec, p, t)
 
 	case *ast.TernaryExpression:
-		n, done := trace.New("ternary", "", t, map[string]any{})
-		defer done()
-
-		c, cn, err := eval(ctx, ec, exec, p, t.Condition)
-		n.Attach(cn)
-		if err != nil {
-			return nil, n.SetErr(err), err
-		}
-		if trinary.From(c).IsTrue() {
-			v, tn, err := eval(ctx, ec, exec, p, t.ThenBranch)
-			n.Attach(tn)
-			return v, n, err
-		}
-		v, en, err := eval(ctx, ec, exec, p, t.ElseBranch)
-		n.Attach(en)
-		return v, n, err
+		return evalTernary(ctx, ec, exec, p, t)
 
 	case *ast.AnyExpression:
 		return evalAny(ctx, ec, exec, p, t)
