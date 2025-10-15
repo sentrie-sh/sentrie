@@ -139,6 +139,12 @@ func (l *Lexer) NextToken() tokens.Instance {
 			l.readRune()
 			return tokens.New(tokens.PunctColon, ":", pos)
 		case '.':
+			if l.peekString(2) == ".." {
+				l.readRune()
+				l.readRune()
+				l.readRune()
+				return tokens.New(tokens.TokenDotDotDot, "...", pos)
+			}
 			l.readRune()
 			return tokens.New(tokens.TokenDot, ".", pos)
 		case '@':
