@@ -44,14 +44,22 @@ func BuiltinCount(ctx context.Context, args []any) (any, error) {
 	return 0, nil
 }
 
-func BuiltinAdd(ctx context.Context, args []any) (any, error) {
-	if len(args) != 2 {
-		return nil, fmt.Errorf("add requires 2 arguments")
+// builtin error - short-circuit the execution and float up the error
+func BuiltInError(ctx context.Context, args []any) (any, error) {
+	if len(args) == 0 {
+		return nil, fmt.Errorf("error requires at least 1 argument")
 	}
-	return num(args[0]) + num(args[1]), nil
+
+	if len(args) == 1 {
+		return nil, fmt.Errorf("%v", args[0])
+	}
+
+	format := args[0].(string)
+	args = args[1:]
+	return nil, fmt.Errorf(format, args...)
 }
 
 var Builtins = map[string]Builtin{
 	"count": BuiltinCount,
-	"add":   BuiltinAdd,
+	"error": BuiltInError,
 }
