@@ -68,7 +68,6 @@ const (
 	KeywordEmpty     Kind = "empty"
 	KeywordYield     Kind = "yield"
 	KeywordTransform Kind = "transform"
-	KeywordCount     Kind = "count"
 
 	KeywordTrue    Kind = "true"
 	KeywordFalse   Kind = "false"
@@ -128,7 +127,6 @@ var keywords = map[string]Kind{
 	"decision":  KeywordDecision,
 	"yield":     KeywordYield,
 	"transform": KeywordTransform,
-	"count":     KeywordCount,
 	"shape":     KeywordShape,
 	"of":        KeywordOf,
 	"attach":    KeywordAttach,

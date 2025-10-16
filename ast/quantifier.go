@@ -60,11 +60,6 @@ type DistinctExpression struct {
 	Predicate     Expression
 }
 
-type CountExpression struct {
-	Pos        tokens.Position
-	Collection Expression
-}
-
 var _ Expression = &FilterExpression{}
 var _ Node = &FilterExpression{}
 var _ Expression = &AnyExpression{}
@@ -75,8 +70,6 @@ var _ Expression = &MapExpression{}
 var _ Node = &MapExpression{}
 var _ Expression = &DistinctExpression{}
 var _ Node = &DistinctExpression{}
-var _ Expression = &CountExpression{}
-var _ Node = &CountExpression{}
 
 func (a *AnyExpression) String() string {
 	b := strings.Builder{}
@@ -152,13 +145,6 @@ func (d *DistinctExpression) String() string {
 	return b.String()
 }
 
-func (c *CountExpression) String() string {
-	b := strings.Builder{}
-	b.WriteString("count ")
-	b.WriteString(c.Collection.String())
-	return b.String()
-}
-
 func (m *MapExpression) Position() tokens.Position {
 	return m.Pos
 }
@@ -174,13 +160,9 @@ func (f *FilterExpression) Position() tokens.Position {
 func (d *DistinctExpression) Position() tokens.Position {
 	return d.Pos
 }
-func (c *CountExpression) Position() tokens.Position {
-	return c.Pos
-}
 
 func (m *MapExpression) expressionNode()      {}
 func (f *FilterExpression) expressionNode()   {}
 func (a *AnyExpression) expressionNode()      {}
 func (a *AllExpression) expressionNode()      {}
 func (d *DistinctExpression) expressionNode() {}
-func (c *CountExpression) expressionNode()    {}

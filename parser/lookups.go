@@ -34,7 +34,6 @@ func (p *Parser) registerParseFns() {
 	p.registerPrefix(tokens.KeywordFilter, quantifierParserFactory(tokens.KeywordFilter))
 	p.registerPrefix(tokens.KeywordMap, quantifierParserFactory(tokens.KeywordMap))
 	p.registerPrefix(tokens.KeywordDistinct, parseDistinctExpression)
-	p.registerPrefix(tokens.KeywordCount, parseCountExpression)
 
 	p.registerPrefix(tokens.KeywordReduce, parseReduceExpression)
 	p.registerPrefix(tokens.KeywordCast, parseCastExpression)

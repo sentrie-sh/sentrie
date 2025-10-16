@@ -18,9 +18,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
+	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 // eval walks an ast.Expression and returns (value, decision node, error).
@@ -147,9 +149,6 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 
 	case *ast.TransformExpression:
 		return evalTransform(ctx, ec, exec, p, t)
-
-	case *ast.CountExpression:
-		return evalCount(ctx, ec, exec, p, t)
 
 	case *ast.DistinctExpression:
 		return evalDistinct(ctx, ec, exec, p, t)

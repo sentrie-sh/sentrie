@@ -13,23 +13,3 @@
 // limitations under the License.
 
 package parser
-
-import (
-	"context"
-
-	"github.com/sentrie-sh/sentrie/ast"
-)
-
-func parseCountExpression(ctx context.Context, p *Parser) ast.Expression {
-	token := p.advance() // consume 'count'
-
-	collection := p.parseExpression(ctx, LOWEST)
-	if collection == nil {
-		return nil
-	}
-
-	return &ast.CountExpression{
-		Pos:        token.Position,
-		Collection: collection,
-	}
-}
