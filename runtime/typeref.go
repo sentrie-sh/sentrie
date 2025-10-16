@@ -24,14 +24,12 @@ import (
 
 func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef ast.TypeRef, pos tokens.Position) error {
 	switch t := typeRef.(type) {
-	case *ast.IntTypeRef:
-		return validateAgainstIntTypeRef(ctx, ec, exec, p, v, t, pos)
 	case *ast.StringTypeRef:
 		return validateAgainstStringTypeRef(ctx, ec, exec, p, v, t, pos)
 	case *ast.BoolTypeRef:
 		return validateAgainstBoolTypeRef(ctx, ec, exec, p, v, t, pos)
-	case *ast.FloatTypeRef:
-		return validateAgainstFloatTypeRef(ctx, ec, exec, p, v, t, pos)
+	case *ast.NumberTypeRef:
+		return validateAgainstNumberTypeRef(ctx, ec, exec, p, v, t, pos)
 	case *ast.ListTypeRef:
 		return validateAgainstListTypeRef(ctx, ec, exec, p, v, t, pos)
 	case *ast.MapTypeRef:

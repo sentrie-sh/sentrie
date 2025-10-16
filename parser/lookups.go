@@ -115,8 +115,7 @@ type statementParser func(ctx context.Context, parser *Parser) ast.Statement
 
 var PRIMITIVE_TYPES = []tokens.Kind{
 	tokens.KeywordString,
-	tokens.KeywordInt,
-	tokens.KeywordFloat,
+	tokens.KeywordNumber,
 	tokens.KeywordBoolean,
 	tokens.KeywordDocument,
 }

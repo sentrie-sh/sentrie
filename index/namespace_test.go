@@ -411,7 +411,7 @@ func (suite *NamespaceTestSuite) TestAddShapeWithNameConflict() {
 	shapeStmt2 := &ast.ShapeStatement{
 		Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 0},
 		Name: "testShape", // Same name
-		Simple: &ast.IntTypeRef{
+		Simple: &ast.NumberTypeRef{
 			Pos: tokens.Position{Filename: "test2.sentra", Line: 1, Column: 15},
 		},
 	}

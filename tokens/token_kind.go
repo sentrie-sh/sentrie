@@ -74,8 +74,7 @@ const (
 	KeywordUnknown Kind = "unknown"
 
 	KeywordString   Kind = "string"
-	KeywordInt      Kind = "int"
-	KeywordFloat    Kind = "float"
+	KeywordNumber   Kind = "number"
 	KeywordBoolean  Kind = "boolean"
 	KeywordList     Kind = "list"
 	KeywordMap      Kind = "map"
@@ -167,8 +166,7 @@ var keywords = map[string]Kind{
 	"null": KeywordNull,
 
 	"string":   KeywordString,
-	"int":      KeywordInt,
-	"float":    KeywordFloat,
+	"number":   KeywordNumber,
 	"boolean":  KeywordBoolean,
 	"list":     KeywordList,
 	"map":      KeywordMap,

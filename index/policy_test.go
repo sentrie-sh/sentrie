@@ -438,7 +438,7 @@ func (suite *PolicyTestSuite) TestAddLetWithNameConflict() {
 	letStmt2 := &ast.VarDeclaration{
 		Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 0},
 		Name: "testVar", // Same name
-		Type: &ast.IntTypeRef{
+		Type: &ast.NumberTypeRef{
 			Pos: tokens.Position{Filename: "test2.sentra", Line: 1, Column: 15},
 		},
 		Value: &ast.IntegerLiteral{
@@ -623,7 +623,7 @@ func (suite *PolicyTestSuite) TestAddShapeWithNameConflict() {
 	shapeStmt2 := &ast.ShapeStatement{
 		Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 0},
 		Name: "testShape", // Same name
-		Simple: &ast.IntTypeRef{
+		Simple: &ast.NumberTypeRef{
 			Pos: tokens.Position{Filename: "test2.sentra", Line: 1, Column: 15},
 		},
 	}

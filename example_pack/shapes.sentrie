@@ -1,0 +1,23 @@
+namespace sh/sentrie/example/shapes
+
+shape User {
+  name!: string
+  age?: int
+  parent: User
+}
+
+policy example {
+  
+  shape User string @length(10)
+  
+  let u = {
+    "name": "John"
+  }
+  
+  rule allow = default unknown {
+    let user:User = u.name
+    yield user == "John"
+  }
+
+  export decision of allow
+}

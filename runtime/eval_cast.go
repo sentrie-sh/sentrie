@@ -60,28 +60,7 @@ func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *ind
 	case *ast.StringTypeRef:
 		result = fmt.Sprintf("%v", val)
 
-	case *ast.IntTypeRef:
-		switch v := val.(type) {
-		case int:
-			result = int64(v)
-		case int64:
-			result = int64(v)
-		case float64:
-			result = int64(v)
-		case float32:
-			result = int64(v)
-		case string:
-			atoi, parseErr := strconv.Atoi(v)
-			if parseErr != nil {
-				return nil, node.SetErr(parseErr), parseErr
-			}
-			result = int64(atoi)
-		default:
-			err = fmt.Errorf("cannot cast %T to int", val)
-			return nil, node.SetErr(err), err
-		}
-
-	case *ast.FloatTypeRef:
+	case *ast.NumberTypeRef:
 		switch v := val.(type) {
 		case float32:
 			result = float64(v)

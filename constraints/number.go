@@ -9,7 +9,7 @@ import (
 	"github.com/sentrie-sh/sentrie/index"
 )
 
-var FloatContraintCheckers map[string]ConstraintDefinition[float64] = map[string]ConstraintDefinition[float64]{
+var NumberContraintCheckers map[string]ConstraintDefinition[float64] = map[string]ConstraintDefinition[float64]{
 	"min": {
 		Name:    "min",
 		NumArgs: 1,

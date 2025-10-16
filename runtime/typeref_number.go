@@ -24,7 +24,7 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func validateAgainstFloatTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.FloatTypeRef, pos tokens.Position) error {
+func validateAgainstNumberTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.NumberTypeRef, pos tokens.Position) error {
 	if _, ok := v.(float64); !ok {
 		return errors.Errorf("value %v is not a float64", v)
 	}
@@ -38,7 +38,7 @@ func validateAgainstFloatTypeRef(ctx context.Context, ec *ExecutionContext, exec
 			}
 			args[i] = csArg
 		}
-		checker, ok := constraints.FloatContraintCheckers[constraint.Name]
+		checker, ok := constraints.NumberContraintCheckers[constraint.Name]
 		if !ok {
 			return ErrUnknownConstraint(constraint)
 		}

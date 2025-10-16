@@ -1,0 +1,23 @@
+namespace user_management
+
+shape User {
+  role: string
+  status: string
+}
+
+policy user_access {
+
+  fact user!:User default {"role": "admin", "status": "active"}
+
+  rule allow_admin = {
+    yield user.role == "admin"
+  }
+
+  rule allow_user = {
+    yield allow_admin or user.role == "user" and user.status == "active"
+  }
+
+  export decision of allow_admin
+  export decision of allow_user
+}
+

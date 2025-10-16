@@ -6,26 +6,7 @@
 
 package ast
 
-var genIntConstraints = map[string]int{
-	"eq":           1,
-	"even":         0,
-	"gt":           1,
-	"in":           1,
-	"lt":           1,
-	"max":          1,
-	"min":          1,
-	"multiple_of":  1,
-	"negative":     0,
-	"neq":          1,
-	"non_negative": 0,
-	"non_positive": 0,
-	"not_in":       1,
-	"odd":          0,
-	"positive":     0,
-	"range":        2,
-}
-
-var genFloatConstraints = map[string]int{
+var genNumberConstraints = map[string]int{
 	"eq":           1,
 	"even":         0,
 	"finite":       0,

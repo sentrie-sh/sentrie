@@ -1,0 +1,20 @@
+schema_version = "0.1.0"
+name = "example"
+# version = "0.1.0"
+# description = "Example pack"
+# license = "MIT"
+# repository = "https://github.com/binaek/sentrie"
+# 
+# [engines]
+# sentrie = "0.1.0"
+# 
+# [authors]
+# "Binaek Sarkar" = "binaek@gmail.com"
+# 
+# [permissions]
+# fs_read = ["/etc/passwd"]
+# net = ["http://example.com"]
+# 
+# [metadata]
+# permissions = { fs_read = ["/etc/passwd"], net = ["http://example.com"] }
+# metadata = { "example" = "example" }

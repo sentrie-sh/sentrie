@@ -16,22 +16,22 @@ package ast
 
 import "github.com/sentrie-sh/sentrie/tokens"
 
-type IntTypeRef struct {
+type NumberTypeRef struct {
 	constraints []*TypeRefConstraint
 	Pos         tokens.Position
 }
 
-var _ TypeRef = &IntTypeRef{}
-var _ Node = &IntTypeRef{}
+var _ TypeRef = &NumberTypeRef{}
+var _ Node = &NumberTypeRef{}
 
-func (i *IntTypeRef) typeref()                  {}
-func (s *IntTypeRef) Position() tokens.Position { return s.Pos }
-func (i *IntTypeRef) String() string            { return "int" }
-func (i *IntTypeRef) GetConstraints() []*TypeRefConstraint {
+func (i *NumberTypeRef) typeref()                  {}
+func (s *NumberTypeRef) Position() tokens.Position { return s.Pos }
+func (i *NumberTypeRef) String() string            { return "number" }
+func (i *NumberTypeRef) GetConstraints() []*TypeRefConstraint {
 	return i.constraints
 }
-func (i *IntTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
-	if err := validateConstraint(constraint, genIntConstraints); err != nil {
+func (i *NumberTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
+	if err := validateConstraint(constraint, genNumberConstraints); err != nil {
 		return err
 	}
 	i.constraints = append(i.constraints, constraint)

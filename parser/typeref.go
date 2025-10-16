@@ -38,12 +38,8 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		ref = &ast.StringTypeRef{
 			Pos: p.advance().Position,
 		}
-	case tokens.KeywordInt:
-		ref = &ast.IntTypeRef{
-			Pos: p.advance().Position,
-		}
-	case tokens.KeywordFloat:
-		ref = &ast.FloatTypeRef{
+	case tokens.KeywordNumber:
+		ref = &ast.NumberTypeRef{
 			Pos: p.advance().Position,
 		}
 	case tokens.KeywordBoolean:

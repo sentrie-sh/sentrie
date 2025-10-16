@@ -23,8 +23,7 @@ func main() {
 		varName string
 		source  map[string]any
 	}{
-		{"genIntConstraints", toAnyMap(constraints.IntContraintCheckers)},
-		{"genFloatConstraints", toAnyMap(constraints.FloatContraintCheckers)},
+		{"genNumberConstraints", toAnyMap(constraints.NumberContraintCheckers)},
 		{"genStringConstraints", toAnyMap(constraints.StringContraintCheckers)},
 		{"genBoolConstraints", toAnyMap(constraints.BoolConstraintCheckers)},
 		{"genListConstraints", toAnyMap(constraints.ListContraintCheckers)},

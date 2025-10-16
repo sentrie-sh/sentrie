@@ -1,0 +1,23 @@
+{
+  "window": true,
+  "language": "bash",
+  "border": {
+    "radius": 10,
+    "width": 1,
+    "color": "#515151"
+  },
+  "show-line-numbers": true,
+  "shadow": true,
+  "padding": [
+    20,
+    40,
+    20,
+    20
+  ],
+  "margin": "10",
+  "font": {
+    "family": "JetBrains Mono",
+    "size": 14
+  },
+  "line_height": 1.2
+}

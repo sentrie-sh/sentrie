@@ -15,13 +15,15 @@
 package runtime
 
 import (
+	"math"
+
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRef() {
-	typeRef := &ast.IntTypeRef{
+func (r *RuntimeTestSuite) TestValidateAgainstNumberTypeRef() {
+	typeRef := &ast.NumberTypeRef{
 		Pos: tokens.Position{Line: 1, Column: 1},
 	}
 
@@ -33,41 +35,41 @@ func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRef() {
 	}{
 		{
 			name:          "should return an error if the value is a string",
-			value:         "not an int",
+			value:         "not a number",
 			expectError:   true,
-			expectedError: "value not an int is not an int at :2:2 - expected int",
+			expectedError: "value not a number is not a float64",
 		},
 		{
-			name:          "should return an error if the value is a float64",
-			value:         float64(123.45),
+			name:          "should return an error if the value is an int64",
+			value:         int64(123),
 			expectError:   true,
-			expectedError: "value 123.45 is not an int at :2:2 - expected int",
+			expectedError: "value 123 is not a number",
 		},
 		{
 			name:          "should return an error if the value is a bool",
 			value:         true,
 			expectError:   true,
-			expectedError: "value true is not an int at :2:2 - expected int",
+			expectedError: "value true is not a number",
 		},
 		{
 			name:          "should return an error if the value is a string number",
-			value:         "123",
+			value:         "123.45",
 			expectError:   true,
-			expectedError: "value 123 is not an int at :2:2 - expected int",
+			expectedError: "value 123.45 is not a number",
 		},
 		{
-			name:        "should not return an error if the value is a positive int64",
-			value:       int64(123),
+			name:        "should not return an error if the value is a positive number",
+			value:       float64(123.45),
 			expectError: false,
 		},
 		{
-			name:        "should not return an error if the value is a negative int64",
-			value:       int64(-123),
+			name:        "should not return an error if the value is a negative number",
+			value:       float64(-123.45),
 			expectError: false,
 		},
 		{
 			name:        "should not return an error if the value is zero",
-			value:       int64(0),
+			value:       float64(0),
 			expectError: false,
 		},
 	}
@@ -79,7 +81,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRef() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstIntTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
+			err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -91,9 +93,9 @@ func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRef() {
 	}
 }
 
-func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRefWithConstraints() {
+func (r *RuntimeTestSuite) TestValidateAgainstNumberTypeRefWithConstraints() {
 	// Test positive constraint (no arguments)
-	typeRef := &ast.IntTypeRef{
+	typeRef := &ast.NumberTypeRef{
 		Pos: tokens.Position{Line: 1, Column: 1},
 	}
 
@@ -113,23 +115,23 @@ func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRefWithConstraints() {
 	}{
 		{
 			name:        "should pass when value is positive",
-			value:       int64(15),
+			value:       float64(15.0),
 			expectError: false,
 		},
 		{
 			name:        "should pass when value is a small positive number",
-			value:       int64(1),
+			value:       float64(0.001),
 			expectError: false,
 		},
 		{
 			name:          "should fail when value is zero",
-			value:         int64(0),
+			value:         float64(0),
 			expectError:   true,
 			expectedError: "constraint failed",
 		},
 		{
 			name:          "should fail when value is negative",
-			value:         int64(-5),
+			value:         float64(-5.0),
 			expectError:   true,
 			expectedError: "constraint failed",
 		},
@@ -142,7 +144,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRefWithConstraints() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstIntTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
+			err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
@@ -154,16 +156,16 @@ func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRefWithConstraints() {
 	}
 }
 
-func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRefEdgeCases() {
-	// Test even constraint (no arguments)
-	typeRef := &ast.IntTypeRef{
+func (r *RuntimeTestSuite) TestValidateAgainstNumberTypeRefEdgeCases() {
+	// Test finite constraint
+	typeRef := &ast.NumberTypeRef{
 		Pos: tokens.Position{Line: 1, Column: 1},
 	}
 
-	// Add an even constraint
+	// Add a finite constraint
 	constraint := &ast.TypeRefConstraint{
 		Pos:  tokens.Position{Line: 1, Column: 1},
-		Name: "even",
+		Name: "finite",
 		Args: []ast.Expression{},
 	}
 	_ = typeRef.AddConstraint(constraint)
@@ -175,40 +177,40 @@ func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRefEdgeCases() {
 		expectedError string
 	}{
 		{
-			name:        "should pass when value is even",
-			value:       int64(4),
+			name:        "should pass when value is a normal finite number",
+			value:       float64(123.45),
 			expectError: false,
 		},
 		{
-			name:        "should pass when value is zero (even)",
-			value:       int64(0),
+			name:        "should pass when value is zero",
+			value:       float64(0),
 			expectError: false,
 		},
 		{
-			name:        "should pass when value is a large even number",
-			value:       int64(1000000),
+			name:        "should pass when value is a very small number",
+			value:       float64(1e-300),
 			expectError: false,
 		},
 		{
-			name:        "should pass when value is a negative even number",
-			value:       int64(-4),
+			name:        "should pass when value is a very large number",
+			value:       float64(1e300),
 			expectError: false,
 		},
 		{
-			name:          "should fail when value is odd",
-			value:         int64(3),
+			name:          "should fail when value is positive infinity",
+			value:         math.Inf(1),
 			expectError:   true,
 			expectedError: "constraint failed",
 		},
 		{
-			name:          "should fail when value is a large odd number",
-			value:         int64(1000001),
+			name:          "should fail when value is negative infinity",
+			value:         math.Inf(-1),
 			expectError:   true,
 			expectedError: "constraint failed",
 		},
 		{
-			name:          "should fail when value is a negative odd number",
-			value:         int64(-3),
+			name:          "should fail when value is NaN",
+			value:         math.NaN(),
 			expectError:   true,
 			expectedError: "constraint failed",
 		},
@@ -221,7 +223,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstIntTypeRefEdgeCases() {
 				Pos:   tokens.Position{Line: 1, Column: 1},
 				Value: "test",
 			}
-			err := validateAgainstIntTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
+			err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
 
 			if tt.expectError {
 				r.Error(err)
