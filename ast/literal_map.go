@@ -15,13 +15,14 @@
 package ast
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 type MapEntry struct {
-	Key   string
+	Key   Expression
 	Value Expression
 }
 
@@ -34,7 +35,11 @@ func (m *MapLiteral) String() string {
 	result := "{"
 	entries := []string{}
 	for _, entry := range m.Entries {
-		entries = append(entries, entry.Key+": "+entry.Value.String())
+		if s, ok := entry.Key.(*StringLiteral); ok {
+			entries = append(entries, fmt.Sprintf("%s: %s", s.Value, entry.Value.String()))
+		} else {
+			entries = append(entries, fmt.Sprintf("[%s]: %s", entry.Key.String(), entry.Value.String()))
+		}
 	}
 	result += strings.Join(entries, ", ")
 	result += "}"

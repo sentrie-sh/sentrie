@@ -124,7 +124,10 @@ func parseConstraintMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 		}
 
 		entries = append(entries, ast.MapEntry{
-			Key:   keyToken.Value,
+			Key: &ast.StringLiteral{
+				Pos:   keyToken.Position,
+				Value: keyToken.Value,
+			},
 			Value: value,
 		})
 

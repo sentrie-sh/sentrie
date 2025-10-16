@@ -79,7 +79,7 @@ func accessField(_ context.Context, obj any, field string) (any, error) {
 			return Undefined, nil
 		}
 	default:
-		return nil, fmt.Errorf("field access not supported on %T", obj)
+		return nil, fmt.Errorf("cannot access field '%s' on %T", field, obj)
 	}
 }
 

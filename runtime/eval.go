@@ -93,12 +93,23 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 
 		m := map[string]any{}
 		for _, kv := range t.Entries {
+			key, child, err := eval(ctx, ec, exec, p, kv.Key)
+			n.Attach(child)
+			if err != nil {
+				return nil, n.SetErr(err), err
+			}
+			keyValue, ok := key.(string)
+			if !ok {
+				err := errors.Wrapf(xerr.ErrInvalidType(fmt.Sprintf("%T", key), "string"), "map key is not a string at %s", kv.Key.Position())
+				return nil, n.SetErr(err), err
+			}
+
 			v, child, err := eval(ctx, ec, exec, p, kv.Value)
 			n.Attach(child)
 			if err != nil {
 				return nil, n.SetErr(err), err
 			}
-			m[kv.Key] = v
+			m[keyValue] = v
 		}
 		return m, n.SetResult(m), nil
 

@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/mitchellh/hashstructure/v2"
+	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
@@ -72,7 +73,11 @@ func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *
 
 	// call the target
 	out, err := wrappedTarget(ctx, args...)
-	return out, n.SetResult(out).SetErr(err), err
+	if err != nil {
+		err = errors.Wrapf(err, "failed to call function '%s'", c.Callee.String())
+		return nil, n.SetErr(err), err
+	}
+	return out, n.SetResult(out), nil
 }
 
 // Helper to split "alias.fn" if ever needed

@@ -71,9 +71,31 @@ func parseMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 
 	// Parse the entries of the map
 	for p.hasTokens() && p.current.Kind != tokens.PunctRightCurly {
-		key, found := p.advanceExpected(tokens.String)
-		if !found {
-			return nil // Error in expecting a key
+		var keyExpression ast.Expression
+
+		if p.canExpect(tokens.String) {
+			key, found := p.advanceExpected(tokens.String)
+			if !found {
+				return nil
+			}
+			keyExpression = &ast.StringLiteral{
+				Pos:   key.Position,
+				Value: key.Value,
+			}
+		} else if p.canExpect(tokens.PunctLeftBracket) {
+			if !p.expect(tokens.PunctLeftBracket) {
+				return nil
+			}
+			keyExpression = p.parseExpression(ctx, LOWEST)
+			if keyExpression == nil {
+				return nil
+			}
+			if !p.expect(tokens.PunctRightBracket) {
+				return nil
+			}
+		} else {
+			p.errorf("expected string or [expression] as map key, got %s at %s", p.current.Kind, p.current.Position)
+			return nil
 		}
 
 		if !p.expect(tokens.PunctColon) {
@@ -85,16 +107,14 @@ func parseMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 			return nil // Error in parsing a value
 		}
 
-		theMap.Entries = append(theMap.Entries, ast.MapEntry{
-			Key:   key.Value,
+		entry := ast.MapEntry{
+			Key:   keyExpression,
 			Value: value,
-		})
+		}
+		theMap.Entries = append(theMap.Entries, entry)
 
 		if p.current.Kind == tokens.PunctComma {
 			p.advance() // Consume the comma
-		}
-		if p.head().IsOfKind(tokens.PunctRightCurly) {
-			break // Exit if we reach the end of the map
 		}
 	}
 

@@ -391,22 +391,22 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctWithMaps() {
 			&ast.MapLiteral{
 				Pos: tokens.Position{Line: 1, Column: 1},
 				Entries: []ast.MapEntry{
-					{Key: "id", Value: &ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 1}},
-					{Key: "name", Value: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "Alice"}},
+					{Key: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "id"}, Value: &ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 1}},
+					{Key: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "name"}, Value: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "Alice"}},
 				},
 			},
 			&ast.MapLiteral{
 				Pos: tokens.Position{Line: 1, Column: 1},
 				Entries: []ast.MapEntry{
-					{Key: "id", Value: &ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 2}},
-					{Key: "name", Value: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "Bob"}},
+					{Key: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "id"}, Value: &ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 2}},
+					{Key: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "name"}, Value: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "Bob"}},
 				},
 			},
 			&ast.MapLiteral{
 				Pos: tokens.Position{Line: 1, Column: 1},
 				Entries: []ast.MapEntry{
-					{Key: "id", Value: &ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 1}},
-					{Key: "name", Value: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "Alice"}},
+					{Key: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "id"}, Value: &ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 1}},
+					{Key: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "name"}, Value: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "Alice"}},
 				},
 			},
 		},

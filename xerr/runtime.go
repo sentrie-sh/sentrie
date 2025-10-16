@@ -32,6 +32,16 @@ func (e ConflictError) Error() string {
 	return "conflict: " + e.name
 }
 
+type InvalidTypeError struct{ got, expected string }
+
+func (e InvalidTypeError) Error() string {
+	return "invalid type: " + e.got + " -> expected: " + e.expected
+}
+
+func ErrInvalidType(got, expected string) error {
+	return InvalidTypeError{got: got, expected: expected}
+}
+
 func ErrConflict(name string) error {
 	return ConflictError{name: name}
 }
