@@ -1,0 +1,4 @@
+namespace ternary2
+policy cond {
+	let a = true ? 1 : 0
+}

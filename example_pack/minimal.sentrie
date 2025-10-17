@@ -1,0 +1,74 @@
+namespace sh/sentrie/example
+
+shape User {
+  role: string
+  status: string
+}
+
+policy user_access {
+  fact user: User as user default {"role": "admin", "status": "active"}
+
+  rule allow_admin = {
+    yield user.role == "admin"
+  }
+
+  rule allow_user = {
+    yield allow_admin or user.role == "user" and user.status == "active"
+  }
+  
+  export decision of allow_admin 
+    attach the_float as (10 + 5) * (5 - 2) / 2
+    attach the_number as 8 / 6
+    attach the_list as [1, 2, 3]
+    attach the_map as {"key": "value"}
+    attach the_string as "hello"
+    attach the_bool as true
+    attach the_null as null
+    attach the_trinary_true as true ? "true" : "false"
+    attach the_trinary_false as false ? "true" : "false"
+    
+  export decision of allow_user 
+}
+
+policy var_test {
+  let u1: number = 50
+  let u2: float = 50.5
+  let u3: string = "hello"
+  let u4: boolean = true
+  let u5: document = { "name": "John", "age": 30 }
+  let u6: list[number] = [1, 2, 3]
+  let u7: map[number @min(2)] = { "one": 1, "two": 2, "three": 3 }
+  let u8: record[string, number, boolean] = ["one", 1, true]
+  
+  rule test = {
+    yield u7
+  }
+  
+  shape Positive100 number @min(0) @max(100)
+  rule w = { 
+    let y = "99"
+    let x:Positive100 = cast y as number
+    yield x
+  }
+
+  let numbers: list[number] = [1, 2, 3, 4, 5]
+  let words: list[string] = ["Hello", "World", "Sentrie"]
+  
+  let sum: number = reduce numbers from 0 as acc, num, idx {
+    yield acc + num
+  }
+  
+  let max: number = reduce numbers from numbers[0] as acc, num, idx {
+    yield num > acc ? num : acc
+  }
+  
+  let min: number = reduce numbers from numbers[0] as acc, num, idx {
+    yield num < acc ? num : acc
+  }
+  
+  rule another = error("hello world")
+
+  export decision of test
+  export decision of another
+  export decision of w
+}

@@ -1,0 +1,16 @@
+namespace scalars
+policy scalar_vals {
+	let s = "hello"
+	let i = 42
+	let f = 3.1415
+	let b = true
+	let n = null
+	let g = false
+	let i = -100
+	let u = -3.14
+  let d = "sss"+"ggg"
+  let heredoc=<<<HHH
+Hello, World!
+This is a heredoc string.
+HHH
+}

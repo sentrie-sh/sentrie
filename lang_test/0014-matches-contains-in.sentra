@@ -1,0 +1,9 @@
+namespace memops
+policy match_contain_in {
+	let regex    = "abc123" matches "[a-z]+[0-9]+"
+	let nomatch  = not ("foo" not matches "[0-9]+")
+	let has      = ["x", "y", "z"] contains "y"
+	let nohas    = ["x", "y"] not contains "z"
+	let inside   = 3 in [1, 2, 3, 4]
+	let outside  = 9 not in [1, 2, 3]
+}

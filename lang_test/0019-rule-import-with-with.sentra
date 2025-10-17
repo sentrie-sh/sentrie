@@ -1,0 +1,14 @@
+namespace rules2
+policy consumer {
+	rule checkAccess = import decision isAllowed from auth
+	                     with user     as subject
+	                     with resource as obj
+
+	rule validateInput = import decision isValid from input
+
+	rule whenCheck = when ( user is subject ) { yield resource is obj }
+  
+  rule whenCheckWithImport = when ( user is subject ) import decision isValid from input
+                                with user     as subject
+                                with resource as obj
+}

@@ -1,17 +1,17 @@
 /* Sentrie Language Grammar */
 
 /* Program Structure */
-program             ::= namespaceDecl ( toplevelDecl | comment )*
+program             ::= (comment)* namespaceDecl ( toplevelDecl | comment )*
 toplevelDecl        ::= policyDecl | shapeDecl | exportShape
 namespaceDecl       ::= 'namespace' FQN
 FQN                 ::= IDENT ('/' IDENT)*
 
 /* Declarations */
 policyDecl          ::= 'policy' IDENT '{' ( policyStatement )* '}'
-factDecl            ::= 'fact' IDENT ':' typeRef 'as' IDENT 'default' expr
+factDecl            ::= 'fact' IDENT ('!')? ':' typeRef 'as' IDENT 'default' expr
 
 
-useStmt             ::= 'use' IDENT ( ',' IDENT )* 'from' execSource 'as' IDENT
+useStmt             ::= 'use' '{' IDENT ( ',' IDENT )* '}' 'from' execSource ('as' IDENT)?
 execSource          ::= STRING | ('@' IDENT '/' IDENT)
 
 policyStatement     ::= comment
@@ -30,10 +30,10 @@ ruleDecl            ::= 'rule' IDENT '=' ('default' expr)? ('when' expr)? (block
 
 /* Imports and Exports */
 exportRule          ::= 'export' 'decision' 'of' IDENT ( attachClause )*
-attachClause        ::= 'attach' IDENT ('as' IDENT)?
+attachClause        ::= 'attach' IDENT 'as' expr
 
 ruleImportClause    ::= 'import' 'decision' IDENT 'from' FQN ( withClause )*
-withClause          ::= 'with' IDENT 'as' IDENT
+withClause          ::= 'with' IDENT 'as' expr
 
 /* Expressions */
 expr                ::= ternaryExpr

@@ -1,0 +1,9 @@
+namespace commentmix
+policy mix {
+  let x = resource.property
+  let y = resource.a_list[2]
+  let z = resource.a_map["key"]
+  let p = resource.a_map["key"].property
+  let q = resource.a_map["key"].a_list[2]
+  let r = resource.a_map["key"].a_list[2+1]
+}

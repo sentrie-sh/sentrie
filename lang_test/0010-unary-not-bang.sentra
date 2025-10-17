@@ -1,0 +1,6 @@
+namespace unary
+policy neg {
+	let flag = not false
+	let bang = !true
+  let tran = transform {"a":"b","c":"d"} ".filter"
+}

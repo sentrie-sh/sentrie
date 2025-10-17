@@ -1,0 +1,33 @@
+{
+  "event": {
+    "matchList": [
+      {
+        "id": "match-1",
+        "confidence": 0.9,
+        "hash": "123",
+        "start": 123,
+        "end": 123
+      }
+    ],
+    "detector": {
+      "detectorType": "detector-1"
+    },
+    "resourceAri": "123",
+    "parentResourceAri": "456",
+    "workspaceAri": "789",
+    "orgIdAri": "101"
+  },
+  "thePolicy": {
+    "detections": [
+      {
+        "id": "detector-1",
+        "confidence": 0.9
+      },
+      {
+        "id": "detector-2",
+        "confidence": 0.8
+      }
+    ],
+    "resourceAri": "123"
+  }
+}

@@ -1,0 +1,8 @@
+namespace listmapcmp
+policy cmp2 {
+	let ls   = ["a", "b"]
+	let t1   = ls in  [ ["a", "b"], ["c"] ]
+	let mp   = { "k": "v" }
+	let t2   = mp in [ { "x": 1 }, { "k": "v" } ]
+	let kvok = { "x": 1 } in [ { "x": 1, "y": 2 }, { "a": 3 } ]
+}

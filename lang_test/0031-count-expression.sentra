@@ -1,0 +1,12 @@
+namespace count_test
+policy count_operations {
+  let fruits = ["apple", "banana", "cherry"]
+  let ages = {"alice": 30, "bob": 25, "charlie": 35}
+  let message = "hello world"
+  let number = 42
+
+  let fruit_count = count fruits
+  let age_count = count ages
+  let message_length = count message
+  let number_count = count number  -- this should error
+}

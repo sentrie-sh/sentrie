@@ -1,0 +1,98 @@
+namespace com.example.constraints
+
+policy string_constraints {
+    let email_str = "user@example.com" @email
+    let url_str = "https://example.com" @url
+    let uuid_v4_str = "550e8400-e29b-41d4-a716-446655440000" @uuid
+    let uuid_v7_str = "018c4a6c-7b5e-7c5e-8b5e-7c5e8b5e7c5e" @uuid
+    let alphanumeric_str = "abc123" @alphanumeric
+    let alpha_str = "hello" @alpha
+    let numeric_int_str = "12345" @numeric
+    let numeric_float_str = "123.45" @numeric
+    let numeric_negative_str = "-123.45" @numeric
+    let lowercase_str = "hello world" @lowercase
+    let uppercase_str = "HELLO WORLD" @uppercase
+    let trimmed_str = "hello" @trimmed
+    let not_empty_str = "hello" @not_empty
+    let length_str = "hello" @length(5)
+    let minlength_str = "hello world" @minlength(5)
+    let maxlength_str = "hi" @maxlength(5)
+    let starts_with_str = "hello world" @starts_with("hello")
+    let ends_with_str = "hello world" @ends_with("world")
+    let has_substring_str = "hello world" @has_substring("lo wo")
+    let not_has_substring_str = "hello world" @not_has_substring("xyz")
+    let regexp_str = "hello123" @regexp("^[a-z]+[0-9]+$")
+    let one_of_str = "apple" @one_of("apple", "banana", "cherry")
+    
+    rule outcome {
+        yield "string constraints validated"
+    }
+}
+
+policy int_constraints {
+    let positive_int = 42 @positive
+    let negative_int = -42 @negative
+    let non_negative_int = 0 @non_negative
+    let non_positive_int = 0 @non_positive
+    let even_int = 42 @even
+    let odd_int = 43 @odd
+    let min_int = 10 @min(5)
+    let max_int = 5 @max(10)
+    let range_int = 7 @range(5, 10)
+    let multiple_of_int = 12 @multiple_of(3)
+    let gte_int = 8 @gte(5)
+    let lte_int = 3 @lte(5)
+    let eq_int = 5 @eq(5)
+    let neq_int = 3 @neq(5)
+    let gt_int = 6 @gt(5)
+    let lt_int = 4 @lt(5)
+    let in_int = 3 @in([1, 2, 3, 4, 5])
+    let not_in_int = 6 @not_in([1, 2, 3, 4, 5])
+    
+    rule outcome {
+        yield "int constraints validated"
+    }
+}
+
+policy float_constraints {
+    let positive_float = 3.14 @positive
+    let negative_float = -3.14 @negative
+    let non_negative_float = 0.0 @non_negative
+    let non_positive_float = 0.0 @non_positive
+    let finite_float = 3.14 @finite
+    let min_float = 3.14 @min(2.0)
+    let max_float = 2.0 @max(5.0)
+    let range_float = 3.5 @range(2.0, 5.0)
+    let multiple_of_float = 6.0 @multiple_of(2.0)
+    let gte_float = 3.0 @gte(2.0)
+    let lte_float = 2.0 @lte(5.0)
+    let eq_float = 3.14 @eq(3.14)
+    let neq_float = 2.0 @neq(3.14)
+    let gt_float = 3.0 @gt(2.0)
+    let lt_float = 2.0 @lt(3.0)
+    let in_float = 3.0 @in([1.0, 2.0, 3.0, 4.0, 5.0])
+    let not_in_float = 6.0 @not_in([1.0, 2.0, 3.0, 4.0, 5.0])
+    
+    rule outcome {
+        yield "float constraints validated"
+    }
+}
+
+policy list_constraints {
+    let not_empty_list = [1, 2, 3] @not_empty
+    let sorted_list = [1, 2, 3, 4, 5] @sorted
+    let sorted_desc_list = [5, 4, 3, 2, 1] @sorted_desc
+    let has_item_list = [1, 2, 3] @has_item(2)
+    let not_has_item_list = [1, 2, 3] @not_has_item(4)
+    let subset_of_list = [2, 3] @subset_of([1, 2, 3, 4, 5])
+    let superset_of_list = [1, 2, 3, 4, 5] @superset_of([2, 3])
+    let disjoint_from_list = [1, 2] @disjoint_from([3, 4])
+    let unique_list = [1, 2, 3, 4, 5] @unique
+    let length_list = [1, 2, 3] @length(3)
+    let minlength_list = [1, 2, 3] @minlength(2)
+    let maxlength_list = [1, 2] @maxlength(5)
+    
+    rule outcome {
+        yield "list constraints validated"
+    }
+}

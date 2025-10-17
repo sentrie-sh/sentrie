@@ -1,0 +1,20 @@
+namespace document_test
+policy document_operations {
+  let user_doc = {
+    "name": "John Doe",
+    "age": 30,
+    "email": "john@example.com"
+  }
+  
+  let config_doc = {
+    "version": "1.0",
+    "features": ["auth", "logging"],
+    "enabled": true
+  }
+  
+  let empty_doc = {}
+  
+  rule allow = { yield user_doc is defined and config_doc is defined }
+  rule has_name = { yield user_doc.name is defined }
+  rule is_config_valid = { yield config_doc.version is defined and config_doc.enabled is true }
+}

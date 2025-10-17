@@ -1,0 +1,138 @@
+// Copyright 2025 Binaek Sarkar
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package index
+
+import (
+	"context"
+	"sync"
+
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/dag"
+	"github.com/sentrie-sh/sentrie/pack"
+)
+
+type Index struct {
+	theLock    *sync.RWMutex
+	Pack       *pack.PackFile
+	Namespaces map[string]*Namespace
+	Programs   map[string]*Program
+
+	ruleDag  dag.G[*Rule]
+	shapeDag dag.G[*Shape]
+
+	validated       uint32 // 0 = not validated, 1 = validated
+	validationError error
+	validationOnce  *sync.Once
+
+	committed   uint32 // 0 = not committed, 1 = committed
+	commitError error
+	commitOnce  *sync.Once
+}
+
+func CreateIndex() *Index {
+	return &Index{
+		theLock:        &sync.RWMutex{},
+		Namespaces:     make(map[string]*Namespace),
+		Programs:       make(map[string]*Program),
+		validated:      0,
+		validationOnce: &sync.Once{},
+		committed:      0,
+		commitOnce:     &sync.Once{},
+	}
+}
+
+func (idx *Index) SetPack(ctx context.Context, p *pack.PackFile) error {
+	idx.theLock.Lock()
+	defer idx.theLock.Unlock()
+
+	idx.Pack = p
+	return nil
+}
+
+func (idx *Index) AddProgram(ctx context.Context, astProgram *ast.Program) error {
+	idx.theLock.Lock()
+	defer idx.theLock.Unlock()
+
+	// bail out if the context is done
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
+	program := createProgram(astProgram)
+
+	ns, err := idx.ensureNamespace(ctx, program.Namespace)
+	if err != nil {
+		return err
+	}
+
+	for _, shape := range program.Shapes {
+		shape, err := createShape(ns, nil, shape)
+		if err != nil {
+			return err
+		}
+
+		if err := ns.addShape(shape); err != nil {
+			return err
+		}
+	}
+
+	for _, policy := range program.Policies {
+		p, err := createPolicy(ns, policy, astProgram)
+		if err != nil {
+			return err
+		}
+
+		if err := ns.addPolicy(p); err != nil {
+			return err
+		}
+	}
+
+	for _, export := range program.ShapeExports {
+		if err := ns.addShapeExport(&ExportedShape{Name: export.Name, Statement: export}); err != nil {
+			return err
+		}
+	}
+
+	idx.Programs[astProgram.Reference] = program
+
+	return nil
+}
+
+func (idx *Index) ensureNamespace(_ context.Context, namespace *ast.NamespaceStatement) (*Namespace, error) {
+	if ns, ok := idx.Namespaces[namespace.String()]; ok {
+		return ns, nil
+	}
+
+	theNew := createNamespace(namespace)
+
+	// now iterate through all known namespaces and resolve the parent/child relationships
+	for _, indexed := range idx.Namespaces {
+		if theNew.IsChildOf(indexed) {
+			if err := indexed.addChild(theNew); err != nil {
+				return nil, err
+			}
+		}
+
+		if theNew.IsParentOf(indexed) {
+			if err := theNew.addChild(indexed); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	idx.Namespaces[namespace.String()] = theNew
+
+	return theNew, nil
+}

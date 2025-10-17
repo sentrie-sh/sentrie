@@ -1,0 +1,9 @@
+namespace ternary
+policy choose {
+  let x   = 10
+  let y   = 20
+  let max = x > y ? x : y
+  let min = x < y ? x : y
+  let result = (x > y ? "X is greater" : "Y is greater")
+  let complex = (x > y ? (x + y) : (x - y)) * (x < y ? 2 : 3)
+}

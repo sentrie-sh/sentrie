@@ -1,0 +1,7 @@
+namespace multi
+policy base {
+	rule allowAll = { yield true }
+}
+policy consumer {
+	rule allow = import decision allowAll from base
+}
