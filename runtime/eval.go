@@ -149,6 +149,9 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 	case *ast.AllExpression:
 		return evalAll(ctx, ec, exec, p, t)
 
+	case *ast.FirstExpression:
+		return evalFirst(ctx, ec, exec, p, t)
+
 	case *ast.FilterExpression:
 		return evalFilter(ctx, ec, exec, p, t)
 

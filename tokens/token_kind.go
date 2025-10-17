@@ -62,6 +62,7 @@ const (
 	KeywordAny       Kind = "any"
 	KeywordAll       Kind = "all"
 	KeywordFilter    Kind = "filter"
+	KeywordFirst     Kind = "first"
 	KeywordDistinct  Kind = "distinct"
 	KeywordReduce    Kind = "reduce"
 	KeywordDefined   Kind = "defined"
@@ -154,6 +155,7 @@ var keywords = map[string]Kind{
 	"any":       KeywordAny,
 	"all":       KeywordAll,
 	"filter":    KeywordFilter,
+	"first":     KeywordFirst,
 	"distinct":  KeywordDistinct,
 	"reduce":    KeywordReduce,
 	"defined":   KeywordDefined,

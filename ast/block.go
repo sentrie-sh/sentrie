@@ -37,7 +37,7 @@ func (b *BlockExpression) String() string {
 	for _, stmt := range b.Statements {
 		stmts = append(stmts, stmt.String())
 	}
-	return "{" + strings.Join(stmts, ";") + "; yield " + b.Yield.String() + "}"
+	return "{" + strings.Join(stmts, ";") + "yield " + b.Yield.String() + "}"
 }
 
 var _ Expression = &BlockExpression{}
