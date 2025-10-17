@@ -114,6 +114,55 @@ func evalAll(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 	return true, node, nil
 }
 
+// evalFirst evaluates a first expression
+// it returns the first item in the collection that satisfies the predicate
+// if no item satisfies the predicate, it returns undefined
+func evalFirst(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, q *ast.FirstExpression) (any, *trace.Node, error) {
+	node, done := trace.New("first", "", q, map[string]any{
+		"collection": q.Collection.String(),
+		"value_iter": q.ValueIterator,
+		"index_iter": q.IndexIterator,
+		"predicate":  q.Predicate.String(),
+	})
+	defer done()
+
+	col, colNode, err := eval(ctx, ec, exec, p, q.Collection)
+	node.Attach(colNode)
+	if err != nil {
+		return nil, node.SetErr(err), err
+	}
+
+	if IsUndefined(col) {
+		return Undefined, node.SetResult(Undefined), nil
+	}
+
+	list, ok := col.([]any)
+	if !ok {
+		return nil, node.SetErr(fmt.Errorf("first expects list source")), fmt.Errorf("first expects list source")
+	}
+
+	for idx, item := range list {
+		childContext := ec.AttachedChildContext()
+		if q.IndexIterator != "" {
+			childContext.SetLocal(q.IndexIterator, idx, true)
+		}
+		childContext.SetLocal(q.ValueIterator, item, true)
+		res, resNode, err := eval(ctx, childContext, exec, p, q.Predicate)
+		if err != nil {
+			return nil, node.SetErr(err), err
+		}
+		node.Attach(resNode)
+		childContext.Dispose()
+		if IsTruthy(res) {
+			return item, node, nil
+		}
+	}
+
+	// by this time, we have iterated through the entire collection and found no truthy values
+	// return undefined
+	return Undefined, node.SetResult(Undefined), nil
+}
+
 // evalFilter evaluates a filter expression
 // it returns a list of items that satisfy the predicate
 // if the predicate is not satisfied, the item is not included in the list
