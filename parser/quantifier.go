@@ -85,6 +85,14 @@ func quantifierParserFactory(type_ tokens.Kind) prefixParser {
 				IndexIterator: indexIterator,
 				Predicate:     expression,
 			}
+		case tokens.KeywordFirst:
+			quantifierExpr = &ast.FirstExpression{
+				Pos:           token.Position,
+				Collection:    collection,
+				ValueIterator: valueIterator.Value,
+				IndexIterator: indexIterator,
+				Predicate:     expression,
+			}
 		case tokens.KeywordMap:
 			quantifierExpr = &ast.MapExpression{
 				Pos:           token.Position,

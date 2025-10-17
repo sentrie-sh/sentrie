@@ -44,6 +44,14 @@ type AllExpression struct {
 	Predicate     Expression
 }
 
+type FirstExpression struct {
+	Pos           tokens.Position
+	Collection    Expression
+	ValueIterator string
+	IndexIterator string
+	Predicate     Expression
+}
+
 type MapExpression struct {
 	Pos           tokens.Position
 	Collection    Expression
@@ -66,6 +74,8 @@ var _ Expression = &AnyExpression{}
 var _ Node = &AnyExpression{}
 var _ Expression = &AllExpression{}
 var _ Node = &AllExpression{}
+var _ Expression = &FirstExpression{}
+var _ Node = &FirstExpression{}
 var _ Expression = &MapExpression{}
 var _ Node = &MapExpression{}
 var _ Expression = &DistinctExpression{}
@@ -81,11 +91,10 @@ func (a *AnyExpression) String() string {
 		b.WriteString(", ")
 		b.WriteString(a.IndexIterator)
 	}
-	b.WriteString("{ ")
 	b.WriteString(a.Predicate.String())
-	b.WriteString(" }")
 	return b.String()
 }
+
 func (a *AllExpression) String() string {
 	b := strings.Builder{}
 	b.WriteString("all ")
@@ -96,11 +105,24 @@ func (a *AllExpression) String() string {
 		b.WriteString(", ")
 		b.WriteString(a.IndexIterator)
 	}
-	b.WriteString("{ ")
 	b.WriteString(a.Predicate.String())
-	b.WriteString(" }")
 	return b.String()
 }
+
+func (f *FirstExpression) String() string {
+	b := strings.Builder{}
+	b.WriteString("first ")
+	b.WriteString(f.Collection.String())
+	b.WriteString(" as ")
+	b.WriteString(f.ValueIterator)
+	if f.IndexIterator != "" {
+		b.WriteString(", ")
+		b.WriteString(f.IndexIterator)
+	}
+	b.WriteString(f.Predicate.String())
+	return b.String()
+}
+
 func (m *MapExpression) String() string {
 	b := strings.Builder{}
 	b.WriteString("any ")
@@ -111,11 +133,10 @@ func (m *MapExpression) String() string {
 		b.WriteString(", ")
 		b.WriteString(m.IndexIterator)
 	}
-	b.WriteString("{ ")
 	b.WriteString(m.Transform.String())
-	b.WriteString(" }")
 	return b.String()
 }
+
 func (f *FilterExpression) String() string {
 	b := strings.Builder{}
 	b.WriteString("filter ")
@@ -126,11 +147,10 @@ func (f *FilterExpression) String() string {
 		b.WriteString(", ")
 		b.WriteString(f.IndexIterator)
 	}
-	b.WriteString("{ ")
 	b.WriteString(f.Predicate.String())
-	b.WriteString(" }")
 	return b.String()
 }
+
 func (d *DistinctExpression) String() string {
 	b := strings.Builder{}
 	b.WriteString("distinct ")
@@ -139,9 +159,7 @@ func (d *DistinctExpression) String() string {
 	b.WriteString(d.LeftIterator)
 	b.WriteString(", ")
 	b.WriteString(d.RightIterator)
-	b.WriteString("{ ")
 	b.WriteString(d.Predicate.String())
-	b.WriteString(" }")
 	return b.String()
 }
 
@@ -154,6 +172,9 @@ func (a *AnyExpression) Position() tokens.Position {
 func (a *AllExpression) Position() tokens.Position {
 	return a.Pos
 }
+func (f *FirstExpression) Position() tokens.Position {
+	return f.Pos
+}
 func (f *FilterExpression) Position() tokens.Position {
 	return f.Pos
 }
@@ -165,4 +186,5 @@ func (m *MapExpression) expressionNode()      {}
 func (f *FilterExpression) expressionNode()   {}
 func (a *AnyExpression) expressionNode()      {}
 func (a *AllExpression) expressionNode()      {}
+func (f *FirstExpression) expressionNode()    {}
 func (d *DistinctExpression) expressionNode() {}
