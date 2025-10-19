@@ -18,12 +18,18 @@ import (
 	"context"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 func parseCommentStatement(ctx context.Context, parser *Parser) ast.Statement {
+	head := parser.head()
 	comment := parser.advance()
 	return &ast.CommentStatement{
-		Pos:     comment.Position,
+		Range: tokens.Range{
+			File: head.Position.Filename,
+			From: head.Position,
+			To:   comment.Position,
+		},
 		Content: comment.Value,
 	}
 }

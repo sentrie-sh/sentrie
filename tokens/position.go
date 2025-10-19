@@ -18,6 +18,9 @@ import "fmt"
 
 // Pos represents a location within source code.
 type Pos struct {
+	// Filename is the source file name - empty if Pos is a property of Range.
+	Filename string
+
 	// Line is the line number, starting from 1.
 	Line int
 

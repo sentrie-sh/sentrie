@@ -24,10 +24,10 @@ import (
 type Instance struct {
 	Kind     Kind
 	Value    string
-	Position Position
+	Position Pos
 }
 
-func New(kind Kind, value string, pos Position) Instance {
+func New(kind Kind, value string, pos Pos) Instance {
 	return Instance{
 		Kind:     kind,
 		Value:    value,
@@ -35,7 +35,7 @@ func New(kind Kind, value string, pos Position) Instance {
 	}
 }
 
-func Err(pos Position, message string) Instance {
+func Err(pos Pos, message string) Instance {
 	return Instance{
 		Kind:     Error,
 		Value:    message,
