@@ -21,7 +21,7 @@ import (
 )
 
 type TernaryExpression struct {
-	Pos        tokens.Position
+	Range      tokens.Range
 	Condition  Expression
 	ThenBranch Expression
 	ElseBranch Expression
@@ -31,8 +31,8 @@ func (t *TernaryExpression) String() string {
 	return fmt.Sprintf("(%s ? %s : %s)", t.Condition.String(), t.ThenBranch.String(), t.ElseBranch.String())
 }
 
-func (t *TernaryExpression) Position() tokens.Position {
-	return t.Pos
+func (t *TernaryExpression) Span() tokens.Range {
+	return t.Range
 }
 
 func (t *TernaryExpression) expressionNode() {}

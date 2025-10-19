@@ -21,7 +21,7 @@ import (
 )
 
 type ReduceExpression struct {
-	Pos           tokens.Position
+	Range         tokens.Range
 	Collection    Expression
 	From          Expression
 	Accumulator   string
@@ -48,8 +48,8 @@ func (r *ReduceExpression) String() string {
 	return b.String()
 }
 
-func (r *ReduceExpression) Position() tokens.Position {
-	return r.Pos
+func (r *ReduceExpression) Span() tokens.Range {
+	return r.Range
 }
 
 func (r *ReduceExpression) expressionNode() {}

@@ -21,24 +21,24 @@ import (
 )
 
 type CommentStatement struct {
-	Pos     tokens.Position
+	Range   tokens.Range
 	Content string
 }
 
 type TrailingCommentExpression struct {
-	Pos            tokens.Position
+	Range          tokens.Range
 	CommentContent string
 	Wrap           Expression
 }
 
 type PrecedingCommentExpression struct {
-	Pos            tokens.Position
+	Range          tokens.Range
 	CommentContent string
 	Wrap           Expression
 }
 
-func (c CommentStatement) Position() tokens.Position {
-	return c.Pos
+func (c CommentStatement) Span() tokens.Range {
+	return c.Range
 }
 
 func (c CommentStatement) String() string {
@@ -51,8 +51,8 @@ func (t TrailingCommentExpression) String() string {
 	return t.Wrap.String() + " -- " + t.CommentContent
 }
 
-func (t TrailingCommentExpression) Position() tokens.Position {
-	return t.Pos
+func (t TrailingCommentExpression) Span() tokens.Range {
+	return t.Range
 }
 
 func (t TrailingCommentExpression) expressionNode() {}
@@ -61,8 +61,8 @@ func (p PrecedingCommentExpression) String() string {
 	return p.CommentContent + " -- " + p.Wrap.String()
 }
 
-func (p PrecedingCommentExpression) Position() tokens.Position {
-	return p.Pos
+func (p PrecedingCommentExpression) Span() tokens.Range {
+	return p.Range
 }
 
 func (p PrecedingCommentExpression) expressionNode() {}

@@ -18,16 +18,16 @@ import "github.com/sentrie-sh/sentrie/tokens"
 
 type ShapeTypeRef struct {
 	constraints []*TypeRefConstraint
-	Pos         tokens.Position
+	Range       tokens.Range
 	Ref         FQN // Fully Qualified Name (FQN) of the shape
 }
 
 var _ TypeRef = &ShapeTypeRef{}
 var _ Node = &ShapeTypeRef{}
 
-func (s *ShapeTypeRef) typeref()                  {}
-func (s *ShapeTypeRef) Position() tokens.Position { return s.Pos }
-func (s *ShapeTypeRef) String() string            { return s.Ref.String() }
+func (s *ShapeTypeRef) typeref()           {}
+func (s *ShapeTypeRef) Span() tokens.Range { return s.Range }
+func (s *ShapeTypeRef) String() string     { return s.Ref.String() }
 func (s *ShapeTypeRef) GetConstraints() []*TypeRefConstraint {
 	return s.constraints
 }

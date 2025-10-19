@@ -20,9 +20,7 @@ import (
 
 type Node interface {
 	String() string
-	// Equal(other Node) bool
-	// Compare(other Node) int
-	Position() tokens.Position
+	Span() tokens.Range
 }
 
 type Statement interface {

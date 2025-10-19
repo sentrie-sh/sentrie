@@ -21,15 +21,15 @@ import (
 )
 
 type UseStatement struct {
-	Pos          tokens.Position
+	Range        tokens.Range
 	Modules      []string // List of modules to use
 	RelativeFrom string   //
 	LibFrom      []string // Optional library information
 	As           string
 }
 
-func (s *UseStatement) Position() tokens.Position {
-	return s.Pos
+func (s *UseStatement) Span() tokens.Range {
+	return s.Range
 }
 
 func (s *UseStatement) String() string {

@@ -19,7 +19,7 @@ import (
 )
 
 type InfixExpression struct {
-	Pos      tokens.Position
+	Range    tokens.Range
 	Left     Expression
 	Operator string
 	Right    Expression
@@ -29,8 +29,8 @@ func (e *InfixExpression) String() string {
 	return "(" + e.Left.String() + " " + e.Operator + " " + e.Right.String() + ")"
 }
 
-func (e *InfixExpression) Position() tokens.Position {
-	return e.Pos
+func (e *InfixExpression) Span() tokens.Range {
+	return e.Range
 }
 
 func (e *InfixExpression) expressionNode() {}

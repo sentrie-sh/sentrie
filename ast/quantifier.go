@@ -21,7 +21,7 @@ import (
 )
 
 type FilterExpression struct {
-	Pos           tokens.Position
+	Range         tokens.Range
 	Collection    Expression
 	ValueIterator string
 	IndexIterator string
@@ -29,7 +29,7 @@ type FilterExpression struct {
 }
 
 type AnyExpression struct {
-	Pos           tokens.Position
+	Range         tokens.Range
 	Collection    Expression
 	ValueIterator string
 	IndexIterator string
@@ -37,7 +37,7 @@ type AnyExpression struct {
 }
 
 type AllExpression struct {
-	Pos           tokens.Position
+	Range         tokens.Range
 	Collection    Expression
 	ValueIterator string
 	IndexIterator string
@@ -45,7 +45,7 @@ type AllExpression struct {
 }
 
 type FirstExpression struct {
-	Pos           tokens.Position
+	Range         tokens.Range
 	Collection    Expression
 	ValueIterator string
 	IndexIterator string
@@ -53,7 +53,7 @@ type FirstExpression struct {
 }
 
 type MapExpression struct {
-	Pos           tokens.Position
+	Range         tokens.Range
 	Collection    Expression
 	ValueIterator string
 	IndexIterator string
@@ -61,7 +61,7 @@ type MapExpression struct {
 }
 
 type DistinctExpression struct {
-	Pos           tokens.Position
+	Range         tokens.Range
 	Collection    Expression
 	LeftIterator  string
 	RightIterator string
@@ -163,23 +163,23 @@ func (d *DistinctExpression) String() string {
 	return b.String()
 }
 
-func (m *MapExpression) Position() tokens.Position {
-	return m.Pos
+func (m *MapExpression) Span() tokens.Range {
+	return m.Range
 }
-func (a *AnyExpression) Position() tokens.Position {
-	return a.Pos
+func (a *AnyExpression) Span() tokens.Range {
+	return a.Range
 }
-func (a *AllExpression) Position() tokens.Position {
-	return a.Pos
+func (a *AllExpression) Span() tokens.Range {
+	return a.Range
 }
-func (f *FirstExpression) Position() tokens.Position {
-	return f.Pos
+func (f *FirstExpression) Span() tokens.Range {
+	return f.Range
 }
-func (f *FilterExpression) Position() tokens.Position {
-	return f.Pos
+func (f *FilterExpression) Span() tokens.Range {
+	return f.Range
 }
-func (d *DistinctExpression) Position() tokens.Position {
-	return d.Pos
+func (d *DistinctExpression) Span() tokens.Range {
+	return d.Range
 }
 
 func (m *MapExpression) expressionNode()      {}

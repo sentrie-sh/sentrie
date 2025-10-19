@@ -46,7 +46,7 @@ func TestSegmentsTestSuite(t *testing.T) {
 func (suite *SegmentsTestSuite) setupTestData() {
 	// Create namespace: com/example
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 		Name: ast.FQN{"com", "example"},
 	}
 	_, err := suite.idx.ensureNamespace(context.Background(), nsStmt)
@@ -54,40 +54,40 @@ func (suite *SegmentsTestSuite) setupTestData() {
 
 	// Create policy: com/example/auth
 	policyStmt := &ast.PolicyStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 2, Column: 0},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
 		Name: "auth",
 		Statements: []ast.Statement{
 			&ast.FactStatement{
-				Pos:   tokens.Position{Filename: "test.sentra", Line: 3, Column: 0},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}},
 				Name:  "user",
 				Alias: "user",
 				Type: &ast.StringTypeRef{
-					Pos: tokens.Position{Filename: "test.sentra", Line: 3, Column: 10},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 				},
 			},
 			&ast.RuleStatement{
-				Pos:      tokens.Position{Filename: "test.sentra", Line: 4, Column: 0},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}},
 				RuleName: "allow",
 				When: &ast.TrinaryLiteral{
-					Pos:   tokens.Position{Filename: "test.sentra", Line: 4, Column: 15},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}},
 					Value: 1,
 				},
 			},
 			&ast.RuleStatement{
-				Pos:      tokens.Position{Filename: "test.sentra", Line: 5, Column: 0},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
 				RuleName: "deny",
 				When: &ast.TrinaryLiteral{
-					Pos:   tokens.Position{Filename: "test.sentra", Line: 5, Column: 15},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 15, Offset: 15}, To: tokens.Pos{Line: 5, Column: 15, Offset: 15}},
 					Value: 0,
 				},
 			},
 			&ast.RuleExportStatement{
-				Pos:         tokens.Position{Filename: "test.sentra", Line: 6, Column: 0},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 0, Offset: 0}, To: tokens.Pos{Line: 6, Column: 0, Offset: 0}},
 				Of:          "allow",
 				Attachments: []*ast.AttachmentClause{},
 			},
 			&ast.RuleExportStatement{
-				Pos:         tokens.Position{Filename: "test.sentra", Line: 7, Column: 0},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 7, Column: 0, Offset: 0}, To: tokens.Pos{Line: 7, Column: 0, Offset: 0}},
 				Of:          "deny",
 				Attachments: []*ast.AttachmentClause{},
 			},
@@ -107,7 +107,7 @@ func (suite *SegmentsTestSuite) setupTestData() {
 
 	// Create nested namespace: com/example/sub
 	subNsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "sub.sentra", Line: 1, Column: 0},
+		Range: tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 		Name: ast.FQN{"com", "example", "sub"},
 	}
 	_, err = suite.idx.ensureNamespace(context.Background(), subNsStmt)
@@ -115,27 +115,27 @@ func (suite *SegmentsTestSuite) setupTestData() {
 
 	// Create policy in sub namespace: com/example/sub/admin
 	subPolicyStmt := &ast.PolicyStatement{
-		Pos:  tokens.Position{Filename: "sub.sentra", Line: 2, Column: 0},
+		Range: tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
 		Name: "admin",
 		Statements: []ast.Statement{
 			&ast.FactStatement{
-				Pos:   tokens.Position{Filename: "sub.sentra", Line: 3, Column: 0},
+				Range: tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}},
 				Name:  "role",
 				Alias: "role",
 				Type: &ast.StringTypeRef{
-					Pos: tokens.Position{Filename: "sub.sentra", Line: 3, Column: 10},
+					Range: tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 				},
 			},
 			&ast.RuleStatement{
-				Pos:      tokens.Position{Filename: "sub.sentra", Line: 4, Column: 0},
+				Range: tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}},
 				RuleName: "check",
 				When: &ast.TrinaryLiteral{
-					Pos:   tokens.Position{Filename: "sub.sentra", Line: 4, Column: 15},
+					Range: tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}},
 					Value: 1,
 				},
 			},
 			&ast.RuleExportStatement{
-				Pos:         tokens.Position{Filename: "sub.sentra", Line: 5, Column: 0},
+				Range: tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
 				Of:          "check",
 				Attachments: []*ast.AttachmentClause{},
 			},
@@ -359,7 +359,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithLongPath() {
 func (suite *SegmentsTestSuite) TestResolveSegmentsWithSingleCharacterSegments() {
 	// Create a namespace with single character segments
 	singleCharNsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "single.sentra", Line: 1, Column: 0},
+		Range: tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 		Name: ast.FQN{"a", "b"},
 	}
 	_, err := suite.idx.ensureNamespace(context.Background(), singleCharNsStmt)
@@ -367,27 +367,27 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithSingleCharacterSegments()
 
 	// Create policy in single char namespace
 	singleCharPolicyStmt := &ast.PolicyStatement{
-		Pos:  tokens.Position{Filename: "single.sentra", Line: 2, Column: 0},
+		Range: tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
 		Name: "c",
 		Statements: []ast.Statement{
 			&ast.FactStatement{
-				Pos:   tokens.Position{Filename: "single.sentra", Line: 3, Column: 0},
+				Range: tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}},
 				Name:  "d",
 				Alias: "d",
 				Type: &ast.StringTypeRef{
-					Pos: tokens.Position{Filename: "single.sentra", Line: 3, Column: 10},
+					Range: tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 				},
 			},
 			&ast.RuleStatement{
-				Pos:      tokens.Position{Filename: "single.sentra", Line: 4, Column: 0},
+				Range: tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}},
 				RuleName: "e",
 				When: &ast.TrinaryLiteral{
-					Pos:   tokens.Position{Filename: "single.sentra", Line: 4, Column: 15},
+					Range: tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}},
 					Value: 1,
 				},
 			},
 			&ast.RuleExportStatement{
-				Pos:         tokens.Position{Filename: "single.sentra", Line: 5, Column: 0},
+				Range: tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
 				Of:          "e",
 				Attachments: []*ast.AttachmentClause{},
 			},

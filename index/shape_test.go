@@ -31,18 +31,18 @@ func TestShapeDependency_SimpleShapeWithoutDependencies(t *testing.T) {
 
 	// Create a simple shape without any dependencies
 	shapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: "User",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "User",
 		Simple: &ast.StringTypeRef{
-			Pos: tokens.Position{Filename: "test.sentra", Line: 1, Column: 10},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
 		},
 		Complex: nil,
 	}
 
 	// Create namespace and add shape
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example"},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example"},
 	}
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
 	require.NoError(t, err)
@@ -77,27 +77,27 @@ func TestShapeDependency_ShapeWithMissingDependency(t *testing.T) {
 
 	// Create namespace
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example"},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example"},
 	}
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
 	require.NoError(t, err)
 
 	// Create shape with missing dependency
 	shapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: "UserWithMissingDep",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "UserWithMissingDep",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 10},
-			With: ast.FQN{"NonExistentShape"}, // depends on non-existent shape
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+			With:  ast.FQN{"NonExistentShape"}, // depends on non-existent shape
 			Fields: map[string]*ast.ShapeField{
 				"field": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "field",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 10},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
 					},
 				},
 			},
@@ -124,27 +124,27 @@ func TestShapeDependency_ShapeWithCircularDependency(t *testing.T) {
 
 	// Create namespace
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example"},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example"},
 	}
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
 	require.NoError(t, err)
 
 	// Create first shape that depends on second
 	shape1Stmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: "ShapeA",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "ShapeA",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 10},
-			With: ast.FQN{"ShapeB"}, // depends on ShapeB
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+			With:  ast.FQN{"ShapeB"}, // depends on ShapeB
 			Fields: map[string]*ast.ShapeField{
 				"fieldA": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "fieldA",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 10},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
 					},
 				},
 			},
@@ -153,19 +153,19 @@ func TestShapeDependency_ShapeWithCircularDependency(t *testing.T) {
 
 	// Create second shape that depends on first (circular dependency)
 	shape2Stmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 5, Column: 0},
-		Name: "ShapeB",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
+		Name:  "ShapeB",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 5, Column: 10},
-			With: ast.FQN{"ShapeA"}, // depends on ShapeA (circular!)
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 10, Offset: 10}, To: tokens.Pos{Line: 5, Column: 10, Offset: 10}},
+			With:  ast.FQN{"ShapeA"}, // depends on ShapeA (circular!)
 			Fields: map[string]*ast.ShapeField{
 				"fieldB": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 6, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 4, Offset: 4}, To: tokens.Pos{Line: 6, Column: 4, Offset: 4}},
 					Name:        "fieldB",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 6, Column: 10},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 10, Offset: 10}, To: tokens.Pos{Line: 6, Column: 10, Offset: 10}},
 					},
 				},
 			},
@@ -198,27 +198,27 @@ func TestShapeDependency_ShapeWithComplexDependencyChain(t *testing.T) {
 
 	// Create namespace
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example"},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example"},
 	}
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
 	require.NoError(t, err)
 
 	// Create base shape (no dependencies)
 	baseShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: "BaseEntity",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "BaseEntity",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 10},
-			With: nil,
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+			With:  nil,
 			Fields: map[string]*ast.ShapeField{
 				"id": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "id",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 8},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 8, Offset: 8}, To: tokens.Pos{Line: 2, Column: 8, Offset: 8}},
 					},
 				},
 			},
@@ -227,19 +227,19 @@ func TestShapeDependency_ShapeWithComplexDependencyChain(t *testing.T) {
 
 	// Create intermediate shape (depends on base)
 	intermediateShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 5, Column: 0},
-		Name: "User",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
+		Name:  "User",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 5, Column: 10},
-			With: ast.FQN{"BaseEntity"},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 10, Offset: 10}, To: tokens.Pos{Line: 5, Column: 10, Offset: 10}},
+			With:  ast.FQN{"BaseEntity"},
 			Fields: map[string]*ast.ShapeField{
 				"name": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 6, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 4, Offset: 4}, To: tokens.Pos{Line: 6, Column: 4, Offset: 4}},
 					Name:        "name",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 6, Column: 10},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 10, Offset: 10}, To: tokens.Pos{Line: 6, Column: 10, Offset: 10}},
 					},
 				},
 			},
@@ -248,19 +248,19 @@ func TestShapeDependency_ShapeWithComplexDependencyChain(t *testing.T) {
 
 	// Create final shape (depends on intermediate)
 	finalShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 9, Column: 0},
-		Name: "AdminUser",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 9, Column: 0, Offset: 0}, To: tokens.Pos{Line: 9, Column: 0, Offset: 0}},
+		Name:  "AdminUser",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 9, Column: 10},
-			With: ast.FQN{"User"},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 9, Column: 10, Offset: 10}, To: tokens.Pos{Line: 9, Column: 10, Offset: 10}},
+			With:  ast.FQN{"User"},
 			Fields: map[string]*ast.ShapeField{
 				"role": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 10, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 10, Column: 4, Offset: 4}, To: tokens.Pos{Line: 10, Column: 4, Offset: 4}},
 					Name:        "role",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 10, Column: 10},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 10, Column: 10, Offset: 10}, To: tokens.Pos{Line: 10, Column: 10, Offset: 10}},
 					},
 				},
 			},
@@ -308,27 +308,27 @@ func TestShapeDependency_ShapeWithSelfDependency(t *testing.T) {
 
 	// Create namespace
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example"},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example"},
 	}
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
 	require.NoError(t, err)
 
 	// Create shape that depends on itself
 	shapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: "SelfReferencingShape",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "SelfReferencingShape",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 10},
-			With: ast.FQN{"SelfReferencingShape"}, // depends on itself
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+			With:  ast.FQN{"SelfReferencingShape"}, // depends on itself
 			Fields: map[string]*ast.ShapeField{
 				"field": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "field",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 10},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
 					},
 				},
 			},
@@ -353,27 +353,27 @@ func TestShapeDependency_MultipleShapesDependingOnSameBase(t *testing.T) {
 
 	// Create namespace
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example"},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example"},
 	}
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
 	require.NoError(t, err)
 
 	// Create base shape
 	baseShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: "BaseEntity",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "BaseEntity",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 10},
-			With: nil,
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+			With:  nil,
 			Fields: map[string]*ast.ShapeField{
 				"id": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "id",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 8},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 8, Offset: 8}, To: tokens.Pos{Line: 2, Column: 8, Offset: 8}},
 					},
 				},
 			},
@@ -382,19 +382,19 @@ func TestShapeDependency_MultipleShapesDependingOnSameBase(t *testing.T) {
 
 	// Create first dependent shape
 	userShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 5, Column: 0},
-		Name: "User",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
+		Name:  "User",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 5, Column: 10},
-			With: ast.FQN{"BaseEntity"},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 10, Offset: 10}, To: tokens.Pos{Line: 5, Column: 10, Offset: 10}},
+			With:  ast.FQN{"BaseEntity"},
 			Fields: map[string]*ast.ShapeField{
 				"name": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 6, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 4, Offset: 4}, To: tokens.Pos{Line: 6, Column: 4, Offset: 4}},
 					Name:        "name",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 6, Column: 10},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 10, Offset: 10}, To: tokens.Pos{Line: 6, Column: 10, Offset: 10}},
 					},
 				},
 			},
@@ -403,19 +403,19 @@ func TestShapeDependency_MultipleShapesDependingOnSameBase(t *testing.T) {
 
 	// Create second dependent shape (also depends on BaseEntity)
 	productShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 9, Column: 0},
-		Name: "Product",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 9, Column: 0, Offset: 0}, To: tokens.Pos{Line: 9, Column: 0, Offset: 0}},
+		Name:  "Product",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 9, Column: 10},
-			With: ast.FQN{"BaseEntity"},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 9, Column: 10, Offset: 10}, To: tokens.Pos{Line: 9, Column: 10, Offset: 10}},
+			With:  ast.FQN{"BaseEntity"},
 			Fields: map[string]*ast.ShapeField{
 				"title": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 10, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 10, Column: 4, Offset: 4}, To: tokens.Pos{Line: 10, Column: 4, Offset: 4}},
 					Name:        "title",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 10, Column: 10},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 10, Column: 10, Offset: 10}, To: tokens.Pos{Line: 10, Column: 10, Offset: 10}},
 					},
 				},
 			},
@@ -462,8 +462,8 @@ func TestShapeDependency_DeepDependencyChain(t *testing.T) {
 
 	// Create namespace
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example"},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example"},
 	}
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
 	require.NoError(t, err)
@@ -490,19 +490,19 @@ func TestShapeDependency_DeepDependencyChain(t *testing.T) {
 		}
 
 		shapeStmt := &ast.ShapeStatement{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: shapeInfo.line, Column: 0},
-			Name: shapeInfo.name,
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: shapeInfo.line, Column: 0, Offset: 0}, To: tokens.Pos{Line: shapeInfo.line, Column: 10, Offset: 10}},
+			Name:  shapeInfo.name,
 			Complex: &ast.Cmplx{
-				Pos:  tokens.Position{Filename: "test.sentra", Line: shapeInfo.line, Column: 10},
-				With: withFQN,
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: shapeInfo.line, Column: 10, Offset: 10}, To: tokens.Pos{Line: shapeInfo.line, Column: 20, Offset: 20}},
+				With:  withFQN,
 				Fields: map[string]*ast.ShapeField{
 					shapeInfo.field: {
-						Pos:         tokens.Position{Filename: "test.sentra", Line: shapeInfo.line + 1, Column: 4},
+						Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: shapeInfo.line + 1, Column: 4, Offset: 4}, To: tokens.Pos{Line: shapeInfo.line + 1, Column: 14, Offset: 14}},
 						Name:        shapeInfo.field,
 						NotNullable: true,
 						Required:    true,
 						Type: &ast.StringTypeRef{
-							Pos: tokens.Position{Filename: "test.sentra", Line: shapeInfo.line + 1, Column: 10},
+							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: shapeInfo.line + 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: shapeInfo.line + 1, Column: 20, Offset: 20}},
 						},
 					},
 				},
@@ -535,27 +535,27 @@ func TestShapeDependency_ShapeWithEmptyWithFQN(t *testing.T) {
 
 	// Create namespace
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example"},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example"},
 	}
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
 	require.NoError(t, err)
 
 	// Create shape with empty WithFQN
 	shapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: "EmptyDependencyShape",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "EmptyDependencyShape",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 10},
-			With: ast.FQN{}, // Empty FQN
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+			With:  ast.FQN{}, // Empty FQN
 			Fields: map[string]*ast.ShapeField{
 				"field": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "field",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 10},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
 					},
 				},
 			},
@@ -586,17 +586,17 @@ func TestShapeDependency_ShapeWithNilComplex(t *testing.T) {
 
 	// Create namespace
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example"},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example"},
 	}
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
 	require.NoError(t, err)
 
 	// Create shape with nil Complex
 	shapeStmt := &ast.ShapeStatement{
-		Pos:     tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
+		Range:   tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
 		Name:    "SimpleShape",
-		Simple:  &ast.StringTypeRef{Pos: tokens.Position{Filename: "test.sentra", Line: 1, Column: 10}},
+		Simple:  &ast.StringTypeRef{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}},
 		Complex: nil, // No complex structure
 	}
 
@@ -625,27 +625,27 @@ func TestShapeDependency_ShapeWithDuplicateFieldNames(t *testing.T) {
 
 	// Create namespace
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example"},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example"},
 	}
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
 	require.NoError(t, err)
 
 	// Create base shape
 	baseShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: "BaseEntity",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "BaseEntity",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 10},
-			With: nil,
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+			With:  nil,
 			Fields: map[string]*ast.ShapeField{
 				"id": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "id",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 8},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 8, Offset: 8}, To: tokens.Pos{Line: 2, Column: 8, Offset: 8}},
 					},
 				},
 			},
@@ -654,19 +654,19 @@ func TestShapeDependency_ShapeWithDuplicateFieldNames(t *testing.T) {
 
 	// Create dependent shape with duplicate field name
 	dependentShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 5, Column: 0},
-		Name: "UserWithDuplicateField",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
+		Name:  "UserWithDuplicateField",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 5, Column: 10},
-			With: ast.FQN{"BaseEntity"},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 10, Offset: 10}, To: tokens.Pos{Line: 5, Column: 10, Offset: 10}},
+			With:  ast.FQN{"BaseEntity"},
 			Fields: map[string]*ast.ShapeField{
 				"id": { // This will conflict with the base shape's "id" field
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 6, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 4, Offset: 4}, To: tokens.Pos{Line: 6, Column: 4, Offset: 4}},
 					Name:        "id",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 6, Column: 8},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 8, Offset: 8}, To: tokens.Pos{Line: 6, Column: 8, Offset: 8}},
 					},
 				},
 			},
@@ -704,18 +704,18 @@ func TestShapeDependency_ShapeWithVeryLongFQN(t *testing.T) {
 
 	// Create namespace with very long name
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example", "very", "long", "namespace", "name", "for", "testing"},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example", "very", "long", "namespace", "name", "for", "testing"},
 	}
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
 	require.NoError(t, err)
 
 	// Create shape with very long name
 	shapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: "VeryLongShapeNameForTestingPurposes",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "VeryLongShapeNameForTestingPurposes",
 		Simple: &ast.StringTypeRef{
-			Pos: tokens.Position{Filename: "test.sentra", Line: 1, Column: 10},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
 		},
 		Complex: nil,
 	}
@@ -745,18 +745,18 @@ func TestShapeDependency_ShapeWithSpecialCharacters(t *testing.T) {
 
 	// Create namespace
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example"},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example"},
 	}
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
 	require.NoError(t, err)
 
 	// Create shape with special characters in name
 	shapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: "Shape_With_Underscores_And_123_Numbers",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "Shape_With_Underscores_And_123_Numbers",
 		Simple: &ast.StringTypeRef{
-			Pos: tokens.Position{Filename: "test.sentra", Line: 1, Column: 10},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
 		},
 		Complex: nil,
 	}
@@ -786,45 +786,45 @@ func TestShapeDependency_ShapeWithMultipleFields(t *testing.T) {
 
 	// Create namespace
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example"},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example"},
 	}
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
 	require.NoError(t, err)
 
 	// Create shape with multiple fields
 	shapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: "MultiFieldShape",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "MultiFieldShape",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 10},
-			With: nil,
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+			With:  nil,
 			Fields: map[string]*ast.ShapeField{
 				"id": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "id",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 8},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 8, Offset: 8}, To: tokens.Pos{Line: 2, Column: 8, Offset: 8}},
 					},
 				},
 				"name": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 3, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 4, Offset: 4}, To: tokens.Pos{Line: 3, Column: 4, Offset: 4}},
 					Name:        "name",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 3, Column: 10},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 					},
 				},
 				"email": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 4, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 4, Offset: 4}, To: tokens.Pos{Line: 4, Column: 4, Offset: 4}},
 					Name:        "email",
 					NotNullable: false,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 4, Column: 10},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 10, Offset: 10}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}},
 					},
 				},
 			},
@@ -865,27 +865,27 @@ func TestShapeDependency_ComplexNestedDependency(t *testing.T) {
 
 	// Create namespace
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example"},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example"},
 	}
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
 	require.NoError(t, err)
 
 	// Create base shape
 	baseShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: "BaseEntity",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "BaseEntity",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 10},
-			With: nil,
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+			With:  nil,
 			Fields: map[string]*ast.ShapeField{
 				"id": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 2, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "id",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 2, Column: 8},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 8, Offset: 8}, To: tokens.Pos{Line: 2, Column: 8, Offset: 8}},
 					},
 				},
 			},
@@ -894,19 +894,19 @@ func TestShapeDependency_ComplexNestedDependency(t *testing.T) {
 
 	// Create intermediate shape
 	intermediateShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 5, Column: 0},
-		Name: "IntermediateEntity",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
+		Name:  "IntermediateEntity",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 5, Column: 10},
-			With: ast.FQN{"BaseEntity"},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 10, Offset: 10}, To: tokens.Pos{Line: 5, Column: 10, Offset: 10}},
+			With:  ast.FQN{"BaseEntity"},
 			Fields: map[string]*ast.ShapeField{
 				"name": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 6, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 4, Offset: 4}, To: tokens.Pos{Line: 6, Column: 4, Offset: 4}},
 					Name:        "name",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 6, Column: 10},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 10, Offset: 10}, To: tokens.Pos{Line: 6, Column: 10, Offset: 10}},
 					},
 				},
 			},
@@ -915,19 +915,19 @@ func TestShapeDependency_ComplexNestedDependency(t *testing.T) {
 
 	// Create final shape that depends on intermediate
 	finalShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 9, Column: 0},
-		Name: "FinalEntity",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 9, Column: 0, Offset: 0}, To: tokens.Pos{Line: 9, Column: 0, Offset: 0}},
+		Name:  "FinalEntity",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test.sentra", Line: 9, Column: 10},
-			With: ast.FQN{"IntermediateEntity"},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 9, Column: 10, Offset: 10}, To: tokens.Pos{Line: 9, Column: 10, Offset: 10}},
+			With:  ast.FQN{"IntermediateEntity"},
 			Fields: map[string]*ast.ShapeField{
 				"description": {
-					Pos:         tokens.Position{Filename: "test.sentra", Line: 10, Column: 4},
+					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 10, Column: 4, Offset: 4}, To: tokens.Pos{Line: 10, Column: 4, Offset: 4}},
 					Name:        "description",
 					NotNullable: false,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test.sentra", Line: 10, Column: 15},
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 10, Column: 15, Offset: 15}, To: tokens.Pos{Line: 10, Column: 15, Offset: 15}},
 					},
 				},
 			},
@@ -975,35 +975,35 @@ func TestShapeDependency_CompositionWithUnexportedShapeCrossNamespace(t *testing
 
 	// Create first namespace
 	ns1Stmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test1.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example", "shared"},
+		Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example", "shared"},
 	}
 	ns1, err := idx.ensureNamespace(ctx, ns1Stmt)
 	require.NoError(t, err)
 
 	// Create second namespace
 	ns2Stmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example", "app"},
+		Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example", "app"},
 	}
 	ns2, err := idx.ensureNamespace(ctx, ns2Stmt)
 	require.NoError(t, err)
 
 	// Create unexported shape in first namespace (no export statement)
 	unexportedShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test1.sentra", Line: 1, Column: 0},
-		Name: "UnexportedShape",
+		Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "UnexportedShape",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test1.sentra", Line: 1, Column: 10},
-			With: nil,
+			Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+			With:  nil,
 			Fields: map[string]*ast.ShapeField{
 				"id": {
-					Pos:         tokens.Position{Filename: "test1.sentra", Line: 2, Column: 4},
+					Range:       tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "id",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test1.sentra", Line: 2, Column: 8},
+						Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 2, Column: 8, Offset: 8}, To: tokens.Pos{Line: 2, Column: 8, Offset: 8}},
 					},
 				},
 			},
@@ -1012,19 +1012,19 @@ func TestShapeDependency_CompositionWithUnexportedShapeCrossNamespace(t *testing
 
 	// Create shape in second namespace that tries to compose with unexported shape
 	dependentShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 0},
-		Name: "AppShape",
+		Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "AppShape",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 10},
-			With: ast.FQN{"com", "example", "shared", "UnexportedShape"}, // tries to compose with unexported shape
+			Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+			With:  ast.FQN{"com", "example", "shared", "UnexportedShape"}, // tries to compose with unexported shape
 			Fields: map[string]*ast.ShapeField{
 				"name": {
-					Pos:         tokens.Position{Filename: "test2.sentra", Line: 2, Column: 4},
+					Range:       tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "name",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test2.sentra", Line: 2, Column: 10},
+						Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
 					},
 				},
 			},
@@ -1065,35 +1065,35 @@ func TestShapeDependency_CompositionWithExportedShapeCrossNamespace(t *testing.T
 
 	// Create first namespace
 	ns1Stmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test1.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example", "shared"},
+		Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example", "shared"},
 	}
 	ns1, err := idx.ensureNamespace(ctx, ns1Stmt)
 	require.NoError(t, err)
 
 	// Create second namespace
 	ns2Stmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example", "app"},
+		Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example", "app"},
 	}
 	ns2, err := idx.ensureNamespace(ctx, ns2Stmt)
 	require.NoError(t, err)
 
 	// Create exported shape in first namespace
 	exportedShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test1.sentra", Line: 1, Column: 0},
-		Name: "ExportedShape",
+		Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "ExportedShape",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test1.sentra", Line: 1, Column: 10},
-			With: nil,
+			Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+			With:  nil,
 			Fields: map[string]*ast.ShapeField{
 				"id": {
-					Pos:         tokens.Position{Filename: "test1.sentra", Line: 2, Column: 4},
+					Range:       tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "id",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test1.sentra", Line: 2, Column: 8},
+						Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 2, Column: 8, Offset: 8}, To: tokens.Pos{Line: 2, Column: 8, Offset: 8}},
 					},
 				},
 			},
@@ -1102,25 +1102,25 @@ func TestShapeDependency_CompositionWithExportedShapeCrossNamespace(t *testing.T
 
 	// Create shape export statement
 	shapeExportStmt := &ast.ShapeExportStatement{
-		Pos:  tokens.Position{Filename: "test1.sentra", Line: 5, Column: 0},
-		Name: "ExportedShape",
+		Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
+		Name:  "ExportedShape",
 	}
 
 	// Create shape in second namespace that tries to compose with exported shape
 	dependentShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 0},
-		Name: "AppShape",
+		Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "AppShape",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 10},
-			With: ast.FQN{"com", "example", "shared", "ExportedShape"}, // tries to compose with exported shape
+			Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+			With:  ast.FQN{"com", "example", "shared", "ExportedShape"}, // tries to compose with exported shape
 			Fields: map[string]*ast.ShapeField{
 				"name": {
-					Pos:         tokens.Position{Filename: "test2.sentra", Line: 2, Column: 4},
+					Range:       tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "name",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test2.sentra", Line: 2, Column: 10},
+						Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
 					},
 				},
 			},
@@ -1165,35 +1165,35 @@ func TestShapeDependency_CompositionWithNonExistentShapeCrossNamespaceNegative(t
 
 	// Create first namespace
 	ns1Stmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test1.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example", "shared"},
+		Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example", "shared"},
 	}
 	ns1, err := idx.ensureNamespace(ctx, ns1Stmt)
 	require.NoError(t, err)
 
 	// Create second namespace
 	ns2Stmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 0},
-		Name: []string{"com", "example", "app"},
+		Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  []string{"com", "example", "app"},
 	}
 	ns2, err := idx.ensureNamespace(ctx, ns2Stmt)
 	require.NoError(t, err)
 
 	// Create a different shape in first namespace (not the one we'll try to reference)
 	existingShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test1.sentra", Line: 1, Column: 0},
-		Name: "ExistingShape",
+		Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "ExistingShape",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test1.sentra", Line: 1, Column: 10},
-			With: nil,
+			Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+			With:  nil,
 			Fields: map[string]*ast.ShapeField{
 				"id": {
-					Pos:         tokens.Position{Filename: "test1.sentra", Line: 2, Column: 4},
+					Range:       tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "id",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test1.sentra", Line: 2, Column: 8},
+						Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 2, Column: 8, Offset: 8}, To: tokens.Pos{Line: 2, Column: 8, Offset: 8}},
 					},
 				},
 			},
@@ -1202,19 +1202,19 @@ func TestShapeDependency_CompositionWithNonExistentShapeCrossNamespaceNegative(t
 
 	// Create shape in second namespace that tries to compose with non-existent shape
 	dependentShapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 0},
-		Name: "AppShape",
+		Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "AppShape",
 		Complex: &ast.Cmplx{
-			Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 10},
-			With: ast.FQN{"com", "example", "shared", "NonExistentShape"}, // tries to compose with non-existent shape
+			Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+			With:  ast.FQN{"com", "example", "shared", "NonExistentShape"}, // tries to compose with non-existent shape
 			Fields: map[string]*ast.ShapeField{
 				"name": {
-					Pos:         tokens.Position{Filename: "test2.sentra", Line: 2, Column: 4},
+					Range:       tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "name",
 					NotNullable: true,
 					Required:    true,
 					Type: &ast.StringTypeRef{
-						Pos: tokens.Position{Filename: "test2.sentra", Line: 2, Column: 10},
+						Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
 					},
 				},
 			},

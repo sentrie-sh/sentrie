@@ -20,7 +20,7 @@ import (
 
 // Identifier represents an identifier
 type Identifier struct {
-	Pos   tokens.Position
+	Range tokens.Range
 	Value string
 }
 
@@ -28,8 +28,8 @@ func (i *Identifier) String() string {
 	return i.Value
 }
 
-func (i *Identifier) Position() tokens.Position {
-	return i.Pos
+func (i *Identifier) Span() tokens.Range {
+	return i.Range
 }
 
 func (i *Identifier) expressionNode() {}

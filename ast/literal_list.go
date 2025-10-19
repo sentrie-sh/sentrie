@@ -21,7 +21,7 @@ import (
 )
 
 type ListLiteral struct {
-	Pos    tokens.Position
+	Range  tokens.Range
 	Values []Expression
 }
 
@@ -43,8 +43,8 @@ func (l *ListLiteral) String() string {
 
 func (l *ListLiteral) expressionNode() {}
 
-func (l *ListLiteral) Position() tokens.Position {
-	return l.Pos
+func (l *ListLiteral) Span() tokens.Range {
+	return l.Range
 }
 
 var _ Expression = &ListLiteral{}

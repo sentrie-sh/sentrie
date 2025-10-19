@@ -19,15 +19,15 @@ import "github.com/sentrie-sh/sentrie/tokens"
 type UnaryExpression struct {
 	Operator string
 	Right    Expression
-	Pos      tokens.Position
+	Range    tokens.Range
 }
 
 func (u *UnaryExpression) String() string {
 	return u.Operator + u.Right.String()
 }
 
-func (u *UnaryExpression) Position() tokens.Position {
-	return u.Pos
+func (u *UnaryExpression) Span() tokens.Range {
+	return u.Range
 }
 
 func (u *UnaryExpression) expressionNode() {}

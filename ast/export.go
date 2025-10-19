@@ -17,7 +17,7 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type RuleExportStatement struct {
-	Pos         tokens.Position     // Position in the source code
+	Range       tokens.Range        // Range in the source code
 	Of          string              // Name of the exported variable or decision
 	Attachments []*AttachmentClause // Optional attachments for the export
 }
@@ -26,8 +26,8 @@ func (v RuleExportStatement) String() string {
 	return v.Of
 }
 
-func (v RuleExportStatement) Position() tokens.Position {
-	return v.Pos
+func (v RuleExportStatement) Span() tokens.Range {
+	return v.Range
 }
 
 func (v RuleExportStatement) statementNode() {}
@@ -36,7 +36,7 @@ var _ Statement = &RuleExportStatement{}
 var _ Node = &RuleExportStatement{}
 
 type AttachmentClause struct {
-	Pos  tokens.Position // Position in the source code
-	What string          // Name of the attachment
-	As   Expression      // Value of the attachment
+	Range tokens.Range // Range in the source code
+	What  string       // Name of the attachment
+	As    Expression   // Value of the attachment
 }

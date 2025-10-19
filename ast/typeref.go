@@ -25,15 +25,15 @@ type TypeRef interface {
 	Node
 	typeref()
 	String() string
-	Position() tokens.Position
+	Span() tokens.Range
 	GetConstraints() []*TypeRefConstraint
 	AddConstraint(*TypeRefConstraint) error
 }
 
 type TypeRefConstraint struct {
-	Pos  tokens.Position
-	Name string
-	Args []Expression
+	Range tokens.Range
+	Name  string
+	Args  []Expression
 }
 
 // validateConstraint checks if a constraint is valid for the given type

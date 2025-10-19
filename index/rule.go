@@ -19,8 +19,8 @@ func (r *Rule) String() string {
 	return r.FQN.String()
 }
 
-func (r *Rule) Position() tokens.Position {
-	return r.Node.Position()
+func (r *Rule) Span() tokens.Range {
+	return r.Node.Span()
 }
 
 func createRule(p *Policy, stmt *ast.RuleStatement) (*Rule, error) {

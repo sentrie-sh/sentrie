@@ -22,7 +22,7 @@ import (
 
 // FloatLiteral represents a float literal
 type FloatLiteral struct {
-	Pos   tokens.Position
+	Range tokens.Range
 	Value float64
 }
 
@@ -32,9 +32,9 @@ func (f *FloatLiteral) String() string {
 
 func (f *FloatLiteral) expressionNode() {}
 
-// Position returns the position of the float literal in the source code
-func (f *FloatLiteral) Position() tokens.Position {
-	return f.Pos
+// Span returns the span of the float literal in the source code
+func (f *FloatLiteral) Span() tokens.Range {
+	return f.Range
 }
 
 var _ Expression = &FloatLiteral{}

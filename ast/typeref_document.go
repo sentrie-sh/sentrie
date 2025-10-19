@@ -18,15 +18,15 @@ import "github.com/sentrie-sh/sentrie/tokens"
 
 type DocumentTypeRef struct {
 	constraints []*TypeRefConstraint
-	Pos         tokens.Position
+	Range       tokens.Range
 }
 
 var _ TypeRef = &DocumentTypeRef{}
 var _ Node = &DocumentTypeRef{}
 
-func (d *DocumentTypeRef) typeref()                  {}
-func (d *DocumentTypeRef) Position() tokens.Position { return d.Pos }
-func (d *DocumentTypeRef) String() string            { return "document" }
+func (d *DocumentTypeRef) typeref()           {}
+func (d *DocumentTypeRef) Span() tokens.Range { return d.Range }
+func (d *DocumentTypeRef) String() string     { return "document" }
 func (d *DocumentTypeRef) GetConstraints() []*TypeRefConstraint {
 	return d.constraints
 }

@@ -270,8 +270,8 @@ func (l *Lexer) peekAhead() rune {
 }
 
 // currentPosition returns the current position
-func (l *Lexer) currentPosition() tokens.Position {
-	return tokens.Position{
+func (l *Lexer) currentPosition() tokens.Pos {
+	return tokens.Pos{
 		Filename: l.filename,
 		Offset:   l.offset - l.currentWidth,
 		Line:     l.line,

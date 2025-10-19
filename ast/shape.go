@@ -17,21 +17,21 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type ShapeStatement struct {
-	Pos     tokens.Position
+	Range   tokens.Range
 	Name    string
 	Simple  TypeRef
 	Complex *Cmplx
 }
 
 type Cmplx struct {
-	Pos    tokens.Position
+	Range  tokens.Range
 	With   FQN // optional
 	Node   Node
 	Fields map[string]*ShapeField
 }
 
 type ShapeField struct {
-	Pos         tokens.Position
+	Range       tokens.Range
 	Name        string
 	NotNullable bool // true if field is not nullable
 	Required    bool // true if field is required to be present
@@ -39,8 +39,8 @@ type ShapeField struct {
 	Node        Node
 }
 
-func (s *ShapeStatement) Position() tokens.Position {
-	return s.Pos
+func (s *ShapeStatement) Span() tokens.Range {
+	return s.Range
 }
 
 func (s *ShapeStatement) String() string {

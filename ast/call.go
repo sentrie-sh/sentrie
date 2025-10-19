@@ -27,7 +27,7 @@ type CallExpression struct {
 	Arguments  []Expression
 	Memoized   bool
 	MemoizeTTL *time.Duration
-	Pos        tokens.Position
+	Range      tokens.Range
 }
 
 func (c *CallExpression) String() string {
@@ -38,8 +38,8 @@ func (c *CallExpression) String() string {
 	return fmt.Sprintf("%s(%s)", c.Callee.String(), strings.Join(args, ", "))
 }
 
-func (c *CallExpression) Position() tokens.Position {
-	return c.Pos
+func (c *CallExpression) Span() tokens.Range {
+	return c.Range
 }
 
 func (c *CallExpression) expressionNode() {}

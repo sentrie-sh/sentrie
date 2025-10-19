@@ -19,16 +19,16 @@ import (
 )
 
 type NamespaceStatement struct {
-	Pos  tokens.Position
-	Name FQN // Fully Qualified Name (FQN) of the namespace
+	Range tokens.Range
+	Name  FQN // Fully Qualified Name (FQN) of the namespace
 }
 
 func (n NamespaceStatement) String() string {
 	return n.Name.String()
 }
 
-func (n NamespaceStatement) Position() tokens.Position {
-	return n.Pos
+func (n NamespaceStatement) Span() tokens.Range {
+	return n.Range
 }
 
 func (n NamespaceStatement) statementNode() {}
@@ -37,7 +37,7 @@ var _ Statement = &NamespaceStatement{}
 var _ Node = &NamespaceStatement{}
 
 type PolicyStatement struct {
-	Pos        tokens.Position
+	Range      tokens.Range
 	Name       string
 	Statements []Statement
 }
@@ -46,8 +46,8 @@ func (p PolicyStatement) String() string {
 	return p.Name
 }
 
-func (p PolicyStatement) Position() tokens.Position {
-	return p.Pos
+func (p PolicyStatement) Span() tokens.Range {
+	return p.Range
 }
 
 func (p PolicyStatement) statementNode() {}

@@ -23,15 +23,15 @@ import (
 
 type RecordTypeRef struct {
 	constraints []*TypeRefConstraint
-	Pos         tokens.Position
+	Range       tokens.Range
 	Fields      []TypeRef
 }
 
 var _ TypeRef = &RecordTypeRef{}
 var _ Node = &RecordTypeRef{}
 
-func (r *RecordTypeRef) typeref()                  {}
-func (r *RecordTypeRef) Position() tokens.Position { return r.Pos }
+func (r *RecordTypeRef) typeref()           {}
+func (r *RecordTypeRef) Span() tokens.Range { return r.Range }
 func (r *RecordTypeRef) GetConstraints() []*TypeRefConstraint {
 	return r.constraints
 }

@@ -18,15 +18,15 @@ import "github.com/sentrie-sh/sentrie/tokens"
 
 type NumberTypeRef struct {
 	constraints []*TypeRefConstraint
-	Pos         tokens.Position
+	Range       tokens.Range
 }
 
 var _ TypeRef = &NumberTypeRef{}
 var _ Node = &NumberTypeRef{}
 
-func (i *NumberTypeRef) typeref()                  {}
-func (s *NumberTypeRef) Position() tokens.Position { return s.Pos }
-func (i *NumberTypeRef) String() string            { return "number" }
+func (i *NumberTypeRef) typeref()           {}
+func (s *NumberTypeRef) Span() tokens.Range { return s.Range }
+func (i *NumberTypeRef) String() string     { return "number" }
 func (i *NumberTypeRef) GetConstraints() []*TypeRefConstraint {
 	return i.constraints
 }

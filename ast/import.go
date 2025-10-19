@@ -18,26 +18,26 @@ import "github.com/sentrie-sh/sentrie/tokens"
 
 // 'import value|decision @ident from @string { @WithClause }'
 type ImportClause struct {
-	Pos           tokens.Position // Position in the source code
-	RuleToImport  string          // The name of the rule being imported
-	FromPolicyFQN FQN             // The source identifier - segmented by '/'
-	Withs         []*WithClause   // Inline with import clause
+	Range         tokens.Range  // Range in the source code
+	RuleToImport  string        // The name of the rule being imported
+	FromPolicyFQN FQN           // The source identifier - segmented by '/'
+	Withs         []*WithClause // Inline with import clause
 }
 
 // 'with @ident as @string'
 // Represents a 'with' clause in an import statement, allowing for additional context or configuration.
 type WithClause struct {
-	Pos  tokens.Position // Position in the source code
-	Name string          // Name of the with clause - this is also the name that the target policy exposes
-	Expr Expression      // Value associated with the with clause
+	Range tokens.Range // Range in the source code
+	Name  string       // Name of the with clause - this is also the name that the target policy exposes
+	Expr  Expression   // Value associated with the with clause
 }
 
 func (i ImportClause) String() string {
 	return i.RuleToImport
 }
 
-func (i ImportClause) Position() tokens.Position {
-	return i.Pos
+func (i ImportClause) Span() tokens.Range {
+	return i.Range
 }
 
 func (i ImportClause) expressionNode() {}

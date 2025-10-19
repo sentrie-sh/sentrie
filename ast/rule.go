@@ -17,7 +17,7 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type RuleStatement struct {
-	Pos      tokens.Position
+	Range    tokens.Range
 	RuleName string
 	Default  Expression
 	When     Expression
@@ -28,8 +28,8 @@ func (r RuleStatement) String() string {
 	return r.RuleName
 }
 
-func (r RuleStatement) Position() tokens.Position {
-	return r.Pos
+func (r RuleStatement) Span() tokens.Range {
+	return r.Range
 }
 
 func (r RuleStatement) statementNode() {}
