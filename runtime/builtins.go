@@ -17,6 +17,8 @@ package runtime
 import (
 	"context"
 	"fmt"
+
+	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 type Builtin func(ctx context.Context, args []any) (any, error)
@@ -108,12 +110,12 @@ func BuiltInError(ctx context.Context, args []any) (any, error) {
 	}
 
 	if len(args) == 1 {
-		return nil, fmt.Errorf("%v", args[0])
+		args = append([]any{"%v"}, args...)
 	}
 
 	format := args[0].(string)
 	args = args[1:]
-	return nil, fmt.Errorf(format, args...)
+	return nil, xerr.ErrInjected(format, args...)
 }
 
 var Builtins = map[string]Builtin{

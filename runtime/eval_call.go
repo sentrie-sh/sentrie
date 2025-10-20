@@ -74,6 +74,10 @@ func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *
 	// call the target
 	out, err := wrappedTarget(ctx, args...)
 	if err != nil {
+		if errors.Is(err, xerr.InjectedError{}) {
+			// if this error is injected from code, we revert to the error message
+			return nil, n.SetErr(err), err
+		}
 		err = errors.Wrapf(err, "failed to call function '%s'", t.Callee.String())
 		return nil, n.SetErr(err), err
 	}
