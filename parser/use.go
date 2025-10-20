@@ -24,10 +24,19 @@ import (
 
 // 'use' func,func 'from' moduleName 'as' alias
 func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
-	pos := p.head().Position
+	start := p.head()
+	pos := start.Range.To
 
 	stmt := &ast.UseStatement{
-		Pos: pos,
+		Range: tokens.Range{
+			File: start.Range.File,
+			From: start.Range.From,
+			To: tokens.Pos{
+				Line:   pos.Line,
+				Column: pos.Column,
+				Offset: pos.Offset,
+			},
+		},
 	}
 
 	p.advance() // consume 'use'
@@ -109,6 +118,14 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 			return nil
 		}
 		stmt.As = asAlias.Value // Set the alias
+	}
+
+	// Update the end position to the current token
+	current := p.head()
+	stmt.Range.To = tokens.Pos{
+		Line:   current.Range.From.Line,
+		Column: current.Range.From.Column,
+		Offset: current.Range.From.Offset,
 	}
 
 	return stmt

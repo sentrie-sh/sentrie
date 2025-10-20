@@ -23,8 +23,21 @@ import (
 
 // 'reduce' @collection 'from' @startExpression 'as' @accumulator,@valueIterator(,@indexIterator)? { @expression }
 func parseReduceExpression(ctx context.Context, parser *Parser) ast.Expression {
+	start := parser.head()
 	expr := &ast.ReduceExpression{
-		Pos: parser.head().Position,
+		Range: tokens.Range{
+			File: start.Range.File,
+			From: tokens.Pos{
+				Line:   start.Range.From.Line,
+				Column: start.Range.From.Column,
+				Offset: start.Range.From.Offset,
+			},
+			To: tokens.Pos{
+				Line:   start.Range.From.Line,
+				Column: start.Range.From.Column,
+				Offset: start.Range.From.Offset,
+			},
+		},
 	}
 
 	parser.advance() // the 'reduce' token
@@ -61,7 +74,7 @@ func parseReduceExpression(ctx context.Context, parser *Parser) ast.Expression {
 
 	valueIterator := parser.advance() // the iterator token
 	if valueIterator.Kind != tokens.Ident {
-		parser.errorf("expected identifier for iterator, got %s at %s", valueIterator.Kind, valueIterator.Position)
+		parser.errorf("expected identifier for iterator, got %s at %s", valueIterator.Kind, valueIterator.Range.From)
 		return nil
 	}
 	expr.ValueIterator = valueIterator.Value
@@ -83,6 +96,14 @@ func parseReduceExpression(ctx context.Context, parser *Parser) ast.Expression {
 	}
 
 	expr.Reducer = blockExpr
+
+	// Update the end position to the current token
+	current := parser.head()
+	expr.Range.To = tokens.Pos{
+		Line:   current.Range.From.Line,
+		Column: current.Range.From.Column,
+		Offset: current.Range.From.Offset,
+	}
 
 	return expr
 }

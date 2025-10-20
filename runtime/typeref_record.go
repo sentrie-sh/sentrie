@@ -24,7 +24,7 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func validateAgainstRecordTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.RecordTypeRef, pos tokens.Position) error {
+func validateAgainstRecordTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.RecordTypeRef, pos tokens.Range) error {
 	var value []any
 	if arr, ok := v.([]any); ok {
 		value = arr

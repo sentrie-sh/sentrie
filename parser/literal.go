@@ -40,7 +40,7 @@ func parseConstraintLiteral(ctx context.Context, p *Parser) ast.Expression {
 	case tokens.PunctLeftCurly:
 		return parseConstraintMapLiteral(ctx, p)
 	default:
-		p.errorf("constraint arguments must be literals, got %s at %s", p.current.Kind, p.current.Position)
+		p.errorf("constraint arguments must be literals, got %s at %s", p.current.Kind, p.current.Range.From)
 		return nil
 	}
 }
@@ -55,7 +55,19 @@ func parseConstraintListLiteral(ctx context.Context, p *Parser) ast.Expression {
 	if p.current.Kind == tokens.PunctRightBracket {
 		p.advance() // consume ']'
 		return &ast.ListLiteral{
-			Pos:    token.Position,
+			Range: tokens.Range{
+				File: token.Range.File,
+				From: tokens.Pos{
+					Line:   token.Range.From.Line,
+					Column: token.Range.From.Column,
+					Offset: token.Range.From.Offset,
+				},
+				To: tokens.Pos{
+					Line:   token.Range.From.Line,
+					Column: token.Range.From.Column,
+					Offset: token.Range.From.Offset,
+				},
+			},
 			Values: elements,
 		}
 	}
@@ -73,7 +85,7 @@ func parseConstraintListLiteral(ctx context.Context, p *Parser) ast.Expression {
 		} else if p.current.Kind == tokens.PunctRightBracket {
 			break
 		} else {
-			p.errorf("expected ',' or ']' in list literal, got %s at %s", p.current.Kind, p.current.Position)
+			p.errorf("expected ',' or ']' in list literal, got %s at %s", p.current.Kind, p.current.Range.From)
 			return nil
 		}
 	}
@@ -83,7 +95,19 @@ func parseConstraintListLiteral(ctx context.Context, p *Parser) ast.Expression {
 	}
 
 	return &ast.ListLiteral{
-		Pos:    token.Position,
+		Range: tokens.Range{
+			File: token.Range.File,
+			From: tokens.Pos{
+				Line:   token.Range.From.Line,
+				Column: token.Range.From.Column,
+				Offset: token.Range.From.Offset,
+			},
+			To: tokens.Pos{
+				Line:   token.Range.From.Line,
+				Column: token.Range.From.Column,
+				Offset: token.Range.From.Offset,
+			},
+		},
 		Values: elements,
 	}
 }
@@ -98,7 +122,19 @@ func parseConstraintMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 	if p.current.Kind == tokens.PunctRightCurly {
 		p.advance() // consume '}'
 		return &ast.MapLiteral{
-			Pos:     token.Position,
+			Range: tokens.Range{
+				File: token.Range.File,
+				From: tokens.Pos{
+					Line:   token.Range.From.Line,
+					Column: token.Range.From.Column,
+					Offset: token.Range.From.Offset,
+				},
+				To: tokens.Pos{
+					Line:   token.Range.From.Line,
+					Column: token.Range.From.Column,
+					Offset: token.Range.From.Offset,
+				},
+			},
 			Entries: entries,
 		}
 	}
@@ -107,7 +143,7 @@ func parseConstraintMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 	for {
 		// Parse key (must be string literal)
 		if p.current.Kind != tokens.String {
-			p.errorf("map keys must be string literals, got %s at %s", p.current.Kind, p.current.Position)
+			p.errorf("map keys must be string literals, got %s at %s", p.current.Kind, p.current.Range.From)
 			return nil
 		}
 		keyToken := p.advance()
@@ -125,7 +161,19 @@ func parseConstraintMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 
 		entries = append(entries, ast.MapEntry{
 			Key: &ast.StringLiteral{
-				Pos:   keyToken.Position,
+				Range: tokens.Range{
+					File: keyToken.Range.File,
+					From: tokens.Pos{
+						Line:   keyToken.Range.From.Line,
+						Column: keyToken.Range.From.Column,
+						Offset: keyToken.Range.From.Offset,
+					},
+					To: tokens.Pos{
+						Line:   keyToken.Range.From.Line,
+						Column: keyToken.Range.From.Column,
+						Offset: keyToken.Range.From.Offset,
+					},
+				},
 				Value: keyToken.Value,
 			},
 			Value: value,
@@ -136,7 +184,7 @@ func parseConstraintMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 		} else if p.current.Kind == tokens.PunctRightCurly {
 			break
 		} else {
-			p.errorf("expected ',' or '}' in map literal, got %s at %s", p.current.Kind, p.current.Position)
+			p.errorf("expected ',' or '}' in map literal, got %s at %s", p.current.Kind, p.current.Range.From)
 			return nil
 		}
 	}
@@ -146,7 +194,19 @@ func parseConstraintMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 	}
 
 	return &ast.MapLiteral{
-		Pos:     token.Position,
+		Range: tokens.Range{
+			File: token.Range.File,
+			From: tokens.Pos{
+				Line:   token.Range.From.Line,
+				Column: token.Range.From.Column,
+				Offset: token.Range.From.Offset,
+			},
+			To: tokens.Pos{
+				Line:   token.Range.From.Line,
+				Column: token.Range.From.Column,
+				Offset: token.Range.From.Offset,
+			},
+		},
 		Entries: entries,
 	}
 }

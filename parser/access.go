@@ -33,7 +33,15 @@ func parseFieldAccessExpression(ctx context.Context, p *Parser, left ast.Express
 	}
 
 	return &ast.FieldAccessExpression{
-		Pos:   operatorToken.Position,
+		Range: tokens.Range{
+			File: operatorToken.Range.File,
+			From: operatorToken.Range.From,
+			To: tokens.Pos{
+				Line:   fieldName.Range.To.Line,
+				Column: fieldName.Range.To.Column,
+				Offset: fieldName.Range.To.Offset,
+			},
+		},
 		Left:  left,
 		Field: fieldName.Value,
 	}
@@ -50,12 +58,17 @@ func parseIndexAccessExpression(ctx context.Context, p *Parser, left ast.Express
 		return nil // Error in parsing index expression
 	}
 
-	if !p.expect(tokens.PunctRightBracket) {
+	rBracket, found := p.advanceExpected(tokens.PunctRightBracket)
+	if !found {
 		return nil // Error in parsing index access
 	}
 
 	return &ast.IndexAccessExpression{
-		Pos:   lbracket.Position,
+		Range: tokens.Range{
+			File: rBracket.Range.File,
+			From: lbracket.Range.From,
+			To:   rBracket.Range.To,
+		},
 		Left:  left,
 		Index: index,
 	}

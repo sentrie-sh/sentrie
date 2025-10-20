@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 func parseUnaryExpression(ctx context.Context, p *Parser) ast.Expression {
@@ -29,7 +30,19 @@ func parseUnaryExpression(ctx context.Context, p *Parser) ast.Expression {
 	}
 
 	return &ast.UnaryExpression{
-		Pos:      token.Position,
+		Range: tokens.Range{
+			File: token.Range.File,
+			From: tokens.Pos{
+				Line:   token.Range.From.Line,
+				Column: token.Range.From.Column,
+				Offset: token.Range.From.Offset,
+			},
+			To: tokens.Pos{
+				Line:   token.Range.From.Line,
+				Column: token.Range.From.Column,
+				Offset: token.Range.From.Offset,
+			},
+		},
 		Operator: token.Value,
 		Right:    right,
 	}

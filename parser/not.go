@@ -39,7 +39,19 @@ func parseNotExpression(ctx context.Context, parser *Parser, left ast.Expression
 
 	// build the infix expression
 	bin := &ast.InfixExpression{
-		Pos:      opToken.Position,
+		Range: tokens.Range{
+			File: opToken.Range.File,
+			From: tokens.Pos{
+				Line:   opToken.Range.From.Line,
+				Column: opToken.Range.From.Column,
+				Offset: opToken.Range.From.Offset,
+			},
+			To: tokens.Pos{
+				Line:   opToken.Range.From.Line,
+				Column: opToken.Range.From.Column,
+				Offset: opToken.Range.From.Offset,
+			},
+		},
 		Left:     left,
 		Operator: opToken.Value,
 		Right:    right,
@@ -47,7 +59,19 @@ func parseNotExpression(ctx context.Context, parser *Parser, left ast.Expression
 
 	// wrap it in a unary expression
 	return &ast.UnaryExpression{
-		Pos:      notToken.Position,
+		Range: tokens.Range{
+			File: notToken.Range.File,
+			From: tokens.Pos{
+				Line:   notToken.Range.From.Line,
+				Column: notToken.Range.From.Column,
+				Offset: notToken.Range.From.Offset,
+			},
+			To: tokens.Pos{
+				Line:   notToken.Range.From.Line,
+				Column: notToken.Range.From.Column,
+				Offset: notToken.Range.From.Offset,
+			},
+		},
 		Operator: notToken.Value,
 		Right:    bin,
 	}

@@ -27,7 +27,7 @@ type MapEntry struct {
 }
 
 type MapLiteral struct {
-	Pos     tokens.Position
+	Range   tokens.Range
 	Entries []MapEntry
 }
 
@@ -46,8 +46,8 @@ func (m *MapLiteral) String() string {
 	return result
 }
 
-func (m *MapLiteral) Position() tokens.Position {
-	return m.Pos
+func (m *MapLiteral) Span() tokens.Range {
+	return m.Range
 }
 
 func (m *MapLiteral) expressionNode() {}

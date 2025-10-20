@@ -21,6 +21,7 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
+// distinct <collection> as <leftIterator>, <rightIterator> <block_predicate>
 func parseDistinctExpression(ctx context.Context, parser *Parser) ast.Expression {
 	head := parser.head()
 
@@ -53,7 +54,11 @@ func parseDistinctExpression(ctx context.Context, parser *Parser) ast.Expression
 	}
 
 	return &ast.DistinctExpression{
-		Pos:           head.Position,
+		Range: tokens.Range{
+			File: head.Range.File,
+			From: head.Range.From,
+			To:   predicateBlock.Span().To,
+		},
 		Collection:    collection,
 		LeftIterator:  leftIterator.Value,
 		RightIterator: rightIterator.Value,

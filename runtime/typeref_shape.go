@@ -26,7 +26,7 @@ import (
 	"github.com/sentrie-sh/sentrie/xerr"
 )
 
-func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.ShapeTypeRef, pos tokens.Position) error {
+func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.ShapeTypeRef, pos tokens.Range) error {
 	var shape *index.Shape
 
 	shapeFqn := typeRef.Ref.String()
@@ -69,7 +69,7 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 
 	// if we still don't have a shape, return an error
 	if shape == nil {
-		return xerr.ErrShapeNotFound(fmt.Sprintf("shape '%s' not found at %s", shapeFqn, typeRef.Position()))
+		return xerr.ErrShapeNotFound(fmt.Sprintf("shape '%s' not found at %s", shapeFqn, typeRef.Span()))
 	}
 
 	// a simple shape is an alias to another typeref

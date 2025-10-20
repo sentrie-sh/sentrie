@@ -29,6 +29,6 @@ func parseStatement(ctx context.Context, p *Parser) ast.Statement {
 	if handler, ok := p.statementHandlers[p.head().Kind]; ok {
 		return handler(ctx, p)
 	}
-	p.errorf("unexpected token '%s' at %s", p.head().Kind, p.head().Position)
+	p.errorf("unexpected token '%s'", p.head().Kind)
 	return nil
 }

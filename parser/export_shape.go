@@ -22,9 +22,7 @@ import (
 )
 
 func parseShapeExportStatement(ctx context.Context, p *Parser) ast.Statement {
-	stmt := &ast.ShapeExportStatement{
-		Pos: p.head().Position,
-	}
+	start := p.head()
 
 	p.advance() // consume 'export'
 
@@ -36,7 +34,21 @@ func parseShapeExportStatement(ctx context.Context, p *Parser) ast.Statement {
 	if !found {
 		return nil
 	}
-	stmt.Name = name.Value
 
-	return stmt
+	return &ast.ShapeExportStatement{
+		Name: name.Value,
+		Range: tokens.Range{
+			File: start.Range.File,
+			From: tokens.Pos{
+				Line:   start.Range.From.Line,
+				Column: start.Range.From.Column,
+				Offset: start.Range.From.Offset,
+			},
+			To: tokens.Pos{
+				Line:   name.Range.From.Line,
+				Column: name.Range.From.Column,
+				Offset: name.Range.From.Offset,
+			},
+		},
+	}
 }

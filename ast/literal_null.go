@@ -17,15 +17,15 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type NullLiteral struct {
-	Pos tokens.Position
+	Range tokens.Range
 }
 
 func (n *NullLiteral) String() string {
 	return "null"
 }
 
-func (n *NullLiteral) Position() tokens.Position {
-	return n.Pos
+func (n *NullLiteral) Span() tokens.Range {
+	return n.Range
 }
 
 func (n *NullLiteral) expressionNode() {}

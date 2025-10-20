@@ -17,7 +17,7 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type TransformExpression struct {
-	Pos         tokens.Position
+	Range       tokens.Range
 	Argument    Expression
 	Transformer string
 }
@@ -26,8 +26,8 @@ func (t *TransformExpression) String() string {
 	return "transform " + " " + t.Argument.String() + " " + t.Transformer
 }
 
-func (t *TransformExpression) Position() tokens.Position {
-	return t.Pos
+func (t *TransformExpression) Span() tokens.Range {
+	return t.Range
 }
 
 func (t *TransformExpression) expressionNode() {}

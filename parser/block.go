@@ -33,10 +33,8 @@ import (
 *
 */
 func parseBlockExpression(ctx context.Context, p *Parser) ast.Expression {
-	expr := &ast.BlockExpression{
-		Pos: p.head().Position,
-	}
-	if !p.expect(tokens.PunctLeftCurly) {
+	lCurly, found := p.advanceExpected(tokens.PunctLeftCurly)
+	if !found {
 		return nil // Error in parsing the block expression
 	}
 
@@ -59,12 +57,26 @@ func parseBlockExpression(ctx context.Context, p *Parser) ast.Expression {
 		return nil // Error in parsing the block expression
 	}
 
-	if !p.expect(tokens.PunctRightCurly) {
+	rCurly, found := p.advanceExpected(tokens.PunctRightCurly)
+	if !found {
 		return nil // Error in parsing the block expression
 	}
 
-	expr.Statements = statements
-	expr.Yield = yieldExpr
-
-	return expr
+	return &ast.BlockExpression{
+		SourceSpan: tokens.Range{
+			File: lCurly.Range.File,
+			From: tokens.Pos{
+				Line:   lCurly.Range.From.Line,
+				Column: lCurly.Range.From.Column,
+				Offset: lCurly.Range.From.Offset,
+			},
+			To: tokens.Pos{
+				Line:   rCurly.Range.From.Line,
+				Column: rCurly.Range.From.Column,
+				Offset: rCurly.Range.From.Offset,
+			},
+		},
+		Statements: statements,
+		Yield:      yieldExpr,
+	}
 }

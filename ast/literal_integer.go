@@ -22,7 +22,7 @@ import (
 
 // IntegerLiteral represents an integer literal
 type IntegerLiteral struct {
-	Pos   tokens.Position
+	Range tokens.Range
 	Value int64
 }
 
@@ -32,9 +32,9 @@ func (i *IntegerLiteral) String() string {
 
 func (i *IntegerLiteral) expressionNode() {}
 
-// Position returns the position of the integer literal in the source code
-func (i *IntegerLiteral) Position() tokens.Position {
-	return i.Pos
+// Span returns the span of the integer literal in the source code
+func (i *IntegerLiteral) Span() tokens.Range {
+	return i.Range
 }
 
 var _ Expression = &IntegerLiteral{}

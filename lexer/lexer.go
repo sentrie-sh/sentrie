@@ -62,149 +62,185 @@ func (l *Lexer) NextToken() tokens.Instance {
 		l.skipWhitespace()
 
 		if l.current == 0 {
-			return tokens.New(tokens.EOF, "", l.currentPosition())
+			return tokens.EofInstance(l.filename)
 		}
 
-		pos := l.currentPosition()
+		startPos := l.currentPosition()
 
 		switch l.current {
 		case '-':
 			if l.peekAhead() == '-' {
 				l.readRune() // consume second '-'
 				commentKind, value := l.readComment()
-				return tokens.New(commentKind, value, pos)
+				endPos := l.currentPosition()
+				return tokens.New(commentKind, value, tokens.NewRange(l.filename, startPos, endPos))
 			}
+			endPos := l.currentPosition()
 			l.readRune()
-			return tokens.New(tokens.TokenMinus, "-", pos)
+			return tokens.New(tokens.TokenMinus, "-", tokens.NewRange(l.filename, startPos, endPos))
 
 		case '=':
 			if l.peekAhead() == '=' {
 				l.readRune()
+				endPos := l.currentPosition()
 				l.readRune()
-				return tokens.New(tokens.TokenEq, "==", pos)
+				return tokens.New(tokens.TokenEq, "==", tokens.NewRange(l.filename, startPos, endPos))
 			}
 			l.readRune()
-			return tokens.New(tokens.TokenAssign, "=", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.TokenAssign, "=", tokens.NewRange(l.filename, startPos, endPos))
 
 		case '!':
 			if l.peekAhead() == '=' {
 				l.readRune()
 				l.readRune()
-				return tokens.New(tokens.TokenNeq, "!=", pos)
+				endPos := l.currentPosition()
+				return tokens.New(tokens.TokenNeq, "!=", tokens.NewRange(l.filename, startPos, endPos))
 			}
 			l.readRune()
-			return tokens.New(tokens.TokenBang, "!", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.TokenBang, "!", tokens.NewRange(l.filename, startPos, endPos))
 
 		case '<':
 			if l.peekString(2) == "<<" {
 				value, err := l.readHereDoc()
 				if err != nil {
-					return tokens.New(tokens.Error, err.Error(), pos)
+					endPos := l.currentPosition()
+					return tokens.New(tokens.Error, err.Error(), tokens.NewRange(l.filename, startPos, endPos))
 				}
-				return tokens.New(tokens.String, value, pos)
+				endPos := l.currentPosition()
+				return tokens.New(tokens.String, value, tokens.NewRange(l.filename, startPos, endPos))
 			}
 			if l.peekAhead() == '=' {
 				l.readRune()
 				l.readRune()
-				return tokens.New(tokens.TokenLte, "<=", pos)
+				endPos := l.currentPosition()
+				return tokens.New(tokens.TokenLte, "<=", tokens.NewRange(l.filename, startPos, endPos))
 			}
 			l.readRune()
-			return tokens.New(tokens.TokenLt, "<", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.TokenLt, "<", tokens.NewRange(l.filename, startPos, endPos))
 
 		case '>':
 			if l.peekAhead() == '=' {
 				l.readRune()
 				l.readRune()
-				return tokens.New(tokens.TokenGte, ">=", pos)
+				endPos := l.currentPosition()
+				return tokens.New(tokens.TokenGte, ">=", tokens.NewRange(l.filename, startPos, endPos))
 			}
 			l.readRune()
-			return tokens.New(tokens.TokenGt, ">", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.TokenGt, ">", tokens.NewRange(l.filename, startPos, endPos))
 
 		case '+':
 			l.readRune()
-			return tokens.New(tokens.TokenPlus, "+", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.TokenPlus, "+", tokens.NewRange(l.filename, startPos, endPos))
 		case '*':
 			l.readRune()
-			return tokens.New(tokens.TokenMul, "*", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.TokenMul, "*", tokens.NewRange(l.filename, startPos, endPos))
 		case '/':
 			l.readRune()
-			return tokens.New(tokens.TokenDiv, "/", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.TokenDiv, "/", tokens.NewRange(l.filename, startPos, endPos))
 		case '%':
 			l.readRune()
-			return tokens.New(tokens.TokenMod, "%", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.TokenMod, "%", tokens.NewRange(l.filename, startPos, endPos))
 		case '?':
 			l.readRune()
-			return tokens.New(tokens.TokenQuestion, "?", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.TokenQuestion, "?", tokens.NewRange(l.filename, startPos, endPos))
 		case ':':
 			l.readRune()
-			return tokens.New(tokens.PunctColon, ":", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.PunctColon, ":", tokens.NewRange(l.filename, startPos, endPos))
 		case '.':
 			if l.peekString(2) == ".." {
 				l.readRune()
 				l.readRune()
 				l.readRune()
-				return tokens.New(tokens.TokenDotDotDot, "...", pos)
+				endPos := l.currentPosition()
+				return tokens.New(tokens.TokenDotDotDot, "...", tokens.NewRange(l.filename, startPos, endPos))
 			}
 			l.readRune()
-			return tokens.New(tokens.TokenDot, ".", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.TokenDot, ".", tokens.NewRange(l.filename, startPos, endPos))
 		case '@':
 			l.readRune()
-			return tokens.New(tokens.TokenAt, "@", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.TokenAt, "@", tokens.NewRange(l.filename, startPos, endPos))
 		case ',':
 			l.readRune()
-			return tokens.New(tokens.PunctComma, ",", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.PunctComma, ",", tokens.NewRange(l.filename, startPos, endPos))
 		case ';':
 			l.readRune()
-			return tokens.New(tokens.PunctSemicolon, ";", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.PunctSemicolon, ";", tokens.NewRange(l.filename, startPos, endPos))
 		case '(':
 			l.readRune()
-			return tokens.New(tokens.PunctLeftParentheses, "(", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.PunctLeftParentheses, "(", tokens.NewRange(l.filename, startPos, endPos))
 		case ')':
 			l.readRune()
-			return tokens.New(tokens.PunctRightParentheses, ")", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.PunctRightParentheses, ")", tokens.NewRange(l.filename, startPos, endPos))
 		case '{':
 			l.readRune()
-			return tokens.New(tokens.PunctLeftCurly, "{", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.PunctLeftCurly, "{", tokens.NewRange(l.filename, startPos, endPos))
 		case '}':
 			l.readRune()
-			return tokens.New(tokens.PunctRightCurly, "}", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.PunctRightCurly, "}", tokens.NewRange(l.filename, startPos, endPos))
 		case '[':
 			l.readRune()
-			return tokens.New(tokens.PunctLeftBracket, "[", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.PunctLeftBracket, "[", tokens.NewRange(l.filename, startPos, endPos))
 		case ']':
 			l.readRune()
-			return tokens.New(tokens.PunctRightBracket, "]", pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.PunctRightBracket, "]", tokens.NewRange(l.filename, startPos, endPos))
 
 		case '"':
 			value, err := l.readString()
 			if err != nil {
-				return tokens.New(tokens.Error, err.Error(), pos)
+				endPos := l.currentPosition()
+				return tokens.New(tokens.Error, err.Error(), tokens.NewRange(l.filename, startPos, endPos))
 			}
-			return tokens.New(tokens.String, value, pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.String, value, tokens.NewRange(l.filename, startPos, endPos))
 
 		default:
 			if unicode.IsLetter(l.current) || l.current == '_' {
 				value := l.readIdentifier()
 				if !l.identRegex.MatchString(value) {
-					return tokens.Err(pos, "invalid identifier: "+value)
+					endPos := l.currentPosition()
+					return tokens.Err(tokens.NewRange(l.filename, startPos, endPos), "invalid identifier: "+value)
 				}
 
 				// is this a known keyword?
 				if kind, isKeyword := tokens.IsKeyword(value); isKeyword {
-					return tokens.New(kind, value, pos)
+					endPos := l.currentPosition()
+					return tokens.New(kind, value, tokens.NewRange(l.filename, startPos, endPos))
 				}
-				return tokens.New(tokens.Ident, value, pos)
+				endPos := l.currentPosition()
+				return tokens.New(tokens.Ident, value, tokens.NewRange(l.filename, startPos, endPos))
 			}
 
 			if unicode.IsDigit(l.current) {
 				value, kind := l.readNumber()
-				return tokens.New(kind, value, pos)
+				endPos := l.currentPosition()
+				return tokens.New(kind, value, tokens.NewRange(l.filename, startPos, endPos))
 			}
 
 			// Unknown character
 			char := string(l.current)
 			l.readRune()
-			return tokens.New(tokens.Error, "unexpected character: "+char, pos)
+			endPos := l.currentPosition()
+			return tokens.New(tokens.Error, "unexpected character: "+char, tokens.NewRange(l.filename, startPos, endPos))
 		}
 	}
 }
@@ -270,12 +306,11 @@ func (l *Lexer) peekAhead() rune {
 }
 
 // currentPosition returns the current position
-func (l *Lexer) currentPosition() tokens.Position {
-	return tokens.Position{
-		Filename: l.filename,
-		Offset:   l.offset - l.currentWidth,
-		Line:     l.line,
-		Column:   l.column - 1,
+func (l *Lexer) currentPosition() tokens.Pos {
+	return tokens.Pos{
+		Offset: l.offset - l.currentWidth,
+		Line:   l.line,
+		Column: l.column - 1,
 	}
 }
 
@@ -381,7 +416,7 @@ func (l *Lexer) readString() (string, error) {
 	}
 
 	if l.current != '"' {
-		return "", UnterminatedStringError(l.currentPosition())
+		return "", UnterminatedStringError(l.filename, l.currentPosition())
 	}
 	l.readRune() // skip closing quote
 
@@ -416,7 +451,7 @@ func (l *Lexer) readHereDoc() (string, error) {
 	// Disallow spaces before tag to keep syntax tight.
 	// Require TAG immediately.
 	if !(unicode.IsLetter(l.current) || l.current == '_') {
-		return "", errors.Wrap(InvalidHereDocSyntaxError(l.currentPosition()), "heredoc requires identifier tag after <<<")
+		return "", errors.Wrap(InvalidHereDocSyntaxError(l.filename, l.currentPosition()), "heredoc requires identifier tag after <<<")
 	}
 
 	// Read TAG (identifier)
@@ -427,14 +462,14 @@ func (l *Lexer) readHereDoc() (string, error) {
 	}
 	tag := tagBuilder.String()
 	if tag == "" || !l.identRegex.MatchString(tag) {
-		return "", errors.Wrap(InvalidHereDocSyntaxError(l.currentPosition()), "invalid heredoc tag")
+		return "", errors.Wrap(InvalidHereDocSyntaxError(l.filename, l.currentPosition()), "invalid heredoc tag")
 	}
 
 	// Read to end of the tag line
 	for l.current != '\n' && l.current != 0 {
 		// No trailing junk allowed (only whitespace)
 		if !unicode.IsSpace(l.current) && l.current != '\r' {
-			return "", errors.Wrapf(InvalidHereDocSyntaxError(l.currentPosition()), "unexpected characters after heredoc tag %q", tag)
+			return "", errors.Wrapf(InvalidHereDocSyntaxError(l.filename, l.currentPosition()), "unexpected characters after heredoc tag %q", tag)
 		}
 		l.readRune()
 	}
@@ -471,7 +506,7 @@ func (l *Lexer) readHereDoc() (string, error) {
 			l.readRune()
 		case 0:
 			// EOF before terminator
-			return "", UnterminatedStringError(l.currentPosition())
+			return "", UnterminatedStringError(l.filename, l.currentPosition())
 		}
 	}
 	return sb.String(), nil

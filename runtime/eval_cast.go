@@ -48,7 +48,7 @@ func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *ind
 
 		if result != nil {
 			// validate the result before returning
-			if validateErr := validateValueAgainstTypeRef(ctx, ec, e, p, result, target, cast.Position()); validateErr != nil {
+			if validateErr := validateValueAgainstTypeRef(ctx, ec, e, p, result, target, cast.Span()); validateErr != nil {
 				node.SetErr(validateErr)
 				err = validateErr
 				result = nil

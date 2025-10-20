@@ -23,8 +23,10 @@ import (
 
 // 'fact' exposed_name:type as internal_name
 func parseFactStatement(ctx context.Context, p *Parser) ast.Statement {
+	start := p.head()
+
 	stmt := &ast.FactStatement{
-		Pos: p.head().Position,
+		Range: start.Range,
 	}
 
 	if !p.expect(tokens.KeywordFact) {
@@ -53,6 +55,7 @@ func parseFactStatement(ctx context.Context, p *Parser) ast.Statement {
 		return nil
 	}
 	stmt.Type = typ_
+	stmt.Range.To = typ_.Span().To
 
 	if p.canExpect(tokens.KeywordAs) {
 		p.advance() // consume 'as'
@@ -61,6 +64,7 @@ func parseFactStatement(ctx context.Context, p *Parser) ast.Statement {
 			return nil
 		}
 		stmt.Alias = alias.Value // Set the fact alias
+		stmt.Range.To = alias.Range.To
 	}
 
 	if p.canExpect(tokens.KeywordDefault) {
@@ -70,6 +74,7 @@ func parseFactStatement(ctx context.Context, p *Parser) ast.Statement {
 			return nil
 		}
 		stmt.Default = defaultExpr
+		stmt.Range.To = defaultExpr.Span().To
 	}
 
 	return stmt

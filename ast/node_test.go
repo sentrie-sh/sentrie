@@ -7,19 +7,23 @@ import (
 // TestNodeInterface tests the Node interface implementation
 func (s *AstTestSuite) TestNodeInterface() {
 	// Test that all node types implement the Node interface
-	pos := tokens.Position{Line: 1, Column: 1}
+	r := tokens.Range{
+		File: "test.sentra",
+		From: tokens.Pos{Line: 1, Column: 1, Offset: 0},
+		To:   tokens.Pos{Line: 1, Column: 4, Offset: 3},
+	}
 
 	// Test Identifier implements Node
-	ident := &Identifier{Pos: pos, Value: "test"}
+	ident := &Identifier{Range: r, Value: "test"}
 	s.Implements((*Node)(nil), ident)
 	s.Equal("test", ident.String())
-	s.Equal(pos, ident.Position())
+	s.Equal(r, ident.Span())
 
 	// Test StringLiteral implements Node
-	str := &StringLiteral{Pos: pos, Value: "hello"}
+	str := &StringLiteral{Range: r, Value: "hello"}
 	s.Implements((*Node)(nil), str)
 	s.Equal(`"hello"`, str.String())
-	s.Equal(pos, str.Position())
+	s.Equal(r, str.Span())
 }
 
 // TestCodeableInterface tests the Codeable interface implementation
@@ -31,74 +35,86 @@ func (s *AstTestSuite) TestCodeableInterface() {
 // TestStatementInterface tests the Statement interface implementation
 func (s *AstTestSuite) TestStatementInterface() {
 	// Test that all statement types implement the Statement interface
-	pos := tokens.Position{Line: 1, Column: 1}
+	r := tokens.Range{
+		File: "test.sentra",
+		From: tokens.Pos{Line: 1, Column: 1, Offset: 0},
+		To:   tokens.Pos{Line: 1, Column: 4, Offset: 3},
+	}
 
 	// Test PolicyStatement implements Statement
-	policy := &PolicyStatement{Pos: pos, Name: "testPolicy"}
+	policy := &PolicyStatement{Range: r, Name: "testPolicy"}
 	s.Implements((*Statement)(nil), policy)
 	s.Implements((*Node)(nil), policy)
 	s.Equal("testPolicy", policy.String())
-	s.Equal(pos, policy.Position())
+	s.Equal(r, policy.Span())
 
 	// Test RuleStatement implements Statement
-	rule := &RuleStatement{Pos: pos, RuleName: "testRule"}
+	rule := &RuleStatement{Range: r, RuleName: "testRule"}
 	s.Implements((*Statement)(nil), rule)
 	s.Implements((*Node)(nil), rule)
 	s.Equal("testRule", rule.String())
-	s.Equal(pos, rule.Position())
+	s.Equal(r, rule.Span())
 }
 
 // TestExpressionInterface tests the Expression interface implementation
 func (s *AstTestSuite) TestExpressionInterface() {
 	// Test that all expression types implement the Expression interface
-	pos := tokens.Position{Line: 1, Column: 1}
+	r := tokens.Range{
+		File: "test.sentra",
+		From: tokens.Pos{Line: 1, Column: 1, Offset: 0},
+		To:   tokens.Pos{Line: 1, Column: 4, Offset: 3},
+	}
 
 	// Test Identifier implements Expression
-	ident := &Identifier{Pos: pos, Value: "test"}
+	ident := &Identifier{Range: r, Value: "test"}
 	s.Implements((*Expression)(nil), ident)
 	s.Implements((*Node)(nil), ident)
 
 	// Test StringLiteral implements Expression
-	str := &StringLiteral{Pos: pos, Value: "hello"}
+	str := &StringLiteral{Range: r, Value: "hello"}
 	s.Implements((*Expression)(nil), str)
 	s.Implements((*Node)(nil), str)
 }
 
 // TestNodePositioning tests position handling across different node types
 func (s *AstTestSuite) TestNodePositioning() {
-	// Test various position values
-	testPositions := []tokens.Position{
-		{Line: 1, Column: 1},
-		{Line: 10, Column: 5},
-		{Line: 100, Column: 50},
-		{Line: 0, Column: 0}, // Edge case
+	// Test various range values
+	testRanges := []tokens.Range{
+		{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 4, Offset: 3}},
+		{File: "test.sentra", From: tokens.Pos{Line: 10, Column: 5, Offset: 0}, To: tokens.Pos{Line: 10, Column: 8, Offset: 3}},
+		{File: "test.sentra", From: tokens.Pos{Line: 100, Column: 50, Offset: 0}, To: tokens.Pos{Line: 100, Column: 53, Offset: 3}},
+		{File: "test.sentra", From: tokens.Pos{Line: 0, Column: 0, Offset: 0}, To: tokens.Pos{Line: 0, Column: 3, Offset: 3}}, // Edge case
 	}
 
-	for _, pos := range testPositions {
-		ident := &Identifier{Pos: pos, Value: "test"}
-		s.Equal(pos, ident.Position())
+	for _, r := range testRanges {
+		ident := &Identifier{Range: r, Value: "test"}
+		s.Equal(r, ident.Span())
 
-		str := &StringLiteral{Pos: pos, Value: "test"}
-		s.Equal(pos, str.Position())
+		str := &StringLiteral{Range: r, Value: "test"}
+		s.Equal(r, str.Span())
 	}
 }
 
 // TestNodeStringRepresentation tests string representation of nodes
 func (s *AstTestSuite) TestNodeStringRepresentation() {
-	pos := tokens.Position{Line: 1, Column: 1}
+	r := tokens.Range{
+		File: "test.sentra",
+		From: tokens.Pos{Line: 1, Column: 1, Offset: 0},
+		To:   tokens.Pos{Line: 1, Column: 4, Offset: 3},
+	}
 
 	// Test Identifier string representation
-	ident := &Identifier{Pos: pos, Value: "myVariable"}
+	ident := &Identifier{Range: r, Value: "myVariable"}
 	s.Equal("myVariable", ident.String())
 
 	// Test StringLiteral string representation
-	str := &StringLiteral{Pos: pos, Value: "hello world"}
+	str := &StringLiteral{Range: r, Value: "hello world"}
 	s.Equal(`"hello world"`, str.String())
 
 	// Test empty values
-	emptyIdent := &Identifier{Pos: pos, Value: ""}
+	emptyIdent := &Identifier{Range: r, Value: ""}
 	s.Equal("", emptyIdent.String())
 
-	emptyStr := &StringLiteral{Pos: pos, Value: ""}
+	emptyStr := &StringLiteral{Range: r, Value: ""}
 	s.Equal(`""`, emptyStr.String())
 }

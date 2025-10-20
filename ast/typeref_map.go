@@ -18,16 +18,16 @@ import "github.com/sentrie-sh/sentrie/tokens"
 
 type MapTypeRef struct {
 	constraints []*TypeRefConstraint
-	Pos         tokens.Position
+	Range       tokens.Range
 	ValueType   TypeRef
 }
 
 var _ TypeRef = &MapTypeRef{}
 var _ Node = &MapTypeRef{}
 
-func (m *MapTypeRef) typeref()                  {}
-func (m *MapTypeRef) Position() tokens.Position { return m.Pos }
-func (m *MapTypeRef) String() string            { return "map[" + m.ValueType.String() + "]" }
+func (m *MapTypeRef) typeref()           {}
+func (m *MapTypeRef) Span() tokens.Range { return m.Range }
+func (m *MapTypeRef) String() string     { return "map[" + m.ValueType.String() + "]" }
 func (m *MapTypeRef) GetConstraints() []*TypeRefConstraint {
 	return m.constraints
 }
@@ -36,5 +36,6 @@ func (m *MapTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
 		return err
 	}
 	m.constraints = append(m.constraints, constraint)
+	m.Range.To = constraint.Range.To
 	return nil
 }

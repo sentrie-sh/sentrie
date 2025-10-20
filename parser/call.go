@@ -23,12 +23,38 @@ import (
 )
 
 func parseCallExpression(ctx context.Context, p *Parser, left ast.Expression, precedence Precedence) ast.Expression {
-	lparen := p.advance()
+	if !p.expect(tokens.PunctLeftParentheses) {
+		return nil
+	}
+
+	arguments := parseExpressionList(ctx, p, tokens.PunctRightParentheses)
+	if arguments == nil {
+		return nil
+	}
+
+	// Find the closing parenthesis position
+	rparen := p.head()
+	if !rparen.IsOfKind(tokens.PunctRightParentheses) {
+		return nil
+	}
+	p.advance() // consume the closing parenthesis
 
 	exp := &ast.CallExpression{
-		Callee:    left,
-		Pos:       lparen.Position,
-		Arguments: parseExpressionList(ctx, p, tokens.PunctRightParentheses),
+		Callee: left,
+		Range: tokens.Range{
+			File: left.Span().File,
+			From: tokens.Pos{
+				Line:   left.Span().From.Line,
+				Column: left.Span().From.Column,
+				Offset: left.Span().From.Offset,
+			},
+			To: tokens.Pos{
+				Line:   rparen.Range.From.Line,
+				Column: rparen.Range.From.Column,
+				Offset: rparen.Range.From.Offset,
+			},
+		},
+		Arguments: arguments,
 	}
 
 	if p.head().IsOfKind(tokens.TokenBang) {
@@ -67,10 +93,11 @@ func parseExpressionList(ctx context.Context, parser *Parser, end tokens.Kind) [
 		exps = append(exps, exp)
 		if parser.head().IsOfKind(tokens.PunctComma) {
 			_ = parser.advance() // consume the comma
+			continue
 		}
+
 		if parser.head().IsOfKind(end) {
-			_ = parser.advance() // consume the end token
-			break                // exit the loop if we reach the end token
+			break
 		}
 	}
 

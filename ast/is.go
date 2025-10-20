@@ -17,13 +17,13 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type IsDefinedExpression struct {
-	Pos  tokens.Position
-	Left Expression
+	Range tokens.Range
+	Left  Expression
 }
 
 type IsEmptyExpression struct {
-	Pos  tokens.Position
-	Left Expression
+	Range tokens.Range
+	Left  Expression
 }
 
 func (e *IsEmptyExpression) String() string {
@@ -34,12 +34,12 @@ func (e *IsDefinedExpression) String() string {
 	return "is defined " + e.Left.String()
 }
 
-func (e *IsEmptyExpression) Position() tokens.Position {
-	return e.Pos
+func (e *IsEmptyExpression) Span() tokens.Range {
+	return e.Range
 }
 
-func (e *IsDefinedExpression) Position() tokens.Position {
-	return e.Pos
+func (e *IsDefinedExpression) Span() tokens.Range {
+	return e.Range
 }
 
 func (e *IsDefinedExpression) expressionNode() {}

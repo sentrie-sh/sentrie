@@ -348,7 +348,7 @@ func (idx *Index) detectShapeCycle(ctx context.Context) (dag.G[*Shape], error) {
 					// find the shape with the FQN
 					withShape, ok := ns.Shapes[shape.Model.WithFQN.String()]
 					if !ok {
-						return nil, errors.Wrapf(ErrIndex, "shape not found: %s at %s", shape.Model.WithFQN.String(), shape.Statement.Pos)
+						return nil, errors.Wrapf(ErrIndex, "shape not found: %s at %s", shape.Model.WithFQN.String(), shape.Statement.Range.String())
 					}
 					if err := shapeDag.AddEdge(shape, withShape); err != nil {
 						return nil, errors.Wrapf(ErrIndex, "error adding edge: %s", err)

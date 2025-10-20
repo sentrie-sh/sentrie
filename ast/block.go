@@ -20,17 +20,13 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-type BlockExpression struct /* implements Expression */ {
-	Pos        tokens.Position
+type BlockExpression struct {
+	SourceSpan tokens.Range
 	Statements []Statement
 	Yield      Expression
 }
 
 func (b *BlockExpression) expressionNode() {}
-
-func (b *BlockExpression) Position() tokens.Position {
-	return b.Pos
-}
 
 func (b *BlockExpression) String() string {
 	var stmts []string
@@ -38,6 +34,10 @@ func (b *BlockExpression) String() string {
 		stmts = append(stmts, stmt.String())
 	}
 	return "{" + strings.Join(stmts, ";") + "yield " + b.Yield.String() + "}"
+}
+
+func (b *BlockExpression) Span() tokens.Range {
+	return b.SourceSpan
 }
 
 var _ Expression = &BlockExpression{}

@@ -28,15 +28,15 @@ import (
 	"github.com/sentrie-sh/sentrie/xerr"
 )
 
-func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, c *ast.CallExpression) (response any, traceNode *trace.Node, err error) {
-	n, done := trace.New("call", "", c, map[string]any{
-		"target": c.Callee.String(),
-		"args":   c.Arguments,
+func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, t *ast.CallExpression) (response any, traceNode *trace.Node, err error) {
+	n, done := trace.New("call", "", t, map[string]any{
+		"target": t.Callee.String(),
+		"args":   t.Arguments,
 	})
 	defer done()
 
-	args := make([]any, 0, len(c.Arguments))
-	for _, a := range c.Arguments {
+	args := make([]any, 0, len(t.Arguments))
+	for _, a := range t.Arguments {
 		v, child, err := eval(ctx, ec, exec, p, a)
 		n.Attach(child)
 		if err != nil {
@@ -45,25 +45,25 @@ func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *
 		args = append(args, v)
 	}
 
-	target, err := getTarget(ctx, ec, p, c)
+	target, err := getTarget(ctx, ec, p, t)
 	if err != nil {
 		return nil, n.SetErr(err), err
 	}
 
 	// use a thin wrapper around the target to handle the caching
 	wrappedTarget := func(ctx context.Context, args ...any) (any, error) {
-		if !c.Memoized {
+		if !t.Memoized {
 			// no memoization, so we can just call the target
 			// quickly call the target without caching
 			return target(ctx, args...)
 		}
 
 		ttl := 5 * time.Minute // default to 5 minutes
-		if c.MemoizeTTL != nil {
-			ttl = *c.MemoizeTTL
+		if t.MemoizeTTL != nil {
+			ttl = *t.MemoizeTTL
 		}
 
-		hashKey := calculateHashKey(c, args)
+		hashKey := calculateHashKey(t, args)
 		loader := func(ctx context.Context, key string) (any, error) {
 			return target(ctx, args...)
 		}
@@ -74,7 +74,7 @@ func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *
 	// call the target
 	out, err := wrappedTarget(ctx, args...)
 	if err != nil {
-		err = errors.Wrapf(err, "failed to call function '%s'", c.Callee.String())
+		err = errors.Wrapf(err, "failed to call function '%s'", t.Callee.String())
 		return nil, n.SetErr(err), err
 	}
 	return out, n.SetResult(out), nil

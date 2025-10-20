@@ -24,213 +24,243 @@ import (
 
 func (r *RuntimeTestSuite) TestValidateAgainstNumberTypeRef() {
 	typeRef := &ast.NumberTypeRef{
-		Pos: tokens.Position{Line: 1, Column: 1},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	}
 
-	tests := []struct {
-		name          string
-		value         interface{}
-		expectError   bool
-		expectedError string
-	}{
-		{
-			name:          "should return an error if the value is a string",
-			value:         "not a number",
-			expectError:   true,
-			expectedError: "value not a number is not a float64",
-		},
-		{
-			name:          "should return an error if the value is an int64",
-			value:         int64(123),
-			expectError:   true,
-			expectedError: "value 123 is not a number",
-		},
-		{
-			name:          "should return an error if the value is a bool",
-			value:         true,
-			expectError:   true,
-			expectedError: "value true is not a number",
-		},
-		{
-			name:          "should return an error if the value is a string number",
-			value:         "123.45",
-			expectError:   true,
-			expectedError: "value 123.45 is not a number",
-		},
-		{
-			name:        "should not return an error if the value is a positive number",
-			value:       float64(123.45),
-			expectError: false,
-		},
-		{
-			name:        "should not return an error if the value is a negative number",
-			value:       float64(-123.45),
-			expectError: false,
-		},
-		{
-			name:        "should not return an error if the value is zero",
-			value:       float64(0),
-			expectError: false,
-		},
-	}
+	r.Run("should return an error if the value is a string", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, "not a number", typeRef, mockExpr.Span())
 
-	for _, tt := range tests {
-		r.Run(tt.name, func() {
-			// Create a mock expression for the test
-			mockExpr := &ast.Identifier{
-				Pos:   tokens.Position{Line: 1, Column: 1},
-				Value: "test",
-			}
-			err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
+		r.Error(err)
+		r.Equal("value not a number is not a number", err.Error())
+	})
 
-			if tt.expectError {
-				r.Error(err)
-				r.Equal(tt.expectedError, err.Error())
-			} else {
-				r.NoError(err)
-			}
-		})
-	}
+	r.Run("should return an error if the value is an int64", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, int64(123), typeRef, mockExpr.Span())
+
+		r.Error(err)
+		r.Equal("value 123 is not a number", err.Error())
+	})
+
+	r.Run("should return an error if the value is a bool", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, true, typeRef, mockExpr.Span())
+
+		r.Error(err)
+		r.Equal("value true is not a number", err.Error())
+	})
+
+	r.Run("should return an error if the value is a string number", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, "123.45", typeRef, mockExpr.Span())
+
+		r.Error(err)
+		r.Equal("value 123.45 is not a number", err.Error())
+	})
+
+	r.Run("should not return an error if the value is a positive number", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, float64(123.45), typeRef, mockExpr.Span())
+
+		r.NoError(err)
+	})
+
+	r.Run("should not return an error if the value is a negative number", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, float64(-123.45), typeRef, mockExpr.Span())
+
+		r.NoError(err)
+	})
+
+	r.Run("should not return an error if the value is zero", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, float64(0), typeRef, mockExpr.Span())
+
+		r.NoError(err)
+	})
 }
 
 func (r *RuntimeTestSuite) TestValidateAgainstNumberTypeRefWithConstraints() {
 	// Test positive constraint (no arguments)
 	typeRef := &ast.NumberTypeRef{
-		Pos: tokens.Position{Line: 1, Column: 1},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	}
 
 	// Add a positive constraint
 	constraint := &ast.TypeRefConstraint{
-		Pos:  tokens.Position{Line: 1, Column: 1},
-		Name: "positive",
-		Args: []ast.Expression{},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+		Name:  "positive",
+		Args:  []ast.Expression{},
 	}
 	_ = typeRef.AddConstraint(constraint)
 
-	tests := []struct {
-		name          string
-		value         interface{}
-		expectError   bool
-		expectedError string
-	}{
-		{
-			name:        "should pass when value is positive",
-			value:       float64(15.0),
-			expectError: false,
-		},
-		{
-			name:        "should pass when value is a small positive number",
-			value:       float64(0.001),
-			expectError: false,
-		},
-		{
-			name:          "should fail when value is zero",
-			value:         float64(0),
-			expectError:   true,
-			expectedError: "constraint failed",
-		},
-		{
-			name:          "should fail when value is negative",
-			value:         float64(-5.0),
-			expectError:   true,
-			expectedError: "constraint failed",
-		},
-	}
+	r.Run("should pass when value is positive", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, float64(15.0), typeRef, mockExpr.Span())
 
-	for _, tt := range tests {
-		r.Run(tt.name, func() {
-			// Create a mock expression for the test
-			mockExpr := &ast.Identifier{
-				Pos:   tokens.Position{Line: 1, Column: 1},
-				Value: "test",
-			}
-			err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
+		r.NoError(err)
+	})
 
-			if tt.expectError {
-				r.Error(err)
-				r.Contains(err.Error(), tt.expectedError)
-			} else {
-				r.NoError(err)
-			}
-		})
-	}
+	r.Run("should pass when value is a small positive number", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, float64(0.001), typeRef, mockExpr.Span())
+
+		r.NoError(err)
+	})
+
+	r.Run("should fail when value is zero", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, float64(0), typeRef, mockExpr.Span())
+
+		r.Error(err)
+		r.Contains(err.Error(), "constraint failed")
+	})
+
+	r.Run("should fail when value is negative", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, float64(-5.0), typeRef, mockExpr.Span())
+
+		r.Error(err)
+		r.Contains(err.Error(), "constraint failed")
+	})
 }
 
 func (r *RuntimeTestSuite) TestValidateAgainstNumberTypeRefEdgeCases() {
 	// Test finite constraint
 	typeRef := &ast.NumberTypeRef{
-		Pos: tokens.Position{Line: 1, Column: 1},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	}
 
 	// Add a finite constraint
 	constraint := &ast.TypeRefConstraint{
-		Pos:  tokens.Position{Line: 1, Column: 1},
-		Name: "finite",
-		Args: []ast.Expression{},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+		Name:  "finite",
+		Args:  []ast.Expression{},
 	}
 	_ = typeRef.AddConstraint(constraint)
 
-	tests := []struct {
-		name          string
-		value         interface{}
-		expectError   bool
-		expectedError string
-	}{
-		{
-			name:        "should pass when value is a normal finite number",
-			value:       float64(123.45),
-			expectError: false,
-		},
-		{
-			name:        "should pass when value is zero",
-			value:       float64(0),
-			expectError: false,
-		},
-		{
-			name:        "should pass when value is a very small number",
-			value:       float64(1e-300),
-			expectError: false,
-		},
-		{
-			name:        "should pass when value is a very large number",
-			value:       float64(1e300),
-			expectError: false,
-		},
-		{
-			name:          "should fail when value is positive infinity",
-			value:         math.Inf(1),
-			expectError:   true,
-			expectedError: "constraint failed",
-		},
-		{
-			name:          "should fail when value is negative infinity",
-			value:         math.Inf(-1),
-			expectError:   true,
-			expectedError: "constraint failed",
-		},
-		{
-			name:          "should fail when value is NaN",
-			value:         math.NaN(),
-			expectError:   true,
-			expectedError: "constraint failed",
-		},
-	}
+	r.Run("should pass when value is a normal finite number", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, float64(123.45), typeRef, mockExpr.Span())
 
-	for _, tt := range tests {
-		r.Run(tt.name, func() {
-			// Create a mock expression for the test
-			mockExpr := &ast.Identifier{
-				Pos:   tokens.Position{Line: 1, Column: 1},
-				Value: "test",
-			}
-			err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, tt.value, typeRef, mockExpr.Position())
+		r.NoError(err)
+	})
 
-			if tt.expectError {
-				r.Error(err)
-				r.Contains(err.Error(), tt.expectedError)
-			} else {
-				r.NoError(err)
-			}
-		})
-	}
+	r.Run("should pass when value is zero", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, float64(0), typeRef, mockExpr.Span())
+
+		r.NoError(err)
+	})
+
+	r.Run("should pass when value is a very small number", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, float64(1e-300), typeRef, mockExpr.Span())
+
+		r.NoError(err)
+	})
+
+	r.Run("should pass when value is a very large number", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, float64(1e300), typeRef, mockExpr.Span())
+
+		r.NoError(err)
+	})
+
+	r.Run("should fail when value is positive infinity", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, math.Inf(1), typeRef, mockExpr.Span())
+
+		r.Error(err)
+		r.Contains(err.Error(), "constraint failed")
+	})
+
+	r.Run("should fail when value is negative infinity", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, math.Inf(-1), typeRef, mockExpr.Span())
+
+		r.Error(err)
+		r.Contains(err.Error(), "constraint failed")
+	})
+
+	r.Run("should fail when value is NaN", func() {
+		// Create a mock expression for the test
+		mockExpr := &ast.Identifier{
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Value: "test",
+		}
+		err := validateAgainstNumberTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, math.NaN(), typeRef, mockExpr.Span())
+
+		r.Error(err)
+		r.Contains(err.Error(), "constraint failed")
+	})
 }

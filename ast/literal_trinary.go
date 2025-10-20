@@ -21,7 +21,7 @@ import (
 
 // TrinaryLiteral represents a trinary literal
 type TrinaryLiteral struct {
-	Pos   tokens.Position
+	Range tokens.Range
 	Value trinary.Value
 }
 
@@ -29,8 +29,8 @@ func (b *TrinaryLiteral) String() string {
 	return b.Value.String()
 }
 
-func (b *TrinaryLiteral) Position() tokens.Position {
-	return b.Pos
+func (b *TrinaryLiteral) Span() tokens.Range {
+	return b.Range
 }
 
 func (b *TrinaryLiteral) expressionNode() {}

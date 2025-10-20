@@ -24,7 +24,7 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func validateAgainstListTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.ListTypeRef, pos tokens.Position) error {
+func validateAgainstListTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.ListTypeRef, pos tokens.Range) error {
 	if _, ok := v.([]any); !ok {
 		return errors.Errorf("value %v is not an array at %s - expected array", v, pos)
 	}

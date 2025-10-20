@@ -30,8 +30,8 @@ type PolicyTestSuite struct {
 func (suite *PolicyTestSuite) SetupTest() {
 	// Create namespace
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: ast.FQN{"com", "example"},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  ast.FQN{"com", "example"},
 	}
 	suite.namespace = createNamespace(nsStmt)
 }
@@ -46,34 +46,34 @@ func TestPolicyTestSuite(t *testing.T) {
 
 func (suite *PolicyTestSuite) TestCreatePolicy() {
 	policyStmt := &ast.PolicyStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 2, Column: 0},
-		Name: "testPolicy",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
+		Name:  "testPolicy",
 		Statements: []ast.Statement{
 			&ast.FactStatement{
-				Pos:   tokens.Position{Filename: "test.sentra", Line: 3, Column: 0},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}},
 				Name:  "user",
 				Alias: "user",
 				Type: &ast.StringTypeRef{
-					Pos: tokens.Position{Filename: "test.sentra", Line: 3, Column: 10},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 				},
 			},
 			&ast.RuleStatement{
-				Pos:      tokens.Position{Filename: "test.sentra", Line: 4, Column: 0},
+				Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}},
 				RuleName: "allow",
 				When: &ast.TrinaryLiteral{
-					Pos:   tokens.Position{Filename: "test.sentra", Line: 4, Column: 15},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}},
 					Value: 1,
 				},
 			},
 			&ast.RuleExportStatement{
-				Pos: tokens.Position{Filename: "test.sentra", Line: 5, Column: 0},
-				Of:  "allow",
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
+				Of:    "allow",
 				Attachments: []*ast.AttachmentClause{
 					{
-						Pos:  tokens.Position{Filename: "test.sentra", Line: 5, Column: 15},
-						What: "reason",
+						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 15, Offset: 15}, To: tokens.Pos{Line: 5, Column: 15, Offset: 15}},
+						What:  "reason",
 						As: &ast.StringLiteral{
-							Pos:   tokens.Position{Filename: "test.sentra", Line: 5, Column: 25},
+							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 25, Offset: 25}, To: tokens.Pos{Line: 5, Column: 25, Offset: 25}},
 							Value: "user is allowed",
 						},
 					},
@@ -86,8 +86,8 @@ func (suite *PolicyTestSuite) TestCreatePolicy() {
 		Reference: "test.sentra",
 		Statements: []ast.Statement{
 			&ast.NamespaceStatement{
-				Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-				Name: ast.FQN{"com", "example"},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+				Name:  ast.FQN{"com", "example"},
 			},
 			policyStmt,
 		},
@@ -124,22 +124,22 @@ func (suite *PolicyTestSuite) TestCreatePolicy() {
 
 func (suite *PolicyTestSuite) TestCreatePolicyWithoutExports() {
 	policyStmt := &ast.PolicyStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 2, Column: 0},
-		Name: "testPolicy",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
+		Name:  "testPolicy",
 		Statements: []ast.Statement{
 			&ast.FactStatement{
-				Pos:   tokens.Position{Filename: "test.sentra", Line: 3, Column: 0},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}},
 				Name:  "user",
 				Alias: "user",
 				Type: &ast.StringTypeRef{
-					Pos: tokens.Position{Filename: "test.sentra", Line: 3, Column: 10},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 				},
 			},
 			&ast.RuleStatement{
-				Pos:      tokens.Position{Filename: "test.sentra", Line: 4, Column: 0},
+				Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}},
 				RuleName: "allow",
 				When: &ast.TrinaryLiteral{
-					Pos:   tokens.Position{Filename: "test.sentra", Line: 4, Column: 15},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}},
 					Value: 1,
 				},
 			},
@@ -151,8 +151,8 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithoutExports() {
 		Reference: "test.sentra",
 		Statements: []ast.Statement{
 			&ast.NamespaceStatement{
-				Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-				Name: ast.FQN{"com", "example"},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+				Name:  ast.FQN{"com", "example"},
 			},
 			policyStmt,
 		},
@@ -167,27 +167,27 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithoutExports() {
 
 func (suite *PolicyTestSuite) TestCreatePolicyWithInvalidFactPosition() {
 	policyStmt := &ast.PolicyStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 2, Column: 0},
-		Name: "testPolicy",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
+		Name:  "testPolicy",
 		Statements: []ast.Statement{
 			&ast.RuleStatement{
-				Pos:      tokens.Position{Filename: "test.sentra", Line: 3, Column: 0},
+				Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}},
 				RuleName: "allow",
 				When: &ast.TrinaryLiteral{
-					Pos:   tokens.Position{Filename: "test.sentra", Line: 3, Column: 15},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 15, Offset: 15}, To: tokens.Pos{Line: 3, Column: 15, Offset: 15}},
 					Value: 1,
 				},
 			},
 			&ast.FactStatement{
-				Pos:   tokens.Position{Filename: "test.sentra", Line: 4, Column: 0},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}},
 				Name:  "user",
 				Alias: "user",
 				Type: &ast.StringTypeRef{
-					Pos: tokens.Position{Filename: "test.sentra", Line: 4, Column: 10},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 10, Offset: 10}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}},
 				},
 			},
 			&ast.RuleExportStatement{
-				Pos:         tokens.Position{Filename: "test.sentra", Line: 5, Column: 0},
+				Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
 				Of:          "allow",
 				Attachments: []*ast.AttachmentClause{},
 			},
@@ -198,8 +198,8 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithInvalidFactPosition() {
 		Reference: "test.sentra",
 		Statements: []ast.Statement{
 			&ast.NamespaceStatement{
-				Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-				Name: ast.FQN{"com", "example"},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+				Name:  ast.FQN{"com", "example"},
 			},
 			policyStmt,
 		},
@@ -214,31 +214,31 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithInvalidFactPosition() {
 
 func (suite *PolicyTestSuite) TestCreatePolicyWithInvalidUsePosition() {
 	policyStmt := &ast.PolicyStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 2, Column: 0},
-		Name: "testPolicy",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
+		Name:  "testPolicy",
 		Statements: []ast.Statement{
 			&ast.FactStatement{
-				Pos:   tokens.Position{Filename: "test.sentra", Line: 3, Column: 0},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}},
 				Name:  "user",
 				Alias: "user",
 				Type: &ast.StringTypeRef{
-					Pos: tokens.Position{Filename: "test.sentra", Line: 3, Column: 10},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 				},
 			},
 			&ast.RuleStatement{
-				Pos:      tokens.Position{Filename: "test.sentra", Line: 4, Column: 0},
+				Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}},
 				RuleName: "allow",
 				When: &ast.TrinaryLiteral{
-					Pos:   tokens.Position{Filename: "test.sentra", Line: 4, Column: 15},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}},
 					Value: 1,
 				},
 			},
 			&ast.UseStatement{
-				Pos:     tokens.Position{Filename: "test.sentra", Line: 5, Column: 0},
+				Range:   tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 10, Offset: 10}},
 				Modules: []string{"com", "other", "policy"},
 			},
 			&ast.RuleExportStatement{
-				Pos:         tokens.Position{Filename: "test.sentra", Line: 6, Column: 0},
+				Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 0, Offset: 0}, To: tokens.Pos{Line: 6, Column: 0, Offset: 0}},
 				Of:          "allow",
 				Attachments: []*ast.AttachmentClause{},
 			},
@@ -249,8 +249,8 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithInvalidUsePosition() {
 		Reference: "test.sentra",
 		Statements: []ast.Statement{
 			&ast.NamespaceStatement{
-				Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-				Name: ast.FQN{"com", "example"},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+				Name:  ast.FQN{"com", "example"},
 			},
 			policyStmt,
 		},
@@ -265,27 +265,27 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithInvalidUsePosition() {
 
 func (suite *PolicyTestSuite) TestCreatePolicyWithUnknownRuleExport() {
 	policyStmt := &ast.PolicyStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 2, Column: 0},
-		Name: "testPolicy",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
+		Name:  "testPolicy",
 		Statements: []ast.Statement{
 			&ast.FactStatement{
-				Pos:   tokens.Position{Filename: "test.sentra", Line: 3, Column: 0},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}},
 				Name:  "user",
 				Alias: "user",
 				Type: &ast.StringTypeRef{
-					Pos: tokens.Position{Filename: "test.sentra", Line: 3, Column: 10},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 				},
 			},
 			&ast.RuleStatement{
-				Pos:      tokens.Position{Filename: "test.sentra", Line: 4, Column: 0},
+				Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}},
 				RuleName: "allow",
 				When: &ast.TrinaryLiteral{
-					Pos:   tokens.Position{Filename: "test.sentra", Line: 4, Column: 15},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}},
 					Value: 1,
 				},
 			},
 			&ast.RuleExportStatement{
-				Pos:         tokens.Position{Filename: "test.sentra", Line: 5, Column: 0},
+				Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
 				Of:          "unknownRule", // Rule that doesn't exist
 				Attachments: []*ast.AttachmentClause{},
 			},
@@ -296,8 +296,8 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithUnknownRuleExport() {
 		Reference: "test.sentra",
 		Statements: []ast.Statement{
 			&ast.NamespaceStatement{
-				Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-				Name: ast.FQN{"com", "example"},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+				Name:  ast.FQN{"com", "example"},
 			},
 			policyStmt,
 		},
@@ -312,32 +312,32 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithUnknownRuleExport() {
 
 func (suite *PolicyTestSuite) TestCreatePolicyWithDuplicateRuleExport() {
 	policyStmt := &ast.PolicyStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 2, Column: 0},
-		Name: "testPolicy",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
+		Name:  "testPolicy",
 		Statements: []ast.Statement{
 			&ast.FactStatement{
-				Pos:   tokens.Position{Filename: "test.sentra", Line: 3, Column: 0},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}},
 				Name:  "user",
 				Alias: "user",
 				Type: &ast.StringTypeRef{
-					Pos: tokens.Position{Filename: "test.sentra", Line: 3, Column: 10},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 				},
 			},
 			&ast.RuleStatement{
-				Pos:      tokens.Position{Filename: "test.sentra", Line: 4, Column: 0},
+				Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}},
 				RuleName: "allow",
 				When: &ast.TrinaryLiteral{
-					Pos:   tokens.Position{Filename: "test.sentra", Line: 4, Column: 15},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}},
 					Value: 1,
 				},
 			},
 			&ast.RuleExportStatement{
-				Pos:         tokens.Position{Filename: "test.sentra", Line: 5, Column: 0},
+				Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
 				Of:          "allow",
 				Attachments: []*ast.AttachmentClause{},
 			},
 			&ast.RuleExportStatement{
-				Pos:         tokens.Position{Filename: "test.sentra", Line: 6, Column: 0},
+				Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 0, Offset: 0}, To: tokens.Pos{Line: 6, Column: 0, Offset: 0}},
 				Of:          "allow", // Duplicate export
 				Attachments: []*ast.AttachmentClause{},
 			},
@@ -348,8 +348,8 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithDuplicateRuleExport() {
 		Reference: "test.sentra",
 		Statements: []ast.Statement{
 			&ast.NamespaceStatement{
-				Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-				Name: ast.FQN{"com", "example"},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+				Name:  ast.FQN{"com", "example"},
 			},
 			policyStmt,
 		},
@@ -380,13 +380,13 @@ func (suite *PolicyTestSuite) TestAddLet() {
 	}
 
 	letStmt := &ast.VarDeclaration{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: "testVar",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "testVar",
 		Type: &ast.StringTypeRef{
-			Pos: tokens.Position{Filename: "test.sentra", Line: 1, Column: 15},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 15, Offset: 15}, To: tokens.Pos{Line: 1, Column: 15, Offset: 15}},
 		},
 		Value: &ast.StringLiteral{
-			Pos:   tokens.Position{Filename: "test.sentra", Line: 1, Column: 25},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 25, Offset: 25}, To: tokens.Pos{Line: 1, Column: 25, Offset: 25}},
 			Value: "test value",
 		},
 	}
@@ -420,13 +420,13 @@ func (suite *PolicyTestSuite) TestAddLetWithNameConflict() {
 
 	// Add first let
 	letStmt1 := &ast.VarDeclaration{
-		Pos:  tokens.Position{Filename: "test1.sentra", Line: 1, Column: 0},
-		Name: "testVar",
+		Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "testVar",
 		Type: &ast.StringTypeRef{
-			Pos: tokens.Position{Filename: "test1.sentra", Line: 1, Column: 15},
+			Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 15, Offset: 15}, To: tokens.Pos{Line: 1, Column: 15, Offset: 15}},
 		},
 		Value: &ast.StringLiteral{
-			Pos:   tokens.Position{Filename: "test1.sentra", Line: 1, Column: 25},
+			Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 25, Offset: 25}, To: tokens.Pos{Line: 1, Column: 25, Offset: 25}},
 			Value: "test value 1",
 		},
 	}
@@ -436,13 +436,13 @@ func (suite *PolicyTestSuite) TestAddLetWithNameConflict() {
 
 	// Try to add second let with same name
 	letStmt2 := &ast.VarDeclaration{
-		Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 0},
-		Name: "testVar", // Same name
+		Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "testVar", // Same name
 		Type: &ast.NumberTypeRef{
-			Pos: tokens.Position{Filename: "test2.sentra", Line: 1, Column: 15},
+			Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 15, Offset: 15}, To: tokens.Pos{Line: 1, Column: 15, Offset: 15}},
 		},
 		Value: &ast.IntegerLiteral{
-			Pos:   tokens.Position{Filename: "test2.sentra", Line: 1, Column: 25},
+			Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 25, Offset: 25}, To: tokens.Pos{Line: 1, Column: 25, Offset: 25}},
 			Value: 42,
 		},
 	}
@@ -471,14 +471,14 @@ func (suite *PolicyTestSuite) TestAddRule() {
 	}
 
 	ruleStmt := &ast.RuleStatement{
-		Pos:      tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
+		Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 		RuleName: "testRule",
 		When: &ast.TrinaryLiteral{
-			Pos:   tokens.Position{Filename: "test.sentra", Line: 1, Column: 15},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 15, Offset: 15}, To: tokens.Pos{Line: 1, Column: 15, Offset: 15}},
 			Value: 1,
 		},
 		Body: &ast.StringLiteral{
-			Pos:   tokens.Position{Filename: "test.sentra", Line: 1, Column: 25},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 25, Offset: 25}, To: tokens.Pos{Line: 1, Column: 25, Offset: 25}},
 			Value: "test result",
 		},
 	}
@@ -516,14 +516,14 @@ func (suite *PolicyTestSuite) TestAddRuleWithNameConflict() {
 
 	// Add first rule
 	ruleStmt1 := &ast.RuleStatement{
-		Pos:      tokens.Position{Filename: "test1.sentra", Line: 1, Column: 0},
+		Range:    tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 		RuleName: "testRule",
 		When: &ast.TrinaryLiteral{
-			Pos:   tokens.Position{Filename: "test1.sentra", Line: 1, Column: 15},
+			Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 15, Offset: 15}, To: tokens.Pos{Line: 1, Column: 15, Offset: 15}},
 			Value: 1,
 		},
 		Body: &ast.StringLiteral{
-			Pos:   tokens.Position{Filename: "test1.sentra", Line: 1, Column: 25},
+			Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 25, Offset: 25}, To: tokens.Pos{Line: 1, Column: 25, Offset: 25}},
 			Value: "test result 1",
 		},
 	}
@@ -533,14 +533,14 @@ func (suite *PolicyTestSuite) TestAddRuleWithNameConflict() {
 
 	// Try to add second rule with same name
 	ruleStmt2 := &ast.RuleStatement{
-		Pos:      tokens.Position{Filename: "test2.sentra", Line: 1, Column: 0},
+		Range:    tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 		RuleName: "testRule", // Same name
 		When: &ast.TrinaryLiteral{
-			Pos:   tokens.Position{Filename: "test2.sentra", Line: 1, Column: 15},
+			Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 15, Offset: 15}, To: tokens.Pos{Line: 1, Column: 15, Offset: 15}},
 			Value: 0,
 		},
 		Body: &ast.StringLiteral{
-			Pos:   tokens.Position{Filename: "test2.sentra", Line: 1, Column: 25},
+			Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 25, Offset: 25}, To: tokens.Pos{Line: 1, Column: 25, Offset: 25}},
 			Value: "test result 2",
 		},
 	}
@@ -569,10 +569,10 @@ func (suite *PolicyTestSuite) TestAddShape() {
 	}
 
 	shapeStmt := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: "testShape",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "testShape",
 		Simple: &ast.StringTypeRef{
-			Pos: tokens.Position{Filename: "test.sentra", Line: 1, Column: 15},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 15, Offset: 15}, To: tokens.Pos{Line: 1, Column: 15, Offset: 15}},
 		},
 	}
 
@@ -609,10 +609,10 @@ func (suite *PolicyTestSuite) TestAddShapeWithNameConflict() {
 
 	// Add first shape
 	shapeStmt1 := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test1.sentra", Line: 1, Column: 0},
-		Name: "testShape",
+		Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "testShape",
 		Simple: &ast.StringTypeRef{
-			Pos: tokens.Position{Filename: "test1.sentra", Line: 1, Column: 15},
+			Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 15, Offset: 15}, To: tokens.Pos{Line: 1, Column: 15, Offset: 15}},
 		},
 	}
 
@@ -621,10 +621,10 @@ func (suite *PolicyTestSuite) TestAddShapeWithNameConflict() {
 
 	// Try to add second shape with same name
 	shapeStmt2 := &ast.ShapeStatement{
-		Pos:  tokens.Position{Filename: "test2.sentra", Line: 1, Column: 0},
-		Name: "testShape", // Same name
+		Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  "testShape", // Same name
 		Simple: &ast.NumberTypeRef{
-			Pos: tokens.Position{Filename: "test2.sentra", Line: 1, Column: 15},
+			Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 15, Offset: 15}, To: tokens.Pos{Line: 1, Column: 15, Offset: 15}},
 		},
 	}
 
@@ -652,14 +652,14 @@ func (suite *PolicyTestSuite) TestAddFact() {
 	}
 
 	factStmt := &ast.FactStatement{
-		Pos:   tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 		Name:  "user",
 		Alias: "user",
 		Type: &ast.StringTypeRef{
-			Pos: tokens.Position{Filename: "test.sentra", Line: 1, Column: 10},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
 		},
 		Default: &ast.StringLiteral{
-			Pos:   tokens.Position{Filename: "test.sentra", Line: 1, Column: 20},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 20, Offset: 20}, To: tokens.Pos{Line: 1, Column: 20, Offset: 20}},
 			Value: "default user",
 		},
 	}
@@ -693,14 +693,14 @@ func (suite *PolicyTestSuite) TestAddFactWithNameConflict() {
 
 	// Add first fact
 	factStmt1 := &ast.FactStatement{
-		Pos:   tokens.Position{Filename: "test1.sentra", Line: 1, Column: 0},
+		Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 		Name:  "user",
 		Alias: "user",
 		Type: &ast.StringTypeRef{
-			Pos: tokens.Position{Filename: "test1.sentra", Line: 1, Column: 10},
+			Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
 		},
 		Default: &ast.StringLiteral{
-			Pos:   tokens.Position{Filename: "test1.sentra", Line: 1, Column: 20},
+			Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 20, Offset: 20}, To: tokens.Pos{Line: 1, Column: 20, Offset: 20}},
 			Value: "default user 1",
 		},
 	}
@@ -710,14 +710,14 @@ func (suite *PolicyTestSuite) TestAddFactWithNameConflict() {
 
 	// Try to add second fact with same alias
 	factStmt2 := &ast.FactStatement{
-		Pos:   tokens.Position{Filename: "test2.sentra", Line: 1, Column: 0},
+		Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 		Name:  "admin",
 		Alias: "user", // Same alias
 		Type: &ast.StringTypeRef{
-			Pos: tokens.Position{Filename: "test2.sentra", Line: 1, Column: 10},
+			Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
 		},
 		Default: &ast.StringLiteral{
-			Pos:   tokens.Position{Filename: "test2.sentra", Line: 1, Column: 20},
+			Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 20, Offset: 20}, To: tokens.Pos{Line: 1, Column: 20, Offset: 20}},
 			Value: "default user 2",
 		},
 	}
@@ -750,35 +750,35 @@ func (suite *PolicyTestSuite) TestPolicyString() {
 
 func (suite *PolicyTestSuite) TestCreatePolicyWithComments() {
 	policyStmt := &ast.PolicyStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 2, Column: 0},
-		Name: "testPolicy",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
+		Name:  "testPolicy",
 		Statements: []ast.Statement{
 			&ast.CommentStatement{
-				Pos:     tokens.Position{Filename: "test.sentra", Line: 3, Column: 0},
+				Range:   tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 				Content: "This is a comment",
 			},
 			&ast.FactStatement{
-				Pos:   tokens.Position{Filename: "test.sentra", Line: 4, Column: 0},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}},
 				Name:  "user",
 				Alias: "user",
 				Type: &ast.StringTypeRef{
-					Pos: tokens.Position{Filename: "test.sentra", Line: 4, Column: 10},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 10, Offset: 10}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}},
 				},
 			},
 			&ast.CommentStatement{
-				Pos:     tokens.Position{Filename: "test.sentra", Line: 5, Column: 0},
+				Range:   tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 10, Offset: 10}},
 				Content: "Another comment",
 			},
 			&ast.RuleStatement{
-				Pos:      tokens.Position{Filename: "test.sentra", Line: 6, Column: 0},
+				Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 0, Offset: 0}, To: tokens.Pos{Line: 6, Column: 0, Offset: 0}},
 				RuleName: "allow",
 				When: &ast.TrinaryLiteral{
-					Pos:   tokens.Position{Filename: "test.sentra", Line: 6, Column: 15},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 15, Offset: 15}, To: tokens.Pos{Line: 6, Column: 15, Offset: 15}},
 					Value: 1,
 				},
 			},
 			&ast.RuleExportStatement{
-				Pos:         tokens.Position{Filename: "test.sentra", Line: 7, Column: 0},
+				Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 7, Column: 0, Offset: 0}, To: tokens.Pos{Line: 7, Column: 0, Offset: 0}},
 				Of:          "allow",
 				Attachments: []*ast.AttachmentClause{},
 			},
@@ -789,8 +789,8 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithComments() {
 		Reference: "test.sentra",
 		Statements: []ast.Statement{
 			&ast.NamespaceStatement{
-				Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-				Name: ast.FQN{"com", "example"},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+				Name:  ast.FQN{"com", "example"},
 			},
 			policyStmt,
 		},
@@ -808,31 +808,31 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithComments() {
 
 func (suite *PolicyTestSuite) TestCreatePolicyWithValidUseStatement() {
 	policyStmt := &ast.PolicyStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 2, Column: 0},
-		Name: "testPolicy",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
+		Name:  "testPolicy",
 		Statements: []ast.Statement{
 			&ast.FactStatement{
-				Pos:   tokens.Position{Filename: "test.sentra", Line: 3, Column: 0},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}},
 				Name:  "user",
 				Alias: "user",
 				Type: &ast.StringTypeRef{
-					Pos: tokens.Position{Filename: "test.sentra", Line: 3, Column: 10},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 				},
 			},
 			&ast.UseStatement{
-				Pos:     tokens.Position{Filename: "test.sentra", Line: 4, Column: 0},
+				Range:   tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}},
 				Modules: []string{"com", "other", "policy"},
 			},
 			&ast.RuleStatement{
-				Pos:      tokens.Position{Filename: "test.sentra", Line: 5, Column: 0},
+				Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
 				RuleName: "allow",
 				When: &ast.TrinaryLiteral{
-					Pos:   tokens.Position{Filename: "test.sentra", Line: 5, Column: 15},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 15, Offset: 15}, To: tokens.Pos{Line: 5, Column: 15, Offset: 15}},
 					Value: 1,
 				},
 			},
 			&ast.RuleExportStatement{
-				Pos:         tokens.Position{Filename: "test.sentra", Line: 6, Column: 0},
+				Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 0, Offset: 0}, To: tokens.Pos{Line: 6, Column: 0, Offset: 0}},
 				Of:          "allow",
 				Attachments: []*ast.AttachmentClause{},
 			},
@@ -843,8 +843,8 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithValidUseStatement() {
 		Reference: "test.sentra",
 		Statements: []ast.Statement{
 			&ast.NamespaceStatement{
-				Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-				Name: ast.FQN{"com", "example"},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+				Name:  ast.FQN{"com", "example"},
 			},
 			policyStmt,
 		},

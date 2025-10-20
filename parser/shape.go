@@ -24,7 +24,7 @@ import (
 
 func parseShapeStatement(ctx context.Context, p *Parser) ast.Statement {
 	stmt := &ast.ShapeStatement{
-		Pos: p.head().Position,
+		Range: p.head().Range,
 	}
 
 	if !p.expect(tokens.KeywordShape) {
@@ -48,18 +48,26 @@ func parseShapeStatement(ctx context.Context, p *Parser) ast.Statement {
 		return nil
 	}
 
+	// Update the end position to the current token
+	current := p.head()
+	stmt.Range.To = tokens.Pos{
+		Line:   current.Range.From.Line,
+		Column: current.Range.From.Column,
+		Offset: current.Range.From.Offset,
+	}
+
 	return stmt
 }
 
 func parseComplexShape(ctx context.Context, p *Parser) *ast.Cmplx {
 	stmt := &ast.Cmplx{
-		Pos:    p.head().Position,
+		Range:  p.head().Range,
 		Fields: make(map[string]*ast.ShapeField),
 	}
 
 	if p.head().IsOfKind(tokens.KeywordWith) {
 		p.advance()
-		with := parseFQN(ctx, p)
+		with, _ := parseFQN(ctx, p)
 		if len(with) == 0 {
 			return nil
 		}
@@ -83,9 +91,13 @@ func parseComplexShape(ctx context.Context, p *Parser) *ast.Cmplx {
 		}
 	}
 
-	if !p.expect(tokens.PunctRightCurly) {
+	rCurly, found := p.advanceExpected(tokens.PunctRightCurly)
+	if !found {
 		return nil
 	}
+
+	// Update the end position to the closing curly brace
+	stmt.Range.To = rCurly.Range.To
 
 	return stmt
 }
@@ -95,7 +107,7 @@ func parseShapeField(ctx context.Context, p *Parser) *ast.ShapeField {
 	defer slog.DebugContext(ctx, "parseShapeField_end")
 
 	field := &ast.ShapeField{
-		Pos: p.head().Position,
+		Range: p.head().Range,
 	}
 
 	name, found := p.advanceExpected(tokens.Ident)
@@ -143,6 +155,8 @@ func parseShapeField(ctx context.Context, p *Parser) *ast.ShapeField {
 	if p.err != nil {
 		return nil
 	}
+
+	field.Range.To = field.Type.Span().To
 
 	return field
 }

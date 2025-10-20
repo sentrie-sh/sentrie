@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/sentrie-sh/sentrie/xerr"
 )
 
@@ -92,7 +93,7 @@ func (s *Shape) resolveDependency(idx *Index, inPolicy *Policy) error {
 				if ns.FQN.String() != s.Namespace.FQN.String() {
 					// we have the shape, but we need to verify it's exported
 					if err := ns.VerifyShapeExported(withName); err != nil {
-						return errors.Wrapf(ErrIndex, "shape '%s' not exported at %s", withName, ns.Statement.Position())
+						return errors.Wrapf(ErrIndex, "shape '%s' not exported at %s", withName, ns.Statement.Span())
 					}
 				}
 
@@ -104,11 +105,11 @@ func (s *Shape) resolveDependency(idx *Index, inPolicy *Policy) error {
 
 	// if by this point we don't have a shape, we need to error
 	if withShape == nil {
-		return errors.Wrapf(ErrIndex, "shape '%s' not found at %s", s.Model.WithFQN.String(), s.Statement.Position())
+		return errors.Wrapf(ErrIndex, "shape '%s' not found at %s", s.Model.WithFQN.String(), s.Statement.Span())
 	}
 
 	if withShape.AliasOf != nil {
-		return errors.Wrapf(ErrIndex, "cannot compose '%s' with alias of shape '%s' at %s", s.FQN.String(), withShape.FQN.String(), withShape.Statement.Position())
+		return errors.Wrapf(ErrIndex, "cannot compose '%s' with alias of shape '%s' at %s", s.FQN.String(), withShape.FQN.String(), withShape.Statement.Span())
 	}
 
 	// at this point we have the shape, we are going to assume it's hydrated
@@ -117,12 +118,16 @@ func (s *Shape) resolveDependency(idx *Index, inPolicy *Policy) error {
 	// now we bring in the fields
 	for name, field := range withShape.Model.Fields {
 		if _, ok := s.Model.Fields[name]; ok {
-			return errors.Wrapf(ErrIndex, "cannot compose with duplicate shape field '%s' at %s and %s", name, field.Node.Pos, s.Model.Fields[name].Node.Pos)
+			return errors.Wrapf(ErrIndex, "cannot compose with duplicate shape field '%s' at %s and %s", name, field.Node.Range, s.Model.Fields[name].Node.Range)
 		}
 		s.Model.Fields[name] = field
 	}
 
 	return nil
+}
+
+func (s *Shape) Span() tokens.Range {
+	return s.Statement.Span()
 }
 
 func createShape(ns *Namespace, p *Policy, stmt *ast.ShapeStatement) (*Shape, error) {
@@ -138,7 +143,7 @@ func createShape(ns *Namespace, p *Policy, stmt *ast.ShapeStatement) (*Shape, er
 		Policy:    p,
 		Name:      stmt.Name,
 		FQN:       fqn,
-		FilePath:  stmt.Pos.Filename,
+		FilePath:  stmt.Range.File,
 	}
 
 	if stmt.Complex != nil {
@@ -150,7 +155,7 @@ func createShape(ns *Namespace, p *Policy, stmt *ast.ShapeStatement) (*Shape, er
 
 			// if we already have the field, we need to error
 			if _, ok := shape.Model.Fields[field.Name]; ok {
-				return nil, fmt.Errorf("duplicate shape field '%s' at %s", field.Name, field.Node.Position())
+				return nil, fmt.Errorf("duplicate shape field '%s' at %s", field.Name, field.Range)
 			}
 
 			shape.Model.Fields[field.Name] = &ShapeModelField{

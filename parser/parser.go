@@ -68,7 +68,7 @@ func (p *Parser) head() tokens.Instance {
 // advance moves the HEAD to the next token
 func (p *Parser) advance() tokens.Instance {
 	if p.atEof {
-		return tokens.Err(p.current.Position, "cannot advance, already at EOF")
+		return tokens.Err(p.current.Range, "cannot advance, already at EOF")
 	}
 	if p.current.IsOfKind(tokens.Error) {
 		p.errorf(p.current.Value)
@@ -87,15 +87,15 @@ func (p *Parser) advance() tokens.Instance {
 func (p *Parser) advanceExpected(kind tokens.Kind) (tokens.Instance, bool) {
 	token := p.current
 	if !token.IsOfKind(kind) {
-		p.errorf("expected %s, got %s at %s", kind, p.current.Kind, p.current.Position)
-		return tokens.Err(p.current.Position, fmt.Sprintf("expected %s, got %s", kind, p.current.Kind)), false
+		p.errorf("expected %s, got %s at %s", kind, p.current.Kind, p.current.Range)
+		return tokens.Err(p.current.Range, fmt.Sprintf("expected %s, got %s", kind, p.current.Kind)), false
 	}
 	return p.advance(), true
 }
 
 func (p *Parser) expect(kind tokens.Kind) bool {
 	if p.current.Kind != kind {
-		p.errorf("expected '%s', got %s at %s", kind, p.current.Kind, p.current.Position)
+		p.errorf("expected '%s', got %s at %s", kind, p.current.Kind, p.current.Range)
 		return false
 	}
 	_ = p.advance()
@@ -128,11 +128,13 @@ func (p *Parser) peek() tokens.Instance {
 
 // errorf adds a formatted error
 func (p *Parser) errorf(format string, args ...interface{}) {
+	format = "parsing error at %s: " + format
+	args = append([]any{p.current.Range.String()}, args...)
+
 	p.err = errors.Join(
 		p.err,
-		fmt.Errorf(
-			"line %d:%d: "+format,
-			append([]interface{}{p.current.Position.Line, p.current.Position.Column}, args...)...))
+		fmt.Errorf(format, args...),
+	)
 }
 
 func (p *Parser) registerPrefix(tokenType tokens.Kind, fn prefixParser) {

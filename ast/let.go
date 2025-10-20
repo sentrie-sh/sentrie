@@ -21,7 +21,7 @@ import (
 )
 
 type VarDeclaration struct {
-	Pos   tokens.Position
+	Range tokens.Range
 	Name  string
 	Type  TypeRef
 	Value Expression
@@ -31,8 +31,8 @@ func (v VarDeclaration) String() string {
 	return fmt.Sprintf("%s: %s = %s", v.Name, v.Type.String(), v.Value.String())
 }
 
-func (v VarDeclaration) Position() tokens.Position {
-	return v.Pos
+func (v VarDeclaration) Span() tokens.Range {
+	return v.Range
 }
 
 func (v VarDeclaration) statementNode() {}

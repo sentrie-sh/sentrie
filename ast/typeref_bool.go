@@ -18,15 +18,15 @@ import "github.com/sentrie-sh/sentrie/tokens"
 
 type BoolTypeRef struct {
 	constraints []*TypeRefConstraint
-	Pos         tokens.Position
+	Range       tokens.Range
 }
 
 var _ TypeRef = &BoolTypeRef{}
 var _ Node = &BoolTypeRef{}
 
-func (b *BoolTypeRef) typeref()                  {}
-func (s *BoolTypeRef) Position() tokens.Position { return s.Pos }
-func (b *BoolTypeRef) String() string            { return "boolean" }
+func (b *BoolTypeRef) typeref()           {}
+func (s *BoolTypeRef) Span() tokens.Range { return s.Range }
+func (b *BoolTypeRef) String() string     { return "boolean" }
 func (b *BoolTypeRef) GetConstraints() []*TypeRefConstraint {
 	return b.constraints
 }
@@ -35,5 +35,6 @@ func (b *BoolTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
 		return err
 	}
 	b.constraints = append(b.constraints, constraint)
+	b.Range.To = constraint.Range.To
 	return nil
 }

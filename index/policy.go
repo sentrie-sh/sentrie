@@ -55,7 +55,7 @@ func (p *Policy) String() string {
 }
 
 type positionable interface {
-	Position() tokens.Position
+	Span() tokens.Range
 }
 
 func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Program) (*Policy, error) {
@@ -93,7 +93,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 				_, isPrecedingUse := policy.Statements[idx-1].(*ast.UseStatement)
 
 				if !isPrecedingComment && !isPrecedingFact && !isPrecedingUse {
-					return nil, errors.Wrapf(ErrIndex, "'use' statement must be immediately after facts have been declared in a policy at %s", stmt.Position())
+					return nil, errors.Wrapf(ErrIndex, "'use' statement must be immediately after facts have been declared in a policy at %s", stmt.Span())
 				}
 			}
 			p.Uses = append(p.Uses, stmt)
@@ -110,7 +110,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 				_, isPrecedingFact := policy.Statements[idx-1].(*ast.FactStatement)
 
 				if !isPrecedingComment && !isPrecedingFact {
-					return nil, errors.Wrapf(ErrIndex, "fact statement must be the first statement in a policy at %s", stmt.Position())
+					return nil, errors.Wrapf(ErrIndex, "fact statement must be the first statement in a policy at %s", stmt.Span())
 				}
 			}
 			if err := p.AddFact(stmt); err != nil {
@@ -125,17 +125,17 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 		case *ast.RuleExportStatement:
 			// get the rule
 			if _, ok := p.Rules[stmt.Of]; !ok {
-				return nil, errors.Wrapf(ErrIndex, "cannot export unknown rule: '%s' at %s", stmt.Of, stmt.Position())
+				return nil, errors.Wrapf(ErrIndex, "cannot export unknown rule: '%s' at %s", stmt.Of, stmt.Span())
 			}
 
 			if _, ok := p.RuleExports[stmt.Of]; ok {
-				return nil, errors.Wrapf(ErrIndex, "rule export conflict: '%s' at %s", stmt.Of, stmt.Position())
+				return nil, errors.Wrapf(ErrIndex, "rule export conflict: '%s' at %s", stmt.Of, stmt.Span())
 			}
 
 			att := []*RuleExportAttachment{}
 			for _, a := range stmt.Attachments {
 				if _, ok := p.RuleExports[a.What]; ok {
-					return nil, errors.Wrapf(ErrIndex, "rule export attachment conflict: '%s' at %s", a.What, a.Pos)
+					return nil, errors.Wrapf(ErrIndex, "rule export attachment conflict: '%s' at %s", a.What, a.Range)
 				}
 
 				att = append(att, &RuleExportAttachment{Name: a.What, Value: a.As})
@@ -148,7 +148,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 	}
 
 	if len(p.RuleExports) == 0 {
-		return nil, errors.Wrapf(ErrIndex, "Policy '%s' at '%s' does not export any rules", policy.Name, policy.Position())
+		return nil, errors.Wrapf(ErrIndex, "Policy '%s' at '%s' does not export any rules", policy.Name, policy.Span())
 	}
 
 	return p, nil
@@ -156,7 +156,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 
 func (p *Policy) AddLet(let *ast.VarDeclaration) error {
 	if _, ok := p.seenIdentifiers[let.Name]; ok {
-		return errors.Wrapf(ErrIndex, "let name conflict: '%s' at %s with %s", let.Name, let.Position(), p.seenIdentifiers[let.Name].Position())
+		return errors.Wrapf(ErrIndex, "let name conflict: '%s' at %s with %s", let.Name, let.Span(), p.seenIdentifiers[let.Name].Span())
 	}
 
 	p.Lets[let.Name] = let
@@ -171,7 +171,7 @@ func (p *Policy) AddRule(rule *ast.RuleStatement) error {
 	}
 
 	if _, ok := p.seenIdentifiers[rule.RuleName]; ok {
-		return errors.Wrapf(ErrIndex, "rule name conflict: '%s' at %s with %s", rule.RuleName, rule.Position(), p.seenIdentifiers[rule.RuleName].Position())
+		return errors.Wrapf(ErrIndex, "rule name conflict: '%s' at %s with %s", rule.RuleName, rule.Span(), p.seenIdentifiers[rule.RuleName].Span())
 	}
 
 	p.Rules[rule.RuleName] = r
@@ -182,12 +182,12 @@ func (p *Policy) AddRule(rule *ast.RuleStatement) error {
 
 func (p *Policy) AddShape(shape *ast.ShapeStatement) error {
 	if s, ok := p.Shapes[shape.Name]; ok {
-		return errors.Wrapf(ErrIndex, "shape name conflict: '%s' at %s with %s", shape.Name, shape.Position(), s.Statement.Pos)
+		return errors.Wrapf(ErrIndex, "shape name conflict: '%s' at %s with %s", shape.Name, shape.Span(), s.Statement.Range)
 	}
 
 	s, err := createShape(p.Namespace, p, shape)
 	if err != nil {
-		return errors.Wrapf(ErrIndex, "failed to create shape: %s at %s", shape.Name, shape.Position())
+		return errors.Wrapf(ErrIndex, "failed to create shape: %s at %s", shape.Name, shape.Span())
 	}
 
 	p.Shapes[shape.Name] = s
@@ -196,7 +196,7 @@ func (p *Policy) AddShape(shape *ast.ShapeStatement) error {
 
 func (p *Policy) AddFact(fact *ast.FactStatement) error {
 	if _, ok := p.seenIdentifiers[fact.Alias]; ok {
-		return errors.Wrapf(ErrIndex, "fact alias conflict: '%s' at %s with %s", fact.Alias, fact.Position(), p.seenIdentifiers[fact.Alias].Position())
+		return errors.Wrapf(ErrIndex, "fact alias conflict: '%s' at %s with %s", fact.Alias, fact.Span(), p.seenIdentifiers[fact.Alias].Span())
 	}
 
 	p.Facts[fact.Alias] = fact

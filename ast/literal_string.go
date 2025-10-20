@@ -22,7 +22,7 @@ import (
 
 // StringLiteral represents a string literal
 type StringLiteral struct {
-	Pos   tokens.Position
+	Range tokens.Range
 	Value string
 }
 
@@ -32,8 +32,8 @@ func (s *StringLiteral) String() string {
 
 func (s *StringLiteral) expressionNode() {}
 
-func (s *StringLiteral) Position() tokens.Position {
-	return s.Pos
+func (s *StringLiteral) Span() tokens.Range {
+	return s.Range
 }
 
 var _ Expression = &StringLiteral{}

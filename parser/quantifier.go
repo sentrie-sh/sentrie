@@ -37,7 +37,7 @@ func quantifierParserFactory(type_ tokens.Kind) prefixParser {
 
 		valueIterator := parser.advance() // the iterator token
 		if valueIterator.Kind != tokens.Ident {
-			parser.errorf("expected identifier for iterator, got %s at %s", valueIterator.Kind, valueIterator.Position)
+			parser.errorf("expected identifier for iterator, got %s at %s", valueIterator.Kind, valueIterator.Range.From)
 			return nil
 		}
 
@@ -63,7 +63,19 @@ func quantifierParserFactory(type_ tokens.Kind) prefixParser {
 		switch type_ {
 		case tokens.KeywordAny:
 			quantifierExpr = &ast.AnyExpression{
-				Pos:           token.Position,
+				Range: tokens.Range{
+					File: token.Range.File,
+					From: tokens.Pos{
+						Line:   token.Range.From.Line,
+						Column: token.Range.From.Column,
+						Offset: token.Range.From.Offset,
+					},
+					To: tokens.Pos{
+						Line:   token.Range.From.Line,
+						Column: token.Range.From.Column,
+						Offset: token.Range.From.Offset,
+					},
+				},
 				Collection:    collection,
 				ValueIterator: valueIterator.Value,
 				IndexIterator: indexIterator,
@@ -71,7 +83,19 @@ func quantifierParserFactory(type_ tokens.Kind) prefixParser {
 			}
 		case tokens.KeywordAll:
 			quantifierExpr = &ast.AllExpression{
-				Pos:           token.Position,
+				Range: tokens.Range{
+					File: token.Range.File,
+					From: tokens.Pos{
+						Line:   token.Range.From.Line,
+						Column: token.Range.From.Column,
+						Offset: token.Range.From.Offset,
+					},
+					To: tokens.Pos{
+						Line:   token.Range.From.Line,
+						Column: token.Range.From.Column,
+						Offset: token.Range.From.Offset,
+					},
+				},
 				Collection:    collection,
 				ValueIterator: valueIterator.Value,
 				IndexIterator: indexIterator,
@@ -79,7 +103,19 @@ func quantifierParserFactory(type_ tokens.Kind) prefixParser {
 			}
 		case tokens.KeywordFilter:
 			quantifierExpr = &ast.FilterExpression{
-				Pos:           token.Position,
+				Range: tokens.Range{
+					File: token.Range.File,
+					From: tokens.Pos{
+						Line:   token.Range.From.Line,
+						Column: token.Range.From.Column,
+						Offset: token.Range.From.Offset,
+					},
+					To: tokens.Pos{
+						Line:   token.Range.From.Line,
+						Column: token.Range.From.Column,
+						Offset: token.Range.From.Offset,
+					},
+				},
 				Collection:    collection,
 				ValueIterator: valueIterator.Value,
 				IndexIterator: indexIterator,
@@ -87,7 +123,19 @@ func quantifierParserFactory(type_ tokens.Kind) prefixParser {
 			}
 		case tokens.KeywordFirst:
 			quantifierExpr = &ast.FirstExpression{
-				Pos:           token.Position,
+				Range: tokens.Range{
+					File: token.Range.File,
+					From: tokens.Pos{
+						Line:   token.Range.From.Line,
+						Column: token.Range.From.Column,
+						Offset: token.Range.From.Offset,
+					},
+					To: tokens.Pos{
+						Line:   token.Range.From.Line,
+						Column: token.Range.From.Column,
+						Offset: token.Range.From.Offset,
+					},
+				},
 				Collection:    collection,
 				ValueIterator: valueIterator.Value,
 				IndexIterator: indexIterator,
@@ -95,7 +143,19 @@ func quantifierParserFactory(type_ tokens.Kind) prefixParser {
 			}
 		case tokens.KeywordMap:
 			quantifierExpr = &ast.MapExpression{
-				Pos:           token.Position,
+				Range: tokens.Range{
+					File: token.Range.File,
+					From: tokens.Pos{
+						Line:   token.Range.From.Line,
+						Column: token.Range.From.Column,
+						Offset: token.Range.From.Offset,
+					},
+					To: tokens.Pos{
+						Line:   token.Range.From.Line,
+						Column: token.Range.From.Column,
+						Offset: token.Range.From.Offset,
+					},
+				},
 				Collection:    collection,
 				ValueIterator: valueIterator.Value,
 				IndexIterator: indexIterator,

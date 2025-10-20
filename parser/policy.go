@@ -22,8 +22,21 @@ import (
 )
 
 func parseThePolicyStatement(ctx context.Context, p *Parser) ast.Statement {
+	start := p.head()
 	policy := &ast.PolicyStatement{
-		Pos: p.head().Position,
+		Range: tokens.Range{
+			File: start.Range.File,
+			From: tokens.Pos{
+				Line:   start.Range.From.Line,
+				Column: start.Range.From.Column,
+				Offset: start.Range.From.Offset,
+			},
+			To: tokens.Pos{
+				Line:   start.Range.From.Line,
+				Column: start.Range.From.Column,
+				Offset: start.Range.From.Offset,
+			},
+		},
 	}
 	if !p.expect(tokens.KeywordPolicy) {
 		return nil
@@ -65,6 +78,14 @@ func parseThePolicyStatement(ctx context.Context, p *Parser) ast.Statement {
 		return nil
 	}
 
+	// Update the end position to the closing curly brace
+	current := p.head()
+	policy.Range.To = tokens.Pos{
+		Line:   current.Range.From.Line,
+		Column: current.Range.From.Column,
+		Offset: current.Range.From.Offset,
+	}
+
 	return policy
 }
 
@@ -72,7 +93,7 @@ func parsePolicyStatement(ctx context.Context, p *Parser) ast.Statement {
 	if handler, ok := p.policyStatementHandlers[p.head().Kind]; ok {
 		return handler(ctx, p)
 	}
-	p.errorf("unexpected token '%s' at %s", p.head().Kind, p.head().Position)
+	p.errorf("unexpected token '%s'", p.head().Kind)
 	return nil
 }
 

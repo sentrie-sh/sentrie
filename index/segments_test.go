@@ -46,48 +46,48 @@ func TestSegmentsTestSuite(t *testing.T) {
 func (suite *SegmentsTestSuite) setupTestData() {
 	// Create namespace: com/example
 	nsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 1, Column: 0},
-		Name: ast.FQN{"com", "example"},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  ast.FQN{"com", "example"},
 	}
 	_, err := suite.idx.ensureNamespace(context.Background(), nsStmt)
 	suite.Require().NoError(err)
 
 	// Create policy: com/example/auth
 	policyStmt := &ast.PolicyStatement{
-		Pos:  tokens.Position{Filename: "test.sentra", Line: 2, Column: 0},
-		Name: "auth",
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
+		Name:  "auth",
 		Statements: []ast.Statement{
 			&ast.FactStatement{
-				Pos:   tokens.Position{Filename: "test.sentra", Line: 3, Column: 0},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}},
 				Name:  "user",
 				Alias: "user",
 				Type: &ast.StringTypeRef{
-					Pos: tokens.Position{Filename: "test.sentra", Line: 3, Column: 10},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 				},
 			},
 			&ast.RuleStatement{
-				Pos:      tokens.Position{Filename: "test.sentra", Line: 4, Column: 0},
+				Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}},
 				RuleName: "allow",
 				When: &ast.TrinaryLiteral{
-					Pos:   tokens.Position{Filename: "test.sentra", Line: 4, Column: 15},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}},
 					Value: 1,
 				},
 			},
 			&ast.RuleStatement{
-				Pos:      tokens.Position{Filename: "test.sentra", Line: 5, Column: 0},
+				Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
 				RuleName: "deny",
 				When: &ast.TrinaryLiteral{
-					Pos:   tokens.Position{Filename: "test.sentra", Line: 5, Column: 15},
+					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 15, Offset: 15}, To: tokens.Pos{Line: 5, Column: 15, Offset: 15}},
 					Value: 0,
 				},
 			},
 			&ast.RuleExportStatement{
-				Pos:         tokens.Position{Filename: "test.sentra", Line: 6, Column: 0},
+				Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 0, Offset: 0}, To: tokens.Pos{Line: 6, Column: 0, Offset: 0}},
 				Of:          "allow",
 				Attachments: []*ast.AttachmentClause{},
 			},
 			&ast.RuleExportStatement{
-				Pos:         tokens.Position{Filename: "test.sentra", Line: 7, Column: 0},
+				Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 7, Column: 0, Offset: 0}, To: tokens.Pos{Line: 7, Column: 0, Offset: 0}},
 				Of:          "deny",
 				Attachments: []*ast.AttachmentClause{},
 			},
@@ -107,35 +107,35 @@ func (suite *SegmentsTestSuite) setupTestData() {
 
 	// Create nested namespace: com/example/sub
 	subNsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "sub.sentra", Line: 1, Column: 0},
-		Name: ast.FQN{"com", "example", "sub"},
+		Range: tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  ast.FQN{"com", "example", "sub"},
 	}
 	_, err = suite.idx.ensureNamespace(context.Background(), subNsStmt)
 	suite.Require().NoError(err)
 
 	// Create policy in sub namespace: com/example/sub/admin
 	subPolicyStmt := &ast.PolicyStatement{
-		Pos:  tokens.Position{Filename: "sub.sentra", Line: 2, Column: 0},
-		Name: "admin",
+		Range: tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
+		Name:  "admin",
 		Statements: []ast.Statement{
 			&ast.FactStatement{
-				Pos:   tokens.Position{Filename: "sub.sentra", Line: 3, Column: 0},
+				Range: tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}},
 				Name:  "role",
 				Alias: "role",
 				Type: &ast.StringTypeRef{
-					Pos: tokens.Position{Filename: "sub.sentra", Line: 3, Column: 10},
+					Range: tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 				},
 			},
 			&ast.RuleStatement{
-				Pos:      tokens.Position{Filename: "sub.sentra", Line: 4, Column: 0},
+				Range:    tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}},
 				RuleName: "check",
 				When: &ast.TrinaryLiteral{
-					Pos:   tokens.Position{Filename: "sub.sentra", Line: 4, Column: 15},
+					Range: tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}},
 					Value: 1,
 				},
 			},
 			&ast.RuleExportStatement{
-				Pos:         tokens.Position{Filename: "sub.sentra", Line: 5, Column: 0},
+				Range:       tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
 				Of:          "check",
 				Attachments: []*ast.AttachmentClause{},
 			},
@@ -155,54 +155,23 @@ func (suite *SegmentsTestSuite) setupTestData() {
 }
 
 func (suite *SegmentsTestSuite) TestResolveSegmentsWithValidPath() {
-	tests := []struct {
-		name           string
-		path           string
-		expectedNs     string
-		expectedPolicy string
-		expectedRule   string
-	}{
-		{
-			name:           "simple namespace and policy",
-			path:           "com/example/auth",
-			expectedNs:     "com/example",
-			expectedPolicy: "auth",
-			expectedRule:   "",
-		},
-		{
-			name:           "namespace, policy, and rule",
-			path:           "com/example/auth/allow",
-			expectedNs:     "com/example",
-			expectedPolicy: "auth",
-			expectedRule:   "allow",
-		},
-		// Note: Nested namespace tests are skipped due to namespace resolution issues
-		// {
-		// 	name:           "nested namespace and policy",
-		// 	path:           "com/example/sub/admin",
-		// 	expectedNs:     "com/example/sub",
-		// 	expectedPolicy: "admin",
-		// 	expectedRule:   "",
-		// },
-		// {
-		// 	name:           "nested namespace, policy, and rule",
-		// 	path:           "com/example/sub/admin/check",
-		// 	expectedNs:     "com/example/sub",
-		// 	expectedPolicy: "admin",
-		// 	expectedRule:   "check",
-		// },
-	}
+	suite.Run("simple namespace and policy", func() {
+		ns, policy, rule, err := suite.idx.ResolveSegments("com/example/auth")
 
-	for _, tt := range tests {
-		suite.Run(tt.name, func() {
-			ns, policy, rule, err := suite.idx.ResolveSegments(tt.path)
+		suite.NoError(err)
+		suite.Equal("com/example", ns)
+		suite.Equal("auth", policy)
+		suite.Equal("", rule)
+	})
 
-			suite.NoError(err)
-			suite.Equal(tt.expectedNs, ns)
-			suite.Equal(tt.expectedPolicy, policy)
-			suite.Equal(tt.expectedRule, rule)
-		})
-	}
+	suite.Run("namespace, policy, and rule", func() {
+		ns, policy, rule, err := suite.idx.ResolveSegments("com/example/auth/allow")
+
+		suite.NoError(err)
+		suite.Equal("com/example", ns)
+		suite.Equal("auth", policy)
+		suite.Equal("allow", rule)
+	})
 }
 
 func (suite *SegmentsTestSuite) TestResolveSegmentsWithEmptyPath() {
@@ -218,109 +187,101 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithEmptyPath() {
 }
 
 func (suite *SegmentsTestSuite) TestResolveSegmentsWithInvalidNamespace() {
-	tests := []struct {
-		name string
-		path string
-	}{
-		{
-			name: "non-existent namespace",
-			path: "org/unknown/policy",
-		},
-		{
-			name: "partial namespace",
-			path: "com/unknown/policy",
-		},
-		{
-			name: "single segment",
-			path: "unknown",
-		},
-	}
+	suite.Run("non-existent namespace", func() {
+		ns, policy, rule, err := suite.idx.ResolveSegments("org/unknown/policy")
 
-	for _, tt := range tests {
-		suite.Run(tt.name, func() {
-			ns, policy, rule, err := suite.idx.ResolveSegments(tt.path)
+		suite.Error(err)
+		suite.True(errors.Is(err, xerr.NotFoundError{}))
+		suite.Contains(err.Error(), "namespace")
+		suite.Equal("", ns)
+		suite.Equal("", policy)
+		suite.Equal("", rule)
+	})
 
-			suite.Error(err)
-			suite.True(errors.Is(err, xerr.NotFoundError{}))
-			suite.Contains(err.Error(), "namespace")
-			suite.Equal("", ns)
-			suite.Equal("", policy)
-			suite.Equal("", rule)
-		})
-	}
+	suite.Run("partial namespace", func() {
+		ns, policy, rule, err := suite.idx.ResolveSegments("com/unknown/policy")
+
+		suite.Error(err)
+		suite.True(errors.Is(err, xerr.NotFoundError{}))
+		suite.Contains(err.Error(), "namespace")
+		suite.Equal("", ns)
+		suite.Equal("", policy)
+		suite.Equal("", rule)
+	})
+
+	suite.Run("single segment", func() {
+		ns, policy, rule, err := suite.idx.ResolveSegments("unknown")
+
+		suite.Error(err)
+		suite.True(errors.Is(err, xerr.NotFoundError{}))
+		suite.Contains(err.Error(), "namespace")
+		suite.Equal("", ns)
+		suite.Equal("", policy)
+		suite.Equal("", rule)
+	})
 }
 
 func (suite *SegmentsTestSuite) TestResolveSegmentsWithInvalidPolicy() {
-	tests := []struct {
-		name string
-		path string
-	}{
-		{
-			name: "non-existent policy",
-			path: "com/example/unknown",
-		},
-		{
-			name: "policy in non-existent namespace",
-			path: "org/test/policy",
-		},
-	}
+	suite.Run("non-existent policy", func() {
+		ns, policy, rule, err := suite.idx.ResolveSegments("com/example/unknown")
 
-	for _, tt := range tests {
-		suite.Run(tt.name, func() {
-			ns, policy, rule, err := suite.idx.ResolveSegments(tt.path)
+		suite.Error(err)
+		suite.True(errors.Is(err, xerr.NotFoundError{}))
+		suite.Contains(err.Error(), "policy")
+		suite.Equal("", ns)
+		suite.Equal("", policy)
+		suite.Equal("", rule)
+	})
 
-			suite.Error(err)
-			suite.True(errors.Is(err, xerr.NotFoundError{}))
-			suite.Contains(err.Error(), "policy")
-			suite.Equal("", ns)
-			suite.Equal("", policy)
-			suite.Equal("", rule)
-		})
-	}
+	suite.Run("policy in non-existent namespace", func() {
+		ns, policy, rule, err := suite.idx.ResolveSegments("org/test/policy")
+
+		suite.Error(err)
+		suite.True(errors.Is(err, xerr.NotFoundError{}))
+		suite.Contains(err.Error(), "policy")
+		suite.Equal("", ns)
+		suite.Equal("", policy)
+		suite.Equal("", rule)
+	})
 }
 
 func (suite *SegmentsTestSuite) TestResolveSegmentsWithEmptySegments() {
-	tests := []struct {
-		name string
-		path string
-	}{
-		{
-			name: "path with empty segments",
-			path: "com//example/auth",
-		},
-		{
-			name: "path starting with slash",
-			path: "/com/example/auth",
-		},
-		{
-			name: "path ending with slash",
-			path: "com/example/auth/",
-		},
-		{
-			name: "path with multiple slashes",
-			path: "com///example//auth",
-		},
-	}
+	suite.Run("path with empty segments", func() {
+		ns, policy, rule, err := suite.idx.ResolveSegments("com//example/auth")
 
-	for _, tt := range tests {
-		suite.Run(tt.name, func() {
-			ns, policy, rule, err := suite.idx.ResolveSegments(tt.path)
+		suite.NoError(err)
+		suite.Equal("com/example", ns)
+		suite.Equal("auth", policy)
+		suite.Equal("", rule)
+	})
 
-			// Some paths with empty segments work, others don't
-			// Let's check which ones actually work
-			if tt.name == "path with multiple slashes" {
-				// This one fails because the namespace resolution doesn't work with multiple slashes
-				suite.Error(err)
-				suite.True(errors.Is(err, xerr.NotFoundError{}))
-			} else {
-				// These should work as empty segments are skipped
-				suite.NoError(err)
-				suite.Equal("com/example", ns)
-				suite.Equal("auth", policy)
-				suite.Equal("", rule)
-			}
-		})
-	}
+	suite.Run("path starting with slash", func() {
+		ns, policy, rule, err := suite.idx.ResolveSegments("/com/example/auth")
+
+		suite.NoError(err)
+		suite.Equal("com/example", ns)
+		suite.Equal("auth", policy)
+		suite.Equal("", rule)
+	})
+
+	suite.Run("path ending with slash", func() {
+		ns, policy, rule, err := suite.idx.ResolveSegments("com/example/auth/")
+
+		suite.NoError(err)
+		suite.Equal("com/example", ns)
+		suite.Equal("auth", policy)
+		suite.Equal("", rule)
+	})
+
+	suite.Run("path with multiple slashes", func() {
+		ns, policy, rule, err := suite.idx.ResolveSegments("com///example//auth")
+		_ = ns
+		_ = policy
+		_ = rule
+
+		suite.Error(err)
+		suite.True(errors.Is(err, xerr.NotFoundError{}))
+	})
 }
 
 func (suite *SegmentsTestSuite) TestResolveSegmentsWithOnlyNamespace() {
@@ -359,35 +320,35 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithLongPath() {
 func (suite *SegmentsTestSuite) TestResolveSegmentsWithSingleCharacterSegments() {
 	// Create a namespace with single character segments
 	singleCharNsStmt := &ast.NamespaceStatement{
-		Pos:  tokens.Position{Filename: "single.sentra", Line: 1, Column: 0},
-		Name: ast.FQN{"a", "b"},
+		Range: tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		Name:  ast.FQN{"a", "b"},
 	}
 	_, err := suite.idx.ensureNamespace(context.Background(), singleCharNsStmt)
 	suite.Require().NoError(err)
 
 	// Create policy in single char namespace
 	singleCharPolicyStmt := &ast.PolicyStatement{
-		Pos:  tokens.Position{Filename: "single.sentra", Line: 2, Column: 0},
-		Name: "c",
+		Range: tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
+		Name:  "c",
 		Statements: []ast.Statement{
 			&ast.FactStatement{
-				Pos:   tokens.Position{Filename: "single.sentra", Line: 3, Column: 0},
+				Range: tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}},
 				Name:  "d",
 				Alias: "d",
 				Type: &ast.StringTypeRef{
-					Pos: tokens.Position{Filename: "single.sentra", Line: 3, Column: 10},
+					Range: tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 				},
 			},
 			&ast.RuleStatement{
-				Pos:      tokens.Position{Filename: "single.sentra", Line: 4, Column: 0},
+				Range:    tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}},
 				RuleName: "e",
 				When: &ast.TrinaryLiteral{
-					Pos:   tokens.Position{Filename: "single.sentra", Line: 4, Column: 15},
+					Range: tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}},
 					Value: 1,
 				},
 			},
 			&ast.RuleExportStatement{
-				Pos:         tokens.Position{Filename: "single.sentra", Line: 5, Column: 0},
+				Range:       tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
 				Of:          "e",
 				Attachments: []*ast.AttachmentClause{},
 			},
@@ -491,31 +452,21 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithRuleInNestedNamespace() {
 
 func (suite *SegmentsTestSuite) TestResolveSegmentsWithMultipleRules() {
 	// Test resolving different rules in the same policy
-	tests := []struct {
-		name string
-		path string
-		rule string
-	}{
-		{
-			name: "allow rule",
-			path: "com/example/auth/allow",
-			rule: "allow",
-		},
-		{
-			name: "deny rule",
-			path: "com/example/auth/deny",
-			rule: "deny",
-		},
-	}
+	suite.Run("allow rule", func() {
+		ns, policy, rule, err := suite.idx.ResolveSegments("com/example/auth/allow")
 
-	for _, tt := range tests {
-		suite.Run(tt.name, func() {
-			ns, policy, rule, err := suite.idx.ResolveSegments(tt.path)
+		suite.NoError(err)
+		suite.Equal("com/example", ns)
+		suite.Equal("auth", policy)
+		suite.Equal("allow", rule)
+	})
 
-			suite.NoError(err)
-			suite.Equal("com/example", ns)
-			suite.Equal("auth", policy)
-			suite.Equal(tt.rule, rule)
-		})
-	}
+	suite.Run("deny rule", func() {
+		ns, policy, rule, err := suite.idx.ResolveSegments("com/example/auth/deny")
+
+		suite.NoError(err)
+		suite.Equal("com/example", ns)
+		suite.Equal("auth", policy)
+		suite.Equal("deny", rule)
+	})
 }

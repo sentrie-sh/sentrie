@@ -17,12 +17,12 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type ShapeExportStatement struct {
-	Pos  tokens.Position
-	Name string
+	Range tokens.Range
+	Name  string
 }
 
-func (s ShapeExportStatement) Position() tokens.Position {
-	return s.Pos
+func (s ShapeExportStatement) Span() tokens.Range {
+	return s.Range
 }
 
 func (s ShapeExportStatement) statementNode() {}

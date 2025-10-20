@@ -17,7 +17,7 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type CastExpression struct {
-	Pos        tokens.Position
+	Range      tokens.Range
 	Expr       Expression
 	TargetType TypeRef
 }
@@ -26,8 +26,8 @@ func (c *CastExpression) String() string {
 	return "cast " + c.Expr.String() + " as " + c.TargetType.String()
 }
 
-func (c *CastExpression) Position() tokens.Position {
-	return c.Pos
+func (c *CastExpression) Span() tokens.Range {
+	return c.Range
 }
 
 func (c *CastExpression) expressionNode() {}
