@@ -20,6 +20,16 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Error injected by calling the `error` function in sentrie code
+type InjectedError struct {
+}
+
+func (e InjectedError) Error() string { return "runtime error" }
+
+func ErrInjected(format string, args ...any) error {
+	return errors.Wrapf(InjectedError{}, format, args...)
+}
+
 type InfiniteRecursionError struct{ stack []string }
 
 func (e InfiniteRecursionError) Error() string {
