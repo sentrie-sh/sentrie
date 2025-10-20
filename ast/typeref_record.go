@@ -40,6 +40,7 @@ func (r *RecordTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
 		return err
 	}
 	r.constraints = append(r.constraints, constraint)
+	r.Range.To = constraint.Range.To
 	return nil
 }
 

@@ -34,16 +34,12 @@ func parseFieldAccessExpression(ctx context.Context, p *Parser, left ast.Express
 
 	return &ast.FieldAccessExpression{
 		Range: tokens.Range{
-			File: operatorToken.Position.Filename,
-			From: tokens.Pos{
-				Line:   operatorToken.Position.Line,
-				Column: operatorToken.Position.Column,
-				Offset: operatorToken.Position.Offset,
-			},
+			File: operatorToken.Range.File,
+			From: operatorToken.Range.From,
 			To: tokens.Pos{
-				Line:   fieldName.Position.Line,
-				Column: fieldName.Position.Column,
-				Offset: fieldName.Position.Offset,
+				Line:   fieldName.Range.To.Line,
+				Column: fieldName.Range.To.Column,
+				Offset: fieldName.Range.To.Offset,
 			},
 		},
 		Left:  left,
@@ -69,17 +65,9 @@ func parseIndexAccessExpression(ctx context.Context, p *Parser, left ast.Express
 
 	return &ast.IndexAccessExpression{
 		Range: tokens.Range{
-			File: rBracket.Position.Filename,
-			From: tokens.Pos{
-				Line:   lbracket.Position.Line,
-				Column: lbracket.Position.Column,
-				Offset: lbracket.Position.Offset,
-			},
-			To: tokens.Pos{
-				Line:   rBracket.Position.Line,
-				Column: rBracket.Position.Column,
-				Offset: rBracket.Position.Offset,
-			},
+			File: rBracket.Range.File,
+			From: lbracket.Range.From,
+			To:   rBracket.Range.To,
 		},
 		Left:  left,
 		Index: index,

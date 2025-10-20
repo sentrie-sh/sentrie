@@ -24,7 +24,7 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func validateAgainstStringTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.StringTypeRef, pos tokens.Position) error {
+func validateAgainstStringTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.StringTypeRef, valueRange tokens.Range) error {
 	if _, ok := v.(string); !ok {
 		return errors.Errorf("value %v is not a string", v)
 	}
@@ -44,7 +44,7 @@ func validateAgainstStringTypeRef(ctx context.Context, ec *ExecutionContext, exe
 		}
 
 		if err := checker.Checker(ctx, p, v.(string), args); err != nil {
-			return ErrConstraintFailed(pos, constraint, err)
+			return ErrConstraintFailed(valueRange, constraint, err)
 		}
 	}
 

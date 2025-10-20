@@ -40,19 +40,55 @@ func parseIsExpression(ctx context.Context, p *Parser, left ast.Expression, prec
 	if p.canExpect(tokens.KeywordDefined) {
 		// 'is [not] defined' case
 		expr = &ast.IsDefinedExpression{
-			Pos:  start.Position,
+			Range: tokens.Range{
+				File: start.Range.File,
+				From: tokens.Pos{
+					Line:   start.Range.From.Line,
+					Column: start.Range.From.Column,
+					Offset: start.Range.From.Offset,
+				},
+				To: tokens.Pos{
+					Line:   start.Range.From.Line,
+					Column: start.Range.From.Column,
+					Offset: start.Range.From.Offset,
+				},
+			},
 			Left: left,
 		}
 		p.advance()
 	} else if p.canExpect(tokens.KeywordEmpty) {
 		expr = &ast.IsEmptyExpression{
-			Pos:  start.Position,
+			Range: tokens.Range{
+				File: start.Range.File,
+				From: tokens.Pos{
+					Line:   start.Range.From.Line,
+					Column: start.Range.From.Column,
+					Offset: start.Range.From.Offset,
+				},
+				To: tokens.Pos{
+					Line:   start.Range.From.Line,
+					Column: start.Range.From.Column,
+					Offset: start.Range.From.Offset,
+				},
+			},
 			Left: left,
 		}
 		p.advance()
 	} else {
 		expr = &ast.InfixExpression{
-			Pos:      start.Position,
+			Range: tokens.Range{
+				File: start.Range.File,
+				From: tokens.Pos{
+					Line:   start.Range.From.Line,
+					Column: start.Range.From.Column,
+					Offset: start.Range.From.Offset,
+				},
+				To: tokens.Pos{
+					Line:   start.Range.From.Line,
+					Column: start.Range.From.Column,
+					Offset: start.Range.From.Offset,
+				},
+			},
 			Left:     left,
 			Operator: start.Value,
 			Right:    p.parseExpression(ctx, precedence),
@@ -62,7 +98,19 @@ func parseIsExpression(ctx context.Context, p *Parser, left ast.Expression, prec
 	// if we have a 'not' then wrap with a not unary
 	if not != nil {
 		expr = &ast.UnaryExpression{
-			Pos:      start.Position,
+			Range: tokens.Range{
+				File: start.Range.File,
+				From: tokens.Pos{
+					Line:   start.Range.From.Line,
+					Column: start.Range.From.Column,
+					Offset: start.Range.From.Offset,
+				},
+				To: tokens.Pos{
+					Line:   start.Range.From.Line,
+					Column: start.Range.From.Column,
+					Offset: start.Range.From.Offset,
+				},
+			},
 			Operator: not.Value,
 			Right:    expr,
 		}

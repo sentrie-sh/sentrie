@@ -22,17 +22,18 @@ import (
 )
 
 type LexerError struct {
+	Filename string
 	Position tokens.Pos
 }
 
 func (e *LexerError) Error() string {
-	return fmt.Sprintf("at %s", e.Position)
+	return fmt.Sprintf("at %s:%d:%d", e.Filename, e.Position.Line, e.Position.Column)
 }
 
-func UnterminatedStringError(pos tokens.Pos) error {
-	return errors.Wrap(&LexerError{Position: pos}, "unterminated string literal")
+func UnterminatedStringError(filename string, pos tokens.Pos) error {
+	return errors.Wrap(&LexerError{Filename: filename, Position: pos}, "unterminated string literal")
 }
 
-func InvalidHereDocSyntaxError(pos tokens.Pos) error {
-	return errors.Wrap(&LexerError{Position: pos}, "invalid heredoc syntax")
+func InvalidHereDocSyntaxError(filename string, pos tokens.Pos) error {
+	return errors.Wrap(&LexerError{Filename: filename, Position: pos}, "invalid heredoc syntax")
 }

@@ -38,16 +38,16 @@ func parseShapeExportStatement(ctx context.Context, p *Parser) ast.Statement {
 	return &ast.ShapeExportStatement{
 		Name: name.Value,
 		Range: tokens.Range{
-			File: start.Position.Filename,
+			File: start.Range.File,
 			From: tokens.Pos{
-				Line:   start.Position.Line,
-				Column: start.Position.Column,
-				Offset: start.Position.Offset,
+				Line:   start.Range.From.Line,
+				Column: start.Range.From.Column,
+				Offset: start.Range.From.Offset,
 			},
 			To: tokens.Pos{
-				Line:   name.Position.Line,
-				Column: name.Position.Column,
-				Offset: name.Position.Offset,
+				Line:   name.Range.From.Line,
+				Column: name.Range.From.Column,
+				Offset: name.Range.From.Offset,
 			},
 		},
 	}

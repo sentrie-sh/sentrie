@@ -22,8 +22,12 @@ import (
 )
 
 func parseLetsStatement(ctx context.Context, p *Parser) ast.Statement {
+	start := p.head()
 	stmt := &ast.VarDeclaration{
-		Pos: p.head().Position,
+		Range: tokens.Range{
+			File: start.Range.File,
+			From: start.Range.From,
+		},
 	}
 	p.advance() // consume 'let'
 
@@ -52,6 +56,7 @@ func parseLetsStatement(ctx context.Context, p *Parser) ast.Statement {
 	}
 
 	stmt.Value = val
+	stmt.Range.To = val.Span().To
 
 	return stmt
 }

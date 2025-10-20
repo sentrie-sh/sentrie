@@ -36,5 +36,6 @@ func (s *ShapeTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
 		return err
 	}
 	s.constraints = append(s.constraints, constraint)
+	s.Range.To = constraint.Range.To
 	return nil
 }

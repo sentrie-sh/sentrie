@@ -36,5 +36,6 @@ func (m *MapTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
 		return err
 	}
 	m.constraints = append(m.constraints, constraint)
+	m.Range.To = constraint.Range.To
 	return nil
 }

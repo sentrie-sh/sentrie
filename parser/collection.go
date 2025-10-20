@@ -28,8 +28,8 @@ func parseListLiteral(ctx context.Context, p *Parser) ast.Expression {
 	}
 	theList := ast.ListLiteral{
 		Range: tokens.Range{
-			File: leftBracket.Position.Filename,
-			From: leftBracket.Position,
+			File: leftBracket.Range.File,
+			From: leftBracket.Range.From,
 		},
 		Values: []ast.Expression{},
 	}
@@ -51,18 +51,13 @@ func parseListLiteral(ctx context.Context, p *Parser) ast.Expression {
 		}
 	}
 
-	// Expect the closing bracket
-	if !p.expect(tokens.PunctRightBracket) {
-		return nil
-	}
-
 	// Update the end position to the closing bracket
 	rightBracket, found := p.advanceExpected(tokens.PunctRightBracket)
 	if !found {
 		return nil
 	}
 
-	theList.Range.To = rightBracket.Position
+	theList.Range.To = rightBracket.Range.To
 
 	return &theList
 }
@@ -72,8 +67,8 @@ func parseMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 
 	theMap := ast.MapLiteral{
 		Range: tokens.Range{
-			File: leftBrace.Position.Filename,
-			From: leftBrace.Position,
+			File: leftBrace.Range.File,
+			From: leftBrace.Range.From,
 		},
 		Entries: []ast.MapEntry{},
 	}
@@ -89,8 +84,8 @@ func parseMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 			}
 			keyExpression = &ast.StringLiteral{
 				Range: tokens.Range{
-					File: key.Position.Filename,
-					From: key.Position,
+					File: key.Range.File,
+					From: key.Range.From,
 				},
 				Value: key.Value,
 			}
@@ -106,7 +101,7 @@ func parseMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 				return nil
 			}
 		} else {
-			p.errorf("expected string or [expression] as map key, got %s at %s", p.current.Kind, p.current.Position)
+			p.errorf("expected string or [expression] as map key, got %s at %s", p.current.Kind, p.current.Range.From)
 			return nil
 		}
 
@@ -135,7 +130,7 @@ func parseMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 	if !found {
 		return nil
 	}
-	theMap.Range.To = rightBrace.Position
+	theMap.Range.To = rightBrace.Range.To
 
 	return &theMap
 }

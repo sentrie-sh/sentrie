@@ -22,10 +22,13 @@ import (
 )
 
 func parseRuleExportStatement(ctx context.Context, p *Parser) ast.Statement {
-	pos := p.head().Position
+	head := p.head()
 
 	stmt := &ast.RuleExportStatement{
-		Pos: pos,
+		Range: tokens.Range{
+			File: head.Range.File,
+			From: head.Range.From,
+		},
 	}
 
 	p.advance() // consume 'export'
@@ -44,6 +47,7 @@ func parseRuleExportStatement(ctx context.Context, p *Parser) ast.Statement {
 	}
 
 	stmt.Of = ident.Value // Set the name of the exported variable or decision
+	stmt.Range.To = ident.Range.To
 
 	for p.head().IsOfKind(tokens.KeywordAttach) {
 		attachment := parseAttachmentClause(ctx, p)
@@ -51,6 +55,7 @@ func parseRuleExportStatement(ctx context.Context, p *Parser) ast.Statement {
 			return nil
 		}
 		stmt.Attachments = append(stmt.Attachments, attachment)
+		stmt.Range.To = attachment.Range.To
 	}
 
 	return stmt
@@ -58,10 +63,13 @@ func parseRuleExportStatement(ctx context.Context, p *Parser) ast.Statement {
 
 // 'attach @ident as @expr'
 func parseAttachmentClause(ctx context.Context, p *Parser) *ast.AttachmentClause {
-	pos := p.head().Position
+	head := p.head()
 
 	attachment := &ast.AttachmentClause{
-		Pos: pos,
+		Range: tokens.Range{
+			File: head.Range.File,
+			From: head.Range.From,
+		},
 	}
 
 	p.advance() // consume 'attach'
@@ -82,6 +90,7 @@ func parseAttachmentClause(ctx context.Context, p *Parser) *ast.AttachmentClause
 
 	attachment.What = what.Value // Set the attachment what
 	attachment.As = asExpr
+	attachment.Range.To = asExpr.Span().To
 
 	return attachment
 }

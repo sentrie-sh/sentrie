@@ -25,9 +25,12 @@ import (
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
-func validateAgainstBoolTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.BoolTypeRef, pos tokens.Position) error {
+func validateAgainstBoolTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.BoolTypeRef, valueRange tokens.Range) error {
+	if b, ok := v.(bool); ok {
+		v = trinary.From(b)
+	}
 	if _, ok := v.(trinary.Value); !ok {
-		return errors.Errorf("value '%v' is not a bool at %s - expected bool", v, pos)
+		return errors.Errorf("value '%v' is not a bool at %s - expected bool", v, valueRange)
 	}
 
 	tv := v.(trinary.Value)
@@ -47,7 +50,7 @@ func validateAgainstBoolTypeRef(ctx context.Context, ec *ExecutionContext, exec 
 		}
 
 		if err := checker.Checker(ctx, p, tv, args); err != nil {
-			return ErrConstraintFailed(pos, constraint, err)
+			return ErrConstraintFailed(valueRange, constraint, err)
 		}
 	}
 	return nil

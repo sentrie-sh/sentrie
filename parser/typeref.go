@@ -36,36 +36,36 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 	switch p.current.Kind {
 	case tokens.KeywordString:
 		ref = &ast.StringTypeRef{
-			Pos: p.advance().Position,
+			Range: p.advance().Range,
 		}
 	case tokens.KeywordNumber:
 		ref = &ast.NumberTypeRef{
-			Pos: p.advance().Position,
+			Range: p.advance().Range,
 		}
 	case tokens.KeywordBoolean:
 		ref = &ast.BoolTypeRef{
-			Pos: p.advance().Position,
+			Range: p.advance().Range,
 		}
 	case tokens.Ident:
 		ref = &ast.ShapeTypeRef{
-			Pos: p.head().Position,
-			Ref: parseFQN(ctx, p),
+			Range: p.head().Range, // we cannot advance here, since this is a FQN which needs to be parsed
+			Ref:   func() ast.FQN { f, _ := parseFQN(ctx, p); return f }(),
 		}
 	case tokens.KeywordList:
 		ref = &ast.ListTypeRef{
-			Pos: p.advance().Position,
+			Range: p.advance().Range,
 		}
 	case tokens.KeywordMap:
 		ref = &ast.MapTypeRef{
-			Pos: p.advance().Position,
+			Range: p.advance().Range,
 		}
 	case tokens.KeywordRecord:
 		ref = &ast.RecordTypeRef{
-			Pos: p.advance().Position,
+			Range: p.advance().Range,
 		}
 	case tokens.KeywordDocument:
 		ref = &ast.DocumentTypeRef{
-			Pos: p.advance().Position,
+			Range: p.advance().Range,
 		}
 	}
 
@@ -74,17 +74,21 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 			return nil
 		}
 		r.ElemType = parseTypeRef(ctx, p)
-		if !p.expect(tokens.PunctRightBracket) {
+		rBracket, found := p.advanceExpected(tokens.PunctRightBracket)
+		if !found {
 			return nil
 		}
+		r.Range.To = rBracket.Range.To
 	} else if r, ok := ref.(*ast.MapTypeRef); ok {
 		if !p.expect(tokens.PunctLeftBracket) {
 			return nil
 		}
 		r.ValueType = parseTypeRef(ctx, p)
-		if !p.expect(tokens.PunctRightBracket) {
+		rBracket, found := p.advanceExpected(tokens.PunctRightBracket)
+		if !found {
 			return nil
 		}
+		r.Range.To = rBracket.Range.To
 	} else if r, ok := ref.(*ast.RecordTypeRef); ok {
 		if !p.expect(tokens.PunctLeftBracket) {
 			return nil
@@ -96,19 +100,20 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 			}
 		}
 
-		if !p.expect(tokens.PunctRightBracket) {
+		rBracket, found := p.advanceExpected(tokens.PunctRightBracket)
+		if !found {
 			return nil
 		}
+		r.Range.To = rBracket.Range.To
 	}
 
 	for p.head().IsOfKind(tokens.TokenAt) {
-		p.advance() // consume '@'
 		constraint := parseTypeRefConstraint(ctx, p, ref)
 		if constraint == nil {
 			return nil
 		}
 		if err := ref.AddConstraint(constraint); err != nil {
-			p.errorf("cannot add constraint %s: %s at %s", constraint.Name, err, constraint.Pos)
+			p.errorf("cannot add constraint %s: %s at %s", constraint.Name, err, constraint.Range)
 			return nil
 		}
 	}
@@ -116,12 +121,16 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 	return ref
 }
 
-func parseTypeRefConstraint(ctx context.Context, p *Parser, ref ast.TypeRef) *ast.TypeRefConstraint {
+func parseTypeRefConstraint(ctx context.Context, p *Parser, _ ast.TypeRef) *ast.TypeRefConstraint {
 	slog.DebugContext(ctx, "parseShapeFieldConstraint_start", "head", p.head().String())
 	defer slog.DebugContext(ctx, "parseShapeFieldConstraint_end")
 
 	constraint := &ast.TypeRefConstraint{
-		Pos: p.head().Position,
+		Range: p.head().Range,
+	}
+
+	if !p.expect(tokens.TokenAt) {
+		return nil
 	}
 
 	name, found := p.advanceExpected(tokens.Ident)

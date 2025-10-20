@@ -38,10 +38,6 @@ func parseBlockExpression(ctx context.Context, p *Parser) ast.Expression {
 		return nil // Error in parsing the block expression
 	}
 
-	if !p.expect(tokens.PunctLeftCurly) {
-		return nil // Error in parsing the block expression
-	}
-
 	var statements []ast.Statement
 
 	for p.canExpectAnyOf(tokens.KeywordLet, tokens.LineComment) {
@@ -68,16 +64,16 @@ func parseBlockExpression(ctx context.Context, p *Parser) ast.Expression {
 
 	return &ast.BlockExpression{
 		SourceSpan: tokens.Range{
-			File: lCurly.Position.Filename,
+			File: lCurly.Range.File,
 			From: tokens.Pos{
-				Line:   lCurly.Position.Line,
-				Column: lCurly.Position.Column,
-				Offset: lCurly.Position.Offset,
+				Line:   lCurly.Range.From.Line,
+				Column: lCurly.Range.From.Column,
+				Offset: lCurly.Range.From.Offset,
 			},
 			To: tokens.Pos{
-				Line:   rCurly.Position.Line,
-				Column: rCurly.Position.Column,
-				Offset: rCurly.Position.Offset,
+				Line:   rCurly.Range.From.Line,
+				Column: rCurly.Range.From.Column,
+				Offset: rCurly.Range.From.Offset,
 			},
 		},
 		Statements: statements,

@@ -52,11 +52,11 @@ func parseCastExpression(ctx context.Context, p *Parser) ast.Expression {
 
 	return &ast.CastExpression{
 		Range: tokens.Range{
-			File: start.Position.Filename,
+			File: start.Range.File,
 			From: tokens.Pos{
-				Line:   start.Position.Line,
-				Column: start.Position.Column,
-				Offset: start.Position.Offset,
+				Line:   start.Range.From.Line,
+				Column: start.Range.From.Column,
+				Offset: start.Range.From.Offset,
 			},
 			To: tokens.Pos{
 				Line:   typeRef.Span().To.Line,

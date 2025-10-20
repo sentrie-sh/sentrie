@@ -24,7 +24,7 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func validateAgainstDocumentTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.DocumentTypeRef, pos tokens.Position) error {
+func validateAgainstDocumentTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.DocumentTypeRef, pos tokens.Range) error {
 	// just validate that it's a map
 	if _, ok := v.(map[string]any); !ok {
 		return errors.Errorf("value %v is not a document at %s - expected document", v, pos)

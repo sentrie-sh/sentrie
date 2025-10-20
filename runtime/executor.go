@@ -241,7 +241,7 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 		}
 		stmt := p.Facts[name]
 		// validate the value against the type
-		if err := validateValueAgainstTypeRef(ctx, ec, e, p, value.value, value.typeRef, stmt.Position()); err != nil {
+		if err := validateValueAgainstTypeRef(ctx, ec, e, p, value.value, value.typeRef, stmt.Span()); err != nil {
 			return nil, nil, nil, err
 		}
 	}

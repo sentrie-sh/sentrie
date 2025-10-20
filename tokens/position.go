@@ -14,13 +14,12 @@
 
 package tokens
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Pos represents a location within source code.
 type Pos struct {
-	// Filename is the source file name - empty if Pos is a property of Range.
-	Filename string
-
 	// Line is the line number, starting from 1.
 	Line int
 
@@ -31,6 +30,20 @@ type Pos struct {
 	// Offset is the 0-based byte offset into the source file.
 	// This points to the first byte of the UTF-8 sequence for the character.
 	Offset int
+
+	//
+	isBadPos bool
+}
+
+var BadPos = Pos{
+	Line:     -1,
+	Column:   -1,
+	Offset:   -1,
+	isBadPos: true,
+}
+
+func (p *Pos) IsBadPos() bool {
+	return p.isBadPos
 }
 
 // Range represents a contiguous region of source code.
@@ -45,12 +58,39 @@ type Range struct {
 	To Pos
 }
 
+func NewRange(file string, from Pos, to Pos) Range {
+	return Range{
+		File: file,
+		From: from,
+		To:   to,
+	}
+}
+
+func BadRange(file string) Range {
+	return Range{
+		File: file,
+		From: BadPos,
+		To:   BadPos,
+	}
+}
+
+func NewRangeFromPos(file string, pos Pos) Range {
+	return Range{
+		File: file,
+		From: pos,
+		To:   pos,
+	}
+}
+
 // String formats the span as "file:line:col-line:col" or "file:line:col-col" for single lines.
 func (s Range) String() string {
 	if s.From.Line == s.To.Line {
-		return fmt.Sprintf("%s:%d:%d-%d", s.File, s.From.Line, s.From.Column, s.To.Column)
+		if s.From.Column == s.To.Column || s.To.Column == 0 {
+			return fmt.Sprintf("%s:%d:%d", s.File, s.From.Line+1, s.From.Column)
+		}
+		return fmt.Sprintf("%s:%d:%d-%d", s.File, s.From.Line+1, s.From.Column, s.To.Column)
 	}
-	return fmt.Sprintf("%s:%d:%d-%d:%d", s.File, s.From.Line, s.From.Column, s.To.Line, s.To.Column)
+	return fmt.Sprintf("%s:%d:%d-%d:%d", s.File, s.From.Line+1, s.From.Column, s.To.Line, s.To.Column)
 }
 
 // // Position represents a location within source code.

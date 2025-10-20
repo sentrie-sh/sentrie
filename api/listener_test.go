@@ -21,88 +21,93 @@ import (
 )
 
 func TestListenerConfiguration(t *testing.T) {
-	tests := []struct {
-		name     string
-		port     int
-		listen   []string
-		expected string
-	}{
-		{
-			name:     "nil listen uses port only",
-			port:     8080,
-			listen:   nil,
-			expected: ":8080",
-		},
-		{
-			name:     "empty listen uses port only",
-			port:     8080,
-			listen:   []string{},
-			expected: ":8080",
-		},
-		{
-			name:     "local maps to localhost",
-			port:     8080,
-			listen:   []string{"local"},
-			expected: "localhost:8080",
-		},
-		{
-			name:     "local4 maps to 127.0.0.1",
-			port:     8080,
-			listen:   []string{"local4"},
-			expected: "127.0.0.1:8080",
-		},
-		{
-			name:     "local6 maps to ::1",
-			port:     8080,
-			listen:   []string{"local6"},
-			expected: "[::1]:8080",
-		},
-		{
-			name:     "network maps to all interfaces",
-			port:     8080,
-			listen:   []string{"network"},
-			expected: ":8080",
-		},
-		{
-			name:     "network4 maps to 0.0.0.0",
-			port:     8080,
-			listen:   []string{"network4"},
-			expected: "0.0.0.0:8080",
-		},
-		{
-			name:     "network6 maps to ::",
-			port:     8080,
-			listen:   []string{"network6"},
-			expected: "[::]:8080",
-		},
-		{
-			name:     "custom address used as-is",
-			port:     8080,
-			listen:   []string{"192.168.1.100:3000"},
-			expected: "192.168.1.100:3000",
-		},
-		{
-			name:     "custom address with different port",
-			port:     8080,
-			listen:   []string{"10.0.0.1:9090"},
-			expected: "10.0.0.1:9090",
-		},
-		{
-			name:     "multiple addresses returns all",
-			port:     8080,
-			listen:   []string{"local", "network4"},
-			expected: "localhost:8080,0.0.0.0:8080",
-		},
-	}
+	// nil listen uses port only
+	t.Run("nil listen uses port only", func(t *testing.T) {
+		addr := resolveAddress(8080, nil)
+		if addr != ":8080" {
+			t.Errorf("Expected %s, got %s", ":8080", addr)
+		}
+	})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			addr := resolveAddress(tt.port, tt.listen)
-			if addr != tt.expected {
-				t.Errorf("Expected %s, got %s", tt.expected, addr)
-			}
-		})
-	}
+	// empty listen uses port only
+	t.Run("empty listen uses port only", func(t *testing.T) {
+		addr := resolveAddress(8080, []string{})
+		if addr != ":8080" {
+			t.Errorf("Expected %s, got %s", ":8080", addr)
+		}
+	})
+
+	// local maps to localhost
+	t.Run("local maps to localhost", func(t *testing.T) {
+		addr := resolveAddress(8080, []string{"local"})
+		if addr != "localhost:8080" {
+			t.Errorf("Expected %s, got %s", "localhost:8080", addr)
+		}
+	})
+
+	// local4 maps to 127.0.0.1
+	t.Run("local4 maps to 127.0.0.1", func(t *testing.T) {
+		addr := resolveAddress(8080, []string{"local4"})
+		if addr != "127.0.0.1:8080" {
+			t.Errorf("Expected %s, got %s", "127.0.0.1:8080", addr)
+		}
+	})
+
+	// local6 maps to ::1
+	t.Run("local6 maps to ::1", func(t *testing.T) {
+		addr := resolveAddress(8080, []string{"local6"})
+		if addr != "[::1]:8080" {
+			t.Errorf("Expected %s, got %s", "[::1]:8080", addr)
+		}
+	})
+
+	// network maps to all interfaces
+	t.Run("network maps to all interfaces", func(t *testing.T) {
+		addr := resolveAddress(8080, []string{"network"})
+		if addr != ":8080" {
+			t.Errorf("Expected %s, got %s", ":8080", addr)
+		}
+	})
+
+	// network4 maps to 0.0.0.0
+	t.Run("network4 maps to 0.0.0.0", func(t *testing.T) {
+		addr := resolveAddress(8080, []string{"network4"})
+		if addr != "0.0.0.0:8080" {
+			t.Errorf("Expected %s, got %s", "0.0.0.0:8080", addr)
+		}
+	})
+
+	// network6 maps to ::
+	t.Run("network6 maps to ::", func(t *testing.T) {
+		addr := resolveAddress(8080, []string{"network6"})
+		if addr != "[::]:8080" {
+			t.Errorf("Expected %s, got %s", "[::]:8080", addr)
+		}
+	})
+
+	// custom address used as-is
+	t.Run("custom address used as-is", func(t *testing.T) {
+		addr := resolveAddress(8080, []string{"192.168.1.100:3000"})
+		if addr != "192.168.1.100:3000" {
+			t.Errorf("Expected %s, got %s", "192.168.1.100:3000", addr)
+		}
+	})
+
+	// custom address with different port
+	t.Run("custom address with different port", func(t *testing.T) {
+		addr := resolveAddress(8080, []string{"10.0.0.1:9090"})
+		if addr != "10.0.0.1:9090" {
+			t.Errorf("Expected %s, got %s", "10.0.0.1:9090", addr)
+		}
+	})
+
+	// multiple addresses returns all
+	t.Run("multiple addresses returns all", func(t *testing.T) {
+		addr := resolveAddress(8080, []string{"local", "network4"})
+		if addr != "localhost:8080,0.0.0.0:8080" {
+			t.Errorf("Expected %s, got %s", "localhost:8080,0.0.0.0:8080", addr)
+		}
+	})
 }
 
 // Helper function to test the address resolution logic

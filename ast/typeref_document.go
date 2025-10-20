@@ -36,5 +36,6 @@ func (d *DocumentTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
 		return err
 	}
 	d.constraints = append(d.constraints, constraint)
+	d.Range.To = constraint.Range.To
 	return nil
 }

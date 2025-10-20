@@ -13,10 +13,10 @@ var (
 )
 
 func ErrUnknownConstraint(c *ast.TypeRefConstraint) error {
-	return errors.Wrapf(errUnknownConstraint, "unknown constraint: '%s' at %s", c.Name, c.Pos)
+	return errors.Wrapf(errUnknownConstraint, "unknown constraint: '%s' at %s", c.Name, c.Range)
 }
 
-func ErrConstraintFailed(pos tokens.Position, c *ast.TypeRefConstraint, err error) error {
+func ErrConstraintFailed(pos tokens.Range, c *ast.TypeRefConstraint, err error) error {
 	return errors.Wrapf(errConstraintFailed, "constraint failed: '%s' at %s", c.Name, pos)
 }
 

@@ -36,7 +36,19 @@ func parseTransformExpression(ctx context.Context, p *Parser) ast.Expression {
 	}
 
 	return &ast.TransformExpression{
-		Pos:         token.Position,
+		Range: tokens.Range{
+			File: token.Range.File,
+			From: tokens.Pos{
+				Line:   token.Range.From.Line,
+				Column: token.Range.From.Column,
+				Offset: token.Range.From.Offset,
+			},
+			To: tokens.Pos{
+				Line:   token.Range.From.Line,
+				Column: token.Range.From.Column,
+				Offset: token.Range.From.Offset,
+			},
+		},
 		Argument:    expression,
 		Transformer: p.current.Value,
 	}

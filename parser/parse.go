@@ -52,7 +52,19 @@ func (p *Parser) ParseProgram(ctx context.Context) (*ast.Program, error) {
 				comment := p.advance()
 				prg.Statements = append(prg.Statements, &ast.CommentStatement{
 					Content: comment.Value,
-					Pos:     comment.Position,
+					Range: tokens.Range{
+						File: comment.Range.File,
+						From: tokens.Pos{
+							Line:   comment.Range.From.Line,
+							Column: comment.Range.From.Column,
+							Offset: comment.Range.From.Offset,
+						},
+						To: tokens.Pos{
+							Line:   comment.Range.From.Line,
+							Column: comment.Range.From.Column,
+							Offset: comment.Range.From.Offset,
+						},
+					},
 				})
 			}
 			continue
@@ -69,7 +81,7 @@ func (p *Parser) ParseProgram(ctx context.Context) (*ast.Program, error) {
 	// Check if first non-comment statement is namespace
 	_, ok := firstStmt.(*ast.NamespaceStatement)
 	if !ok {
-		err := fmt.Errorf("program must start with namespace, got %T at %s", firstStmt, firstStmt.Position())
+		err := fmt.Errorf("program must start with namespace, got %T at %s", firstStmt, firstStmt.Span())
 		p.err = err
 		return nil, err
 	}
@@ -85,7 +97,19 @@ func (p *Parser) ParseProgram(ctx context.Context) (*ast.Program, error) {
 		comment := p.advance()
 		prg.Statements = append(prg.Statements, &ast.CommentStatement{
 			Content: comment.Value,
-			Pos:     comment.Position,
+			Range: tokens.Range{
+				File: comment.Range.File,
+				From: tokens.Pos{
+					Line:   comment.Range.From.Line,
+					Column: comment.Range.From.Column,
+					Offset: comment.Range.From.Offset,
+				},
+				To: tokens.Pos{
+					Line:   comment.Range.From.Line,
+					Column: comment.Range.From.Column,
+					Offset: comment.Range.From.Offset,
+				},
+			},
 		})
 	}
 
@@ -96,7 +120,7 @@ func (p *Parser) ParseProgram(ctx context.Context) (*ast.Program, error) {
 			return nil, p.err
 		}
 		if stmt == nil {
-			err := fmt.Errorf("failed to parse statement at %s", p.current.Position)
+			err := fmt.Errorf("failed to parse statement at line %d, column %d", p.current.Range.From.Line, p.current.Range.From.Column)
 			p.err = err
 			return nil, err
 		}
@@ -104,7 +128,7 @@ func (p *Parser) ParseProgram(ctx context.Context) (*ast.Program, error) {
 		// this MUST not be a namespace statement
 		_, ok := stmt.(*ast.NamespaceStatement)
 		if ok {
-			err := fmt.Errorf("namespace cannot be declared after namespace declaration at %s", stmt.Position())
+			err := fmt.Errorf("namespace cannot be declared after namespace declaration at %s", stmt.Span())
 			p.err = err
 			return nil, err
 		}
@@ -115,7 +139,19 @@ func (p *Parser) ParseProgram(ctx context.Context) (*ast.Program, error) {
 			comment := p.advance()
 			prg.Statements = append(prg.Statements, &ast.CommentStatement{
 				Content: comment.Value,
-				Pos:     comment.Position,
+				Range: tokens.Range{
+					File: comment.Range.File,
+					From: tokens.Pos{
+						Line:   comment.Range.From.Line,
+						Column: comment.Range.From.Column,
+						Offset: comment.Range.From.Offset,
+					},
+					To: tokens.Pos{
+						Line:   comment.Range.From.Line,
+						Column: comment.Range.From.Column,
+						Offset: comment.Range.From.Offset,
+					},
+				},
 			})
 		}
 

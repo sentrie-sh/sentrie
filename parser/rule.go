@@ -23,8 +23,21 @@ import (
 
 // 'when' expr { expr } | import
 func parseRuleStatement(ctx context.Context, parser *Parser) ast.Statement {
+	start := parser.head()
 	stmt := &ast.RuleStatement{
-		Pos: parser.head().Position,
+		Range: tokens.Range{
+			File: start.Range.File,
+			From: tokens.Pos{
+				Line:   start.Range.From.Line,
+				Column: start.Range.From.Column,
+				Offset: start.Range.From.Offset,
+			},
+			To: tokens.Pos{
+				Line:   start.Range.From.Line,
+				Column: start.Range.From.Column,
+				Offset: start.Range.From.Offset,
+			},
+		},
 	}
 
 	parser.advance() // consume 'rule'
@@ -73,6 +86,14 @@ func parseRuleStatement(ctx context.Context, parser *Parser) ast.Statement {
 			return nil // Error in parsing the rule body
 		}
 		stmt.Body = expression
+	}
+
+	// Update the end position to the current token
+	current := parser.head()
+	stmt.Range.To = tokens.Pos{
+		Line:   current.Range.From.Line,
+		Column: current.Range.From.Column,
+		Offset: current.Range.From.Offset,
 	}
 
 	return stmt

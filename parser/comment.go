@@ -26,9 +26,9 @@ func parseCommentStatement(ctx context.Context, parser *Parser) ast.Statement {
 	comment := parser.advance()
 	return &ast.CommentStatement{
 		Range: tokens.Range{
-			File: head.Position.Filename,
-			From: head.Position,
-			To:   comment.Position,
+			File: head.Range.File,
+			From: head.Range.From,
+			To:   comment.Range.From,
 		},
 		Content: comment.Value,
 	}

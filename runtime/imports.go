@@ -25,30 +25,30 @@ import (
 
 // ImportDecision resolves an ImportClause with `with` facts for sandboxed execution,
 // and returns (value+attachments-map, node, error).
-func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContext, currentPolicy *index.Policy, imp *ast.ImportClause) (*ExecutorOutput, *trace.Node, error) {
-	n, done := trace.New("import", imp.RuleToImport, imp, map[string]any{
-		"what": imp.RuleToImport,
-		"from": imp.FromPolicyFQN,
-		"with": len(imp.Withs),
+func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContext, p *index.Policy, t *ast.ImportClause) (*ExecutorOutput, *trace.Node, error) {
+	n, done := trace.New("import", t.RuleToImport, t, map[string]any{
+		"what": t.RuleToImport,
+		"from": t.FromPolicyFQN,
+		"with": len(t.Withs),
 	})
 	defer done()
 
-	if len(imp.FromPolicyFQN) < 2 {
-		err := fmt.Errorf("import from must specify namespace/policy: got %v", imp.FromPolicyFQN)
+	if len(t.FromPolicyFQN) < 2 {
+		err := fmt.Errorf("import from must specify namespace/policy: got %v", t.FromPolicyFQN)
 		return nil, n.SetErr(err), err
 	}
 
-	rule := imp.RuleToImport
+	rule := t.RuleToImport
 
 	var ns, pol string
-	if len(imp.FromPolicyFQN) == 1 {
+	if len(t.FromPolicyFQN) == 1 {
 		// we only have a policy name - the namespace is the current policy's namespace
-		ns = currentPolicy.Namespace.FQN.String()
+		ns = p.Namespace.FQN.String()
 	} else {
 		// we have a namespace and policy name
-		ns = imp.FromPolicyFQN.Parent().String()
+		ns = t.FromPolicyFQN.Parent().String()
 	}
-	pol = imp.FromPolicyFQN.LastSegment()
+	pol = t.FromPolicyFQN.LastSegment()
 	facts := make(map[string]any)
 
 	{ // resolve the policy and verify the rule is exported
@@ -61,7 +61,7 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 			return nil, n.SetErr(err), err
 		}
 
-		for _, with := range imp.Withs {
+		for _, with := range t.Withs {
 			// find the fact in the target policy
 			if _, ok := p.Facts[with.Name]; !ok {
 				// no point evaluating - the target policy does not need this fact

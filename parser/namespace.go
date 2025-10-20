@@ -30,12 +30,24 @@ func parseNamespaceStatement(ctx context.Context, p *Parser) ast.Statement {
 	if !p.expect(tokens.KeywordNamespace) {
 		return nil // Error in parsing the namespace statement
 	}
-	name := parseFQN(ctx, p)
+	name, nameRange := parseFQN(ctx, p)
 	if len(name) == 0 {
 		return nil
 	}
 	return &ast.NamespaceStatement{
-		Pos:  head.Position,
+		Range: tokens.Range{
+			File: head.Range.File,
+			From: tokens.Pos{
+				Line:   head.Range.From.Line,
+				Column: head.Range.From.Column,
+				Offset: head.Range.From.Offset,
+			},
+			To: tokens.Pos{
+				Line:   nameRange.To.Line,
+				Column: nameRange.To.Column,
+				Offset: nameRange.To.Offset,
+			},
+		},
 		Name: name,
 	}
 }

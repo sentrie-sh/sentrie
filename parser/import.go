@@ -22,7 +22,7 @@ import (
 )
 
 /*
-[*] importClause ::= 'import' 'decision' IDENT 'from' IDENT ( '/' IDENT )* ( withClause )* ;
+[*] importClause ::= 'import' 'decision' IDENT 'from' FQN ( withClause )* ;
 [*] withClause   ::= 'with' IDENT 'as' IDENT ;
 [*] blockExpr    ::= '{' expr '}' ;
 */
@@ -37,7 +37,10 @@ func parseImportExpression(ctx context.Context, p *Parser) ast.Expression {
 	}
 
 	importExp := &ast.ImportClause{
-		Pos: head.Position,
+		Range: tokens.Range{
+			File: head.Range.File,
+			From: head.Range.From,
+		},
 	}
 
 	what, found := p.advanceExpected(tokens.Ident)
@@ -50,26 +53,21 @@ func parseImportExpression(ctx context.Context, p *Parser) ast.Expression {
 		return nil // Error in parsing the import expression
 	}
 
-	from, found := p.advanceExpected(tokens.Ident)
-	if !found {
+	fqn, fqnRange := parseFQN(ctx, p)
+	if fqn == nil {
 		return nil // Error in parsing the import expression
 	}
-	importExp.FromPolicyFQN = []string{from.Value}
-	// Check for additional segments in the 'from' path
-	for p.head().IsOfKind(tokens.TokenDiv) {
-		p.advance() // consume the slash
-		segment, found := p.advanceExpected(tokens.Ident)
-		if !found {
-			return nil // Error in parsing the import expression
-		}
-		importExp.FromPolicyFQN = append(importExp.FromPolicyFQN, segment.Value)
-	}
+	importExp.FromPolicyFQN = fqn
+	importExp.Range.To = fqnRange.To
 
 	// Check for 'with' clauses
 	for p.head().IsOfKind(tokens.KeywordWith) {
 		withClause := parseWithClause(ctx, p)
 		if withClause != nil {
 			importExp.Withs = append(importExp.Withs, withClause)
+
+			// update the range to the last with clause
+			importExp.Range.To = withClause.Range.To
 		}
 	}
 
@@ -97,7 +95,19 @@ func parseWithClause(ctx context.Context, p *Parser) *ast.WithClause {
 	}
 
 	return &ast.WithClause{
-		Pos:  head.Position,
+		Range: tokens.Range{
+			File: head.Range.File,
+			From: tokens.Pos{
+				Line:   head.Range.From.Line,
+				Column: head.Range.From.Column,
+				Offset: head.Range.From.Offset,
+			},
+			To: tokens.Pos{
+				Line:   head.Range.From.Line,
+				Column: head.Range.From.Column,
+				Offset: head.Range.From.Offset,
+			},
+		},
 		Name: name.Value,
 		Expr: val,
 	}

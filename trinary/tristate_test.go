@@ -165,23 +165,23 @@ func (s *TristateTestSuite) TestIsTrue() {
 // TestFromToken tests the FromToken() function
 func (s *TristateTestSuite) TestFromToken() {
 	// Test with valid token kinds
-	trueToken := tokens.New(tokens.KeywordTrue, "true", tokens.Position{})
+	trueToken := tokens.New(tokens.KeywordTrue, "true", tokens.Range{})
 	s.Equal(True, FromToken(trueToken))
 
-	falseToken := tokens.New(tokens.KeywordFalse, "false", tokens.Position{})
+	falseToken := tokens.New(tokens.KeywordFalse, "false", tokens.Range{})
 	s.Equal(False, FromToken(falseToken))
 
-	unknownToken := tokens.New(tokens.KeywordUnknown, "unknown", tokens.Position{})
+	unknownToken := tokens.New(tokens.KeywordUnknown, "unknown", tokens.Range{})
 	s.Equal(Unknown, FromToken(unknownToken))
 
 	// Test with invalid token kinds
-	invalidToken := tokens.New(tokens.KeywordNull, "null", tokens.Position{})
+	invalidToken := tokens.New(tokens.KeywordNull, "null", tokens.Range{})
 	s.Equal(False, FromToken(invalidToken))
 
-	identToken := tokens.New(tokens.Ident, "someIdentifier", tokens.Position{})
+	identToken := tokens.New(tokens.Ident, "someIdentifier", tokens.Range{})
 	s.Equal(False, FromToken(identToken))
 
-	stringToken := tokens.New(tokens.String, "someString", tokens.Position{})
+	stringToken := tokens.New(tokens.String, "someString", tokens.Range{})
 	s.Equal(False, FromToken(stringToken))
 }
 

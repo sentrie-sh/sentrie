@@ -23,16 +23,16 @@ import (
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 )
 
-func evalFieldAccess(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, t *ast.FieldAccessExpression) (any, *trace.Node, error) {
-	recv, rn, err := eval(ctx, ec, exec, p, t.Left)
-	node, done := trace.New("field", t.Field, t, map[string]any{})
+func evalFieldAccess(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, fieldAccess *ast.FieldAccessExpression) (any, *trace.Node, error) {
+	recv, rn, err := eval(ctx, ec, exec, p, fieldAccess.Left)
+	node, done := trace.New("field", fieldAccess.Field, fieldAccess, map[string]any{})
 	defer done()
 
 	node.Attach(rn)
 	if err != nil {
 		return nil, node.SetErr(err), err
 	}
-	out, err := accessField(ctx, recv, t.Field)
+	out, err := accessField(ctx, recv, fieldAccess.Field)
 	node.SetResult(out).SetErr(err)
 	return out, node, err
 }

@@ -22,24 +22,44 @@ import (
 )
 
 type Instance struct {
-	Kind     Kind
-	Value    string
-	Position Pos
+	Kind  Kind
+	Value string
+	Range Range
 }
 
-func New(kind Kind, value string, pos Pos) Instance {
+func EofInstance(file string) Instance {
 	return Instance{
-		Kind:     kind,
-		Value:    value,
-		Position: pos,
+		Kind:  EOF,
+		Value: "",
+		Range: Range{
+			File: file,
+			From: Pos{
+				Line:   0,
+				Column: 0,
+				Offset: 0,
+			},
+			To: Pos{
+				Line:   0,
+				Column: 0,
+				Offset: 0,
+			},
+		},
 	}
 }
 
-func Err(pos Pos, message string) Instance {
+func New(kind Kind, value string, r Range) Instance {
 	return Instance{
-		Kind:     Error,
-		Value:    message,
-		Position: pos,
+		Kind:  kind,
+		Value: value,
+		Range: r,
+	}
+}
+
+func Err(r Range, message string) Instance {
+	return Instance{
+		Kind:  Error,
+		Value: message,
+		Range: r,
 	}
 }
 

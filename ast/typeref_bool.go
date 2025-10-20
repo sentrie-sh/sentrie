@@ -35,5 +35,6 @@ func (b *BoolTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
 		return err
 	}
 	b.constraints = append(b.constraints, constraint)
+	b.Range.To = constraint.Range.To
 	return nil
 }

@@ -45,26 +45,26 @@ func (r *EvalDistinctTestSuite) SetupSuite() {
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctIntegersWithEquality() {
 	collectionExpr := &ast.ListLiteral{
-		Pos: tokens.Position{Line: 1, Column: 1},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Values: []ast.Expression{
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 1},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 2},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 1},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 3},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 2},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 1},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 2},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 1},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 3},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 2},
 		},
 	}
 
 	distinctExpr := &ast.DistinctExpression{
-		Pos:           tokens.Position{Line: 1, Column: 1},
+		Range:           tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Collection:    collectionExpr,
 		LeftIterator:  "left",
 		RightIterator: "right",
 		Predicate: &ast.InfixExpression{
-			Pos:      tokens.Position{Line: 1, Column: 1},
-			Left:     &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "left"},
+			Range:      tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Left:     &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "left"},
 			Operator: "==",
-			Right:    &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "right"},
+			Right:    &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "right"},
 		},
 	}
 
@@ -76,26 +76,26 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctIntegersWithEquality() {
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctStringsWithEquality() {
 	collectionExpr := &ast.ListLiteral{
-		Pos: tokens.Position{Line: 1, Column: 1},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Values: []ast.Expression{
-			&ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "apple"},
-			&ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "banana"},
-			&ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "apple"},
-			&ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "cherry"},
-			&ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "banana"},
+			&ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "apple"},
+			&ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "banana"},
+			&ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "apple"},
+			&ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "cherry"},
+			&ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "banana"},
 		},
 	}
 
 	distinctExpr := &ast.DistinctExpression{
-		Pos:           tokens.Position{Line: 1, Column: 1},
+		Range:           tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Collection:    collectionExpr,
 		LeftIterator:  "left",
 		RightIterator: "right",
 		Predicate: &ast.InfixExpression{
-			Pos:      tokens.Position{Line: 1, Column: 1},
-			Left:     &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "left"},
+			Range:      tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Left:     &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "left"},
 			Operator: "==",
-			Right:    &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "right"},
+			Right:    &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "right"},
 		},
 	}
 
@@ -107,26 +107,26 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctStringsWithEquality() {
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctMixedTypes() {
 	collectionExpr := &ast.ListLiteral{
-		Pos: tokens.Position{Line: 1, Column: 1},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Values: []ast.Expression{
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 1},
-			&ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "hello"},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 1},
-			&ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "world"},
-			&ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "hello"},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 1},
+			&ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "hello"},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 1},
+			&ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "world"},
+			&ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "hello"},
 		},
 	}
 
 	distinctExpr := &ast.DistinctExpression{
-		Pos:           tokens.Position{Line: 1, Column: 1},
+		Range:           tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Collection:    collectionExpr,
 		LeftIterator:  "left",
 		RightIterator: "right",
 		Predicate: &ast.InfixExpression{
-			Pos:      tokens.Position{Line: 1, Column: 1},
-			Left:     &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "left"},
+			Range:      tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Left:     &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "left"},
 			Operator: "==",
-			Right:    &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "right"},
+			Right:    &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "right"},
 		},
 	}
 
@@ -138,20 +138,20 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctMixedTypes() {
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctEmptyCollection() {
 	collectionExpr := &ast.ListLiteral{
-		Pos:    tokens.Position{Line: 1, Column: 1},
+		Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Values: []ast.Expression{},
 	}
 
 	distinctExpr := &ast.DistinctExpression{
-		Pos:           tokens.Position{Line: 1, Column: 1},
+		Range:           tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Collection:    collectionExpr,
 		LeftIterator:  "left",
 		RightIterator: "right",
 		Predicate: &ast.InfixExpression{
-			Pos:      tokens.Position{Line: 1, Column: 1},
-			Left:     &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "left"},
+			Range:      tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Left:     &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "left"},
 			Operator: "==",
-			Right:    &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "right"},
+			Right:    &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "right"},
 		},
 	}
 
@@ -163,22 +163,22 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctEmptyCollection() {
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctSingleItemCollection() {
 	collectionExpr := &ast.ListLiteral{
-		Pos: tokens.Position{Line: 1, Column: 1},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Values: []ast.Expression{
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 42},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 42},
 		},
 	}
 
 	distinctExpr := &ast.DistinctExpression{
-		Pos:           tokens.Position{Line: 1, Column: 1},
+		Range:           tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Collection:    collectionExpr,
 		LeftIterator:  "left",
 		RightIterator: "right",
 		Predicate: &ast.InfixExpression{
-			Pos:      tokens.Position{Line: 1, Column: 1},
-			Left:     &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "left"},
+			Range:      tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Left:     &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "left"},
 			Operator: "==",
-			Right:    &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "right"},
+			Right:    &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "right"},
 		},
 	}
 
@@ -190,25 +190,25 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctSingleItemCollection() {
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctAllIdenticalItems() {
 	collectionExpr := &ast.ListLiteral{
-		Pos: tokens.Position{Line: 1, Column: 1},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Values: []ast.Expression{
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 5},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 5},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 5},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 5},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 5},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 5},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 5},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 5},
 		},
 	}
 
 	distinctExpr := &ast.DistinctExpression{
-		Pos:           tokens.Position{Line: 1, Column: 1},
+		Range:           tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Collection:    collectionExpr,
 		LeftIterator:  "left",
 		RightIterator: "right",
 		Predicate: &ast.InfixExpression{
-			Pos:      tokens.Position{Line: 1, Column: 1},
-			Left:     &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "left"},
+			Range:      tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Left:     &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "left"},
 			Operator: "==",
-			Right:    &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "right"},
+			Right:    &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "right"},
 		},
 	}
 
@@ -220,25 +220,25 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctAllIdenticalItems() {
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctAlreadyDistinctItems() {
 	collectionExpr := &ast.ListLiteral{
-		Pos: tokens.Position{Line: 1, Column: 1},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Values: []ast.Expression{
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 1},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 2},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 3},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 4},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 1},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 2},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 3},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 4},
 		},
 	}
 
 	distinctExpr := &ast.DistinctExpression{
-		Pos:           tokens.Position{Line: 1, Column: 1},
+		Range:           tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Collection:    collectionExpr,
 		LeftIterator:  "left",
 		RightIterator: "right",
 		Predicate: &ast.InfixExpression{
-			Pos:      tokens.Position{Line: 1, Column: 1},
-			Left:     &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "left"},
+			Range:      tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Left:     &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "left"},
 			Operator: "==",
-			Right:    &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "right"},
+			Right:    &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "right"},
 		},
 	}
 
@@ -251,15 +251,15 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctAlreadyDistinctItems() {
 func (r *EvalDistinctTestSuite) TestEvalDistinctNonListInput() {
 	// Test with non-list collection (should return error)
 	distinctExpr := &ast.DistinctExpression{
-		Pos:           tokens.Position{Line: 1, Column: 1},
-		Collection:    &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "not a list"},
+		Range:           tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+		Collection:    &ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "not a list"},
 		LeftIterator:  "left",
 		RightIterator: "right",
 		Predicate: &ast.InfixExpression{
-			Pos:      tokens.Position{Line: 1, Column: 1},
-			Left:     &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "left"},
+			Range:      tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Left:     &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "left"},
 			Operator: "==",
-			Right:    &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "right"},
+			Right:    &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "right"},
 		},
 	}
 
@@ -272,35 +272,35 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctNonListInput() {
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctByAbsoluteValue() {
 	collectionExpr := &ast.ListLiteral{
-		Pos: tokens.Position{Line: 1, Column: 1},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Values: []ast.Expression{
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: -1},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 1},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: -2},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 2},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: -1},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: -1},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 1},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: -2},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 2},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: -1},
 		},
 	}
 
 	distinctExpr := &ast.DistinctExpression{
-		Pos:           tokens.Position{Line: 1, Column: 1},
+		Range:           tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Collection:    collectionExpr,
 		LeftIterator:  "left",
 		RightIterator: "right",
 		Predicate: &ast.InfixExpression{
-			Pos: tokens.Position{Line: 1, Column: 1},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 			Left: &ast.InfixExpression{
-				Pos:      tokens.Position{Line: 1, Column: 1},
-				Left:     &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "left"},
+				Range:      tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+				Left:     &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "left"},
 				Operator: "*",
-				Right:    &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "left"},
+				Right:    &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "left"},
 			},
 			Operator: "==",
 			Right: &ast.InfixExpression{
-				Pos:      tokens.Position{Line: 1, Column: 1},
-				Left:     &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "right"},
+				Range:      tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+				Left:     &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "right"},
 				Operator: "*",
-				Right:    &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "right"},
+				Right:    &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "right"},
 			},
 		},
 	}
@@ -313,35 +313,35 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctByAbsoluteValue() {
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctByModulo3() {
 	collectionExpr := &ast.ListLiteral{
-		Pos: tokens.Position{Line: 1, Column: 1},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Values: []ast.Expression{
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 1},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 4},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 2},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 5},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 1},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 1},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 4},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 2},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 5},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 1},
 		},
 	}
 
 	distinctExpr := &ast.DistinctExpression{
-		Pos:           tokens.Position{Line: 1, Column: 1},
+		Range:           tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Collection:    collectionExpr,
 		LeftIterator:  "left",
 		RightIterator: "right",
 		Predicate: &ast.InfixExpression{
-			Pos: tokens.Position{Line: 1, Column: 1},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 			Left: &ast.InfixExpression{
-				Pos:      tokens.Position{Line: 1, Column: 1},
-				Left:     &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "left"},
+				Range:      tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+				Left:     &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "left"},
 				Operator: "%",
-				Right:    &ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 3},
+				Right:    &ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 3},
 			},
 			Operator: "==",
 			Right: &ast.InfixExpression{
-				Pos:      tokens.Position{Line: 1, Column: 1},
-				Left:     &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "right"},
+				Range:      tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+				Left:     &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "right"},
 				Operator: "%",
-				Right:    &ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 3},
+				Right:    &ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 3},
 			},
 		},
 	}
@@ -354,24 +354,24 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctByModulo3() {
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctPredicateEvaluationError() {
 	collectionExpr := &ast.ListLiteral{
-		Pos: tokens.Position{Line: 1, Column: 1},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Values: []ast.Expression{
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 1},
-			&ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 2},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 1},
+			&ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 2},
 		},
 	}
 
 	distinctExpr := &ast.DistinctExpression{
-		Pos:           tokens.Position{Line: 1, Column: 1},
+		Range:           tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Collection:    collectionExpr,
 		LeftIterator:  "left",
 		RightIterator: "right",
 		Predicate: &ast.CallExpression{
-			Pos:    tokens.Position{Line: 1, Column: 1},
-			Callee: &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "nonexistent_function"},
+			Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+			Callee: &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "nonexistent_function"},
 			Arguments: []ast.Expression{
-				&ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "left"},
-				&ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "right"},
+				&ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "left"},
+				&ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "right"},
 			},
 		},
 	}
@@ -386,48 +386,48 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctPredicateEvaluationError() {
 func (r *EvalDistinctTestSuite) TestEvalDistinctWithMaps() {
 	// Test with map objects - compare by id field instead of direct equality
 	collectionExpr := &ast.ListLiteral{
-		Pos: tokens.Position{Line: 1, Column: 1},
+		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Values: []ast.Expression{
 			&ast.MapLiteral{
-				Pos: tokens.Position{Line: 1, Column: 1},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 				Entries: []ast.MapEntry{
-					{Key: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "id"}, Value: &ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 1}},
-					{Key: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "name"}, Value: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "Alice"}},
+					{Key: &ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "id"}, Value: &ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 1}},
+					{Key: &ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "name"}, Value: &ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "Alice"}},
 				},
 			},
 			&ast.MapLiteral{
-				Pos: tokens.Position{Line: 1, Column: 1},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 				Entries: []ast.MapEntry{
-					{Key: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "id"}, Value: &ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 2}},
-					{Key: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "name"}, Value: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "Bob"}},
+					{Key: &ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "id"}, Value: &ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 2}},
+					{Key: &ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "name"}, Value: &ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "Bob"}},
 				},
 			},
 			&ast.MapLiteral{
-				Pos: tokens.Position{Line: 1, Column: 1},
+				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 				Entries: []ast.MapEntry{
-					{Key: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "id"}, Value: &ast.IntegerLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: 1}},
-					{Key: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "name"}, Value: &ast.StringLiteral{Pos: tokens.Position{Line: 1, Column: 1}, Value: "Alice"}},
+					{Key: &ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "id"}, Value: &ast.IntegerLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: 1}},
+					{Key: &ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "name"}, Value: &ast.StringLiteral{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "Alice"}},
 				},
 			},
 		},
 	}
 
 	distinctExpr := &ast.DistinctExpression{
-		Pos:           tokens.Position{Line: 1, Column: 1},
+		Range:           tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 		Collection:    collectionExpr,
 		LeftIterator:  "left",
 		RightIterator: "right",
 		Predicate: &ast.InfixExpression{
-			Pos: tokens.Position{Line: 1, Column: 1},
+			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 			Left: &ast.FieldAccessExpression{
-				Pos:   tokens.Position{Line: 1, Column: 1},
-				Left:  &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "left"},
+				Range:   tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+				Left:  &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "left"},
 				Field: "id",
 			},
 			Operator: "==",
 			Right: &ast.FieldAccessExpression{
-				Pos:   tokens.Position{Line: 1, Column: 1},
-				Left:  &ast.Identifier{Pos: tokens.Position{Line: 1, Column: 1}, Value: "right"},
+				Range:   tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
+				Left:  &ast.Identifier{Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}, Value: "right"},
 				Field: "id",
 			},
 		},

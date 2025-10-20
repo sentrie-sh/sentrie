@@ -100,7 +100,7 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 			}
 			keyValue, ok := key.(string)
 			if !ok {
-				err := errors.Wrapf(xerr.ErrInvalidType(fmt.Sprintf("%T", key), "string"), "map key is not a string at %s", kv.Key.Position())
+				err := errors.Wrapf(xerr.ErrInvalidType(fmt.Sprintf("%T", key), "string"), "map key is not a string at %s", kv.Key.Span())
 				return nil, n.SetErr(err), err
 			}
 

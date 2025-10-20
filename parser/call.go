@@ -49,9 +49,9 @@ func parseCallExpression(ctx context.Context, p *Parser, left ast.Expression, pr
 				Offset: left.Span().From.Offset,
 			},
 			To: tokens.Pos{
-				Line:   rparen.Position.Line,
-				Column: rparen.Position.Column,
-				Offset: rparen.Position.Offset,
+				Line:   rparen.Range.From.Line,
+				Column: rparen.Range.From.Column,
+				Offset: rparen.Range.From.Offset,
 			},
 		},
 		Arguments: arguments,
