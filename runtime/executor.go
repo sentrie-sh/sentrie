@@ -28,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
+	otelconfig "github.com/sentrie-sh/sentrie/otel"
 	"github.com/sentrie-sh/sentrie/runtime/js"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 	"github.com/sentrie-sh/sentrie/trinary"
@@ -54,10 +55,10 @@ func WithCallMemoizeCacheSize(size int) NewExecutorOption {
 	}
 }
 
-// WithTraceExecution enables OpenTelemetry tracing for policy execution
-func WithTraceExecution(enabled bool) NewExecutorOption {
+// WithOTelConfig sets the OpenTelemetry configuration for the executor
+func WithOTelConfig(config *otelconfig.OTelConfig) NewExecutorOption {
 	return func(e *executorImpl) {
-		e.traceExecution = enabled
+		e.otelConfig = config
 	}
 }
 
@@ -79,8 +80,8 @@ type Executor interface {
 	Tracer() oteltrace.Tracer
 	// Meter returns the meter for the executor
 	Meter() metric.Meter
-	// TraceExecution returns whether tracing is enabled for the executor
-	TraceExecution() bool
+	// OTelConfig returns the OpenTelemetry configuration for the executor
+	OTelConfig() *otelconfig.OTelConfig
 	// Metrics returns the metrics for the executor
 	Metrics() *ExecutionMetrics
 	ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) ([]*ExecutorOutput, error)
@@ -96,7 +97,7 @@ type executorImpl struct {
 	callMemoizePerch   *perch.Perch[any]
 	tracer             oteltrace.Tracer
 	meter              metric.Meter
-	traceExecution     bool
+	otelConfig         *otelconfig.OTelConfig
 	metrics            *ExecutionMetrics // Execution metrics (initialized once)
 }
 
@@ -108,8 +109,8 @@ func (e *executorImpl) Meter() metric.Meter {
 	return e.meter
 }
 
-func (e *executorImpl) TraceExecution() bool {
-	return e.traceExecution
+func (e *executorImpl) OTelConfig() *otelconfig.OTelConfig {
+	return e.otelConfig
 }
 
 func (e *executorImpl) Metrics() *ExecutionMetrics {
@@ -125,8 +126,8 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 		callMemoizePerch:   perch.New[any](10 << 20 /* 10 MB */),
 		tracer:             otel.Tracer("sentrie/executor"),
 		meter:              otel.Meter("sentrie/executor"),
+		otelConfig:         nil,
 		metrics:            nil,
-		traceExecution:     false, // Default to false, can be overridden by options
 	}
 
 	exec.jsRegistry.RegisterBuiltin("uuid", js.BuiltinUuidGo)
@@ -138,7 +139,7 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 	}
 
 	// Initialize execution metrics if tracing is enabled and meter is available
-	if exec.traceExecution && exec.meter != nil {
+	if exec.otelConfig.TraceExecution && exec.meter != nil {
 		exec.metrics = &ExecutionMetrics{}
 
 		var err error
@@ -186,14 +187,18 @@ func (e *executorImpl) Index() *index.Index {
 
 // ExecPolicy executes all exported rules and returns the results
 func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) ([]*ExecutorOutput, error) {
-	ctx, span := e.tracer.Start(ctx, "executor.exec_policy")
-	defer span.End()
+	// Use otelConfig for decision-level tracing
+	var span oteltrace.Span
+	if e.otelConfig.Enabled {
+		ctx, span = e.tracer.Start(ctx, "executor.exec_policy")
+		defer span.End()
 
-	span.SetAttributes(
-		attribute.String("sentrie.namespace", namespace),
-		attribute.String("sentrie.policy", policy),
-		attribute.Int("sentrie.facts.count", len(facts)),
-	)
+		span.SetAttributes(
+			attribute.String("sentrie.namespace", namespace),
+			attribute.String("sentrie.policy", policy),
+			attribute.Int("sentrie.facts.count", len(facts)),
+		)
+	}
 
 	start := time.Now()
 	defer func() {
@@ -211,7 +216,9 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 
 	p, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
-		span.RecordError(err)
+		if e.otelConfig.Enabled && span != nil {
+			span.RecordError(err)
+		}
 		return nil, err
 	}
 
@@ -228,7 +235,9 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 			theLock.Lock()
 			defer theLock.Unlock()
 			if err != nil {
-				span.RecordError(err)
+				if e.otelConfig.Enabled && span != nil {
+					span.RecordError(err)
+				}
 				compositeErr = stdErr.Join(compositeErr, err)
 				return
 			}
@@ -244,15 +253,19 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 
 // ExecRule executes an exported rule and returns the result
 func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, injectFacts map[string]any) (*ExecutorOutput, error) {
-	ctx, span := e.tracer.Start(ctx, "ExecRule")
-	defer span.End()
+	// Use otelConfig for decision-level tracing
+	var span oteltrace.Span
+	if e.otelConfig.Enabled {
+		ctx, span = e.tracer.Start(ctx, "ExecRule")
+		defer span.End()
 
-	span.SetAttributes(
-		attribute.String("sentrie.namespace", namespace),
-		attribute.String("sentrie.policy", policy),
-		attribute.String("sentrie.rule", rule),
-		attribute.Int("sentrie.facts.count", len(injectFacts)),
-	)
+		span.SetAttributes(
+			attribute.String("sentrie.namespace", namespace),
+			attribute.String("sentrie.policy", policy),
+			attribute.String("sentrie.rule", rule),
+			attribute.Int("sentrie.facts.count", len(injectFacts)),
+		)
+	}
 
 	start := time.Now()
 	defer func() {
@@ -272,11 +285,15 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 	// Validate exported
 	p, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
-		span.RecordError(err)
+		if e.otelConfig.Enabled && span != nil {
+			span.RecordError(err)
+		}
 		return nil, err
 	}
 	if err := p.VerifyRuleExported(rule); err != nil {
-		span.RecordError(err)
+		if e.otelConfig.Enabled && span != nil {
+			span.RecordError(err)
+		}
 		return nil, err
 	}
 
@@ -287,7 +304,9 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 		// look for a value for this fact in the passed in facts map
 		if _, ok := injectFacts[factName]; ok {
 			if err := ec.InjectFact(ctx, factName, injectFacts[factName], false, factStatement.Type); err != nil {
-				span.RecordError(err)
+				if e.otelConfig.Enabled && span != nil {
+					span.RecordError(err)
+				}
 				return nil, err
 			}
 			continue // move on to the next fact
@@ -325,7 +344,9 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 
 	// Bind `use` modules
 	if err := e.bindUses(ctx, ec, p); err != nil {
-		span.RecordError(err)
+		if e.otelConfig.Enabled && span != nil {
+			span.RecordError(err)
+		}
 		return nil, err
 	}
 

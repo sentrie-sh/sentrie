@@ -15,22 +15,6 @@ import (
 func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	tracer := api.tracer
-	meter := api.meter
-
-	// Create decision-specific metrics
-	decisionCount, _ := meter.Int64Counter(
-		"sentrie.decision.count",
-		metric.WithDescription("Number of decisions made"),
-	)
-	decisionDuration, _ := meter.Float64Histogram(
-		"sentrie.decision.duration",
-		metric.WithDescription("Decision execution duration in milliseconds"),
-		metric.WithUnit("ms"),
-	)
-	decisionFactsCount, _ := meter.Int64Histogram(
-		"sentrie.decision.facts.count",
-		metric.WithDescription("Number of facts per decision"),
-	)
 
 	// Start timing
 	start := time.Now()
@@ -97,7 +81,9 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 
 	// Record facts count
 	factsCount := int64(len(req.Facts))
-	decisionFactsCount.Record(ctx, factsCount)
+	if api.metrics != nil {
+		api.metrics.DecisionFactsCount.Record(ctx, factsCount)
+	}
 
 	// Execute policy/rule
 	ctx, execSpan := tracer.Start(ctx, "decision.execution")
@@ -114,7 +100,9 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 
 	// Record execution metrics
 	execDuration := float64(time.Since(start).Nanoseconds()) / 1e6 // Convert to milliseconds
-	decisionDuration.Record(ctx, execDuration)
+	if api.metrics != nil {
+		api.metrics.DecisionDuration.Record(ctx, execDuration)
+	}
 
 	// Determine outcome for metrics
 	outcome := "unknown"
@@ -132,14 +120,16 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Record decision count
-	decisionCount.Add(ctx, 1,
-		metric.WithAttributes(
-			attribute.String("sentrie.namespace", namespace),
-			attribute.String("sentrie.policy", policy),
-			attribute.String("sentrie.rule", rule),
-			attribute.String("sentrie.outcome", outcome),
-		),
-	)
+	if api.metrics != nil {
+		api.metrics.DecisionCount.Add(ctx, 1,
+			metric.WithAttributes(
+				attribute.String("sentrie.namespace", namespace),
+				attribute.String("sentrie.policy", policy),
+				attribute.String("sentrie.rule", rule),
+				attribute.String("sentrie.outcome", outcome),
+			),
+		)
+	}
 
 	response := DecisionResponse{
 		Decisions: outputs,

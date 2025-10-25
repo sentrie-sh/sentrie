@@ -50,7 +50,7 @@ func addServeCmd(cli *cling.CLI) {
 			WithFlag(
 				cling.NewStringCmdInput("otel-protocol").
 					WithDefault("grpc").
-					WithValidator(cling.NewEnumValidator("http", "json")).
+					WithValidator(cling.NewEnumValidator("http", "grpc")).
 					WithDescription("OpenTelemetry protocol (grpc or http)").
 					AsFlag().
 					FromEnv([]string{constants.EnvOtelProtocol}),
@@ -88,18 +88,18 @@ func serveCmd(ctx context.Context, args []string) error {
 
 	// Initialize OpenTelemetry if enabled
 	var otelCleanup otel.ShutdownFn
-	if input.OtelEnabled {
-		config := otel.OTelConfig{
-			Enabled:        input.OtelEnabled,
-			Endpoint:       input.OtelEndpoint,
-			Protocol:       input.OtelProtocol,
-			ServiceName:    constants.APPNAME,
-			ServiceVersion: constants.APPVERSION,
-			PackName:       pack.Name,
-			TraceExecution: input.OtelTraceExecution,
-		}
+	otelConfig := otel.OTelConfig{
+		Enabled:        input.OtelEnabled,
+		Endpoint:       input.OtelEndpoint,
+		Protocol:       input.OtelProtocol,
+		ServiceName:    constants.APPNAME,
+		ServiceVersion: constants.APPVERSION,
+		PackName:       pack.Name,
+		TraceExecution: input.OtelEnabled && input.OtelTraceExecution,
+	}
 
-		otelCleanup, err = otel.InitProvider(ctx, config)
+	if otelConfig.Enabled {
+		otelCleanup, err = otel.InitProvider(ctx, otelConfig)
 		if err != nil {
 			return err
 		}
@@ -136,12 +136,10 @@ func serveCmd(ctx context.Context, args []string) error {
 	}
 
 	// Create executor with OpenTelemetry options
-	var execOpts []runtime.NewExecutorOption
-	if input.OtelTraceExecution {
-		execOpts = append(execOpts, runtime.WithTraceExecution(true))
-	}
-
-	exec, err := runtime.NewExecutor(idx, execOpts...)
+	exec, err := runtime.NewExecutor(
+		idx,
+		runtime.WithOTelConfig(&otelConfig),
+	)
 	if err != nil {
 		return err
 	}

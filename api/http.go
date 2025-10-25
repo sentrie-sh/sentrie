@@ -54,6 +54,21 @@ func (p *ListenerServerPair) Close() error {
 	return nil
 }
 
+// HTTPMetrics holds all HTTP-related OpenTelemetry metrics
+type HTTPMetrics struct {
+	// HTTP server metrics
+	RequestCount    metric.Int64Counter
+	RequestDuration metric.Float64Histogram
+	ActiveRequests  metric.Int64UpDownCounter
+	RequestSize     metric.Int64Histogram
+	ResponseSize    metric.Int64Histogram
+
+	// Decision-specific metrics
+	DecisionCount      metric.Int64Counter
+	DecisionDuration   metric.Float64Histogram
+	DecisionFactsCount metric.Int64Histogram
+}
+
 // HTTPAPI provides HTTP endpoints for rule execution
 type HTTPAPI struct {
 	executor  runtime.Executor
@@ -61,12 +76,7 @@ type HTTPAPI struct {
 	tracer    trace.Tracer
 	meter     metric.Meter
 	logger    *slog.Logger
-	// HTTP metrics
-	requestCount    metric.Int64Counter
-	requestDuration metric.Float64Histogram
-	activeRequests  metric.Int64UpDownCounter
-	requestSize     metric.Int64Histogram
-	responseSize    metric.Int64Histogram
+	metrics   *HTTPMetrics
 }
 
 // NewHTTPAPI creates a new HTTP API instance
@@ -78,49 +88,80 @@ func NewHTTPAPI(executor runtime.Executor) *HTTPAPI {
 		logger:   slog.Default(),
 	}
 
-	// Initialize HTTP metrics
-	var err error
-	api.requestCount, err = api.meter.Int64Counter(
-		"http.server.request.count",
-		metric.WithDescription("Number of HTTP requests"),
-	)
-	if err != nil {
-		api.logger.Error("Failed to create request count metric", "error", err)
-	}
+	// Initialize HTTP metrics only if OpenTelemetry is enabled
+	if cfg := executor.OTelConfig(); cfg.Enabled {
+		api.metrics = &HTTPMetrics{}
+		var err error
 
-	api.requestDuration, err = api.meter.Float64Histogram(
-		"http.server.request.duration",
-		metric.WithDescription("HTTP request duration in milliseconds"),
-		metric.WithUnit("ms"),
-	)
-	if err != nil {
-		api.logger.Error("Failed to create request duration metric", "error", err)
-	}
+		// HTTP server metrics
+		api.metrics.RequestCount, err = api.meter.Int64Counter(
+			"http.server.request.count",
+			metric.WithDescription("Number of HTTP requests"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create request count metric", "error", err)
+		}
 
-	api.activeRequests, err = api.meter.Int64UpDownCounter(
-		"http.server.active_requests",
-		metric.WithDescription("Number of active HTTP requests"),
-	)
-	if err != nil {
-		api.logger.Error("Failed to create active requests metric", "error", err)
-	}
+		api.metrics.RequestDuration, err = api.meter.Float64Histogram(
+			"http.server.request.duration",
+			metric.WithDescription("HTTP request duration in milliseconds"),
+			metric.WithUnit("ms"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create request duration metric", "error", err)
+		}
 
-	api.requestSize, err = api.meter.Int64Histogram(
-		"http.server.request.size",
-		metric.WithDescription("HTTP request body size in bytes"),
-		metric.WithUnit("bytes"),
-	)
-	if err != nil {
-		api.logger.Error("Failed to create request size metric", "error", err)
-	}
+		api.metrics.ActiveRequests, err = api.meter.Int64UpDownCounter(
+			"http.server.active_requests",
+			metric.WithDescription("Number of active HTTP requests"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create active requests metric", "error", err)
+		}
 
-	api.responseSize, err = api.meter.Int64Histogram(
-		"http.server.response.size",
-		metric.WithDescription("HTTP response body size in bytes"),
-		metric.WithUnit("bytes"),
-	)
-	if err != nil {
-		api.logger.Error("Failed to create response size metric", "error", err)
+		api.metrics.RequestSize, err = api.meter.Int64Histogram(
+			"http.server.request.size",
+			metric.WithDescription("HTTP request body size in bytes"),
+			metric.WithUnit("bytes"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create request size metric", "error", err)
+		}
+
+		api.metrics.ResponseSize, err = api.meter.Int64Histogram(
+			"http.server.response.size",
+			metric.WithDescription("HTTP response body size in bytes"),
+			metric.WithUnit("bytes"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create response size metric", "error", err)
+		}
+
+		// Decision-specific metrics
+		api.metrics.DecisionCount, err = api.meter.Int64Counter(
+			"sentrie.decision.count",
+			metric.WithDescription("Number of decisions made"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create decision count metric", "error", err)
+		}
+
+		api.metrics.DecisionDuration, err = api.meter.Float64Histogram(
+			"sentrie.decision.duration",
+			metric.WithDescription("Decision execution duration in milliseconds"),
+			metric.WithUnit("ms"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create decision duration metric", "error", err)
+		}
+
+		api.metrics.DecisionFactsCount, err = api.meter.Int64Histogram(
+			"sentrie.decision.facts.count",
+			metric.WithDescription("Number of facts per decision"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create decision facts count metric", "error", err)
+		}
 	}
 
 	return api
@@ -226,11 +267,14 @@ func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error 
 	// Health check endpoint
 	mux.Handle("GET /health", http.HandlerFunc(api.handleHealth))
 
-	// Wrap mux with OpenTelemetry HTTP instrumentation
-	handler := otelhttp.NewHandler(mux, "sentrie-http-server",
-		otelhttp.WithTracerProvider(otel.GetTracerProvider()),
-		otelhttp.WithMeterProvider(otel.GetMeterProvider()),
-	)
+	// Wrap mux with OpenTelemetry HTTP instrumentation only if enabled
+	var handler http.Handler = mux
+	if api.metrics != nil {
+		handler = otelhttp.NewHandler(mux, "sentrie-http-server",
+			otelhttp.WithTracerProvider(otel.GetTracerProvider()),
+			otelhttp.WithMeterProvider(otel.GetMeterProvider()),
+		)
+	}
 
 	bindings, err := resolveBindings(port, listen)
 	if err != nil {

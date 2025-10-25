@@ -36,7 +36,7 @@ func evalAny(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 
 	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
 	var span oteltrace.Span
-	if ec.executor.TraceExecution() {
+	if cfg := ec.executor.OTelConfig(); cfg.Enabled && cfg.TraceExecution {
 		ctx, span = ec.executor.Tracer().Start(ctx, "any")
 		defer span.End()
 
@@ -95,7 +95,7 @@ func evalAll(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 
 	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
 	var span oteltrace.Span
-	if ec.executor.TraceExecution() {
+	if cfg := ec.executor.OTelConfig(); cfg.Enabled && cfg.TraceExecution {
 		ctx, span = ec.executor.Tracer().Start(ctx, "all")
 		defer span.End()
 
@@ -154,7 +154,7 @@ func evalFirst(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 
 	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
 	var span oteltrace.Span
-	if ec.executor.TraceExecution() {
+	if cfg := ec.executor.OTelConfig(); cfg.Enabled && cfg.TraceExecution {
 		ctx, span = ec.executor.Tracer().Start(ctx, "first")
 		defer span.End()
 
@@ -215,7 +215,7 @@ func evalFilter(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p
 
 	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
 	var span oteltrace.Span
-	if ec.executor.TraceExecution() {
+	if cfg := ec.executor.OTelConfig(); cfg.Enabled && cfg.TraceExecution {
 		ctx, span = ec.executor.Tracer().Start(ctx, "filter")
 		defer span.End()
 
@@ -273,7 +273,7 @@ func evalMap(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 
 	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
 	var span oteltrace.Span
-	if ec.executor.TraceExecution() {
+	if cfg := ec.executor.OTelConfig(); cfg.Enabled && cfg.TraceExecution {
 		ctx, span = ec.executor.Tracer().Start(ctx, "map")
 		defer span.End()
 

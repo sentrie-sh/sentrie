@@ -37,7 +37,7 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 
 	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
 	var span oteltrace.Span
-	if ec.executor.TraceExecution() {
+	if cfg := ec.executor.OTelConfig(); cfg.Enabled && cfg.TraceExecution {
 		ctx, span = ec.executor.Tracer().Start(ctx, "import")
 		defer span.End()
 
