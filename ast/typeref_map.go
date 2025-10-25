@@ -27,6 +27,7 @@ var _ Node = &MapTypeRef{}
 
 func (m *MapTypeRef) typeref()           {}
 func (m *MapTypeRef) Span() tokens.Range { return m.Range }
+func (m *MapTypeRef) Kind() string       { return "map_typeref" }
 func (m *MapTypeRef) String() string     { return "map[" + m.ValueType.String() + "]" }
 func (m *MapTypeRef) GetConstraints() []*TypeRefConstraint {
 	return m.constraints

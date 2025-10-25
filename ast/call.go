@@ -42,6 +42,10 @@ func (c *CallExpression) Span() tokens.Range {
 	return c.Range
 }
 
+func (c *CallExpression) Kind() string {
+	return "call"
+}
+
 func (c *CallExpression) expressionNode() {}
 
 var _ Expression = &CallExpression{}

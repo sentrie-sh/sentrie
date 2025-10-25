@@ -29,10 +29,18 @@ func (f *FieldAccessExpression) Span() tokens.Range {
 	return f.Range
 }
 
+func (f *FieldAccessExpression) Kind() string {
+	return "field_access"
+}
+
 func (f *FieldAccessExpression) expressionNode() {}
 
 func (i *IndexAccessExpression) Span() tokens.Range {
 	return i.Range
+}
+
+func (i *IndexAccessExpression) Kind() string {
+	return "index_access"
 }
 
 func (i *IndexAccessExpression) expressionNode() {}

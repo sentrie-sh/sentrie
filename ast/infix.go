@@ -33,6 +33,10 @@ func (e *InfixExpression) Span() tokens.Range {
 	return e.Range
 }
 
+func (e *InfixExpression) Kind() string {
+	return "infix"
+}
+
 func (e *InfixExpression) expressionNode() {}
 
 var _ Expression = &InfixExpression{}

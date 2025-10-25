@@ -32,6 +32,10 @@ func (i *Identifier) Span() tokens.Range {
 	return i.Range
 }
 
+func (i *Identifier) Kind() string {
+	return "identifier"
+}
+
 func (i *Identifier) expressionNode() {}
 
 var _ Expression = &Identifier{}

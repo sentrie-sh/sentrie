@@ -26,6 +26,7 @@ var _ Node = &StringTypeRef{}
 
 func (s *StringTypeRef) typeref()           {}
 func (s *StringTypeRef) Span() tokens.Range { return s.Range }
+func (s *StringTypeRef) Kind() string       { return "string_typreref" }
 func (s *StringTypeRef) String() string     { return "string" }
 func (s *StringTypeRef) GetConstraints() []*TypeRefConstraint {
 	return s.constraints

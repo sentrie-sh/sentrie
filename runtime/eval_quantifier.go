@@ -21,6 +21,8 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
+	"go.opentelemetry.io/otel/attribute"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 func evalAny(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, q *ast.AnyExpression) (any, *trace.Node, error) {
@@ -31,6 +33,18 @@ func evalAny(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 		"predicate":  q.Predicate.String(),
 	})
 	defer done()
+
+	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
+	var span oteltrace.Span
+	if ec.executor.TraceExecution() {
+		ctx, span = ec.executor.Tracer().Start(ctx, "any")
+		defer span.End()
+
+		span.SetAttributes(
+			attribute.String("sentrie.ast.node.kind", q.Kind()),
+			attribute.String("sentrie.ast.node.range", q.Span().String()),
+		)
+	}
 
 	col, colNode, err := eval(ctx, ec, exec, p, q.Collection)
 	node.Attach(colNode)
@@ -79,6 +93,18 @@ func evalAll(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 	})
 	defer done()
 
+	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
+	var span oteltrace.Span
+	if ec.executor.TraceExecution() {
+		ctx, span = ec.executor.Tracer().Start(ctx, "all")
+		defer span.End()
+
+		span.SetAttributes(
+			attribute.String("sentrie.ast.node.kind", q.Kind()),
+			attribute.String("sentrie.ast.node.range", q.Span().String()),
+		)
+	}
+
 	col, colNode, err := eval(ctx, ec, exec, p, q.Collection)
 	node.Attach(colNode)
 	if err != nil {
@@ -125,6 +151,18 @@ func evalFirst(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		"predicate":  q.Predicate.String(),
 	})
 	defer done()
+
+	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
+	var span oteltrace.Span
+	if ec.executor.TraceExecution() {
+		ctx, span = ec.executor.Tracer().Start(ctx, "first")
+		defer span.End()
+
+		span.SetAttributes(
+			attribute.String("sentrie.ast.node.kind", q.Kind()),
+			attribute.String("sentrie.ast.node.range", q.Span().String()),
+		)
+	}
 
 	col, colNode, err := eval(ctx, ec, exec, p, q.Collection)
 	node.Attach(colNode)
@@ -174,6 +212,19 @@ func evalFilter(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p
 		"predicate":  q.Predicate.String(),
 	})
 	defer done()
+
+	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
+	var span oteltrace.Span
+	if ec.executor.TraceExecution() {
+		ctx, span = ec.executor.Tracer().Start(ctx, "filter")
+		defer span.End()
+
+		span.SetAttributes(
+			attribute.String("sentrie.ast.node.kind", q.Kind()),
+			attribute.String("sentrie.ast.node.range", q.Span().String()),
+		)
+	}
+
 	col, colNode, err := eval(ctx, ec, exec, p, q.Collection)
 	node.Attach(colNode)
 	if err != nil {
@@ -219,6 +270,18 @@ func evalMap(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 		"transform":  m.Transform.String(),
 	})
 	defer done()
+
+	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
+	var span oteltrace.Span
+	if ec.executor.TraceExecution() {
+		ctx, span = ec.executor.Tracer().Start(ctx, "map")
+		defer span.End()
+
+		span.SetAttributes(
+			attribute.String("sentrie.ast.node.kind", m.Kind()),
+			attribute.String("sentrie.ast.node.range", m.Span().String()),
+		)
+	}
 
 	col, colNode, err := eval(ctx, ec, exec, p, m.Collection)
 	node.Attach(colNode)

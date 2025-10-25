@@ -28,6 +28,10 @@ func (n *NullLiteral) Span() tokens.Range {
 	return n.Range
 }
 
+func (n *NullLiteral) Kind() string {
+	return "null_literal"
+}
+
 func (n *NullLiteral) expressionNode() {}
 
 var _ Expression = &NullLiteral{}

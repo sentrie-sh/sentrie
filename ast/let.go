@@ -35,6 +35,10 @@ func (v VarDeclaration) Span() tokens.Range {
 	return v.Range
 }
 
+func (v VarDeclaration) Kind() string {
+	return "let"
+}
+
 func (v VarDeclaration) statementNode() {}
 
 var _ Statement = &VarDeclaration{}

@@ -43,6 +43,10 @@ func (l *ListLiteral) String() string {
 
 func (l *ListLiteral) expressionNode() {}
 
+func (l *ListLiteral) Kind() string {
+	return "list_literal"
+}
+
 func (l *ListLiteral) Span() tokens.Range {
 	return l.Range
 }

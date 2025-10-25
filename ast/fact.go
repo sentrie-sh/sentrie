@@ -33,6 +33,10 @@ func (f FactStatement) Span() tokens.Range {
 	return f.Range
 }
 
+func (f FactStatement) Kind() string {
+	return "fact"
+}
+
 func (f FactStatement) statementNode() {}
 
 var _ Statement = &FactStatement{}

@@ -244,7 +244,7 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 
 // ExecRule executes an exported rule and returns the result
 func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, injectFacts map[string]any) (*ExecutorOutput, error) {
-	ctx, span := e.tracer.Start(ctx, "executor.exec_rule")
+	ctx, span := e.tracer.Start(ctx, "ExecRule")
 	defer span.End()
 
 	span.SetAttributes(
@@ -264,8 +264,6 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 					attribute.String("sentrie.namespace", namespace),
 					attribute.String("sentrie.policy", policy),
 					attribute.String("sentrie.rule", rule),
-					attribute.String("executor.exec_rule.span_id", span.SpanContext().SpanID().String()),
-					attribute.String("executor.exec_rule.trace_id", span.SpanContext().TraceID().String()),
 				),
 			)
 		}
@@ -363,7 +361,7 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 	defer ec.PopRefStack()
 
 	// Wrap rule evaluation in a decision node
-	ruleNode, done := trace.New("rule-outcome", rule, r, map[string]any{
+	ruleNode, done := trace.New("rule-outcome", rule, r.Node, map[string]any{
 		"namespace": namespace,
 		"policy":    policy,
 	})
@@ -505,7 +503,7 @@ func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStateme
 
 // evaluateRuleOutcome drives rule evaluation and returns (value, node, error).
 func evaluateRuleOutcome(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *index.Policy, r *index.Rule) (*Decision, *trace.Node, error) {
-	rn, done := trace.New("rule", r.Name, r, map[string]any{})
+	rn, done := trace.New("rule", r.Name, r.Node, map[string]any{})
 	defer done()
 
 	// `when` gate: (`when` is `true` by default)
@@ -545,7 +543,7 @@ func evaluateRuleOutcome(ctx context.Context, ec *ExecutionContext, e *executorI
 		return theDefault, rn, nil
 	}
 
-	rb, done := trace.New("rule-body", r.Name, r, map[string]any{})
+	rb, done := trace.New("rule-body", r.Name, r.Body, map[string]any{})
 	defer done()
 
 	val, bodyNode, err := eval(ctx, ec, e, p, r.Body)

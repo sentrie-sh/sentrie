@@ -41,6 +41,10 @@ func (c CommentStatement) Span() tokens.Range {
 	return c.Range
 }
 
+func (c CommentStatement) Kind() string {
+	return "comment"
+}
+
 func (c CommentStatement) String() string {
 	return fmt.Sprintf("LineComment(%s)", c.Content)
 }
@@ -55,6 +59,10 @@ func (t TrailingCommentExpression) Span() tokens.Range {
 	return t.Range
 }
 
+func (t TrailingCommentExpression) Kind() string {
+	return "trailing_comment"
+}
+
 func (t TrailingCommentExpression) expressionNode() {}
 
 func (p PrecedingCommentExpression) String() string {
@@ -63,6 +71,10 @@ func (p PrecedingCommentExpression) String() string {
 
 func (p PrecedingCommentExpression) Span() tokens.Range {
 	return p.Range
+}
+
+func (p PrecedingCommentExpression) Kind() string {
+	return "preceding_comment"
 }
 
 func (p PrecedingCommentExpression) expressionNode() {}

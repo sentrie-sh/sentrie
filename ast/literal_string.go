@@ -32,6 +32,10 @@ func (s *StringLiteral) String() string {
 
 func (s *StringLiteral) expressionNode() {}
 
+func (s *StringLiteral) Kind() string {
+	return "string_literal"
+}
+
 func (s *StringLiteral) Span() tokens.Range {
 	return s.Range
 }

@@ -43,6 +43,10 @@ func (s *ShapeStatement) Span() tokens.Range {
 	return s.Range
 }
 
+func (s *ShapeStatement) Kind() string {
+	return "shape"
+}
+
 func (s *ShapeStatement) String() string {
 	return ""
 }

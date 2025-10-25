@@ -33,6 +33,10 @@ func (b *TrinaryLiteral) Span() tokens.Range {
 	return b.Range
 }
 
+func (b *TrinaryLiteral) Kind() string {
+	return "trinary_literal"
+}
+
 func (b *TrinaryLiteral) expressionNode() {}
 
 var _ Expression = &TrinaryLiteral{}

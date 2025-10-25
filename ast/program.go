@@ -31,6 +31,10 @@ func (n NamespaceStatement) Span() tokens.Range {
 	return n.Range
 }
 
+func (n NamespaceStatement) Kind() string {
+	return "namespace"
+}
+
 func (n NamespaceStatement) statementNode() {}
 
 var _ Statement = &NamespaceStatement{}
@@ -48,6 +52,10 @@ func (p PolicyStatement) String() string {
 
 func (p PolicyStatement) Span() tokens.Range {
 	return p.Range
+}
+
+func (p PolicyStatement) Kind() string {
+	return "policy"
 }
 
 func (p PolicyStatement) statementNode() {}

@@ -27,6 +27,7 @@ var _ Node = &ShapeTypeRef{}
 
 func (s *ShapeTypeRef) typeref()           {}
 func (s *ShapeTypeRef) Span() tokens.Range { return s.Range }
+func (s *ShapeTypeRef) Kind() string       { return "shape_typeref" }
 func (s *ShapeTypeRef) String() string     { return s.Ref.String() }
 func (s *ShapeTypeRef) GetConstraints() []*TypeRefConstraint {
 	return s.constraints

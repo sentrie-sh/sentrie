@@ -32,6 +32,10 @@ func (f *FloatLiteral) String() string {
 
 func (f *FloatLiteral) expressionNode() {}
 
+func (f *FloatLiteral) Kind() string {
+	return "float_literal"
+}
+
 // Span returns the span of the float literal in the source code
 func (f *FloatLiteral) Span() tokens.Range {
 	return f.Range

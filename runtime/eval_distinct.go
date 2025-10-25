@@ -8,6 +8,8 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
+	"go.opentelemetry.io/otel/attribute"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 func evalDistinct(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, d *ast.DistinctExpression) (any, *trace.Node, error) {
@@ -17,6 +19,18 @@ func evalDistinct(ctx context.Context, ec *ExecutionContext, exec *executorImpl,
 		"right_iter": d.RightIterator,
 	})
 	defer done()
+
+	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
+	var span oteltrace.Span
+	if ec.executor.TraceExecution() {
+		ctx, span = ec.executor.Tracer().Start(ctx, "distinct")
+		defer span.End()
+
+		span.SetAttributes(
+			attribute.String("sentrie.ast.node.kind", d.Kind()),
+			attribute.String("sentrie.ast.node.range", d.Span().String()),
+		)
+	}
 
 	col, colNode, err := eval(ctx, ec, exec, p, d.Collection)
 	node.Attach(colNode)

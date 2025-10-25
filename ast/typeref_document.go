@@ -26,6 +26,7 @@ var _ Node = &DocumentTypeRef{}
 
 func (d *DocumentTypeRef) typeref()           {}
 func (d *DocumentTypeRef) Span() tokens.Range { return d.Range }
+func (d *DocumentTypeRef) Kind() string       { return "document_typeref" }
 func (d *DocumentTypeRef) String() string     { return "document" }
 func (d *DocumentTypeRef) GetConstraints() []*TypeRefConstraint {
 	return d.constraints

@@ -21,6 +21,7 @@ import (
 type Node interface {
 	String() string
 	Span() tokens.Range
+	Kind() string
 }
 
 type Statement interface {

@@ -35,6 +35,10 @@ func (t *TernaryExpression) Span() tokens.Range {
 	return t.Range
 }
 
+func (t *TernaryExpression) Kind() string {
+	return "ternary"
+}
+
 func (t *TernaryExpression) expressionNode() {}
 
 var _ Expression = &TernaryExpression{}

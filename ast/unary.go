@@ -30,6 +30,10 @@ func (u *UnaryExpression) Span() tokens.Range {
 	return u.Range
 }
 
+func (u *UnaryExpression) Kind() string {
+	return "unary"
+}
+
 func (u *UnaryExpression) expressionNode() {}
 
 var _ Expression = &UnaryExpression{}

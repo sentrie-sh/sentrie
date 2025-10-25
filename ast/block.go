@@ -40,5 +40,9 @@ func (b *BlockExpression) Span() tokens.Range {
 	return b.SourceSpan
 }
 
+func (b *BlockExpression) Kind() string {
+	return "block"
+}
+
 var _ Expression = &BlockExpression{}
 var _ Node = &BlockExpression{}

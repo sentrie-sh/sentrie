@@ -30,6 +30,10 @@ func (c *CastExpression) Span() tokens.Range {
 	return c.Range
 }
 
+func (c *CastExpression) Kind() string {
+	return "cast"
+}
+
 func (c *CastExpression) expressionNode() {}
 
 var _ Expression = (*CastExpression)(nil)

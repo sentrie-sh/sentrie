@@ -50,6 +50,10 @@ func (m *MapLiteral) Span() tokens.Range {
 	return m.Range
 }
 
+func (m *MapLiteral) Kind() string {
+	return "map_literal"
+}
+
 func (m *MapLiteral) expressionNode() {}
 
 var _ Expression = &MapLiteral{}

@@ -166,20 +166,49 @@ func (d *DistinctExpression) String() string {
 func (m *MapExpression) Span() tokens.Range {
 	return m.Range
 }
+
+func (m *MapExpression) Kind() string {
+	return "map"
+}
+
 func (a *AnyExpression) Span() tokens.Range {
 	return a.Range
 }
+
+func (a *AnyExpression) Kind() string {
+	return "any"
+}
+
 func (a *AllExpression) Span() tokens.Range {
 	return a.Range
 }
+
+func (a *AllExpression) Kind() string {
+	return "all"
+}
+
 func (f *FirstExpression) Span() tokens.Range {
 	return f.Range
 }
+
+func (f *FirstExpression) Kind() string {
+	return "first"
+}
+
 func (f *FilterExpression) Span() tokens.Range {
 	return f.Range
 }
+
+func (f *FilterExpression) Kind() string {
+	return "filter"
+}
+
 func (d *DistinctExpression) Span() tokens.Range {
 	return d.Range
+}
+
+func (d *DistinctExpression) Kind() string {
+	return "distinct"
 }
 
 func (m *MapExpression) expressionNode()      {}

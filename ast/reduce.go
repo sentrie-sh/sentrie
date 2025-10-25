@@ -52,6 +52,10 @@ func (r *ReduceExpression) Span() tokens.Range {
 	return r.Range
 }
 
+func (r *ReduceExpression) Kind() string {
+	return "reduce"
+}
+
 func (r *ReduceExpression) expressionNode() {}
 
 var _ Expression = &ReduceExpression{}

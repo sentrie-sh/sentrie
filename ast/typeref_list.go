@@ -27,6 +27,7 @@ var _ Node = &ListTypeRef{}
 
 func (a *ListTypeRef) typeref()           {}
 func (a *ListTypeRef) Span() tokens.Range { return a.Range }
+func (a *ListTypeRef) Kind() string       { return "list_typeref" }
 func (a *ListTypeRef) String() string     { return "array[" + a.ElemType.String() + "]" }
 func (a *ListTypeRef) GetConstraints() []*TypeRefConstraint {
 	return a.constraints

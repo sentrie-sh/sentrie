@@ -38,8 +38,16 @@ func (e *IsEmptyExpression) Span() tokens.Range {
 	return e.Range
 }
 
+func (e *IsEmptyExpression) Kind() string {
+	return "is_empty"
+}
+
 func (e *IsDefinedExpression) Span() tokens.Range {
 	return e.Range
+}
+
+func (e *IsDefinedExpression) Kind() string {
+	return "is_defined"
 }
 
 func (e *IsDefinedExpression) expressionNode() {}

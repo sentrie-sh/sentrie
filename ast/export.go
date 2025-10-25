@@ -30,6 +30,10 @@ func (v RuleExportStatement) Span() tokens.Range {
 	return v.Range
 }
 
+func (v RuleExportStatement) Kind() string {
+	return "rule_export"
+}
+
 func (v RuleExportStatement) statementNode() {}
 
 var _ Statement = &RuleExportStatement{}

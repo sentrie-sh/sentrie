@@ -25,6 +25,10 @@ func (s ShapeExportStatement) Span() tokens.Range {
 	return s.Range
 }
 
+func (s ShapeExportStatement) Kind() string {
+	return "shape_export"
+}
+
 func (s ShapeExportStatement) statementNode() {}
 
 func (s ShapeExportStatement) String() string {

@@ -36,6 +36,10 @@ func (s *UseStatement) String() string {
 	return "use " + strings.Join(s.Modules, ", ") + " from " + s.RelativeFrom + " as " + s.As
 }
 
+func (s *UseStatement) Kind() string {
+	return "use"
+}
+
 func (s *UseStatement) statementNode() {}
 
 var _ Statement = &UseStatement{}

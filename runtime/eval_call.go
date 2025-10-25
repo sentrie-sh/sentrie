@@ -45,11 +45,10 @@ func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *
 		defer span.End()
 
 		span.SetAttributes(
-			attribute.String("sentrie.ast.node.kind", "call"),
+			attribute.String("sentrie.ast.node.kind", t.Kind()),
 			attribute.String("sentrie.ast.node.range", t.Span().String()),
 			attribute.String("sentrie.call.target", t.Callee.String()),
 			attribute.Int("sentrie.call.args.count", len(t.Arguments)),
-			attribute.String("sentrie.ast.node.range", t.Span().String()),
 		)
 	}
 

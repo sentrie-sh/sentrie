@@ -30,6 +30,10 @@ func (t *TransformExpression) Span() tokens.Range {
 	return t.Range
 }
 
+func (t *TransformExpression) Kind() string {
+	return "transform"
+}
+
 func (t *TransformExpression) expressionNode() {}
 
 var _ Expression = &TransformExpression{}

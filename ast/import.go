@@ -40,6 +40,10 @@ func (i ImportClause) Span() tokens.Range {
 	return i.Range
 }
 
+func (i ImportClause) Kind() string {
+	return "import"
+}
+
 func (i ImportClause) expressionNode() {}
 
 var _ Expression = &ImportClause{}

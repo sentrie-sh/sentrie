@@ -21,6 +21,8 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
+	"go.opentelemetry.io/otel/attribute"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 func evalReduce(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, r *ast.ReduceExpression) (any, *trace.Node, error) {
@@ -33,6 +35,18 @@ func evalReduce(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p
 		"reducer":     r.Reducer,
 	})
 	defer done()
+
+	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
+	var span oteltrace.Span
+	if ec.executor.TraceExecution() {
+		ctx, span = ec.executor.Tracer().Start(ctx, "reduce")
+		defer span.End()
+
+		span.SetAttributes(
+			attribute.String("sentrie.ast.node.kind", r.Kind()),
+			attribute.String("sentrie.ast.node.range", r.Span().String()),
+		)
+	}
 
 	col, colNode, err := eval(ctx, ec, exec, p, r.Collection)
 	node.Attach(colNode)

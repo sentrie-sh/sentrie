@@ -32,6 +32,10 @@ func (i *IntegerLiteral) String() string {
 
 func (i *IntegerLiteral) expressionNode() {}
 
+func (i *IntegerLiteral) Kind() string {
+	return "integer_literal"
+}
+
 // Span returns the span of the integer literal in the source code
 func (i *IntegerLiteral) Span() tokens.Range {
 	return i.Range

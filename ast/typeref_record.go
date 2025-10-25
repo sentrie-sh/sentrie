@@ -32,6 +32,7 @@ var _ Node = &RecordTypeRef{}
 
 func (r *RecordTypeRef) typeref()           {}
 func (r *RecordTypeRef) Span() tokens.Range { return r.Range }
+func (r *RecordTypeRef) Kind() string       { return "record_typeref" }
 func (r *RecordTypeRef) GetConstraints() []*TypeRefConstraint {
 	return r.constraints
 }

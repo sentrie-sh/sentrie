@@ -26,6 +26,7 @@ var _ Node = &BoolTypeRef{}
 
 func (b *BoolTypeRef) typeref()           {}
 func (s *BoolTypeRef) Span() tokens.Range { return s.Range }
+func (b *BoolTypeRef) Kind() string       { return "boolean_typeref" }
 func (b *BoolTypeRef) String() string     { return "boolean" }
 func (b *BoolTypeRef) GetConstraints() []*TypeRefConstraint {
 	return b.constraints

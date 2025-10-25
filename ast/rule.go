@@ -32,6 +32,10 @@ func (r RuleStatement) Span() tokens.Range {
 	return r.Range
 }
 
+func (r RuleStatement) Kind() string {
+	return "rule_statement"
+}
+
 func (r RuleStatement) statementNode() {}
 
 var _ Statement = &RuleStatement{}
