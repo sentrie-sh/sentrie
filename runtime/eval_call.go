@@ -26,6 +26,9 @@ import (
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 	"github.com/sentrie-sh/sentrie/xerr"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, t *ast.CallExpression) (response any, traceNode *trace.Node, err error) {
@@ -34,6 +37,21 @@ func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *
 		"args":   t.Arguments,
 	})
 	defer done()
+
+	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
+	var span oteltrace.Span
+	if ec.executor.TraceExecution() {
+		ctx, span = ec.executor.Tracer().Start(ctx, "call")
+		defer span.End()
+
+		span.SetAttributes(
+			attribute.String("sentrie.ast.node.kind", "call"),
+			attribute.String("sentrie.ast.node.range", t.Span().String()),
+			attribute.String("sentrie.call.target", t.Callee.String()),
+			attribute.Int("sentrie.call.args.count", len(t.Arguments)),
+			attribute.String("sentrie.ast.node.range", t.Span().String()),
+		)
+	}
 
 	args := make([]any, 0, len(t.Arguments))
 	for _, a := range t.Arguments {
@@ -127,6 +145,31 @@ func getTarget(_ context.Context, ec *ExecutionContext, p *index.Policy, c *ast.
 	}
 
 	return func(ctx context.Context, args ...any) (any, error) {
-		return modulebinding.Call(ctx, fn, args...)
+		start := time.Now()
+		result, err := modulebinding.Call(ctx, fn, args...)
+
+		// Record metrics using the executor's stored instruments
+		if metrics := ec.executor.Metrics(); metrics != nil {
+			attrs := []attribute.KeyValue{
+				attribute.String("sentrie.js.call.module.canonical_key", modulebinding.CanonicalKey),
+				attribute.String("sentrie.js.call.module.alias", modulebinding.Alias),
+				attribute.String("sentrie.js.call.module.function", fn),
+			}
+			if err != nil {
+				attrs = append(attrs, attribute.String("sentrie.js.call.error", err.Error()))
+			}
+
+			attrSet := attribute.NewSet(attrs...)
+			dur := time.Since(start)
+
+			// Record duration in milliseconds
+			metrics.JSCallDuration.Record(ctx, float64(dur.Nanoseconds())/1e6, metric.WithAttributeSet(attrSet))
+			if err != nil {
+				metrics.JSCallErrors.Add(ctx, 1, metric.WithAttributeSet(attrSet))
+			}
+			metrics.JSCallCount.Add(ctx, 1, metric.WithAttributeSet(attrSet))
+		}
+
+		return result, err
 	}, nil
 }

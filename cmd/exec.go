@@ -5,11 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"maps"
 	"os"
 	"strings"
 
 	"github.com/binaek/cling"
+	"github.com/google/uuid"
+	"github.com/sentrie-sh/sentrie/constants"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/loader"
 	"github.com/sentrie-sh/sentrie/runtime"
@@ -60,6 +63,10 @@ type execCmdArgs struct {
 }
 
 func execCmd(ctx context.Context, args []string) error {
+	// setup logger
+	logger := setupDefaultLogger()
+	slog.SetDefault(logger)
+
 	input := execCmdArgs{}
 	if err := cling.Hydrate(ctx, args, &input); err != nil {
 		return err
@@ -294,4 +301,53 @@ func formatAttachment(name string, value any, indent int) {
 	}
 
 	fmt.Printf("%s     %s: %v\n", indentStr, name, value)
+}
+
+func setupDefaultLogger() *slog.Logger {
+	logLevel := slog.LevelVar{}
+	if _, ok := os.LookupEnv(constants.EnvDebug); ok {
+		// force debug log if we are running in DEBUG mode
+		os.Setenv(constants.EnvLogLevel, "DEBUG")
+	}
+
+	// set log level from env
+	switch strings.ToUpper(os.Getenv(constants.EnvLogLevel)) { // DEBUG, INFO, WARN, ERROR
+	case "DEBUG":
+		logLevel.Set(slog.LevelDebug)
+	case "INFO":
+		logLevel.Set(slog.LevelInfo)
+	case "WARN":
+		logLevel.Set(slog.LevelWarn)
+	case "ERROR":
+		logLevel.Set(slog.LevelError)
+	default:
+		logLevel.Set(slog.LevelInfo)
+	}
+
+	attrs := []slog.Attr{
+		slog.String("app", constants.APPNAME),
+		slog.String("version", constants.APPVERSION),
+
+		// generate a unique instance id - so that we may track logs from a separate instances (if at all)
+		slog.String("instance", uuid.NewString()),
+	}
+	if _, ok := os.LookupEnv(constants.EnvDebug); ok {
+		attrs = append(
+			attrs,
+			slog.Bool("debug", true),
+			slog.Any("args", os.Args),
+		)
+		if exec, err := os.Executable(); err == nil {
+			attrs = append(attrs, slog.String("executable", exec))
+		}
+	}
+
+	logHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		AddSource: true,
+		Level:     &logLevel,
+	}).WithAttrs(attrs)
+
+	logger := slog.New(logHandler)
+
+	return logger
 }

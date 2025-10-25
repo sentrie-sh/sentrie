@@ -32,7 +32,18 @@ import (
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/sentrie-sh/sentrie/xerr"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
+
+// ExecutionMetrics holds metrics for runtime execution
+type ExecutionMetrics struct {
+	JSCallCount    metric.Int64Counter
+	JSCallDuration metric.Float64Histogram
+	JSCallErrors   metric.Int64Counter
+}
 
 type NewExecutorOption func(*executorImpl)
 
@@ -40,6 +51,13 @@ type NewExecutorOption func(*executorImpl)
 func WithCallMemoizeCacheSize(size int) NewExecutorOption {
 	return func(e *executorImpl) {
 		e.callMemoizePerch = perch.New[any](size << 20 /* size in megabytes */)
+	}
+}
+
+// WithTraceExecution enables OpenTelemetry tracing for policy execution
+func WithTraceExecution(enabled bool) NewExecutorOption {
+	return func(e *executorImpl) {
+		e.traceExecution = enabled
 	}
 }
 
@@ -57,6 +75,14 @@ func (e *ExecutorOutput) ToTrinary() trinary.Value {
 }
 
 type Executor interface {
+	// Tracer returns the tracer for the executor
+	Tracer() oteltrace.Tracer
+	// Meter returns the meter for the executor
+	Meter() metric.Meter
+	// TraceExecution returns whether tracing is enabled for the executor
+	TraceExecution() bool
+	// Metrics returns the metrics for the executor
+	Metrics() *ExecutionMetrics
 	ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) ([]*ExecutorOutput, error)
 	ExecRule(ctx context.Context, namespace, policy, rule string, facts map[string]any) (*ExecutorOutput, error)
 	Index() *index.Index
@@ -68,6 +94,26 @@ type executorImpl struct {
 	jsRegistry         *js.Registry
 	moduleBindingPerch *perch.Perch[*ModuleBinding] // --> (policy.useAlias) -> module binding
 	callMemoizePerch   *perch.Perch[any]
+	tracer             oteltrace.Tracer
+	meter              metric.Meter
+	traceExecution     bool
+	metrics            *ExecutionMetrics // Execution metrics (initialized once)
+}
+
+func (e *executorImpl) Tracer() oteltrace.Tracer {
+	return e.tracer
+}
+
+func (e *executorImpl) Meter() metric.Meter {
+	return e.meter
+}
+
+func (e *executorImpl) TraceExecution() bool {
+	return e.traceExecution
+}
+
+func (e *executorImpl) Metrics() *ExecutionMetrics {
+	return e.metrics
 }
 
 // NewExecutor builds an Executor with built-in @sentra/* modules registered.
@@ -77,6 +123,10 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 		jsRegistry:         js.NewRegistry(idx.Pack.Location),
 		moduleBindingPerch: perch.New[*ModuleBinding](100 << 20 /* 100 MB */), // --> (policy.useAlias) -> module binding
 		callMemoizePerch:   perch.New[any](10 << 20 /* 10 MB */),
+		tracer:             otel.Tracer("sentrie/executor"),
+		meter:              otel.Meter("sentrie/executor"),
+		metrics:            nil,
+		traceExecution:     false, // Default to false, can be overridden by options
 	}
 
 	exec.jsRegistry.RegisterBuiltin("uuid", js.BuiltinUuidGo)
@@ -85,6 +135,37 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 
 	for _, opt := range opts {
 		opt(exec)
+	}
+
+	// Initialize execution metrics if tracing is enabled and meter is available
+	if exec.traceExecution && exec.meter != nil {
+		exec.metrics = &ExecutionMetrics{}
+
+		var err error
+		exec.metrics.JSCallCount, err = exec.meter.Int64Counter(
+			"sentrie.js.call.count",
+			metric.WithDescription("Number of JavaScript function calls"),
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create JS call count metric")
+		}
+
+		exec.metrics.JSCallDuration, err = exec.meter.Float64Histogram(
+			"sentrie.js.call.duration",
+			metric.WithDescription("JavaScript call execution duration in milliseconds"),
+			metric.WithUnit("ms"),
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create JS call duration metric")
+		}
+
+		exec.metrics.JSCallErrors, err = exec.meter.Int64Counter(
+			"sentrie.js.call.errors",
+			metric.WithDescription("Number of JavaScript call failures"),
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create JS call errors metric")
+		}
 	}
 
 	// Reserve the cache slots
@@ -105,8 +186,32 @@ func (e *executorImpl) Index() *index.Index {
 
 // ExecPolicy executes all exported rules and returns the results
 func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) ([]*ExecutorOutput, error) {
+	ctx, span := e.tracer.Start(ctx, "executor.exec_policy")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("sentrie.namespace", namespace),
+		attribute.String("sentrie.policy", policy),
+		attribute.Int("sentrie.facts.count", len(facts)),
+	)
+
+	start := time.Now()
+	defer func() {
+		duration := time.Since(start)
+		// Record policy execution duration metric
+		if policyDuration, err := e.meter.Float64Histogram("sentrie.policy.exec.duration"); err == nil {
+			policyDuration.Record(ctx, float64(duration.Nanoseconds())/1e6,
+				metric.WithAttributes(
+					attribute.String("sentrie.namespace", namespace),
+					attribute.String("sentrie.policy", policy),
+				),
+			)
+		}
+	}()
+
 	p, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 
@@ -123,6 +228,7 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 			theLock.Lock()
 			defer theLock.Unlock()
 			if err != nil {
+				span.RecordError(err)
 				compositeErr = stdErr.Join(compositeErr, err)
 				return
 			}
@@ -138,22 +244,52 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 
 // ExecRule executes an exported rule and returns the result
 func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, injectFacts map[string]any) (*ExecutorOutput, error) {
+	ctx, span := e.tracer.Start(ctx, "executor.exec_rule")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("sentrie.namespace", namespace),
+		attribute.String("sentrie.policy", policy),
+		attribute.String("sentrie.rule", rule),
+		attribute.Int("sentrie.facts.count", len(injectFacts)),
+	)
+
+	start := time.Now()
+	defer func() {
+		duration := time.Since(start)
+		// Record rule execution duration metric
+		if ruleDuration, err := e.meter.Float64Histogram("sentrie.rule.exec.duration"); err == nil {
+			ruleDuration.Record(ctx, float64(duration.Nanoseconds())/1e6,
+				metric.WithAttributes(
+					attribute.String("sentrie.namespace", namespace),
+					attribute.String("sentrie.policy", policy),
+					attribute.String("sentrie.rule", rule),
+					attribute.String("executor.exec_rule.span_id", span.SpanContext().SpanID().String()),
+					attribute.String("executor.exec_rule.trace_id", span.SpanContext().TraceID().String()),
+				),
+			)
+		}
+	}()
+
 	// Validate exported
 	p, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 	if err := p.VerifyRuleExported(rule); err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 
-	ec := NewExecutionContext(p)
+	ec := NewExecutionContext(p, e)
 	defer ec.Dispose()
 
 	for factName, factStatement := range p.Facts {
 		// look for a value for this fact in the passed in facts map
 		if _, ok := injectFacts[factName]; ok {
 			if err := ec.InjectFact(ctx, factName, injectFacts[factName], false, factStatement.Type); err != nil {
+				span.RecordError(err)
 				return nil, err
 			}
 			continue // move on to the next fact
@@ -182,7 +318,6 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 		if factStatement.Required && !ec.IsFactInjected(factName) {
 			return nil, xerr.ErrRequiredFact(factName)
 		}
-
 	}
 
 	// bind lets
@@ -192,6 +327,7 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 
 	// Bind `use` modules
 	if err := e.bindUses(ctx, ec, p); err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 
@@ -360,8 +496,9 @@ func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStateme
 			return nil, err
 		}
 		return &ModuleBinding{
-			Alias:  use.As,
-			VMPool: jsInstancePool,
+			CanonicalKey: ms.KeyOrPath(),
+			Alias:        use.As,
+			VMPool:       jsInstancePool,
 		}, nil
 	})
 }

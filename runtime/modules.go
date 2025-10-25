@@ -32,8 +32,9 @@ type JSInstance struct {
 }
 
 type ModuleBinding struct {
-	Alias  string
-	VMPool *puddle.Pool[*JSInstance]
+	CanonicalKey string
+	Alias        string
+	VMPool       *puddle.Pool[*JSInstance]
 }
 
 func (m ModuleBinding) Call(ctx context.Context, fn string, args ...any) (any, error) {

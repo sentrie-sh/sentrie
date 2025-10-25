@@ -26,6 +26,10 @@ import (
 
 	"github.com/binaek/gocoll/collection"
 	"github.com/sentrie-sh/sentrie/runtime"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/exp/slices"
 )
 
@@ -54,11 +58,72 @@ func (p *ListenerServerPair) Close() error {
 type HTTPAPI struct {
 	executor  runtime.Executor
 	listeners []*ListenerServerPair
+	tracer    trace.Tracer
+	meter     metric.Meter
+	logger    *slog.Logger
+	// HTTP metrics
+	requestCount    metric.Int64Counter
+	requestDuration metric.Float64Histogram
+	activeRequests  metric.Int64UpDownCounter
+	requestSize     metric.Int64Histogram
+	responseSize    metric.Int64Histogram
 }
 
 // NewHTTPAPI creates a new HTTP API instance
 func NewHTTPAPI(executor runtime.Executor) *HTTPAPI {
-	return &HTTPAPI{executor: executor}
+	api := &HTTPAPI{
+		executor: executor,
+		tracer:   otel.Tracer("sentrie/http"),
+		meter:    otel.Meter("sentrie/http"),
+		logger:   slog.Default(),
+	}
+
+	// Initialize HTTP metrics
+	var err error
+	api.requestCount, err = api.meter.Int64Counter(
+		"http.server.request.count",
+		metric.WithDescription("Number of HTTP requests"),
+	)
+	if err != nil {
+		api.logger.Error("Failed to create request count metric", "error", err)
+	}
+
+	api.requestDuration, err = api.meter.Float64Histogram(
+		"http.server.request.duration",
+		metric.WithDescription("HTTP request duration in milliseconds"),
+		metric.WithUnit("ms"),
+	)
+	if err != nil {
+		api.logger.Error("Failed to create request duration metric", "error", err)
+	}
+
+	api.activeRequests, err = api.meter.Int64UpDownCounter(
+		"http.server.active_requests",
+		metric.WithDescription("Number of active HTTP requests"),
+	)
+	if err != nil {
+		api.logger.Error("Failed to create active requests metric", "error", err)
+	}
+
+	api.requestSize, err = api.meter.Int64Histogram(
+		"http.server.request.size",
+		metric.WithDescription("HTTP request body size in bytes"),
+		metric.WithUnit("bytes"),
+	)
+	if err != nil {
+		api.logger.Error("Failed to create request size metric", "error", err)
+	}
+
+	api.responseSize, err = api.meter.Int64Histogram(
+		"http.server.response.size",
+		metric.WithDescription("HTTP response body size in bytes"),
+		metric.WithUnit("bytes"),
+	)
+	if err != nil {
+		api.logger.Error("Failed to create response size metric", "error", err)
+	}
+
+	return api
 }
 
 // DecisionRequest represents the request body for rule execution
@@ -161,6 +226,12 @@ func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error 
 	// Health check endpoint
 	mux.Handle("GET /health", http.HandlerFunc(api.handleHealth))
 
+	// Wrap mux with OpenTelemetry HTTP instrumentation
+	handler := otelhttp.NewHandler(mux, "sentrie-http-server",
+		otelhttp.WithTracerProvider(otel.GetTracerProvider()),
+		otelhttp.WithMeterProvider(otel.GetMeterProvider()),
+	)
+
 	bindings, err := resolveBindings(port, listen)
 	if err != nil {
 		return err
@@ -179,14 +250,14 @@ func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error 
 			return fmt.Errorf("failed to listen on %s: %w", binding, err)
 		}
 		api.listeners = append(api.listeners, NewListenerServerPair(ln, &http.Server{
-			Handler:      mux,
+			Handler:      handler,
 			ReadTimeout:  30 * time.Second,
 			WriteTimeout: 30 * time.Second,
 			BaseContext: func(l net.Listener) context.Context {
 				return ctx
 			},
 		}))
-		slog.DebugContext(ctx, "Listening on server", "binding", binding)
+		api.logger.DebugContext(ctx, "Listening on server", "binding", binding)
 	}
 	return nil
 }
@@ -200,13 +271,13 @@ func (api *HTTPAPI) StartServer(ctx context.Context, port int, listen []string) 
 	for _, ln := range api.listeners {
 		server := ln.Server
 		wg.Go(func() {
-			slog.DebugContext(ctx,
+			api.logger.DebugContext(ctx,
 				"Decision endpoint available",
 				"method", "POST",
 				"address", ln.Listener.Addr().String(),
 				"url", fmt.Sprintf("http://%s/decision/{namespace}/{policy}/{rule}", ln.Listener.Addr().String()))
 
-			slog.DebugContext(ctx,
+			api.logger.DebugContext(ctx,
 				"Health check endpoint available",
 				slog.String("method", "GET"),
 				slog.String("address", ln.Listener.Addr().String()),
@@ -247,7 +318,7 @@ func (api *HTTPAPI) handleHealth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		slog.DebugContext(r.Context(), "Error encoding health response", "error", err)
+		api.logger.DebugContext(r.Context(), "Error encoding health response", "error", err)
 	}
 }
 
@@ -268,6 +339,6 @@ func (api *HTTPAPI) writeErrorResponse(w http.ResponseWriter, r *http.Request, s
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		slog.DebugContext(r.Context(), "Error encoding problem details response", "error", err)
+		api.logger.DebugContext(r.Context(), "Error encoding problem details response", "error", err)
 	}
 }
