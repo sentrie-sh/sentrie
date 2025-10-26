@@ -19,6 +19,7 @@ import (
 	stdErr "errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -44,6 +45,7 @@ type ExecutionMetrics struct {
 	JSCallCount    metric.Int64Counter
 	JSCallDuration metric.Float64Histogram
 	JSCallErrors   metric.Int64Counter
+	JSPoolGuages   *perch.Perch[metric.Int64UpDownCounter] // pool name -> gauge
 }
 
 type NewExecutorOption func(*executorImpl)
@@ -495,16 +497,40 @@ func (e *executorImpl) bindUses(ctx context.Context, ec *ExecutionContext, p *in
 
 // getModuleBinding resolves and caches a module binding for a given use statement and module spec.
 func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStatement, ms *js.ModuleSpec) (binding *ModuleBinding, _ bool, err error) {
-	// we will cache the module binding for 1 hour
-	// TODO: make this configurable
-	cacheDuration := 1 * time.Hour
-
-	return e.moduleBindingPerch.Get(ctx, ms.KeyOrPath(), cacheDuration, func(ctx context.Context, _ string) (*ModuleBinding, error) {
+	return e.moduleBindingPerch.Get(ctx, ms.KeyOrPath(), -1, func(ctx context.Context, _ string) (*ModuleBinding, error) {
 		jsInstancePool, err := puddle.NewPool(&puddle.Config[*JSInstance]{
 			Constructor: func(ctx context.Context) (*JSInstance, error) {
-				return e.jsBindingConstructor(ctx, use, ms)
+				b, err := e.jsBindingConstructor(ctx, use, ms)
+				if err != nil {
+					return nil, err
+				}
+
+				if e.otelConfig.Enabled && e.metrics != nil {
+					counter, _, err := e.metrics.JSPoolGuages.Get(ctx, ms.KeyOrPath(), -1, func(ctx context.Context, _ string) (metric.Int64UpDownCounter, error) {
+						return e.meter.Int64UpDownCounter(
+							fmt.Sprintf("sentrie.js.pool.count.%s", strings.ReplaceAll(ms.KeyOrPath(), "/", ".")),
+							metric.WithDescription("Number of JavaScript instances in the pool"),
+						)
+					})
+					if err == nil {
+						counter.Add(ctx, 1)
+					}
+				}
+				return b, nil
 			},
 			Destructor: func(res *JSInstance) {
+				if e.otelConfig.Enabled && e.metrics != nil {
+					counter, _, err := e.metrics.JSPoolGuages.Get(ctx, ms.KeyOrPath(), -1, func(ctx context.Context, _ string) (metric.Int64UpDownCounter, error) {
+						return e.meter.Int64UpDownCounter(
+							fmt.Sprintf("sentrie.js.pool.count.%s", strings.ReplaceAll(ms.KeyOrPath(), "/", ".")),
+							metric.WithDescription("Number of JavaScript instances in the pool"),
+						)
+					})
+					if err == nil {
+						counter.Add(ctx, -1)
+					}
+				}
+				// clear the interrupt
 				res.VM.ClearInterrupt()
 			},
 			MaxSize: 10,
