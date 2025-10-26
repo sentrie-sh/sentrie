@@ -51,14 +51,14 @@ func addServeCmd(cli *cling.CLI) {
 				cling.NewStringCmdInput("otel-protocol").
 					WithDefault("grpc").
 					WithValidator(cling.NewEnumValidator("http", "grpc")).
-					WithDescription("OpenTelemetry protocol (grpc or http)").
+					WithDescription("OpenTelemetry protocol. Allowed values: http, grpc.").
 					AsFlag().
 					FromEnv([]string{constants.EnvOtelProtocol}),
 			).
 			WithFlag(
 				cling.NewBoolCmdInput("otel-trace-execution").
 					WithDefault(false).
-					WithDescription("Enable OpenTelemetry tracing for policy execution").
+					WithDescription("Enable OpenTelemetry tracing for detailed policy execution.").
 					AsFlag().
 					FromEnv([]string{constants.EnvOtelTraceExecution}),
 			),
