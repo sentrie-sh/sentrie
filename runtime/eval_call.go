@@ -28,29 +28,14 @@ import (
 	"github.com/sentrie-sh/sentrie/xerr"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, t *ast.CallExpression) (response any, traceNode *trace.Node, err error) {
-	n, done := trace.New("call", "", t, map[string]any{
+	ctx, n, done := trace.New(ctx, t, "call", map[string]any{
 		"target": t.Callee.String(),
 		"args":   t.Arguments,
 	})
 	defer done()
-
-	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
-	var span oteltrace.Span
-	if cfg := ec.executor.OTelConfig(); cfg.Enabled && cfg.TraceExecution {
-		ctx, span = ec.executor.Tracer().Start(ctx, "call")
-		defer span.End()
-
-		span.SetAttributes(
-			attribute.String("sentrie.ast.node.kind", t.Kind()),
-			attribute.String("sentrie.ast.node.range", t.Span().String()),
-			attribute.String("sentrie.call.target", t.Callee.String()),
-			attribute.Int("sentrie.call.args.count", len(t.Arguments)),
-		)
-	}
 
 	args := make([]any, 0, len(t.Arguments))
 	for _, a := range t.Arguments {

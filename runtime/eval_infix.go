@@ -36,7 +36,9 @@ func isString(v any) bool {
 }
 
 func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, in *ast.InfixExpression) (any, *trace.Node, error) {
-	node, done := trace.New("infix", in.Operator, in, map[string]any{})
+	ctx, node, done := trace.New(ctx, in, "infix", map[string]any{
+		"operator": in.Operator,
+	})
 	defer done()
 
 	l, ln, err := eval(ctx, ec, exec, p, in.Left)

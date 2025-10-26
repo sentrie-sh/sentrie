@@ -24,7 +24,9 @@ import (
 )
 
 func evalUnary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, u *ast.UnaryExpression) (any, *trace.Node, error) {
-	node, done := trace.New("unary", u.Operator, u, map[string]any{})
+	ctx, node, done := trace.New(ctx, u, "unary", map[string]any{
+		"operator": u.Operator,
+	})
 	defer done()
 
 	v, child, err := eval(ctx, ec, exec, p, u.Right)

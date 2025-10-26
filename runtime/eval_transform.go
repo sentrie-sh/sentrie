@@ -24,7 +24,7 @@ import (
 )
 
 func evalTransform(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, t *ast.TransformExpression) (any, *trace.Node, error) {
-	node, done := trace.New("transform", t.Transformer, t, map[string]any{"ident": t.Argument})
+	ctx, node, done := trace.New(ctx, t, "transform", map[string]any{"ident": t.Argument})
 	defer done()
 
 	return nil, node, xerr.ErrNotImplemented

@@ -23,29 +23,34 @@ import (
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 )
 
-func evalFieldAccess(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, fieldAccess *ast.FieldAccessExpression) (any, *trace.Node, error) {
-	recv, rn, err := eval(ctx, ec, exec, p, fieldAccess.Left)
-	node, done := trace.New("field", fieldAccess.Field, fieldAccess, map[string]any{})
+func evalFieldAccess(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, t *ast.FieldAccessExpression) (any, *trace.Node, error) {
+	ctx, node, done := trace.New(ctx, t, "field_access", map[string]any{
+		"field": t.Field,
+	})
 	defer done()
 
-	node.Attach(rn)
+	recv, rn, err := eval(ctx, ec, exec, p, t.Left)
 	if err != nil {
 		return nil, node.SetErr(err), err
 	}
-	out, err := accessField(ctx, recv, fieldAccess.Field)
+	node.Attach(rn)
+	out, err := accessField(ctx, recv, t.Field)
 	node.SetResult(out).SetErr(err)
 	return out, node, err
 }
 
 func evalIndexAccess(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, t *ast.IndexAccessExpression) (any, *trace.Node, error) {
-	col, cn, err := eval(ctx, ec, exec, p, t.Left)
-	node, done := trace.New("index", "", t, map[string]any{})
+	ctx, node, done := trace.New(ctx, t, "index_access", map[string]any{
+		"index": t.Index,
+	})
 	defer done()
 
-	node.Attach(cn)
+	col, cn, err := eval(ctx, ec, exec, p, t.Left)
 	if err != nil {
 		return nil, node.SetErr(err), err
 	}
+	node.Attach(cn)
+
 	idx, in, err := eval(ctx, ec, exec, p, t.Index)
 	node.Attach(in)
 	if err != nil {

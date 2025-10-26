@@ -24,7 +24,7 @@ import (
 )
 
 func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, i string) (any, *trace.Node, error) {
-	n, done := trace.New("identifier", "", nil, map[string]any{"name": i})
+	ctx, n, done := trace.New(ctx, nil, "identifier", map[string]any{"name": i})
 	defer done()
 
 	// check in the local scope

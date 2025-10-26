@@ -21,34 +21,17 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
-	"go.opentelemetry.io/otel/attribute"
-	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 // ImportDecision resolves an ImportClause with `with` facts for sandboxed execution,
 // and returns (value+attachments-map, node, error).
 func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContext, p *index.Policy, t *ast.ImportClause) (*ExecutorOutput, *trace.Node, error) {
-	n, done := trace.New("import", t.RuleToImport, t, map[string]any{
-		"what": t.RuleToImport,
-		"from": t.FromPolicyFQN,
-		"with": len(t.Withs),
+	ctx, n, done := trace.New(ctx, t, "import", map[string]any{
+		"what":  t.RuleToImport,
+		"from":  t.FromPolicyFQN,
+		"withs": len(t.Withs),
 	})
 	defer done()
-
-	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
-	var span oteltrace.Span
-	if cfg := ec.executor.OTelConfig(); cfg.Enabled && cfg.TraceExecution {
-		ctx, span = ec.executor.Tracer().Start(ctx, "import")
-		defer span.End()
-
-		span.SetAttributes(
-			attribute.String("sentrie.ast.node.kind", t.Kind()),
-			attribute.String("sentrie.ast.node.range", t.Span().String()),
-			attribute.String("sentrie.import.what", t.RuleToImport),
-			attribute.String("sentrie.import.from", t.FromPolicyFQN.String()),
-			attribute.Int("sentrie.import.withs.count", len(t.Withs)),
-		)
-	}
 
 	if len(t.FromPolicyFQN) < 2 {
 		err := fmt.Errorf("import from must specify namespace/policy: got %v", t.FromPolicyFQN)

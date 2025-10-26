@@ -22,25 +22,13 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
-	"go.opentelemetry.io/otel/attribute"
-	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *index.Policy, cast *ast.CastExpression) (any, *trace.Node, error) {
-	node, done := trace.New("cast", cast.TargetType.String(), cast, map[string]any{})
+	ctx, node, done := trace.New(ctx, cast, "cast", map[string]any{
+		"target": cast.TargetType.String(),
+	})
 	defer done()
-
-	// Create OpenTelemetry span for JavaScript calls if tracing is enabled
-	var span oteltrace.Span
-	if cfg := ec.executor.OTelConfig(); cfg.Enabled && cfg.TraceExecution {
-		ctx, span = ec.executor.Tracer().Start(ctx, "cast")
-		defer span.End()
-
-		span.SetAttributes(
-			attribute.String("sentrie.ast.node.kind", cast.Kind()),
-			attribute.String("sentrie.ast.node.range", cast.Span().String()),
-		)
-	}
 
 	val, child, err := eval(ctx, ec, e, p, cast.Expr)
 	node.Attach(child)

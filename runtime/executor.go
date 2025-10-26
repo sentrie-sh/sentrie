@@ -382,9 +382,10 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 	defer ec.PopRefStack()
 
 	// Wrap rule evaluation in a decision node
-	ruleNode, done := trace.New("rule-outcome", rule, r.Node, map[string]any{
+	ctx, ruleNode, done := trace.New(ctx, r.Node, "rule-outcome", map[string]any{
 		"namespace": namespace,
 		"policy":    policy,
+		"rule":      rule,
 	})
 	defer done()
 
@@ -413,18 +414,19 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 	attachments := map[string]any{}
 	if ex, ok := p.RuleExports[rule]; ok {
 		for _, attachment := range ex.Attachments {
-			attachmentNode, done := trace.New("attachment", attachment.Name, nil, map[string]any{
-				"name":  attachment.Name,
-				"value": attachment.Value,
+			ctx, attachmentNode, done := trace.New(ctx, attachment.Value, "attachment", map[string]any{
+				"name": attachment.Name,
 			})
 			defer done()
 
 			v, node, err := eval(ctx, ec, e, p, attachment.Value)
 			attachmentNode.Attach(node)
 			if err != nil {
+				attachmentNode.SetErr(err)
 				return d, attachments, ruleNode, err
 			}
 			attachments[attachment.Name] = v
+			attachmentNode.SetResult(v)
 			ruleNode.Attach(attachmentNode)
 			continue
 		}
@@ -524,7 +526,9 @@ func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStateme
 
 // evaluateRuleOutcome drives rule evaluation and returns (value, node, error).
 func evaluateRuleOutcome(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *index.Policy, r *index.Rule) (*Decision, *trace.Node, error) {
-	rn, done := trace.New("rule", r.Name, r.Node, map[string]any{})
+	ctx, rn, done := trace.New(ctx, r.Node, "rule", map[string]any{
+		"name": r.Name,
+	})
 	defer done()
 
 	// `when` gate: (`when` is `true` by default)
@@ -532,7 +536,7 @@ func evaluateRuleOutcome(ctx context.Context, ec *ExecutionContext, e *executorI
 
 	// evaluate the when gate
 	if r.When != nil {
-		wn, done := trace.New("rule-when", r.Name, r.When, map[string]any{})
+		ctx, wn, done := trace.New(ctx, r.When, "rule-when", map[string]any{})
 		defer done()
 
 		cond, condNode, err := eval(ctx, ec, e, p, r.When)
@@ -551,7 +555,7 @@ func evaluateRuleOutcome(ctx context.Context, ec *ExecutionContext, e *executorI
 
 		// we have a default expression
 		if r.Default != nil {
-			dn, done := trace.New("rule-default", r.Name, r.Default, map[string]any{})
+			ctx, dn, done := trace.New(ctx, r.Default, "rule-default", map[string]any{})
 			defer done()
 
 			// evaluate the default expression
@@ -564,7 +568,7 @@ func evaluateRuleOutcome(ctx context.Context, ec *ExecutionContext, e *executorI
 		return theDefault, rn, nil
 	}
 
-	rb, done := trace.New("rule-body", r.Name, r.Body, map[string]any{})
+	ctx, rb, done := trace.New(ctx, r.Body, "rule-body", map[string]any{})
 	defer done()
 
 	val, bodyNode, err := eval(ctx, ec, e, p, r.Body)

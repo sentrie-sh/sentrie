@@ -38,42 +38,42 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 		return eval(ctx, ec, exec, p, t.Wrap)
 
 	case *ast.NullLiteral:
-		n, done := trace.New("literal", "nil", t, map[string]any{})
+		_, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "nil"})
 		defer done()
 
 		n.SetResult(nil)
 		return nil, n, nil
 
 	case *ast.TrinaryLiteral:
-		n, done := trace.New("literal", "tristate", t, map[string]any{})
+		_, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "tristate"})
 		defer done()
 
 		n.SetResult(t.Value)
 		return t.Value, n, nil
 
 	case *ast.IntegerLiteral:
-		n, done := trace.New("literal", "int", t, map[string]any{})
+		_, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "int"})
 		defer done()
 
 		n.SetResult(t.Value)
 		return t.Value, n, nil
 
 	case *ast.FloatLiteral:
-		n, done := trace.New("literal", "float", t, map[string]any{})
+		_, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "float"})
 		defer done()
 
 		n.SetResult(t.Value)
 		return t.Value, n, nil
 
 	case *ast.StringLiteral:
-		n, done := trace.New("literal", "string", t, map[string]any{})
+		_, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "string"})
 		defer done()
 
 		n.SetResult(t.Value)
 		return t.Value, n, nil
 
 	case *ast.ListLiteral:
-		n, done := trace.New("literal", "list", t, map[string]any{})
+		ctx, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "list"})
 		defer done()
 
 		arr := make([]any, 0, len(t.Values))
@@ -88,7 +88,7 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 		return arr, n.SetResult(arr), nil
 
 	case *ast.MapLiteral:
-		n, done := trace.New("literal", "map", t, map[string]any{})
+		ctx, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "map"})
 		defer done()
 
 		m := map[string]any{}
