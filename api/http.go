@@ -284,7 +284,7 @@ func (api *HTTPAPI) writeErrorResponse(w http.ResponseWriter, r *http.Request, s
 		Title:    title,
 		Status:   statusCode,
 		Detail:   detail,
-		Instance: r.URL.Path,
+		Instance: middleware.GetRequestIDFromRequest(r),
 		Ext: map[string]any{
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		},
