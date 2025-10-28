@@ -24,13 +24,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/binaek/gocoll/collection"
+	"github.com/sentrie-sh/sentrie/api/middleware"
 	"github.com/sentrie-sh/sentrie/runtime"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
-	"golang.org/x/exp/slices"
 )
 
 type ListenerServerPair struct {
@@ -64,9 +62,9 @@ type HTTPMetrics struct {
 	ResponseSize    metric.Int64Histogram
 
 	// Decision-specific metrics
-	DecisionCount      metric.Int64Counter
-	DecisionDuration   metric.Float64Histogram
-	DecisionFactsCount metric.Int64Histogram
+	ActiveEvaluations metric.Int64UpDownCounter
+	DecisionCount     metric.Int64Counter
+	DecisionDuration  metric.Float64Histogram
 }
 
 // HTTPAPI provides HTTP endpoints for rule execution
@@ -83,13 +81,13 @@ type HTTPAPI struct {
 func NewHTTPAPI(executor runtime.Executor) *HTTPAPI {
 	api := &HTTPAPI{
 		executor: executor,
-		tracer:   otel.Tracer("sentrie/http"),
-		meter:    otel.Meter("sentrie/http"),
 		logger:   slog.Default(),
 	}
 
 	// Initialize HTTP metrics only if OpenTelemetry is enabled
 	if cfg := executor.OTelConfig(); cfg.Enabled {
+		api.meter = otel.Meter("sentrie/http")
+		api.tracer = otel.Tracer("sentrie/http")
 		api.metrics = &HTTPMetrics{}
 		var err error
 
@@ -138,6 +136,14 @@ func NewHTTPAPI(executor runtime.Executor) *HTTPAPI {
 		}
 
 		// Decision-specific metrics
+		api.metrics.ActiveEvaluations, err = api.meter.Int64UpDownCounter(
+			"sentrie.evaluations.active",
+			metric.WithDescription("Number of active evaluations"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create active evaluations metric", "error", err)
+		}
+
 		api.metrics.DecisionCount, err = api.meter.Int64Counter(
 			"sentrie.decision.count",
 			metric.WithDescription("Number of decisions made"),
@@ -155,126 +161,28 @@ func NewHTTPAPI(executor runtime.Executor) *HTTPAPI {
 			api.logger.Error("Failed to create decision duration metric", "error", err)
 		}
 
-		api.metrics.DecisionFactsCount, err = api.meter.Int64Histogram(
-			"sentrie.decision.facts.count",
-			metric.WithDescription("Number of facts per decision"),
-		)
-		if err != nil {
-			api.logger.Error("Failed to create decision facts count metric", "error", err)
-		}
 	}
 
 	return api
-}
-
-// DecisionRequest represents the request body for rule execution
-type DecisionRequest struct {
-	Facts map[string]any `json:"facts"`
-}
-
-// DecisionResponse represents the response from rule execution
-type DecisionResponse struct {
-	Decisions []*runtime.ExecutorOutput `json:"decisions"`
-	Error     string                    `json:"error,omitempty"`
-}
-
-// ProblemDetails represents an RFC 9457 Problem Details for HTTP APIs
-type ProblemDetails struct {
-	Type     string         `json:"type,omitempty"`
-	Title    string         `json:"title"`
-	Status   int            `json:"status,omitempty"`
-	Detail   string         `json:"detail,omitempty"`
-	Instance string         `json:"instance,omitempty"`
-	Ext      map[string]any `json:"-"`
-}
-
-// MarshalJSON implements custom JSON marshaling for ProblemDetails
-func (p *ProblemDetails) MarshalJSON() ([]byte, error) {
-	// Create a map to hold all fields including extensions
-	result := make(map[string]any)
-
-	// Add standard fields
-	if p.Type != "" {
-		result["type"] = p.Type
-	}
-	if p.Title != "" {
-		result["title"] = p.Title
-	}
-	if p.Status != 0 {
-		result["status"] = p.Status
-	}
-	if p.Detail != "" {
-		result["detail"] = p.Detail
-	}
-	if p.Instance != "" {
-		result["instance"] = p.Instance
-	}
-
-	// Add extension fields
-	for k, v := range p.Ext {
-		result[k] = v
-	}
-
-	return json.Marshal(result)
-}
-
-func resolveBindings(port int, listen []string) ([]string, error) {
-	predefined := [...]string{"local", "local4", "local6", "network", "network4", "network6"}
-
-	// if any of the listen addresses is in the predefined list - then there MUST be exactly one address
-	for _, listenAddr := range listen {
-		if slices.Contains(predefined[:], listenAddr) {
-			if len(listen) != 1 {
-				return nil, fmt.Errorf("when using predefined listen addresses, there must be exactly one address")
-			}
-		}
-	}
-
-	var addresses []string = make([]string, 0, len(listen))
-	if slices.Contains(predefined[:], listen[0]) {
-		switch listen[0] {
-		case "local":
-			addresses = []string{net.JoinHostPort("localhost", fmt.Sprintf("%d", port))}
-		case "local4":
-			addresses = []string{net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", port))}
-		case "local6":
-			addresses = []string{net.JoinHostPort("[::1]", fmt.Sprintf("%d", port))}
-		case "network":
-			addresses = []string{net.JoinHostPort("", fmt.Sprintf("%d", port))}
-		case "network4":
-			addresses = []string{net.JoinHostPort("0.0.0.0", fmt.Sprintf("%d", port))}
-		case "network6":
-			addresses = []string{net.JoinHostPort("[::]", fmt.Sprintf("%d", port))}
-		}
-	} else {
-		addresses = collection.Map(
-			collection.From(listen...),
-			func(listenAddr string) string {
-				return net.JoinHostPort(listenAddr, fmt.Sprintf("%d", port))
-			},
-		).Elements()
-	}
-
-	return addresses, nil
 }
 
 func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error {
 	mux := http.NewServeMux()
 
 	// Register the decision endpoint using Go 1.24 syntax
-	mux.Handle("POST /decision/{target...}", http.HandlerFunc(api.handleDecision))
+	mux.Handle("POST /decision/{target...}",
+		middleware.RequestIDMiddleware(
+			middleware.OTelMiddleware(
+				api.executor.OTelConfig(),
+				api.tracer,
+				api.meter,
+				http.HandlerFunc(api.handleDecision),
+			),
+		),
+	)
 
 	// Health check endpoint
 	mux.Handle("GET /health", http.HandlerFunc(api.handleHealth))
-
-	// Wrap mux with OpenTelemetry HTTP instrumentation only if enabled
-	var handler http.Handler = mux
-	if api.metrics != nil {
-		handler = otelhttp.NewHandler(mux, "sentrie-http-server",
-			otelhttp.WithTracerProvider(otel.GetTracerProvider()),
-			otelhttp.WithMeterProvider(otel.GetMeterProvider()),
-		)
-	}
 
 	bindings, err := resolveBindings(port, listen)
 	if err != nil {
@@ -294,7 +202,7 @@ func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error 
 			return fmt.Errorf("failed to listen on %s: %w", binding, err)
 		}
 		api.listeners = append(api.listeners, NewListenerServerPair(ln, &http.Server{
-			Handler:      handler,
+			Handler:      mux,
 			ReadTimeout:  30 * time.Second,
 			WriteTimeout: 30 * time.Second,
 			BaseContext: func(l net.Listener) context.Context {

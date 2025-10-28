@@ -11,10 +11,22 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
+// DecisionRequest represents the request body for rule execution
+type DecisionRequest struct {
+	Facts map[string]any `json:"facts"`
+}
+
+// DecisionResponse represents the response from rule execution
+type DecisionResponse struct {
+	Decisions []*runtime.ExecutorOutput `json:"decisions"`
+	Error     string                    `json:"error,omitempty"`
+}
+
 // handleDecision handles POST /decision/{namespace...} requests
 func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	tracer := api.tracer
+	ctx, span := api.tracer.Start(ctx, "decision.request")
+	defer span.End()
 
 	// Start timing
 	start := time.Now()
@@ -33,21 +45,11 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 	api.logger.InfoContext(ctx, "handleDecision", "path", path)
 
 	// Create span for path resolution
-	ctx, pathSpan := tracer.Start(ctx, "decision.path_resolution")
 	namespace, policy, rule, err := api.executor.Index().ResolveSegments(strings.TrimPrefix(path, "/decision/"))
-	pathSpan.End()
 	if err != nil {
-		pathSpan.RecordError(err)
 		api.writeErrorResponse(w, r, http.StatusNotFound, "Invalid Path", err.Error())
 		return
 	}
-
-	// Add span attributes
-	pathSpan.SetAttributes(
-		attribute.String("sentrie.namespace", namespace),
-		attribute.String("sentrie.policy", policy),
-		attribute.String("sentrie.rule", rule),
-	)
 
 	// Handle preflight OPTIONS requests
 	if r.Method == "OPTIONS" {
@@ -70,25 +72,25 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse request body
-	ctx, parseSpan := tracer.Start(ctx, "decision.request_parsing")
 	var req DecisionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		parseSpan.RecordError(err)
+		span.RecordError(err)
 		api.writeErrorResponse(w, r, http.StatusBadRequest, "Invalid JSON", "The request body could not be parsed as valid JSON")
 		return
 	}
-	parseSpan.End()
-
-	// Record facts count
-	factsCount := int64(len(req.Facts))
-	if api.metrics != nil {
-		api.metrics.DecisionFactsCount.Record(ctx, factsCount)
-	}
 
 	// Execute policy/rule
-	ctx, execSpan := tracer.Start(ctx, "decision.execution")
 	var outputs []*runtime.ExecutorOutput
 	var runErr error
+	if api.metrics != nil {
+		api.metrics.ActiveEvaluations.Add(ctx, 1,
+			metric.WithAttributes(
+				attribute.String("sentrie.namespace", namespace),
+				attribute.String("sentrie.policy", policy),
+				attribute.String("sentrie.rule", rule),
+			),
+		)
+	}
 	if len(rule) == 0 {
 		outputs, runErr = api.executor.ExecPolicy(ctx, namespace, policy, req.Facts)
 	} else {
@@ -96,7 +98,6 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 		outputs = []*runtime.ExecutorOutput{output}
 		runErr = e
 	}
-	execSpan.End()
 
 	// Record execution metrics
 	execDuration := float64(time.Since(start).Nanoseconds()) / 1e6 // Convert to milliseconds
@@ -129,6 +130,14 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 				attribute.String("sentrie.outcome", outcome),
 			),
 		)
+
+		api.metrics.ActiveEvaluations.Add(ctx, -1,
+			metric.WithAttributes(
+				attribute.String("sentrie.namespace", namespace),
+				attribute.String("sentrie.policy", policy),
+				attribute.String("sentrie.rule", rule),
+			),
+		)
 	}
 
 	response := DecisionResponse{
@@ -140,10 +149,8 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	ctx, encodeSpan := tracer.Start(ctx, "decision.response_encoding")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		encodeSpan.RecordError(err)
-		api.logger.DebugContext(ctx, "Error encoding response", "error", err)
+		span.RecordError(err)
+		api.logger.ErrorContext(ctx, "Error encoding response", "error", err)
 	}
-	encodeSpan.End()
 }
