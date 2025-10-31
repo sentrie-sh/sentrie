@@ -452,7 +452,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefUrlConstraint() {
 
 	// Add a url constraint
 	constraint := ast.NewTypeRefConstraint("url", []ast.Expression{}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-	typeRef.AddConstraint(constraint)
+	_ = typeRef.AddConstraint(constraint)
 
 	r.Run("should pass when string is a valid HTTP URL", func() {
 		// Create a mock expression for the test
@@ -503,7 +503,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefUuidConstraint() {
 
 	// Add a uuid constraint
 	constraint := ast.NewTypeRefConstraint("uuid", []ast.Expression{}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-	typeRef.AddConstraint(constraint)
+	_ = typeRef.AddConstraint(constraint)
 
 	r.Run("should pass when string is a valid UUID", func() {
 		// Create a mock expression for the test
@@ -546,7 +546,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefAlphanumericConstrain
 
 	// Add an alphanumeric constraint
 	constraint := ast.NewTypeRefConstraint("alphanumeric", []ast.Expression{}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-	typeRef.AddConstraint(constraint)
+	_ = typeRef.AddConstraint(constraint)
 
 	r.Run("should pass when string contains only letters and numbers", func() {
 		// Create a mock expression for the test
@@ -597,7 +597,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefAlphaConstraint() {
 
 	// Add an alpha constraint
 	constraint := ast.NewTypeRefConstraint("alpha", []ast.Expression{}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-	typeRef.AddConstraint(constraint)
+	_ = typeRef.AddConstraint(constraint)
 
 	r.Run("should pass when string contains only letters", func() {
 		// Create a mock expression for the test
@@ -648,7 +648,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefNumericConstraint() {
 
 	// Add a numeric constraint
 	constraint := ast.NewTypeRefConstraint("numeric", []ast.Expression{}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-	typeRef.AddConstraint(constraint)
+	_ = typeRef.AddConstraint(constraint)
 
 	r.Run("should pass when string is a valid integer", func() {
 		// Create a mock expression for the test
@@ -699,7 +699,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefLowercaseConstraint()
 
 	// Add a lowercase constraint
 	constraint := ast.NewTypeRefConstraint("lowercase", []ast.Expression{}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-	typeRef.AddConstraint(constraint)
+	_ = typeRef.AddConstraint(constraint)
 
 	r.Run("should pass when string is lowercase", func() {
 		// Create a mock expression for the test
@@ -750,7 +750,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefUppercaseConstraint()
 
 	// Add an uppercase constraint
 	constraint := ast.NewTypeRefConstraint("uppercase", []ast.Expression{}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-	typeRef.AddConstraint(constraint)
+	_ = typeRef.AddConstraint(constraint)
 
 	r.Run("should pass when string is uppercase", func() {
 		// Create a mock expression for the test
@@ -801,7 +801,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefTrimmedConstraint() {
 
 	// Add a trimmed constraint
 	constraint := ast.NewTypeRefConstraint("trimmed", []ast.Expression{}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-	typeRef.AddConstraint(constraint)
+	_ = typeRef.AddConstraint(constraint)
 
 	r.Run("should pass when string has no leading or trailing whitespace", func() {
 		// Create a mock expression for the test
@@ -853,7 +853,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefNotEmptyConstraint() 
 
 	// Add a not_empty constraint
 	constraint := ast.NewTypeRefConstraint("not_empty", []ast.Expression{}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-	typeRef.AddConstraint(constraint)
+	_ = typeRef.AddConstraint(constraint)
 
 	r.Run("should pass when string is not empty", func() {
 		// Create a mock expression for the test
@@ -903,7 +903,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefOneOfConstraint() {
 		},
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
-	typeRef.AddConstraint(constraint)
+	_ = typeRef.AddConstraint(constraint)
 
 	r.Run("should pass when string is one of the allowed values", func() {
 		// Create a mock expression for the test
