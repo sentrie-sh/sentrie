@@ -128,8 +128,11 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 		callMemoizePerch:   perch.New[any](10 << 20 /* 10 MB */),
 		tracer:             otel.Tracer("sentrie/executor"),
 		meter:              otel.Meter("sentrie/executor"),
-		otelConfig:         nil,
 		metrics:            nil,
+		otelConfig: &otelconfig.OTelConfig{
+			Enabled:        false,
+			TraceExecution: false,
+		},
 	}
 
 	exec.jsRegistry.RegisterBuiltin("uuid", js.BuiltinUuidGo)
@@ -141,7 +144,7 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 	}
 
 	// Initialize execution metrics if tracing is enabled and meter is available
-	if exec.otelConfig.TraceExecution && exec.meter != nil {
+	if exec.otelConfig.Enabled && exec.otelConfig.TraceExecution && exec.meter != nil {
 		exec.metrics = &ExecutionMetrics{}
 
 		var err error
