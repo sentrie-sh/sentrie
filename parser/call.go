@@ -39,23 +39,19 @@ func parseCallExpression(ctx context.Context, p *Parser, left ast.Expression, pr
 	}
 	p.advance() // consume the closing parenthesis
 
-	exp := &ast.CallExpression{
-		Callee: left,
-		Range: tokens.Range{
-			File: left.Span().File,
-			From: tokens.Pos{
-				Line:   left.Span().From.Line,
-				Column: left.Span().From.Column,
-				Offset: left.Span().From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   rparen.Range.From.Line,
-				Column: rparen.Range.From.Column,
-				Offset: rparen.Range.From.Offset,
-			},
+	exp := ast.NewCallExpression(left, arguments, false, nil, tokens.Range{
+		File: left.Span().File,
+		From: tokens.Pos{
+			Line:   left.Span().From.Line,
+			Column: left.Span().From.Column,
+			Offset: left.Span().From.Offset,
 		},
-		Arguments: arguments,
-	}
+		To: tokens.Pos{
+			Line:   rparen.Range.From.Line,
+			Column: rparen.Range.From.Column,
+			Offset: rparen.Range.From.Offset,
+		},
+	})
 
 	if p.head().IsOfKind(tokens.TokenBang) {
 		_ = p.advance()

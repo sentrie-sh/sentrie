@@ -23,40 +23,39 @@ import (
 )
 
 func parseShapeStatement(ctx context.Context, p *Parser) ast.Statement {
-	stmt := &ast.ShapeStatement{
-		Range: p.head().Range,
-	}
-
-	if !p.expect(tokens.KeywordShape) {
+	shapeToken, found := p.advanceExpected(tokens.KeywordShape)
+	if !found {
 		return nil
 	}
+	rnge := shapeToken.Range
 
-	name, found := p.advanceExpected(tokens.Ident)
+	nameToken, found := p.advanceExpected(tokens.Ident)
 	if !found {
 		return nil
 	}
 
-	stmt.Name = name.Value
+	name := nameToken.Value
+	rnge.To = nameToken.Range.To
 
+	var simpleTypeRef ast.TypeRef
+	var complexShape *ast.Cmplx
 	if p.canExpectAnyOf(tokens.PunctLeftCurly, tokens.KeywordWith) {
-		stmt.Complex = parseComplexShape(ctx, p)
+		complexShape = parseComplexShape(ctx, p)
 	} else {
-		stmt.Simple = parseTypeRef(ctx, p)
+		simpleTypeRef = parseTypeRef(ctx, p)
 	}
 
-	if stmt.Simple == nil && stmt.Complex == nil /* both cannot be nil */ {
+	if simpleTypeRef == nil && complexShape == nil /* both cannot be nil */ {
 		return nil
 	}
 
-	// Update the end position to the current token
-	current := p.head()
-	stmt.Range.To = tokens.Pos{
-		Line:   current.Range.From.Line,
-		Column: current.Range.From.Column,
-		Offset: current.Range.From.Offset,
+	if complexShape != nil {
+		rnge.To = complexShape.Range.To
+	} else {
+		rnge.To = simpleTypeRef.Span().To
 	}
 
-	return stmt
+	return ast.NewShapeStatement(name, simpleTypeRef, complexShape, rnge)
 }
 
 func parseComplexShape(ctx context.Context, p *Parser) *ast.Cmplx {
@@ -67,8 +66,8 @@ func parseComplexShape(ctx context.Context, p *Parser) *ast.Cmplx {
 
 	if p.head().IsOfKind(tokens.KeywordWith) {
 		p.advance()
-		with, _ := parseFQN(ctx, p)
-		if len(with) == 0 {
+		with := parseFQN(ctx, p)
+		if with == nil {
 			return nil
 		}
 		stmt.With = with

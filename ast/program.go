@@ -19,20 +19,21 @@ import (
 )
 
 type NamespaceStatement struct {
-	Range tokens.Range
-	Name  FQN // Fully Qualified Name (FQN) of the namespace
+	*baseNode
+	Name FQN // Fully Qualified Name (FQN) of the namespace
 }
 
+func NewNamespaceStatement(name FQN, ssp tokens.Range) *NamespaceStatement {
+	return &NamespaceStatement{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "namespace",
+		},
+		Name: name,
+	}
+}
 func (n NamespaceStatement) String() string {
 	return n.Name.String()
-}
-
-func (n NamespaceStatement) Span() tokens.Range {
-	return n.Range
-}
-
-func (n NamespaceStatement) Kind() string {
-	return "namespace"
 }
 
 func (n NamespaceStatement) statementNode() {}
@@ -41,21 +42,24 @@ var _ Statement = &NamespaceStatement{}
 var _ Node = &NamespaceStatement{}
 
 type PolicyStatement struct {
-	Range      tokens.Range
+	*baseNode
 	Name       string
 	Statements []Statement
 }
 
+func NewPolicyStatement(name string, statements []Statement, ssp tokens.Range) *PolicyStatement {
+	return &PolicyStatement{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "policy",
+		},
+		Name:       name,
+		Statements: statements,
+	}
+}
+
 func (p PolicyStatement) String() string {
 	return p.Name
-}
-
-func (p PolicyStatement) Span() tokens.Range {
-	return p.Range
-}
-
-func (p PolicyStatement) Kind() string {
-	return "policy"
 }
 
 func (p PolicyStatement) statementNode() {}

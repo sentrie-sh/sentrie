@@ -114,7 +114,7 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 		return m, n.SetResult(m), nil
 
 	case *ast.Identifier:
-		return evalIdent(ctx, ec, exec, p, t.Value)
+		return evalIdent(ctx, ec, exec, p, t)
 
 	case *ast.CastExpression:
 		return evalCast(ctx, ec, exec, p, t)

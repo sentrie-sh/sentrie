@@ -47,109 +47,66 @@ func parseConstraintLiteral(ctx context.Context, p *Parser) ast.Expression {
 
 // parseConstraintListLiteral parses a list literal for constraint arguments (literal-only)
 func parseConstraintListLiteral(ctx context.Context, p *Parser) ast.Expression {
-	token := p.advance() // consume '['
+	lBracket, found := p.advanceExpected(tokens.PunctLeftBracket)
+	if !found {
+		return nil
+	}
 
 	var elements []ast.Expression
 
-	// Handle empty list
-	if p.current.Kind == tokens.PunctRightBracket {
-		p.advance() // consume ']'
-		return &ast.ListLiteral{
-			Range: tokens.Range{
-				File: token.Range.File,
-				From: tokens.Pos{
-					Line:   token.Range.From.Line,
-					Column: token.Range.From.Column,
-					Offset: token.Range.From.Offset,
-				},
-				To: tokens.Pos{
-					Line:   token.Range.From.Line,
-					Column: token.Range.From.Column,
-					Offset: token.Range.From.Offset,
-				},
-			},
-			Values: elements,
-		}
-	}
-
 	// Parse list elements (only literals)
-	for {
+	for p.hasTokens() && p.current.Kind != tokens.PunctRightBracket {
 		element := parseConstraintLiteral(ctx, p)
 		if element == nil {
 			return nil
 		}
 		elements = append(elements, element)
 
-		if p.current.Kind == tokens.PunctComma {
-			p.advance() // consume ','
-		} else if p.current.Kind == tokens.PunctRightBracket {
+		if p.head().IsOfKind(tokens.PunctRightBracket) {
 			break
-		} else {
-			p.errorf("expected ',' or ']' in list literal, got %s at %s", p.current.Kind, p.current.Range.From)
+		}
+
+		if !p.expect(tokens.PunctComma) {
 			return nil
 		}
+
 	}
 
-	if !p.expect(tokens.PunctRightBracket) {
+	rBracket, found := p.advanceExpected(tokens.PunctRightBracket)
+	if !found {
 		return nil
 	}
 
-	return &ast.ListLiteral{
-		Range: tokens.Range{
-			File: token.Range.File,
-			From: tokens.Pos{
-				Line:   token.Range.From.Line,
-				Column: token.Range.From.Column,
-				Offset: token.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   token.Range.From.Line,
-				Column: token.Range.From.Column,
-				Offset: token.Range.From.Offset,
-			},
-		},
-		Values: elements,
-	}
+	return ast.NewListLiteral(elements, tokens.Range{
+		File: lBracket.Range.File,
+		From: lBracket.Range.From,
+		To:   rBracket.Range.To,
+	})
 }
 
 // parseConstraintMapLiteral parses a map literal for constraint arguments (literal-only)
 func parseConstraintMapLiteral(ctx context.Context, p *Parser) ast.Expression {
-	token := p.advance() // consume '{'
+	lCurly, found := p.advanceExpected(tokens.PunctLeftCurly)
+	if !found {
+		return nil
+	}
 
 	var entries []ast.MapEntry
 
-	// Handle empty map
-	if p.current.Kind == tokens.PunctRightCurly {
-		p.advance() // consume '}'
-		return &ast.MapLiteral{
-			Range: tokens.Range{
-				File: token.Range.File,
-				From: tokens.Pos{
-					Line:   token.Range.From.Line,
-					Column: token.Range.From.Column,
-					Offset: token.Range.From.Offset,
-				},
-				To: tokens.Pos{
-					Line:   token.Range.From.Line,
-					Column: token.Range.From.Column,
-					Offset: token.Range.From.Offset,
-				},
-			},
-			Entries: entries,
-		}
-	}
-
 	// Parse map entries (only literals)
-	for {
+	for p.hasTokens() && p.current.Kind != tokens.PunctRightCurly {
 		// Parse key (must be string literal)
-		if p.current.Kind != tokens.String {
+		if !p.canExpect(tokens.String) {
 			p.errorf("map keys must be string literals, got %s at %s", p.current.Kind, p.current.Range.From)
 			return nil
 		}
-		keyToken := p.advance()
+		keyToken, found := p.advanceExpected(tokens.String)
+		if !found {
+			return nil
+		}
 
 		// Expect colon
-		if !p.expect(tokens.PunctColon) {
+		if !p.canExpect(tokens.PunctColon) {
 			return nil
 		}
 
@@ -160,53 +117,27 @@ func parseConstraintMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 		}
 
 		entries = append(entries, ast.MapEntry{
-			Key: &ast.StringLiteral{
-				Range: tokens.Range{
-					File: keyToken.Range.File,
-					From: tokens.Pos{
-						Line:   keyToken.Range.From.Line,
-						Column: keyToken.Range.From.Column,
-						Offset: keyToken.Range.From.Offset,
-					},
-					To: tokens.Pos{
-						Line:   keyToken.Range.From.Line,
-						Column: keyToken.Range.From.Column,
-						Offset: keyToken.Range.From.Offset,
-					},
-				},
-				Value: keyToken.Value,
-			},
+			Key:   ast.NewStringLiteral(keyToken.Value, keyToken.Range),
 			Value: value,
 		})
 
-		if p.current.Kind == tokens.PunctComma {
-			p.advance() // consume ','
-		} else if p.current.Kind == tokens.PunctRightCurly {
+		if p.head().IsOfKind(tokens.PunctRightCurly) {
 			break
-		} else {
-			p.errorf("expected ',' or '}' in map literal, got %s at %s", p.current.Kind, p.current.Range.From)
+		}
+
+		if !p.expect(tokens.PunctComma) {
 			return nil
 		}
 	}
 
-	if !p.expect(tokens.PunctRightCurly) {
+	rCurly, found := p.advanceExpected(tokens.PunctRightCurly)
+	if !found {
 		return nil
 	}
 
-	return &ast.MapLiteral{
-		Range: tokens.Range{
-			File: token.Range.File,
-			From: tokens.Pos{
-				Line:   token.Range.From.Line,
-				Column: token.Range.From.Column,
-				Offset: token.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   token.Range.From.Line,
-				Column: token.Range.From.Column,
-				Offset: token.Range.From.Offset,
-			},
-		},
-		Entries: entries,
-	}
+	return ast.NewMapLiteral(entries, tokens.Range{
+		File: lCurly.Range.File,
+		From: lCurly.Range.From,
+		To:   rCurly.Range.To,
+	})
 }

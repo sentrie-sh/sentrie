@@ -18,32 +18,18 @@ import (
 	"context"
 
 	"github.com/sentrie-sh/sentrie/ast"
-	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 func parseUnaryExpression(ctx context.Context, p *Parser) ast.Expression {
-	token := p.advance()
+	operatorToken := p.advance()
 
 	right := p.parseExpression(ctx, UNARY)
 	if right == nil {
 		return nil
 	}
 
-	return &ast.UnaryExpression{
-		Range: tokens.Range{
-			File: token.Range.File,
-			From: tokens.Pos{
-				Line:   token.Range.From.Line,
-				Column: token.Range.From.Column,
-				Offset: token.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   token.Range.From.Line,
-				Column: token.Range.From.Column,
-				Offset: token.Range.From.Offset,
-			},
-		},
-		Operator: token.Value,
-		Right:    right,
-	}
+	rnge := operatorToken.Range
+	rnge.To = right.Span().To
+
+	return ast.NewUnaryExpression(operatorToken.Value, right, rnge)
 }

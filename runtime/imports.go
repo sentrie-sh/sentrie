@@ -33,7 +33,7 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 	})
 	defer done()
 
-	if len(t.FromPolicyFQN) < 2 {
+	if len(t.FromPolicyFQN.Parts) < 2 {
 		err := fmt.Errorf("import from must specify namespace/policy: got %v", t.FromPolicyFQN)
 		return nil, n.SetErr(err), err
 	}
@@ -41,7 +41,7 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 	rule := t.RuleToImport
 
 	var ns, pol string
-	if len(t.FromPolicyFQN) == 1 {
+	if len(t.FromPolicyFQN.Parts) == 1 {
 		// we only have a policy name - the namespace is the current policy's namespace
 		ns = p.Namespace.FQN.String()
 	} else {

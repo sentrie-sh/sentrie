@@ -21,8 +21,18 @@ import (
 )
 
 type ListLiteral struct {
-	Range  tokens.Range
+	*baseNode
 	Values []Expression
+}
+
+func NewListLiteral(values []Expression, ssp tokens.Range) *ListLiteral {
+	return &ListLiteral{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "list_literal",
+		},
+		Values: values,
+	}
 }
 
 func (l *ListLiteral) String() string {
@@ -42,14 +52,6 @@ func (l *ListLiteral) String() string {
 }
 
 func (l *ListLiteral) expressionNode() {}
-
-func (l *ListLiteral) Kind() string {
-	return "list_literal"
-}
-
-func (l *ListLiteral) Span() tokens.Range {
-	return l.Range
-}
 
 var _ Expression = &ListLiteral{}
 var _ Node = &ListLiteral{}

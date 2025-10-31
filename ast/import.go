@@ -14,37 +14,65 @@
 
 package ast
 
-import "github.com/sentrie-sh/sentrie/tokens"
+import (
+	"fmt"
+
+	"github.com/sentrie-sh/sentrie/tokens"
+)
 
 // 'import value|decision @ident from @string { @WithClause }'
 type ImportClause struct {
-	Range         tokens.Range  // Range in the source code
+	*baseNode
 	RuleToImport  string        // The name of the rule being imported
-	FromPolicyFQN FQN           // The source identifier - segmented by '/'
+	FromPolicyFQN *FQN          // The source identifier - segmented by '/'
 	Withs         []*WithClause // Inline with import clause
 }
 
 // 'with @ident as @string'
 // Represents a 'with' clause in an import statement, allowing for additional context or configuration.
 type WithClause struct {
-	Range tokens.Range // Range in the source code
-	Name  string       // Name of the with clause - this is also the name that the target policy exposes
-	Expr  Expression   // Value associated with the with clause
+	*baseNode
+	Name string     // Name of the with clause - this is also the name that the target policy exposes
+	Expr Expression // Value associated with the with clause
+}
+
+func NewImportClause(ruleToImport string, fromPolicyFQN *FQN, withs []*WithClause, ssp tokens.Range) *ImportClause {
+	return &ImportClause{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "import",
+		},
+		RuleToImport:  ruleToImport,
+		FromPolicyFQN: fromPolicyFQN,
+		Withs:         withs,
+	}
+}
+
+func NewWithClause(name string, expr Expression, ssp tokens.Range) *WithClause {
+	return &WithClause{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "with",
+		},
+		Name: name,
+		Expr: expr,
+	}
 }
 
 func (i ImportClause) String() string {
-	return i.RuleToImport
-}
-
-func (i ImportClause) Span() tokens.Range {
-	return i.Range
-}
-
-func (i ImportClause) Kind() string {
-	return "import"
+	return fmt.Sprintf("import %s from %s with %v", i.RuleToImport, i.FromPolicyFQN, i.Withs)
 }
 
 func (i ImportClause) expressionNode() {}
 
 var _ Expression = &ImportClause{}
 var _ Node = &ImportClause{}
+
+func (w WithClause) String() string {
+	return fmt.Sprintf("with %s as %s", w.Name, w.Expr.String())
+}
+
+func (w WithClause) expressionNode() {}
+
+var _ Expression = &WithClause{}
+var _ Node = &WithClause{}

@@ -14,33 +14,59 @@
 
 package ast
 
-import "github.com/sentrie-sh/sentrie/tokens"
+import (
+	"fmt"
+
+	"github.com/sentrie-sh/sentrie/tokens"
+)
 
 type RuleExportStatement struct {
-	Range       tokens.Range        // Range in the source code
+	*baseNode
 	Of          string              // Name of the exported variable or decision
 	Attachments []*AttachmentClause // Optional attachments for the export
 }
+
+type AttachmentClause struct {
+	*baseNode
+	What string     // Name of the attachment
+	As   Expression // Value of the attachment
+}
+
+func NewAttachmentClause(what string, as Expression, ssp tokens.Range) *AttachmentClause {
+	return &AttachmentClause{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "attachment_clause",
+		},
+		What: what,
+		As:   as,
+	}
+}
+
+func NewRuleExportStatement(of string, attachments []*AttachmentClause, ssp tokens.Range) *RuleExportStatement {
+	return &RuleExportStatement{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "rule_export",
+		},
+		Of:          of,
+		Attachments: attachments,
+	}
+}
+
+func (v RuleExportStatement) statementNode() {}
 
 func (v RuleExportStatement) String() string {
 	return v.Of
 }
 
-func (v RuleExportStatement) Span() tokens.Range {
-	return v.Range
-}
-
-func (v RuleExportStatement) Kind() string {
-	return "rule_export"
-}
-
-func (v RuleExportStatement) statementNode() {}
-
 var _ Statement = &RuleExportStatement{}
 var _ Node = &RuleExportStatement{}
 
-type AttachmentClause struct {
-	Range tokens.Range // Range in the source code
-	What  string       // Name of the attachment
-	As    Expression   // Value of the attachment
+func (a AttachmentClause) String() string {
+	return fmt.Sprintf("attach %s as %s", a.What, a.As)
 }
+func (a *AttachmentClause) expressionNode() {}
+
+var _ Expression = &AttachmentClause{}
+var _ Node = &AttachmentClause{}

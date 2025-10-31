@@ -20,7 +20,7 @@ import (
 
 // Identifier represents an identifier
 type Identifier struct {
-	Range tokens.Range
+	*baseNode
 	Value string
 }
 
@@ -28,12 +28,14 @@ func (i *Identifier) String() string {
 	return i.Value
 }
 
-func (i *Identifier) Span() tokens.Range {
-	return i.Range
-}
-
-func (i *Identifier) Kind() string {
-	return "identifier"
+func NewIdentifier(value string, ssp tokens.Range) *Identifier {
+	return &Identifier{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "identifier",
+		},
+		Value: value,
+	}
 }
 
 func (i *Identifier) expressionNode() {}

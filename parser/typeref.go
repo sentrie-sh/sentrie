@@ -35,38 +35,29 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 	var ref ast.TypeRef
 	switch p.current.Kind {
 	case tokens.KeywordString:
-		ref = &ast.StringTypeRef{
-			Range: p.advance().Range,
-		}
+		ref = ast.NewStringTypeRef(p.advance().Range)
 	case tokens.KeywordNumber:
-		ref = &ast.NumberTypeRef{
-			Range: p.advance().Range,
-		}
+		ref = ast.NewNumberTypeRef(p.advance().Range)
 	case tokens.KeywordBoolean:
-		ref = &ast.BoolTypeRef{
-			Range: p.advance().Range,
-		}
+		ref = ast.NewBoolTypeRef(p.advance().Range)
 	case tokens.Ident:
-		ref = &ast.ShapeTypeRef{
-			Range: p.head().Range, // we cannot advance here, since this is a FQN which needs to be parsed
-			Ref:   func() ast.FQN { f, _ := parseFQN(ctx, p); return f }(),
+		fqn := parseFQN(ctx, p)
+		if fqn == nil {
+			return nil
 		}
+		ref = ast.NewShapeTypeRef(fqn, fqn.Rnge)
 	case tokens.KeywordList:
-		ref = &ast.ListTypeRef{
-			Range: p.advance().Range,
-		}
+		ref = ast.NewListTypeRef(nil, p.advance().Range) // elemType will be set later
 	case tokens.KeywordMap:
-		ref = &ast.MapTypeRef{
-			Range: p.advance().Range,
-		}
+		ref = ast.NewMapTypeRef(nil, p.advance().Range) // valueType will be set later
 	case tokens.KeywordRecord:
-		ref = &ast.RecordTypeRef{
-			Range: p.advance().Range,
-		}
+		ref = ast.NewRecordTypeRef(nil, p.advance().Range) // fields will be set later
 	case tokens.KeywordDocument:
-		ref = &ast.DocumentTypeRef{
-			Range: p.advance().Range,
-		}
+		ref = ast.NewDocumentTypeRef(p.advance().Range)
+	}
+
+	if ref == nil {
+		return nil
 	}
 
 	if r, ok := ref.(*ast.ListTypeRef); ok {
@@ -78,7 +69,7 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		if !found {
 			return nil
 		}
-		r.Range.To = rBracket.Range.To
+		r.Rnge.To = rBracket.Range.To
 	} else if r, ok := ref.(*ast.MapTypeRef); ok {
 		if !p.expect(tokens.PunctLeftBracket) {
 			return nil
@@ -88,7 +79,7 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		if !found {
 			return nil
 		}
-		r.Range.To = rBracket.Range.To
+		r.Rnge.To = rBracket.Range.To
 	} else if r, ok := ref.(*ast.RecordTypeRef); ok {
 		if !p.expect(tokens.PunctLeftBracket) {
 			return nil
@@ -104,7 +95,7 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		if !found {
 			return nil
 		}
-		r.Range.To = rBracket.Range.To
+		r.Rnge.To = rBracket.Range.To
 	}
 
 	for p.head().IsOfKind(tokens.TokenAt) {
@@ -113,7 +104,7 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 			return nil
 		}
 		if err := ref.AddConstraint(constraint); err != nil {
-			p.errorf("cannot add constraint %s: %s at %s", constraint.Name, err, constraint.Range)
+			p.errorf("cannot add constraint %s: %s at %s", constraint.Name, err, constraint.Rnge)
 			return nil
 		}
 	}
@@ -122,26 +113,26 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 }
 
 func parseTypeRefConstraint(ctx context.Context, p *Parser, _ ast.TypeRef) *ast.TypeRefConstraint {
-	slog.DebugContext(ctx, "parseShapeFieldConstraint_start", "head", p.head().String())
-	defer slog.DebugContext(ctx, "parseShapeFieldConstraint_end")
+	slog.DebugContext(ctx, "parseTypeRefConstraint_start", "head", p.head().String())
+	defer slog.DebugContext(ctx, "parseTypeRefConstraint_end")
 
-	constraint := &ast.TypeRefConstraint{
-		Range: p.head().Range,
-	}
-
-	if !p.expect(tokens.TokenAt) {
+	atToken, found := p.advanceExpected(tokens.TokenAt)
+	if !found {
 		return nil
 	}
+
+	rnge := atToken.Range
 
 	name, found := p.advanceExpected(tokens.Ident)
 	if !found {
 		return nil
 	}
-	constraint.Name = name.Value
 
 	if !p.expect(tokens.PunctLeftParentheses) {
 		return nil
 	}
+
+	args := []ast.Expression{}
 
 	for !p.head().IsOfKind(tokens.PunctRightParentheses) {
 		arg := parseConstraintLiteral(ctx, p)
@@ -149,16 +140,19 @@ func parseTypeRefConstraint(ctx context.Context, p *Parser, _ ast.TypeRef) *ast.
 			return nil
 		}
 
-		constraint.Args = append(constraint.Args, arg)
+		args = append(args, arg)
 
 		if p.head().IsOfKind(tokens.PunctComma) {
 			p.advance()
 		}
 	}
 
-	if !p.expect(tokens.PunctRightParentheses) {
+	rightParentheses, found := p.advanceExpected(tokens.PunctRightParentheses)
+	if !found {
 		return nil
 	}
 
-	return constraint
+	rnge.To = rightParentheses.Range.To
+
+	return ast.NewTypeRefConstraint(name.Value, args, rnge)
 }

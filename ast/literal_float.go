@@ -22,24 +22,24 @@ import (
 
 // FloatLiteral represents a float literal
 type FloatLiteral struct {
-	Range tokens.Range
+	*baseNode
 	Value float64
+}
+
+func NewFloatLiteral(value float64, ssp tokens.Range) *FloatLiteral {
+	return &FloatLiteral{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "float_literal",
+		},
+		Value: value,
+	}
 }
 
 func (f *FloatLiteral) String() string {
 	return fmt.Sprintf("%g", f.Value)
 }
-
 func (f *FloatLiteral) expressionNode() {}
-
-func (f *FloatLiteral) Kind() string {
-	return "float_literal"
-}
-
-// Span returns the span of the float literal in the source code
-func (f *FloatLiteral) Span() tokens.Range {
-	return f.Range
-}
 
 var _ Expression = &FloatLiteral{}
 var _ Node = &FloatLiteral{}

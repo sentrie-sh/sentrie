@@ -50,21 +50,17 @@ func parseCastExpression(ctx context.Context, p *Parser) ast.Expression {
 		return nil
 	}
 
-	return &ast.CastExpression{
-		Range: tokens.Range{
-			File: start.Range.File,
-			From: tokens.Pos{
-				Line:   start.Range.From.Line,
-				Column: start.Range.From.Column,
-				Offset: start.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   typeRef.Span().To.Line,
-				Column: typeRef.Span().To.Column,
-				Offset: typeRef.Span().To.Offset,
-			},
+	return ast.NewCastExpression(what, typeRef, tokens.Range{
+		File: start.Range.File,
+		From: tokens.Pos{
+			Line:   start.Range.From.Line,
+			Column: start.Range.From.Column,
+			Offset: start.Range.From.Offset,
 		},
-		Expr:       what,
-		TargetType: typeRef,
-	}
+		To: tokens.Pos{
+			Line:   typeRef.Span().To.Line,
+			Column: typeRef.Span().To.Column,
+			Offset: typeRef.Span().To.Offset,
+		},
+	})
 }

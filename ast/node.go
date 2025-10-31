@@ -24,6 +24,19 @@ type Node interface {
 	Kind() string
 }
 
+type baseNode struct {
+	Rnge  tokens.Range
+	Kind_ string
+}
+
+func (n *baseNode) Span() tokens.Range {
+	return n.Rnge
+}
+
+func (n *baseNode) Kind() string {
+	return n.Kind_
+}
+
 type Statement interface {
 	Node
 	statementNode()

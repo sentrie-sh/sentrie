@@ -21,20 +21,22 @@ import (
 
 // TrinaryLiteral represents a trinary literal
 type TrinaryLiteral struct {
-	Range tokens.Range
+	*baseNode
 	Value trinary.Value
+}
+
+func NewTrinaryLiteral(value trinary.Value, ssp tokens.Range) *TrinaryLiteral {
+	return &TrinaryLiteral{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "trinary_literal",
+		},
+		Value: value,
+	}
 }
 
 func (b *TrinaryLiteral) String() string {
 	return b.Value.String()
-}
-
-func (b *TrinaryLiteral) Span() tokens.Range {
-	return b.Range
-}
-
-func (b *TrinaryLiteral) Kind() string {
-	return "trinary_literal"
 }
 
 func (b *TrinaryLiteral) expressionNode() {}

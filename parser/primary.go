@@ -30,60 +30,18 @@ func parseNullLiteral(ctx context.Context, p *Parser) ast.Expression {
 		p.err = fmt.Errorf("expected `null` literal, got %s at line %d, column %d", token.Kind, token.Range.From.Line, token.Range.From.Column)
 		return nil
 	}
-	return &ast.NullLiteral{Range: tokens.Range{
-		File: token.Range.File,
-		From: tokens.Pos{
-			Line:   token.Range.From.Line,
-			Column: token.Range.From.Column,
-			Offset: token.Range.From.Offset,
-		},
-		To: tokens.Pos{
-			Line:   token.Range.From.Line,
-			Column: token.Range.From.Column,
-			Offset: token.Range.From.Offset,
-		},
-	}}
+	return ast.NewNullLiteral(token.Range)
 }
 
 func parseTrinaryLiteral(ctx context.Context, p *Parser) ast.Expression {
 	token := p.advance()
 	tristateValue := trinary.FromToken(token)
-	return &ast.TrinaryLiteral{
-		Range: tokens.Range{
-			File: token.Range.File,
-			From: tokens.Pos{
-				Line:   token.Range.From.Line,
-				Column: token.Range.From.Column,
-				Offset: token.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   token.Range.From.Line,
-				Column: token.Range.From.Column,
-				Offset: token.Range.From.Offset,
-			},
-		},
-		Value: tristateValue,
-	}
+	return ast.NewTrinaryLiteral(tristateValue, token.Range)
 }
 
 func parseIdentifier(ctx context.Context, p *Parser) ast.Expression {
 	token := p.advance()
-	return &ast.Identifier{
-		Range: tokens.Range{
-			File: token.Range.File,
-			From: tokens.Pos{
-				Line:   token.Range.From.Line,
-				Column: token.Range.From.Column,
-				Offset: token.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   token.Range.From.Line,
-				Column: token.Range.From.Column,
-				Offset: token.Range.From.Offset,
-			},
-		},
-		Value: token.Value,
-	}
+	return ast.NewIdentifier(token.Value, token.Range)
 }
 
 func parseIntegerLiteral(ctx context.Context, p *Parser) ast.Expression {
@@ -93,42 +51,12 @@ func parseIntegerLiteral(ctx context.Context, p *Parser) ast.Expression {
 		p.errorf("invalid integer literal %q at %s: %w", token.Value, token.Range.From, err)
 		return nil
 	}
-	return &ast.IntegerLiteral{
-		Range: tokens.Range{
-			File: token.Range.File,
-			From: tokens.Pos{
-				Line:   token.Range.From.Line,
-				Column: token.Range.From.Column,
-				Offset: token.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   token.Range.From.Line,
-				Column: token.Range.From.Column,
-				Offset: token.Range.From.Offset,
-			},
-		},
-		Value: value,
-	}
+	return ast.NewIntegerLiteral(value, token.Range)
 }
 
 func parseStringLiteral(ctx context.Context, p *Parser) ast.Expression {
 	token := p.advance()
-	return &ast.StringLiteral{
-		Range: tokens.Range{
-			File: token.Range.File,
-			From: tokens.Pos{
-				Line:   token.Range.From.Line,
-				Column: token.Range.From.Column,
-				Offset: token.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   token.Range.From.Line,
-				Column: token.Range.From.Column,
-				Offset: token.Range.From.Offset,
-			},
-		},
-		Value: token.Value,
-	}
+	return ast.NewStringLiteral(token.Value, token.Range)
 }
 
 func parseFloatLiteral(ctx context.Context, p *Parser) ast.Expression {
@@ -138,20 +66,5 @@ func parseFloatLiteral(ctx context.Context, p *Parser) ast.Expression {
 		p.errorf("invalid float literal %q at %s: %w", token.Value, token.Range.From, err)
 		return nil
 	}
-	return &ast.FloatLiteral{
-		Range: tokens.Range{
-			File: token.Range.File,
-			From: tokens.Pos{
-				Line:   token.Range.From.Line,
-				Column: token.Range.From.Column,
-				Offset: token.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   token.Range.From.Line,
-				Column: token.Range.From.Column,
-				Offset: token.Range.From.Offset,
-			},
-		},
-		Value: value,
-	}
+	return ast.NewFloatLiteral(value, token.Range)
 }

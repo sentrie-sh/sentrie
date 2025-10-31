@@ -22,27 +22,21 @@ import (
 )
 
 type RecordTypeRef struct {
-	constraints []*TypeRefConstraint
-	Range       tokens.Range
-	Fields      []TypeRef
+	*baseTypeRef
+	Fields []TypeRef
 }
 
-var _ TypeRef = &RecordTypeRef{}
-var _ Node = &RecordTypeRef{}
-
-func (r *RecordTypeRef) typeref()           {}
-func (r *RecordTypeRef) Span() tokens.Range { return r.Range }
-func (r *RecordTypeRef) Kind() string       { return "record_typeref" }
-func (r *RecordTypeRef) GetConstraints() []*TypeRefConstraint {
-	return r.constraints
-}
-func (r *RecordTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
-	if err := validateConstraint(constraint, genRecordConstraints); err != nil {
-		return err
+func NewRecordTypeRef(fields []TypeRef, ssp tokens.Range) *RecordTypeRef {
+	return &RecordTypeRef{
+		baseTypeRef: &baseTypeRef{
+			baseNode: &baseNode{
+				Rnge:  ssp,
+				Kind_: "record_typeref",
+			},
+			validConstraints: genRecordConstraints,
+		},
+		Fields: fields,
 	}
-	r.constraints = append(r.constraints, constraint)
-	r.Range.To = constraint.Range.To
-	return nil
 }
 
 func (r *RecordTypeRef) String() string {

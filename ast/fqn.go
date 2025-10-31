@@ -17,40 +17,63 @@ package ast
 import (
 	"fmt"
 	"strings"
+
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 const FQNSeparator = "/"
 
-type FQN []string
+type FQN struct {
+	*baseNode
+	Parts []string
+}
+
+func (f FQN) IsEmpty() bool {
+	return len(f.Parts) == 0
+}
+
+func NewFQN(parts []string, ssp tokens.Range) FQN {
+	return FQN{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "fqn",
+		},
+		Parts: parts,
+	}
+}
+
+func (f FQN) Ptr() *FQN {
+	return &f
+}
 
 func (f FQN) String() string {
-	if len(f) == 0 {
+	if len(f.Parts) == 0 {
 		return ""
 	}
-	return strings.Join(f, FQNSeparator)
+	return strings.Join(f.Parts, FQNSeparator)
 }
 
 func CreateFQN(base FQN, lastSegment string) FQN {
-	if len(base) == 0 {
-		return FQN{lastSegment}
+	if len(base.Parts) == 0 {
+		return NewFQN([]string{lastSegment}, base.Rnge)
 	}
-	return append(base, lastSegment)
+	return NewFQN(append(base.Parts, lastSegment), base.Rnge)
 }
 
 // LastSegment returns the last segment of the FQN
 func (f FQN) LastSegment() string {
-	if len(f) == 0 {
+	if len(f.Parts) == 0 {
 		return ""
 	}
-	return f[len(f)-1]
+	return f.Parts[len(f.Parts)-1]
 }
 
 // Parent returns the parent of the FQN
 func (f FQN) Parent() FQN {
-	if len(f) == 0 {
-		return FQN{}
+	if len(f.Parts) == 0 {
+		return NewFQN([]string{}, f.Rnge)
 	}
-	return f[:len(f)-1]
+	return NewFQN(f.Parts[:len(f.Parts)-1], f.Rnge)
 }
 
 // IsChildOf returns true if the FQN is a child of another FQN
@@ -59,7 +82,7 @@ func (f FQN) IsChildOf(another FQN) bool {
 	// ["com","example","foo"] not child of ["com","example","bar"]
 	// ["com","example","foo"] not child of ["com","example2","foo"]
 	// ["com","example","foo","bar"] not child of ["com","example"]
-	if len(f)-1 != len(another) {
+	if len(f.Parts)-1 != len(another.Parts) {
 		return false
 	}
 
@@ -71,3 +94,5 @@ func (f FQN) IsChildOf(another FQN) bool {
 func (f FQN) IsParentOf(another FQN) bool {
 	return another.IsChildOf(f)
 }
+
+var _ Node = &FQN{}

@@ -17,26 +17,24 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type ShapeTypeRef struct {
-	constraints []*TypeRefConstraint
-	Range       tokens.Range
-	Ref         FQN // Fully Qualified Name (FQN) of the shape
+	*baseTypeRef
+	Ref *FQN // Fully Qualified Name (FQN) of the shape
 }
+
+func NewShapeTypeRef(ref *FQN, ssp tokens.Range) *ShapeTypeRef {
+	return &ShapeTypeRef{
+		baseTypeRef: &baseTypeRef{
+			baseNode: &baseNode{
+				Rnge:  ssp,
+				Kind_: "shape_typeref",
+			},
+			validConstraints: genShapeConstraints,
+		},
+		Ref: ref,
+	}
+}
+
+func (s *ShapeTypeRef) String() string { return s.Ref.String() }
 
 var _ TypeRef = &ShapeTypeRef{}
 var _ Node = &ShapeTypeRef{}
-
-func (s *ShapeTypeRef) typeref()           {}
-func (s *ShapeTypeRef) Span() tokens.Range { return s.Range }
-func (s *ShapeTypeRef) Kind() string       { return "shape_typeref" }
-func (s *ShapeTypeRef) String() string     { return s.Ref.String() }
-func (s *ShapeTypeRef) GetConstraints() []*TypeRefConstraint {
-	return s.constraints
-}
-func (s *ShapeTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
-	if err := validateConstraint(constraint, genShapeConstraints); err != nil {
-		return err
-	}
-	s.constraints = append(s.constraints, constraint)
-	s.Range.To = constraint.Range.To
-	return nil
-}

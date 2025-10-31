@@ -21,9 +21,20 @@ import (
 )
 
 type BlockExpression struct {
-	SourceSpan tokens.Range
+	*baseNode
 	Statements []Statement
 	Yield      Expression
+}
+
+func NewBlockExpression(statements []Statement, yield Expression, ssp tokens.Range) *BlockExpression {
+	return &BlockExpression{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "block",
+		},
+		Statements: statements,
+		Yield:      yield,
+	}
 }
 
 func (b *BlockExpression) expressionNode() {}
@@ -34,14 +45,6 @@ func (b *BlockExpression) String() string {
 		stmts = append(stmts, stmt.String())
 	}
 	return "{" + strings.Join(stmts, ";") + "yield " + b.Yield.String() + "}"
-}
-
-func (b *BlockExpression) Span() tokens.Range {
-	return b.SourceSpan
-}
-
-func (b *BlockExpression) Kind() string {
-	return "block"
 }
 
 var _ Expression = &BlockExpression{}

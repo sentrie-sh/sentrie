@@ -17,21 +17,23 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type UnaryExpression struct {
+	*baseNode
 	Operator string
 	Right    Expression
-	Range    tokens.Range
 }
 
+func NewUnaryExpression(operator string, right Expression, ssp tokens.Range) *UnaryExpression {
+	return &UnaryExpression{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "unary",
+		},
+		Operator: operator,
+		Right:    right,
+	}
+}
 func (u *UnaryExpression) String() string {
 	return u.Operator + u.Right.String()
-}
-
-func (u *UnaryExpression) Span() tokens.Range {
-	return u.Range
-}
-
-func (u *UnaryExpression) Kind() string {
-	return "unary"
 }
 
 func (u *UnaryExpression) expressionNode() {}

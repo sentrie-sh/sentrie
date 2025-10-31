@@ -17,6 +17,8 @@ import (
 
 //go:generate go run gen.go
 
+// This generator collects the typeref constraints from the constraints package and generates the corresponding maps in the ast package.
+// This is used to validate the constraints of the typerefs at parse time.
 func main() {
 	// Collect name->numArgs maps from canonical definitions in constraints package
 	sections := []struct {

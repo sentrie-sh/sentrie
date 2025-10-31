@@ -21,22 +21,25 @@ import (
 )
 
 type TernaryExpression struct {
-	Range      tokens.Range
+	*baseNode
 	Condition  Expression
 	ThenBranch Expression
 	ElseBranch Expression
 }
 
+func NewTernaryExpression(condition Expression, thenBranch Expression, elseBranch Expression, ssp tokens.Range) *TernaryExpression {
+	return &TernaryExpression{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "ternary",
+		},
+		Condition:  condition,
+		ThenBranch: thenBranch,
+		ElseBranch: elseBranch,
+	}
+}
 func (t *TernaryExpression) String() string {
 	return fmt.Sprintf("(%s ? %s : %s)", t.Condition.String(), t.ThenBranch.String(), t.ElseBranch.String())
-}
-
-func (t *TernaryExpression) Span() tokens.Range {
-	return t.Range
-}
-
-func (t *TernaryExpression) Kind() string {
-	return "ternary"
 }
 
 func (t *TernaryExpression) expressionNode() {}

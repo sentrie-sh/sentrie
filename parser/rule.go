@@ -21,54 +21,44 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-// 'when' expr { expr } | import
+// rule <ident> = 'default' expr 'when' expr ( { expr } | importClause )
 func parseRuleStatement(ctx context.Context, parser *Parser) ast.Statement {
-	start := parser.head()
-	stmt := &ast.RuleStatement{
-		Range: tokens.Range{
-			File: start.Range.File,
-			From: tokens.Pos{
-				Line:   start.Range.From.Line,
-				Column: start.Range.From.Column,
-				Offset: start.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   start.Range.From.Line,
-				Column: start.Range.From.Column,
-				Offset: start.Range.From.Offset,
-			},
-		},
-	}
-
-	parser.advance() // consume 'rule'
-
-	name, found := parser.advanceExpected(tokens.Ident)
+	ruleToken, found := parser.advanceExpected(tokens.KeywordRule)
 	if !found {
 		return nil
 	}
-	stmt.RuleName = name.Value
+	rnge := ruleToken.Range
+
+	nameToken, found := parser.advanceExpected(tokens.Ident)
+	if !found {
+		return nil
+	}
+	name := nameToken.Value
+	rnge.To = nameToken.Range.To
 
 	// Assignment operator is required for rule declarations
 	if !parser.expect(tokens.TokenAssign) {
 		return nil // Error in parsing the rule statement
 	}
 
+	var defaultExpr ast.Expression
+	var whenExpr ast.Expression
+	var bodyExpr ast.Expression
+
 	if parser.canExpect(tokens.KeywordDefault) {
 		parser.advance() // consume 'default'
-		defaultExpr := parser.parseExpression(ctx, LOWEST)
+		defaultExpr = parser.parseExpression(ctx, LOWEST)
 		if defaultExpr == nil {
 			return nil // Error in parsing the default expression
 		}
-		stmt.Default = defaultExpr
 	}
 
 	if parser.canExpect(tokens.KeywordWhen) {
 		parser.advance() // consume 'when'
-		whenExpr := parser.parseExpression(ctx, LOWEST)
+		whenExpr = parser.parseExpression(ctx, LOWEST)
 		if whenExpr == nil {
 			return nil // Error in parsing the when expression
 		}
-		stmt.When = whenExpr
 	}
 
 	// Parse rule body - can be import clause or expression (including block expressions)
@@ -78,23 +68,17 @@ func parseRuleStatement(ctx context.Context, parser *Parser) ast.Statement {
 		if importClause == nil {
 			return nil // Error in parsing the import clause
 		}
-		stmt.Body = importClause
+		bodyExpr = importClause
+		rnge.To = importClause.Span().To
 	} else {
 		// Parse as expression (handles direct expressions, block expressions, etc.)
 		expression := parser.parseExpression(ctx, LOWEST)
 		if expression == nil {
 			return nil // Error in parsing the rule body
 		}
-		stmt.Body = expression
+		bodyExpr = expression
+		rnge.To = expression.Span().To
 	}
 
-	// Update the end position to the current token
-	current := parser.head()
-	stmt.Range.To = tokens.Pos{
-		Line:   current.Range.From.Line,
-		Column: current.Range.From.Column,
-		Offset: current.Range.From.Offset,
-	}
-
-	return stmt
+	return ast.NewRuleStatement(name, defaultExpr, whenExpr, bodyExpr, rnge)
 }

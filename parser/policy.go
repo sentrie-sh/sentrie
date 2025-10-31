@@ -23,35 +23,25 @@ import (
 
 func parseThePolicyStatement(ctx context.Context, p *Parser) ast.Statement {
 	start := p.head()
-	policy := &ast.PolicyStatement{
-		Range: tokens.Range{
-			File: start.Range.File,
-			From: tokens.Pos{
-				Line:   start.Range.From.Line,
-				Column: start.Range.From.Column,
-				Offset: start.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   start.Range.From.Line,
-				Column: start.Range.From.Column,
-				Offset: start.Range.From.Offset,
-			},
-		},
-	}
+
+	rnge := start.Range
+
 	if !p.expect(tokens.KeywordPolicy) {
 		return nil
 	}
 
-	name, ok := p.advanceExpected(tokens.Ident)
+	nameIdent, ok := p.advanceExpected(tokens.Ident)
 	if !ok {
 		return nil
 	}
 
-	policy.Name = name.Value
+	name := nameIdent.Value
 
 	if !p.expect(tokens.PunctLeftCurly) {
 		return nil
 	}
+
+	var statements []ast.Statement
 
 	for p.hasTokens() && !p.head().IsOfKind(tokens.PunctRightCurly) {
 		stmt := parsePolicyStatement(ctx, p)
@@ -59,9 +49,9 @@ func parseThePolicyStatement(ctx context.Context, p *Parser) ast.Statement {
 			return nil
 		}
 		if stmt == nil {
-			continue
+			return nil // Error in parsing the policy statement
 		}
-		policy.Statements = append(policy.Statements, stmt)
+		statements = append(statements, stmt)
 
 		// consume the optional semicolon
 		if p.canExpect(tokens.PunctSemicolon) {
@@ -74,19 +64,13 @@ func parseThePolicyStatement(ctx context.Context, p *Parser) ast.Statement {
 		}
 	}
 
-	if !p.expect(tokens.PunctRightCurly) {
+	rCurly, found := p.advanceExpected(tokens.PunctRightCurly)
+	if !found {
 		return nil
 	}
+	rnge.To = rCurly.Range.To
 
-	// Update the end position to the closing curly brace
-	current := p.head()
-	policy.Range.To = tokens.Pos{
-		Line:   current.Range.From.Line,
-		Column: current.Range.From.Column,
-		Offset: current.Range.From.Offset,
-	}
-
-	return policy
+	return ast.NewPolicyStatement(name, statements, rnge)
 }
 
 func parsePolicyStatement(ctx context.Context, p *Parser) ast.Statement {

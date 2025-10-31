@@ -45,7 +45,7 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 
 	// we couldn't find the shape in the policy - go global.
 	// lookup the index with the shape
-	if !ok && len(typeRef.Ref) > 2 {
+	if !ok && len(typeRef.Ref.Parts) > 2 {
 		ns := typeRef.Ref.Parent()
 		name := typeRef.Ref.LastSegment()
 

@@ -14,6 +14,8 @@
 
 package ast
 
+import "github.com/sentrie-sh/sentrie/tokens"
+
 // TestFQNString tests the String() method of FQN
 func (s *AstTestSuite) TestFQNString() {
 	// Test empty FQN
@@ -21,36 +23,36 @@ func (s *AstTestSuite) TestFQNString() {
 	s.Equal("", emptyFQN.String())
 
 	// Test single segment
-	singleFQN := FQN{"com"}
+	singleFQN := NewFQN([]string{"com"}, tokens.Range{})
 	s.Equal("com", singleFQN.String())
 
 	// Test multiple segments
-	multiFQN := FQN{"com", "example", "foo"}
+	multiFQN := NewFQN([]string{"com", "example", "foo"}, tokens.Range{})
 	s.Equal("com/example/foo", multiFQN.String())
 
 	// Test with empty segments
-	emptySegmentsFQN := FQN{"com", "", "foo"}
+	emptySegmentsFQN := NewFQN([]string{"com", "", "foo"}, tokens.Range{})
 	s.Equal("com//foo", emptySegmentsFQN.String())
 }
 
 // TestCreateFQN tests the CreateFQN function
 func (s *AstTestSuite) TestCreateFQN() {
 	// Test with empty base
-	base := FQN{}
+	base := NewFQN([]string{}, tokens.Range{})
 	result := CreateFQN(base, "test")
-	expected := FQN{"test"}
+	expected := NewFQN([]string{"test"}, tokens.Range{})
 	s.Equal(expected, result)
 
 	// Test with non-empty base
-	base = FQN{"com", "example"}
+	base = NewFQN([]string{"com", "example"}, tokens.Range{})
 	result = CreateFQN(base, "foo")
-	expected = FQN{"com", "example", "foo"}
+	expected = NewFQN([]string{"com", "example", "foo"}, tokens.Range{})
 	s.Equal(expected, result)
 
 	// Test with single segment base
-	base = FQN{"com"}
+	base = NewFQN([]string{"com"}, tokens.Range{})
 	result = CreateFQN(base, "example")
-	expected = FQN{"com", "example"}
+	expected = NewFQN([]string{"com", "example"}, tokens.Range{})
 	s.Equal(expected, result)
 }
 
@@ -64,44 +66,44 @@ func (s *AstTestSuite) TestFQNIsParentOf() {
 	}{
 		{
 			desc:     "com.example is parent of com.example.foo",
-			fqn:      FQN{"com", "example"},
-			another:  FQN{"com", "example", "foo"},
+			fqn:      NewFQN([]string{"com", "example"}, tokens.Range{}),
+			another:  NewFQN([]string{"com", "example", "foo"}, tokens.Range{}),
 			expected: true,
 		},
 		{
 			desc:     "com.example is not parent of com.example.foo.bar",
-			fqn:      FQN{"com", "example"},
-			another:  FQN{"com", "example", "foo", "bar"},
+			fqn:      NewFQN([]string{"com", "example"}, tokens.Range{}),
+			another:  NewFQN([]string{"com", "example", "foo", "bar"}, tokens.Range{}),
 			expected: false,
 		},
 		{
 			desc:     "com.example is not parent of com.example2.foo",
-			fqn:      FQN{"com", "example"},
-			another:  FQN{"com", "example2", "foo"},
+			fqn:      NewFQN([]string{"com", "example"}, tokens.Range{}),
+			another:  NewFQN([]string{"com", "example2", "foo"}, tokens.Range{}),
 			expected: false,
 		},
 		{
 			desc:     "Self is not a parent of self",
-			fqn:      FQN{"com", "example", "foo"},
-			another:  FQN{"com", "example", "foo"},
+			fqn:      NewFQN([]string{"com", "example", "foo"}, tokens.Range{}),
+			another:  NewFQN([]string{"com", "example", "foo"}, tokens.Range{}),
 			expected: false,
 		},
 		{
 			desc:     "Empty FQN is not parent of anything",
-			fqn:      FQN{},
-			another:  FQN{"com", "example"},
+			fqn:      NewFQN([]string{}, tokens.Range{}),
+			another:  NewFQN([]string{"com", "example"}, tokens.Range{}),
 			expected: false,
 		},
 		{
 			desc:     "Single segment is parent of two segments",
-			fqn:      FQN{"com"},
-			another:  FQN{"com", "example"},
+			fqn:      NewFQN([]string{"com"}, tokens.Range{}),
+			another:  NewFQN([]string{"com", "example"}, tokens.Range{}),
 			expected: true,
 		},
 		{
 			desc:     "Different root segments",
-			fqn:      FQN{"com", "example"},
-			another:  FQN{"org", "example", "foo"},
+			fqn:      NewFQN([]string{"com", "example"}, tokens.Range{}),
+			another:  NewFQN([]string{"org", "example", "foo"}, tokens.Range{}),
 			expected: false,
 		},
 	}
@@ -124,50 +126,50 @@ func (s *AstTestSuite) TestFQNIsChildOf() {
 	}{
 		{
 			desc:     "com.example.foo is child of com.example",
-			fqn:      FQN{"com", "example", "foo"},
-			another:  FQN{"com", "example"},
+			fqn:      NewFQN([]string{"com", "example", "foo"}, tokens.Range{}),
+			another:  NewFQN([]string{"com", "example"}, tokens.Range{}),
 			expected: true,
 		},
 		{
 			desc:     "com.example.foo is not child of com.example.bar",
-			fqn:      FQN{"com", "example", "foo"},
-			another:  FQN{"com", "example", "bar"},
+			fqn:      NewFQN([]string{"com", "example", "foo"}, tokens.Range{}),
+			another:  NewFQN([]string{"com", "example", "bar"}, tokens.Range{}),
 			expected: false,
 		},
 		{
 			desc:     "com.example.foo is not child of com.example2.foo",
-			fqn:      FQN{"com", "example", "foo"},
-			another:  FQN{"com", "example2", "foo"},
+			fqn:      NewFQN([]string{"com", "example", "foo"}, tokens.Range{}),
+			another:  NewFQN([]string{"com", "example2", "foo"}, tokens.Range{}),
 			expected: false,
 		},
 		{
 			desc:     "Self is not a child of self",
-			fqn:      FQN{"com", "example", "foo"},
-			another:  FQN{"com", "example", "foo"},
+			fqn:      NewFQN([]string{"com", "example", "foo"}, tokens.Range{}),
+			another:  NewFQN([]string{"com", "example", "foo"}, tokens.Range{}),
 			expected: false,
 		},
 		{
 			desc:     "Empty FQN is not child of anything",
-			fqn:      FQN{},
-			another:  FQN{"com", "example"},
+			fqn:      NewFQN([]string{}, tokens.Range{}),
+			another:  NewFQN([]string{"com", "example"}, tokens.Range{}),
 			expected: false,
 		},
 		{
 			desc:     "Two segments is child of single segment",
-			fqn:      FQN{"com", "example"},
-			another:  FQN{"com"},
+			fqn:      NewFQN([]string{"com", "example"}, tokens.Range{}),
+			another:  NewFQN([]string{"com"}, tokens.Range{}),
 			expected: true,
 		},
 		{
 			desc:     "Different root segments",
-			fqn:      FQN{"com", "example", "foo"},
-			another:  FQN{"org", "example"},
+			fqn:      NewFQN([]string{"com", "example", "foo"}, tokens.Range{}),
+			another:  NewFQN([]string{"org", "example"}, tokens.Range{}),
 			expected: false,
 		},
 		{
 			desc:     "Same length but different segments",
-			fqn:      FQN{"com", "example", "foo"},
-			another:  FQN{"com", "example", "bar"},
+			fqn:      NewFQN([]string{"com", "example", "foo"}, tokens.Range{}),
+			another:  NewFQN([]string{"com", "example", "bar"}, tokens.Range{}),
 			expected: false,
 		},
 	}
@@ -183,29 +185,29 @@ func (s *AstTestSuite) TestFQNIsChildOf() {
 // TestFQNEdgeCases tests edge cases for FQN operations
 func (s *AstTestSuite) TestFQNEdgeCases() {
 	// Test with nil/empty slices
-	emptyFQN := FQN{}
+	emptyFQN := NewFQN([]string{}, tokens.Range{})
 	s.Equal("", emptyFQN.String())
-	s.False(emptyFQN.IsParentOf(FQN{"test"}))
-	s.False(emptyFQN.IsChildOf(FQN{"test"}))
+	s.False(emptyFQN.IsParentOf(NewFQN([]string{"test"}, tokens.Range{})))
+	s.False(emptyFQN.IsChildOf(NewFQN([]string{"test"}, tokens.Range{})))
 
 	// Test with single empty string
-	emptyStringFQN := FQN{""}
+	emptyStringFQN := NewFQN([]string{""}, tokens.Range{})
 	s.Equal("", emptyStringFQN.String())
 
 	// Test with multiple empty strings
-	multipleEmptyFQN := FQN{"", "", ""}
+	multipleEmptyFQN := NewFQN([]string{"", "", ""}, tokens.Range{})
 	s.Equal("//", multipleEmptyFQN.String())
 
 	// Test very long FQN
-	longFQN := FQN{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
+	longFQN := NewFQN([]string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}, tokens.Range{})
 	expectedLong := "a/b/c/d/e/f/g/h/i/j"
 	s.Equal(expectedLong, longFQN.String())
 }
 
 // TestFQNConsistency tests that IsParentOf and IsChildOf are consistent
 func (s *AstTestSuite) TestFQNConsistency() {
-	parent := FQN{"com", "example"}
-	child := FQN{"com", "example", "foo"}
+	parent := NewFQN([]string{"com", "example"}, tokens.Range{})
+	child := NewFQN([]string{"com", "example", "foo"}, tokens.Range{})
 
 	// If A is parent of B, then B should be child of A
 	s.True(parent.IsParentOf(child))
@@ -216,7 +218,7 @@ func (s *AstTestSuite) TestFQNConsistency() {
 	s.True(parent.IsParentOf(child))
 
 	// Self should not be parent or child of self
-	self := FQN{"com", "example", "foo"}
+	self := NewFQN([]string{"com", "example", "foo"}, tokens.Range{})
 	s.False(self.IsParentOf(self))
 	s.False(self.IsChildOf(self))
 }
@@ -226,15 +228,15 @@ func (s *AstTestSuite) TestFQNSeparator() {
 	s.Equal("/", FQNSeparator)
 
 	// Verify that the separator is used in string representation
-	fqn := FQN{"a", "b", "c"}
+	fqn := NewFQN([]string{"a", "b", "c"}, tokens.Range{})
 	expected := "a" + FQNSeparator + "b" + FQNSeparator + "c"
 	s.Equal(expected, fqn.String())
 }
 
 // TestFQNImplementationCorrectness verifies the implementation works correctly
 func (s *AstTestSuite) TestFQNImplementationCorrectness() {
-	parent := FQN{"com", "example"}
-	child := FQN{"com", "example", "foo"}
+	parent := FQN{Parts: []string{"com", "example"}}
+	child := FQN{Parts: []string{"com", "example", "foo"}}
 
 	// These should work correctly
 	s.True(parent.IsParentOf(child), "Parent should be parent of child")

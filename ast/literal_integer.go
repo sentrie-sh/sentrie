@@ -22,8 +22,18 @@ import (
 
 // IntegerLiteral represents an integer literal
 type IntegerLiteral struct {
-	Range tokens.Range
+	*baseNode
 	Value int64
+}
+
+func NewIntegerLiteral(value int64, ssp tokens.Range) *IntegerLiteral {
+	return &IntegerLiteral{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "integer_literal",
+		},
+		Value: value,
+	}
 }
 
 func (i *IntegerLiteral) String() string {
@@ -31,15 +41,6 @@ func (i *IntegerLiteral) String() string {
 }
 
 func (i *IntegerLiteral) expressionNode() {}
-
-func (i *IntegerLiteral) Kind() string {
-	return "integer_literal"
-}
-
-// Span returns the span of the integer literal in the source code
-func (i *IntegerLiteral) Span() tokens.Range {
-	return i.Range
-}
 
 var _ Expression = &IntegerLiteral{}
 var _ Node = &IntegerLiteral{}

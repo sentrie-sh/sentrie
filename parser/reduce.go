@@ -23,30 +23,17 @@ import (
 
 // 'reduce' @collection 'from' @startExpression 'as' @accumulator,@valueIterator(,@indexIterator)? { @expression }
 func parseReduceExpression(ctx context.Context, parser *Parser) ast.Expression {
-	start := parser.head()
-	expr := &ast.ReduceExpression{
-		Range: tokens.Range{
-			File: start.Range.File,
-			From: tokens.Pos{
-				Line:   start.Range.From.Line,
-				Column: start.Range.From.Column,
-				Offset: start.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   start.Range.From.Line,
-				Column: start.Range.From.Column,
-				Offset: start.Range.From.Offset,
-			},
-		},
+	reduceToken, found := parser.advanceExpected(tokens.KeywordReduce)
+	if !found {
+		return nil
 	}
 
-	parser.advance() // the 'reduce' token
+	rnge := reduceToken.Range
 
 	collection := parser.parseExpression(ctx, LOWEST)
 	if collection == nil {
 		return nil
 	}
-	expr.Collection = collection
 
 	if !parser.expect(tokens.KeywordFrom) {
 		return nil
@@ -56,7 +43,6 @@ func parseReduceExpression(ctx context.Context, parser *Parser) ast.Expression {
 	if startExpression == nil {
 		return nil
 	}
-	expr.From = startExpression
 
 	if !parser.expect(tokens.KeywordAs) {
 		return nil
@@ -66,7 +52,6 @@ func parseReduceExpression(ctx context.Context, parser *Parser) ast.Expression {
 	if !found {
 		return nil
 	}
-	expr.Accumulator = accumulator.Value
 
 	if !parser.expect(tokens.PunctComma) {
 		return nil
@@ -77,8 +62,8 @@ func parseReduceExpression(ctx context.Context, parser *Parser) ast.Expression {
 		parser.errorf("expected identifier for iterator, got %s at %s", valueIterator.Kind, valueIterator.Range.From)
 		return nil
 	}
-	expr.ValueIterator = valueIterator.Value
 
+	var indexIterator *tokens.Instance
 	// do we have a comma?
 	if parser.head().IsOfKind(tokens.PunctComma) {
 		// then we have an index iterator as well
@@ -87,23 +72,13 @@ func parseReduceExpression(ctx context.Context, parser *Parser) ast.Expression {
 		if !found {
 			return nil
 		}
-		expr.IndexIterator = idxIt.Value
+		indexIterator = &idxIt
 	}
 
-	blockExpr := parseBlockExpression(ctx, parser)
-	if blockExpr == nil {
+	reducerExpr := parseBlockExpression(ctx, parser)
+	if reducerExpr == nil {
 		return nil
 	}
 
-	expr.Reducer = blockExpr
-
-	// Update the end position to the current token
-	current := parser.head()
-	expr.Range.To = tokens.Pos{
-		Line:   current.Range.From.Line,
-		Column: current.Range.From.Column,
-		Offset: current.Range.From.Offset,
-	}
-
-	return expr
+	return ast.NewReduceExpression(collection, startExpression, accumulator.Value, valueIterator.Value, indexIterator.Value, reducerExpr, rnge)
 }

@@ -17,21 +17,23 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type CastExpression struct {
-	Range      tokens.Range
+	*baseNode
 	Expr       Expression
 	TargetType TypeRef
 }
 
+func NewCastExpression(expr Expression, targetType TypeRef, ssp tokens.Range) *CastExpression {
+	return &CastExpression{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "cast",
+		},
+		Expr:       expr,
+		TargetType: targetType,
+	}
+}
 func (c *CastExpression) String() string {
 	return "cast " + c.Expr.String() + " as " + c.TargetType.String()
-}
-
-func (c *CastExpression) Span() tokens.Range {
-	return c.Range
-}
-
-func (c *CastExpression) Kind() string {
-	return "cast"
 }
 
 func (c *CastExpression) expressionNode() {}

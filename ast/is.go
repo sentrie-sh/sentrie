@@ -17,13 +17,33 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type IsDefinedExpression struct {
-	Range tokens.Range
-	Left  Expression
+	*baseNode
+	Left Expression
 }
 
 type IsEmptyExpression struct {
-	Range tokens.Range
-	Left  Expression
+	*baseNode
+	Left Expression
+}
+
+func NewIsDefinedExpression(left Expression, ssp tokens.Range) *IsDefinedExpression {
+	return &IsDefinedExpression{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "is_defined",
+		},
+		Left: left,
+	}
+}
+
+func NewIsEmptyExpression(left Expression, ssp tokens.Range) *IsEmptyExpression {
+	return &IsEmptyExpression{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "is_empty",
+		},
+		Left: left,
+	}
 }
 
 func (e *IsEmptyExpression) String() string {
@@ -32,22 +52,6 @@ func (e *IsEmptyExpression) String() string {
 
 func (e *IsDefinedExpression) String() string {
 	return "is defined " + e.Left.String()
-}
-
-func (e *IsEmptyExpression) Span() tokens.Range {
-	return e.Range
-}
-
-func (e *IsEmptyExpression) Kind() string {
-	return "is_empty"
-}
-
-func (e *IsDefinedExpression) Span() tokens.Range {
-	return e.Range
-}
-
-func (e *IsDefinedExpression) Kind() string {
-	return "is_defined"
 }
 
 func (e *IsDefinedExpression) expressionNode() {}

@@ -22,13 +22,23 @@ import (
 )
 
 func parseTernaryExpression(ctx context.Context, p *Parser, condition ast.Expression, precedence Precedence) ast.Expression {
+	rnge := condition.Span()
+
 	// Parse the '?' token
 	if !p.expect(tokens.TokenQuestion) {
 		return nil
 	}
 
 	// Parse the true branch
-	trueBranch := p.parseExpression(ctx, precedence)
+	// we default ot the condition expression itself
+	trueBranch := condition
+	if !p.canExpect(tokens.PunctColon) {
+		trueBranch = p.parseExpression(ctx, precedence)
+		if trueBranch == nil {
+			return nil
+		}
+		rnge.To = trueBranch.Span().To
+	}
 
 	// Parse the ':' token
 	if !p.expect(tokens.PunctColon) {
@@ -37,10 +47,10 @@ func parseTernaryExpression(ctx context.Context, p *Parser, condition ast.Expres
 
 	// Parse the false branch
 	falseBranch := p.parseExpression(ctx, precedence)
-
-	return &ast.TernaryExpression{
-		Condition:  condition,
-		ThenBranch: trueBranch,
-		ElseBranch: falseBranch,
+	if falseBranch == nil {
+		return nil
 	}
+	rnge.To = falseBranch.Span().To
+
+	return ast.NewTernaryExpression(condition, trueBranch, falseBranch, rnge)
 }

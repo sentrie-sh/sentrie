@@ -15,70 +15,55 @@
 package runtime
 
 import (
+	"fmt"
+
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 func (r *RuntimeTestSuite) TestValidateAgainstBoolTypeRef() {
-	typeRef := &ast.BoolTypeRef{
-		Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
-	}
+	typeRef := ast.NewBoolTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 
 	r.Run("should return an error if the value is a string", func() {
 		// Create a mock expression for the test
-		mockExpr := &ast.Identifier{
-			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
-			Value: "test",
-		}
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstBoolTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, "not a bool", typeRef, mockExpr.Span())
 
 		r.Error(err)
-		r.Equal("value 'not a bool' is not a bool at test.sentra:1:1 - expected bool", err.Error())
+		r.Equal(fmt.Sprintf("value 'not a bool' is not a bool at %s - expected bool", mockExpr.Span()), err.Error())
 	})
 
 	r.Run("should return an error if the value is an int64", func() {
 		// Create a mock expression for the test
-		mockExpr := &ast.Identifier{
-			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
-			Value: "test",
-		}
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstBoolTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, int64(123), typeRef, mockExpr.Span())
 
 		r.Error(err)
-		r.Equal("value '123' is not a bool at test.sentra:1:1 - expected bool", err.Error())
+		r.Equal(fmt.Sprintf("value '123' is not a bool at %s - expected bool", mockExpr.Span()), err.Error())
 	})
 
 	r.Run("should return an error if the value is a float64", func() {
 		// Create a mock expression for the test
-		mockExpr := &ast.Identifier{
-			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
-			Value: "test",
-		}
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstBoolTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, float64(123), typeRef, mockExpr.Span())
 
 		r.Error(err)
-		r.Equal("value '123' is not a bool at test.sentra:1:1 - expected bool", err.Error())
+		r.Equal(fmt.Sprintf("value '123' is not a bool at %s - expected bool", mockExpr.Span()), err.Error())
 	})
 
 	r.Run("should return an error if the value is a string number", func() {
 		// Create a mock expression for the test
-		mockExpr := &ast.Identifier{
-			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
-			Value: "test",
-		}
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstBoolTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, "123", typeRef, mockExpr.Span())
 
 		r.Error(err)
-		r.Equal("value '123' is not a bool at test.sentra:1:1 - expected bool", err.Error())
+		r.Equal(fmt.Sprintf("value '123' is not a bool at %s - expected bool", mockExpr.Span()), err.Error())
 	})
 
 	r.Run("should not return an error if the value is true", func() {
 		// Create a mock expression for the test
-		mockExpr := &ast.Identifier{
-			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
-			Value: "test",
-		}
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstBoolTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, true, typeRef, mockExpr.Span())
 
 		r.NoError(err)
@@ -86,10 +71,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstBoolTypeRef() {
 
 	r.Run("should not return an error if the value is false", func() {
 		// Create a mock expression for the test
-		mockExpr := &ast.Identifier{
-			Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
-			Value: "test",
-		}
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstBoolTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, false, typeRef, mockExpr.Span())
 
 		r.NoError(err)

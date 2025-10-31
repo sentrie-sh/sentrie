@@ -17,16 +17,18 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type ShapeExportStatement struct {
-	Range tokens.Range
-	Name  string
+	*baseNode
+	Name string
 }
 
-func (s ShapeExportStatement) Span() tokens.Range {
-	return s.Range
-}
-
-func (s ShapeExportStatement) Kind() string {
-	return "shape_export"
+func NewShapeExportStatement(name string, ssp tokens.Range) *ShapeExportStatement {
+	return &ShapeExportStatement{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "shape_export",
+		},
+		Name: name,
+	}
 }
 
 func (s ShapeExportStatement) statementNode() {}

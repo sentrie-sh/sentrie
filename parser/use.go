@@ -22,24 +22,13 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-// 'use' func,func 'from' moduleName 'as' alias
+// 'use' '{' func (',' func)* '}' 'from' moduleName 'as' alias
 func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
-	start := p.head()
-	pos := start.Range.To
-
-	stmt := &ast.UseStatement{
-		Range: tokens.Range{
-			File: start.Range.File,
-			From: start.Range.From,
-			To: tokens.Pos{
-				Line:   pos.Line,
-				Column: pos.Column,
-				Offset: pos.Offset,
-			},
-		},
+	head, found := p.advanceExpected(tokens.KeywordUse)
+	if !found {
+		return nil
 	}
-
-	p.advance() // consume 'use'
+	rnge := head.Range
 
 	fns := []string{}
 
@@ -53,8 +42,10 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 	}
 	fns = append(fns, firstModuleName.Value)
 
-	for p.head().IsOfKind(tokens.PunctComma) {
-		p.advance() // consume ','
+	for !p.head().IsOfKind(tokens.PunctRightCurly) {
+		if !p.expect(tokens.PunctComma) {
+			return nil
+		}
 		fn, found := p.advanceExpected(tokens.Ident)
 		if !found {
 			return nil
@@ -62,11 +53,13 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 		fns = append(fns, fn.Value)
 	}
 
-	if !p.expect(tokens.PunctRightCurly) {
+	rightCurly, found := p.advanceExpected(tokens.PunctRightCurly)
+	if !found {
 		return nil
 	}
+	rnge.To = rightCurly.Range.To
 
-	stmt.Modules = fns
+	modules := fns
 
 	if !p.expect(tokens.KeywordFrom) {
 		return nil
@@ -77,56 +70,58 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 		return nil
 	}
 
-	if p.head().IsOfKind(tokens.String) {
-		fromModule, found := p.advanceExpected(tokens.String)
+	relativeFrom := ""
+	libFrom := []string{}
+
+	if p.canExpect(tokens.String) {
+		fromModule, _ := p.advanceExpected(tokens.String)
+		relativeFrom = fromModule.Value
+		rnge.To = fromModule.Range.To
+	} else {
+		at, found := p.advanceExpected(tokens.TokenAt)
 		if !found {
 			return nil
 		}
-		stmt.RelativeFrom = fromModule.Value // Set the module name
-	} else {
-		p.advance() // consume '@'
+		rnge.To = at.Range.To
+
 		fromPackage, found := p.advanceExpected(tokens.Ident)
 		if !found {
 			return nil
 		}
 		from := []string{fromPackage.Value}
-		for p.head().IsOfKind(tokens.TokenDiv) {
+		for p.canExpect(tokens.TokenDiv) {
 			p.advance() // consume '/'
 			fromModule, found := p.advanceExpected(tokens.Ident)
 			if !found {
 				return nil
 			}
+			rnge.To = fromModule.Range.To
 			from = append(from, fromModule.Value)
 		}
-		stmt.LibFrom = from
+		libFrom = from
 	}
 
 	// default alias to the module name
 	// for @foo/bar, default alias is bar - the last part of the path
 	// for quoted strings, it's the last part of the path
-	if stmt.RelativeFrom != "" {
-		parts := strings.Split(stmt.RelativeFrom, "/")
-		stmt.As = parts[len(parts)-1]
+	alias := ""
+	if relativeFrom != "" {
+		parts := strings.Split(relativeFrom, "/")
+		alias = parts[len(parts)-1]
 	} else {
-		stmt.As = stmt.LibFrom[len(stmt.LibFrom)-1]
+		alias = libFrom[len(libFrom)-1]
 	}
 
 	if p.canExpect(tokens.KeywordAs) {
 		p.advance() // consume 'as'
+
 		asAlias, found := p.advanceExpected(tokens.Ident)
 		if !found {
 			return nil
 		}
-		stmt.As = asAlias.Value // Set the alias
+		alias = asAlias.Value
+		rnge.To = asAlias.Range.To
 	}
 
-	// Update the end position to the current token
-	current := p.head()
-	stmt.Range.To = tokens.Pos{
-		Line:   current.Range.From.Line,
-		Column: current.Range.From.Column,
-		Offset: current.Range.From.Offset,
-	}
-
-	return stmt
+	return ast.NewUseStatement(modules, relativeFrom, libFrom, alias, rnge)
 }

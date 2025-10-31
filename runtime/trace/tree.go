@@ -84,7 +84,7 @@ func New(ctx context.Context, n ast.Node, op string, meta map[string]any, option
 	start := time.Now()
 
 	var span trace.Span
-	if cfg.otelConfig.Enabled && cfg.otelConfig.TraceExecution && cfg.tracer != nil {
+	if cfg.otelConfig != nil && cfg.otelConfig.Enabled && cfg.otelConfig.TraceExecution && cfg.tracer != nil {
 		ctx, span = cfg.tracer.Start(ctx, op)
 
 		attrs := append([]attribute.KeyValue{

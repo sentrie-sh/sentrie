@@ -21,29 +21,30 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-// 'fact' exposed_name:type as internal_name
+// 'fact' @ident ('!'?) ('?'?) ':' <type> ( 'as' @ident )? ( 'default' <expression> )?
 func parseFactStatement(ctx context.Context, p *Parser) ast.Statement {
 	start := p.head()
 
-	stmt := &ast.FactStatement{
-		Range: start.Range,
-	}
+	rnge := start.Range
 
 	if !p.expect(tokens.KeywordFact) {
 		return nil
 	}
 
-	name, found := p.advanceExpected(tokens.Ident)
+	nameIdent, found := p.advanceExpected(tokens.Ident)
 	if !found {
 		return nil
 	}
 
-	stmt.Name = name.Value  // Set the fact name
-	stmt.Alias = name.Value // Set the fact alias
+	name := nameIdent.Value  // Set the fact name
+	alias := nameIdent.Value // Set the fact alias
+	rnge.To = nameIdent.Range.To
+
+	required := false
 
 	if p.canExpect(tokens.TokenBang) {
 		p.advance() // consume '!'
-		stmt.Required = true
+		required = true
 	}
 
 	if !p.expect(tokens.PunctColon) {
@@ -54,28 +55,26 @@ func parseFactStatement(ctx context.Context, p *Parser) ast.Statement {
 	if typ_ == nil {
 		return nil
 	}
-	stmt.Type = typ_
-	stmt.Range.To = typ_.Span().To
 
 	if p.canExpect(tokens.KeywordAs) {
 		p.advance() // consume 'as'
-		alias, found := p.advanceExpected(tokens.Ident)
+		aliasIdent, found := p.advanceExpected(tokens.Ident)
 		if !found {
 			return nil
 		}
-		stmt.Alias = alias.Value // Set the fact alias
-		stmt.Range.To = alias.Range.To
+		alias = aliasIdent.Value // Set the fact alias
+		rnge.To = aliasIdent.Range.To
 	}
 
+	var defaultExpr ast.Expression
 	if p.canExpect(tokens.KeywordDefault) {
 		p.advance() // consume 'default'
-		defaultExpr := p.parseExpression(ctx, LOWEST)
+		defaultExpr = p.parseExpression(ctx, LOWEST)
 		if defaultExpr == nil {
 			return nil
 		}
-		stmt.Default = defaultExpr
-		stmt.Range.To = defaultExpr.Span().To
+		rnge.To = defaultExpr.Span().To
 	}
 
-	return stmt
+	return ast.NewFactStatement(name, typ_, alias, defaultExpr, required, rnge)
 }

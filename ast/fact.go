@@ -17,24 +17,30 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type FactStatement struct {
-	Range    tokens.Range // Range in the source code
-	Name     string       // Name of the fact
-	Type     TypeRef      // Type of the fact
-	Alias    string       // Exposed name of the fact
-	Default  Expression   // Default value expression (optional)
-	Required bool         // Whether the fact is required
+	*baseNode
+	Name     string     // Name of the fact
+	Type     TypeRef    // Type of the fact
+	Alias    string     // Exposed name of the fact
+	Default  Expression // Default value expression (optional)
+	Required bool       // Whether the fact is required
+}
+
+func NewFactStatement(name string, typeRef TypeRef, alias string, defaultExpr Expression, required bool, ssp tokens.Range) *FactStatement {
+	return &FactStatement{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "fact",
+		},
+		Name:     name,
+		Type:     typeRef,
+		Alias:    alias,
+		Default:  defaultExpr,
+		Required: required,
+	}
 }
 
 func (f FactStatement) String() string {
 	return f.Name
-}
-
-func (f FactStatement) Span() tokens.Range {
-	return f.Range
-}
-
-func (f FactStatement) Kind() string {
-	return "fact"
 }
 
 func (f FactStatement) statementNode() {}

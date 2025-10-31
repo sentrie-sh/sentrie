@@ -20,52 +20,126 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
+type quantifierExpression struct {
+	*baseNode
+	Collection Expression
+	Iterator1  string
+	Iterator2  string
+	Quantifier Expression
+}
+
 type FilterExpression struct {
-	Range         tokens.Range
-	Collection    Expression
-	ValueIterator string
-	IndexIterator string
-	Predicate     Expression
+	*quantifierExpression
+}
+
+func NewFilterExpression(collection Expression, valueIterator string, indexIterator string, predicate Expression, ssp tokens.Range) *FilterExpression {
+	return &FilterExpression{
+		quantifierExpression: &quantifierExpression{
+			baseNode: &baseNode{
+				Rnge:  ssp,
+				Kind_: "filter",
+			},
+			Collection: collection,
+			Iterator1:  valueIterator,
+			Iterator2:  indexIterator,
+			Quantifier: predicate,
+		},
+	}
 }
 
 type AnyExpression struct {
-	Range         tokens.Range
-	Collection    Expression
-	ValueIterator string
-	IndexIterator string
-	Predicate     Expression
+	*quantifierExpression
+}
+
+func NewAnyExpression(collection Expression, valueIterator string, indexIterator string, predicate Expression, ssp tokens.Range) *AnyExpression {
+	return &AnyExpression{
+		quantifierExpression: &quantifierExpression{
+			baseNode: &baseNode{
+				Rnge:  ssp,
+				Kind_: "any",
+			},
+			Collection: collection,
+			Iterator1:  valueIterator,
+			Iterator2:  indexIterator,
+			Quantifier: predicate,
+		},
+	}
 }
 
 type AllExpression struct {
-	Range         tokens.Range
-	Collection    Expression
-	ValueIterator string
-	IndexIterator string
-	Predicate     Expression
+	*quantifierExpression
+}
+
+func NewAllExpression(collection Expression, valueIterator string, indexIterator string, predicate Expression, ssp tokens.Range) *AllExpression {
+	return &AllExpression{
+		quantifierExpression: &quantifierExpression{
+			baseNode: &baseNode{
+				Rnge:  ssp,
+				Kind_: "all",
+			},
+			Collection: collection,
+			Iterator1:  valueIterator,
+			Iterator2:  indexIterator,
+			Quantifier: predicate,
+		},
+	}
 }
 
 type FirstExpression struct {
-	Range         tokens.Range
-	Collection    Expression
-	ValueIterator string
-	IndexIterator string
-	Predicate     Expression
+	*quantifierExpression
+}
+
+func NewFirstExpression(collection Expression, valueIterator string, indexIterator string, predicate Expression, ssp tokens.Range) *FirstExpression {
+	return &FirstExpression{
+		quantifierExpression: &quantifierExpression{
+			baseNode: &baseNode{
+				Rnge:  ssp,
+				Kind_: "first",
+			},
+			Collection: collection,
+			Iterator1:  valueIterator,
+			Iterator2:  indexIterator,
+			Quantifier: predicate,
+		},
+	}
 }
 
 type MapExpression struct {
-	Range         tokens.Range
-	Collection    Expression
-	ValueIterator string
-	IndexIterator string
-	Transform     Expression
+	*quantifierExpression
+}
+
+func NewMapExpression(collection Expression, valueIterator string, indexIterator string, transform Expression, ssp tokens.Range) *MapExpression {
+	return &MapExpression{
+		quantifierExpression: &quantifierExpression{
+			baseNode: &baseNode{
+				Rnge:  ssp,
+				Kind_: "map",
+			},
+			Collection: collection,
+			Iterator1:  valueIterator,
+			Iterator2:  indexIterator,
+			Quantifier: transform,
+		},
+	}
 }
 
 type DistinctExpression struct {
-	Range         tokens.Range
-	Collection    Expression
-	LeftIterator  string
-	RightIterator string
-	Predicate     Expression
+	*quantifierExpression
+}
+
+func NewDistinctExpression(collection Expression, leftIterator string, rightIterator string, predicate Expression, ssp tokens.Range) *DistinctExpression {
+	return &DistinctExpression{
+		quantifierExpression: &quantifierExpression{
+			baseNode: &baseNode{
+				Rnge:  ssp,
+				Kind_: "distinct",
+			},
+			Collection: collection,
+			Iterator1:  leftIterator,
+			Iterator2:  rightIterator,
+			Quantifier: predicate,
+		},
+	}
 }
 
 var _ Expression = &FilterExpression{}
@@ -86,12 +160,12 @@ func (a *AnyExpression) String() string {
 	b.WriteString("any ")
 	b.WriteString(a.Collection.String())
 	b.WriteString(" as ")
-	b.WriteString(a.ValueIterator)
-	if a.IndexIterator != "" {
+	b.WriteString(a.Iterator1)
+	if a.Iterator2 != "" {
 		b.WriteString(", ")
-		b.WriteString(a.IndexIterator)
+		b.WriteString(a.Iterator2)
 	}
-	b.WriteString(a.Predicate.String())
+	b.WriteString(a.Quantifier.String())
 	return b.String()
 }
 
@@ -100,12 +174,12 @@ func (a *AllExpression) String() string {
 	b.WriteString("all ")
 	b.WriteString(a.Collection.String())
 	b.WriteString(" as ")
-	b.WriteString(a.ValueIterator)
-	if a.IndexIterator != "" {
+	b.WriteString(a.Iterator1)
+	if a.Iterator2 != "" {
 		b.WriteString(", ")
-		b.WriteString(a.IndexIterator)
+		b.WriteString(a.Iterator2)
 	}
-	b.WriteString(a.Predicate.String())
+	b.WriteString(a.Quantifier.String())
 	return b.String()
 }
 
@@ -114,12 +188,12 @@ func (f *FirstExpression) String() string {
 	b.WriteString("first ")
 	b.WriteString(f.Collection.String())
 	b.WriteString(" as ")
-	b.WriteString(f.ValueIterator)
-	if f.IndexIterator != "" {
+	b.WriteString(f.Iterator1)
+	if f.Iterator2 != "" {
 		b.WriteString(", ")
-		b.WriteString(f.IndexIterator)
+		b.WriteString(f.Iterator2)
 	}
-	b.WriteString(f.Predicate.String())
+	b.WriteString(f.Quantifier.String())
 	return b.String()
 }
 
@@ -128,12 +202,12 @@ func (m *MapExpression) String() string {
 	b.WriteString("any ")
 	b.WriteString(m.Collection.String())
 	b.WriteString(" as ")
-	b.WriteString(m.ValueIterator)
-	if m.IndexIterator != "" {
+	b.WriteString(m.Iterator1)
+	if m.Iterator2 != "" {
 		b.WriteString(", ")
-		b.WriteString(m.IndexIterator)
+		b.WriteString(m.Iterator2)
 	}
-	b.WriteString(m.Transform.String())
+	b.WriteString(m.Quantifier.String())
 	return b.String()
 }
 
@@ -142,12 +216,12 @@ func (f *FilterExpression) String() string {
 	b.WriteString("filter ")
 	b.WriteString(f.Collection.String())
 	b.WriteString(" as ")
-	b.WriteString(f.ValueIterator)
-	if f.IndexIterator != "" {
+	b.WriteString(f.Iterator1)
+	if f.Iterator2 != "" {
 		b.WriteString(", ")
-		b.WriteString(f.IndexIterator)
+		b.WriteString(f.Iterator2)
 	}
-	b.WriteString(f.Predicate.String())
+	b.WriteString(f.Quantifier.String())
 	return b.String()
 }
 
@@ -156,59 +230,11 @@ func (d *DistinctExpression) String() string {
 	b.WriteString("distinct ")
 	b.WriteString(d.Collection.String())
 	b.WriteString(" as ")
-	b.WriteString(d.LeftIterator)
+	b.WriteString(d.Iterator1)
 	b.WriteString(", ")
-	b.WriteString(d.RightIterator)
-	b.WriteString(d.Predicate.String())
+	b.WriteString(d.Iterator2)
+	b.WriteString(d.Quantifier.String())
 	return b.String()
-}
-
-func (m *MapExpression) Span() tokens.Range {
-	return m.Range
-}
-
-func (m *MapExpression) Kind() string {
-	return "map"
-}
-
-func (a *AnyExpression) Span() tokens.Range {
-	return a.Range
-}
-
-func (a *AnyExpression) Kind() string {
-	return "any"
-}
-
-func (a *AllExpression) Span() tokens.Range {
-	return a.Range
-}
-
-func (a *AllExpression) Kind() string {
-	return "all"
-}
-
-func (f *FirstExpression) Span() tokens.Range {
-	return f.Range
-}
-
-func (f *FirstExpression) Kind() string {
-	return "first"
-}
-
-func (f *FilterExpression) Span() tokens.Range {
-	return f.Range
-}
-
-func (f *FilterExpression) Kind() string {
-	return "filter"
-}
-
-func (d *DistinctExpression) Span() tokens.Range {
-	return d.Range
-}
-
-func (d *DistinctExpression) Kind() string {
-	return "distinct"
 }
 
 func (m *MapExpression) expressionNode()      {}
