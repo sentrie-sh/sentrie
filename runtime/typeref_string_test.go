@@ -202,7 +202,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefRegexpConstraint() {
 		[]ast.Expression{ast.NewStringLiteral(`^[a-zA-Z0-9]+$`, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})},
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
-	typeRef.AddConstraint(constraint)
+	_ = typeRef.AddConstraint(constraint)
 
 	r.Run("should pass when string matches pattern", func() {
 		// Create a mock expression for the test
@@ -257,7 +257,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefStartsWithConstraint(
 		[]ast.Expression{ast.NewStringLiteral("hello", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})},
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
-	typeRef.AddConstraint(constraint)
+	_ = typeRef.AddConstraint(constraint)
 
 	r.Run("should pass when string starts with prefix", func() {
 		// Create a mock expression for the test
@@ -304,7 +304,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefEndsWithConstraint() 
 		[]ast.Expression{ast.NewStringLiteral("world", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})},
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
-	typeRef.AddConstraint(constraint)
+	_ = typeRef.AddConstraint(constraint)
 
 	r.Run("should pass when string ends with suffix", func() {
 		// Create a mock expression for the test
@@ -351,7 +351,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefHasSubstringConstrain
 		[]ast.Expression{ast.NewStringLiteral("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})},
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
-	typeRef.AddConstraint(constraint)
+	_ = typeRef.AddConstraint(constraint)
 
 	r.Run("should pass when string contains substring", func() {
 		// Create a mock expression for the test
@@ -401,7 +401,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstStringTypeRefEmailConstraint() {
 
 	// Add an email constraint
 	constraint := ast.NewTypeRefConstraint("email", []ast.Expression{}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-	typeRef.AddConstraint(constraint)
+	_ = typeRef.AddConstraint(constraint)
 
 	r.Run("should pass when string is a valid email", func() {
 		// Create a mock expression for the test
