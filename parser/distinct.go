@@ -53,15 +53,9 @@ func parseDistinctExpression(ctx context.Context, parser *Parser) ast.Expression
 		return nil
 	}
 
-	return &ast.DistinctExpression{
-		Range: tokens.Range{
-			File: head.Range.File,
-			From: head.Range.From,
-			To:   predicateBlock.Span().To,
-		},
-		Collection:    collection,
-		LeftIterator:  leftIterator.Value,
-		RightIterator: rightIterator.Value,
-		Predicate:     predicateBlock,
-	}
+	return ast.NewDistinctExpression(collection, leftIterator.Value, rightIterator.Value, predicateBlock, tokens.Range{
+		File: head.Range.File,
+		From: head.Range.From,
+		To:   predicateBlock.Span().To,
+	})
 }

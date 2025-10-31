@@ -41,16 +41,16 @@ func quantifierParserFactory(type_ tokens.Kind) prefixParser {
 			return nil
 		}
 
-		var indexIterator string
+		var indexIterator tokens.Instance
 		// do we have a comma?
 		if parser.head().IsOfKind(tokens.PunctComma) {
 			// then we have an index iterator as well
 			parser.advance()                                     // consume the comma
-			idxIt, found := parser.advanceExpected(tokens.Ident) // the index iterator token
+			idxit, found := parser.advanceExpected(tokens.Ident) // the index iterator token
 			if !found {
 				return nil
 			}
-			indexIterator = idxIt.Value
+			indexIterator = idxit
 		}
 
 		expression := parseBlockExpression(ctx, parser)
@@ -62,105 +62,15 @@ func quantifierParserFactory(type_ tokens.Kind) prefixParser {
 
 		switch type_ {
 		case tokens.KeywordAny:
-			quantifierExpr = &ast.AnyExpression{
-				Range: tokens.Range{
-					File: token.Range.File,
-					From: tokens.Pos{
-						Line:   token.Range.From.Line,
-						Column: token.Range.From.Column,
-						Offset: token.Range.From.Offset,
-					},
-					To: tokens.Pos{
-						Line:   token.Range.From.Line,
-						Column: token.Range.From.Column,
-						Offset: token.Range.From.Offset,
-					},
-				},
-				Collection:    collection,
-				ValueIterator: valueIterator.Value,
-				IndexIterator: indexIterator,
-				Predicate:     expression,
-			}
+			quantifierExpr = ast.NewAnyExpression(collection, valueIterator.Value, indexIterator.Value, expression, token.Range)
 		case tokens.KeywordAll:
-			quantifierExpr = &ast.AllExpression{
-				Range: tokens.Range{
-					File: token.Range.File,
-					From: tokens.Pos{
-						Line:   token.Range.From.Line,
-						Column: token.Range.From.Column,
-						Offset: token.Range.From.Offset,
-					},
-					To: tokens.Pos{
-						Line:   token.Range.From.Line,
-						Column: token.Range.From.Column,
-						Offset: token.Range.From.Offset,
-					},
-				},
-				Collection:    collection,
-				ValueIterator: valueIterator.Value,
-				IndexIterator: indexIterator,
-				Predicate:     expression,
-			}
+			quantifierExpr = ast.NewAllExpression(collection, valueIterator.Value, indexIterator.Value, expression, token.Range)
 		case tokens.KeywordFilter:
-			quantifierExpr = &ast.FilterExpression{
-				Range: tokens.Range{
-					File: token.Range.File,
-					From: tokens.Pos{
-						Line:   token.Range.From.Line,
-						Column: token.Range.From.Column,
-						Offset: token.Range.From.Offset,
-					},
-					To: tokens.Pos{
-						Line:   token.Range.From.Line,
-						Column: token.Range.From.Column,
-						Offset: token.Range.From.Offset,
-					},
-				},
-				Collection:    collection,
-				ValueIterator: valueIterator.Value,
-				IndexIterator: indexIterator,
-				Predicate:     expression,
-			}
+			quantifierExpr = ast.NewFilterExpression(collection, valueIterator.Value, indexIterator.Value, expression, token.Range)
 		case tokens.KeywordFirst:
-			quantifierExpr = &ast.FirstExpression{
-				Range: tokens.Range{
-					File: token.Range.File,
-					From: tokens.Pos{
-						Line:   token.Range.From.Line,
-						Column: token.Range.From.Column,
-						Offset: token.Range.From.Offset,
-					},
-					To: tokens.Pos{
-						Line:   token.Range.From.Line,
-						Column: token.Range.From.Column,
-						Offset: token.Range.From.Offset,
-					},
-				},
-				Collection:    collection,
-				ValueIterator: valueIterator.Value,
-				IndexIterator: indexIterator,
-				Predicate:     expression,
-			}
+			quantifierExpr = ast.NewFirstExpression(collection, valueIterator.Value, indexIterator.Value, expression, token.Range)
 		case tokens.KeywordMap:
-			quantifierExpr = &ast.MapExpression{
-				Range: tokens.Range{
-					File: token.Range.File,
-					From: tokens.Pos{
-						Line:   token.Range.From.Line,
-						Column: token.Range.From.Column,
-						Offset: token.Range.From.Offset,
-					},
-					To: tokens.Pos{
-						Line:   token.Range.From.Line,
-						Column: token.Range.From.Column,
-						Offset: token.Range.From.Offset,
-					},
-				},
-				Collection:    collection,
-				ValueIterator: valueIterator.Value,
-				IndexIterator: indexIterator,
-				Transform:     expression,
-			}
+			quantifierExpr = ast.NewMapExpression(collection, valueIterator.Value, indexIterator.Value, expression, token.Range)
 		}
 
 		return quantifierExpr

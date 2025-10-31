@@ -247,14 +247,14 @@ func (idx *Index) detectRuleCycle(ctx context.Context) (dag.G[*Rule], error) {
 				}
 				if importClause, ok := rule.Body.(*ast.ImportClause); ok {
 					var ns, pol string
-					if len(importClause.FromPolicyFQN) == 1 {
+					if len(importClause.FromPolicyFQN.Parts) == 1 {
 						// we only have a policy name - the namespace is the current policy's namespace
 						ns = policy.Namespace.FQN.String()
-						pol = importClause.FromPolicyFQN[0]
+						pol = importClause.FromPolicyFQN.Parts[0]
 					} else {
 						// we have a namespace and policy name
-						ns = strings.Join(importClause.FromPolicyFQN[:len(importClause.FromPolicyFQN)-1], ast.FQNSeparator)
-						pol = importClause.FromPolicyFQN[len(importClause.FromPolicyFQN)-1]
+						ns = strings.Join(importClause.FromPolicyFQN.Parts[:len(importClause.FromPolicyFQN.Parts)-1], ast.FQNSeparator)
+						pol = importClause.FromPolicyFQN.Parts[len(importClause.FromPolicyFQN.Parts)-1]
 					}
 
 					p, err := idx.ResolvePolicy(ns, pol)
@@ -319,7 +319,7 @@ func (idx *Index) detectShapeCycle(ctx context.Context) (dag.G[*Shape], error) {
 			if ctx.Err() != nil {
 				return nil, errors.Wrapf(ErrIndex, "validation cancelled")
 			}
-			if shape.Model == nil || len(shape.Model.WithFQN) == 0 {
+			if shape.Model == nil || shape.Model.WithFQN == nil || shape.Model.WithFQN.IsEmpty() {
 				continue
 			}
 
@@ -344,11 +344,11 @@ func (idx *Index) detectShapeCycle(ctx context.Context) (dag.G[*Shape], error) {
 			}
 			// add the edges for the policy shapes
 			for _, shape := range policy.Shapes {
-				if shape.Model != nil && len(shape.Model.WithFQN) > 0 {
+				if shape.Model != nil && shape.Model.WithFQN != nil && !shape.Model.WithFQN.IsEmpty() {
 					// find the shape with the FQN
 					withShape, ok := ns.Shapes[shape.Model.WithFQN.String()]
 					if !ok {
-						return nil, errors.Wrapf(ErrIndex, "shape not found: %s at %s", shape.Model.WithFQN.String(), shape.Statement.Range.String())
+						return nil, errors.Wrapf(ErrIndex, "shape not found: %s at %s", shape.Model.WithFQN.String(), shape.Statement.Span().String())
 					}
 					if err := shapeDag.AddEdge(shape, withShape); err != nil {
 						return nil, errors.Wrapf(ErrIndex, "error adding edge: %s", err)

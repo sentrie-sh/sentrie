@@ -15,10 +15,15 @@
 package trace
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/constants"
+	"github.com/sentrie-sh/sentrie/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Node captures a single evaluation step in the decision tree.
@@ -53,12 +58,48 @@ type Node struct {
 
 type DoneFn func()
 
+type newCfg struct {
+	otelConfig *otel.OTelConfig
+	tracer     trace.Tracer
+	xtraAttrs  []attribute.KeyValue
+}
+
+type NewTraceOption func(*newCfg)
+
+func WithOTelConfig(tracer trace.Tracer, otelConfig *otel.OTelConfig, attrs ...attribute.KeyValue) NewTraceOption {
+	return func(cfg *newCfg) {
+		cfg.otelConfig = otelConfig
+		cfg.xtraAttrs = attrs
+	}
+}
+
 // Helper to create a node with meta.
-func New(kind, op string, n ast.Node, meta map[string]any) (*Node, DoneFn) {
-	x := &Node{Kind: kind, Op: op, Node: n, Meta: meta}
+func New(ctx context.Context, n ast.Node, op string, meta map[string]any, options ...NewTraceOption) (context.Context, *Node, DoneFn) {
+	cfg := &newCfg{}
+	for _, option := range options {
+		option(cfg)
+	}
+
+	x := &Node{Kind: n.Kind(), Op: op, Node: n, Meta: meta}
 	start := time.Now()
-	return x, func() {
+
+	var span trace.Span
+	if cfg.otelConfig != nil && cfg.otelConfig.Enabled && cfg.otelConfig.TraceExecution && cfg.tracer != nil {
+		ctx, span = cfg.tracer.Start(ctx, op)
+
+		attrs := append([]attribute.KeyValue{
+			attribute.String(constants.OTelNodeKindAttribute, n.Kind()),
+			attribute.String(constants.OTelNodeRangeAttribute, n.Span().String()),
+		}, cfg.xtraAttrs...)
+
+		span.SetAttributes(attrs...)
+	}
+
+	return ctx, x, func() {
 		x.Duration = time.Since(start)
+		if span != nil {
+			span.End()
+		}
 	}
 }
 

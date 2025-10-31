@@ -24,16 +24,46 @@ import (
 type TypeRef interface {
 	Node
 	typeref()
-	String() string
-	Span() tokens.Range
 	GetConstraints() []*TypeRefConstraint
 	AddConstraint(*TypeRefConstraint) error
 }
 
 type TypeRefConstraint struct {
-	Range tokens.Range
-	Name  string
-	Args  []Expression
+	*baseNode
+	Name string
+	Args []Expression
+}
+
+func NewTypeRefConstraint(name string, args []Expression, ssp tokens.Range) *TypeRefConstraint {
+	return &TypeRefConstraint{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "typeref_constraint",
+		},
+		Name: name,
+		Args: args,
+	}
+}
+
+type baseTypeRef struct {
+	*baseNode
+	constraints      []*TypeRefConstraint
+	validConstraints map[string]int
+}
+
+func (b *baseTypeRef) typeref() {}
+
+func (b *baseTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
+	if err := validateConstraint(constraint, b.validConstraints); err != nil {
+		return err
+	}
+	b.constraints = append(b.constraints, constraint)
+	b.baseNode.Rnge.To = constraint.baseNode.Rnge.To
+	return nil
+}
+
+func (b *baseTypeRef) GetConstraints() []*TypeRefConstraint {
+	return b.constraints
 }
 
 // validateConstraint checks if a constraint is valid for the given type

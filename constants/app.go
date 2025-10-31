@@ -20,4 +20,7 @@ const (
 
 	PackFileExtension   = "pack.toml"
 	PolicyFileExtension = APPNAME
+
+	OTelNodeKindAttribute  = "sentrie.ast.node.kind"
+	OTelNodeRangeAttribute = "sentrie.ast.node.range"
 )

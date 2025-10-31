@@ -21,6 +21,7 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
+// <expression> <operator> <expression>
 func parseInfixExpression(ctx context.Context, p *Parser, left ast.Expression, precedence Precedence) ast.Expression {
 	operatorToken := p.advance()
 	right := p.parseExpression(ctx, precedence)
@@ -30,22 +31,9 @@ func parseInfixExpression(ctx context.Context, p *Parser, left ast.Expression, p
 		return nil
 	}
 
-	return &ast.InfixExpression{
-		Range: tokens.Range{
-			File: operatorToken.Range.File,
-			From: tokens.Pos{
-				Line:   operatorToken.Range.From.Line,
-				Column: operatorToken.Range.From.Column,
-				Offset: operatorToken.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   operatorToken.Range.From.Line,
-				Column: operatorToken.Range.From.Column,
-				Offset: operatorToken.Range.From.Offset,
-			},
-		},
-		Left:     left,
-		Operator: operatorToken.Value,
-		Right:    right,
-	}
+	return ast.NewInfixExpression(left, right, operatorToken.Value, tokens.Range{
+		File: operatorToken.Range.File,
+		From: operatorToken.Range.From,
+		To:   right.Span().To,
+	})
 }

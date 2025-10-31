@@ -17,25 +17,22 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type DocumentTypeRef struct {
-	constraints []*TypeRefConstraint
-	Range       tokens.Range
+	*baseTypeRef
 }
 
 var _ TypeRef = &DocumentTypeRef{}
 var _ Node = &DocumentTypeRef{}
 
-func (d *DocumentTypeRef) typeref()           {}
-func (d *DocumentTypeRef) Span() tokens.Range { return d.Range }
-func (d *DocumentTypeRef) String() string     { return "document" }
-func (d *DocumentTypeRef) GetConstraints() []*TypeRefConstraint {
-	return d.constraints
+func NewDocumentTypeRef(ssp tokens.Range) *DocumentTypeRef {
+	return &DocumentTypeRef{
+		baseTypeRef: &baseTypeRef{
+			baseNode: &baseNode{
+				Rnge:  ssp,
+				Kind_: "document_typeref",
+			},
+			validConstraints: genDocumentConstraints,
+		},
+	}
 }
 
-func (d *DocumentTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
-	if err := validateConstraint(constraint, genDocumentConstraints); err != nil {
-		return err
-	}
-	d.constraints = append(d.constraints, constraint)
-	d.Range.To = constraint.Range.To
-	return nil
-}
+func (d *DocumentTypeRef) String() string { return "document" }

@@ -26,14 +26,14 @@ import (
 // ImportDecision resolves an ImportClause with `with` facts for sandboxed execution,
 // and returns (value+attachments-map, node, error).
 func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContext, p *index.Policy, t *ast.ImportClause) (*ExecutorOutput, *trace.Node, error) {
-	n, done := trace.New("import", t.RuleToImport, t, map[string]any{
-		"what": t.RuleToImport,
-		"from": t.FromPolicyFQN,
-		"with": len(t.Withs),
+	ctx, n, done := trace.New(ctx, t, "import", map[string]any{
+		"what":  t.RuleToImport,
+		"from":  t.FromPolicyFQN,
+		"withs": len(t.Withs),
 	})
 	defer done()
 
-	if len(t.FromPolicyFQN) < 2 {
+	if len(t.FromPolicyFQN.Parts) < 2 {
 		err := fmt.Errorf("import from must specify namespace/policy: got %v", t.FromPolicyFQN)
 		return nil, n.SetErr(err), err
 	}
@@ -41,7 +41,7 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 	rule := t.RuleToImport
 
 	var ns, pol string
-	if len(t.FromPolicyFQN) == 1 {
+	if len(t.FromPolicyFQN.Parts) == 1 {
 		// we only have a policy name - the namespace is the current policy's namespace
 		ns = p.Namespace.FQN.String()
 	} else {

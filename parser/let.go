@@ -23,27 +23,28 @@ import (
 
 func parseLetsStatement(ctx context.Context, p *Parser) ast.Statement {
 	start := p.head()
-	stmt := &ast.VarDeclaration{
-		Range: tokens.Range{
-			File: start.Range.File,
-			From: start.Range.From,
-		},
-	}
+	rnge := start.Range
+
 	p.advance() // consume 'let'
 
-	name, found := p.advanceExpected(tokens.Ident)
+	nameIdent, found := p.advanceExpected(tokens.Ident)
 	if !found {
 		return nil
 	}
-	stmt.Name = name.Value
+	name := nameIdent.Value
+	rnge.To = nameIdent.Range.To
 
-	if p.current.Kind == tokens.PunctColon {
-		p.advance() // consume ':'
-		typeRef := parseTypeRef(ctx, p)
+	var typeRef ast.TypeRef
+	if p.canExpect(tokens.PunctColon) {
+		colon, found := p.advanceExpected(tokens.PunctColon)
+		if !found {
+			return nil
+		}
+		typeRef = parseTypeRef(ctx, p)
 		if typeRef == nil {
 			return nil
 		}
-		stmt.Type = typeRef
+		rnge.To = colon.Range.To
 	}
 
 	if !p.expect(tokens.TokenAssign) { // expect '='
@@ -54,9 +55,7 @@ func parseLetsStatement(ctx context.Context, p *Parser) ast.Statement {
 	if val == nil {
 		return nil
 	}
+	rnge.To = val.Span().To
 
-	stmt.Value = val
-	stmt.Range.To = val.Span().To
-
-	return stmt
+	return ast.NewVarDeclaration(name, typeRef, val, rnge)
 }

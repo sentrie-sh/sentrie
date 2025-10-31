@@ -19,18 +19,26 @@ import (
 )
 
 type InfixExpression struct {
-	Range    tokens.Range
+	*baseNode
 	Left     Expression
 	Operator string
 	Right    Expression
 }
 
-func (e *InfixExpression) String() string {
-	return "(" + e.Left.String() + " " + e.Operator + " " + e.Right.String() + ")"
+func NewInfixExpression(left Expression, right Expression, operator string, ssp tokens.Range) *InfixExpression {
+	return &InfixExpression{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "infix",
+		},
+		Left:     left,
+		Right:    right,
+		Operator: operator,
+	}
 }
 
-func (e *InfixExpression) Span() tokens.Range {
-	return e.Range
+func (e *InfixExpression) String() string {
+	return "(" + e.Left.String() + " " + e.Operator + " " + e.Right.String() + ")"
 }
 
 func (e *InfixExpression) expressionNode() {}

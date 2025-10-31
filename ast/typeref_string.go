@@ -17,25 +17,22 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type StringTypeRef struct {
-	constraints []*TypeRefConstraint
-	Range       tokens.Range
+	*baseTypeRef
 }
 
 var _ TypeRef = &StringTypeRef{}
 var _ Node = &StringTypeRef{}
 
-func (s *StringTypeRef) typeref()           {}
-func (s *StringTypeRef) Span() tokens.Range { return s.Range }
-func (s *StringTypeRef) String() string     { return "string" }
-func (s *StringTypeRef) GetConstraints() []*TypeRefConstraint {
-	return s.constraints
+func NewStringTypeRef(ssp tokens.Range) *StringTypeRef {
+	return &StringTypeRef{
+		baseTypeRef: &baseTypeRef{
+			baseNode: &baseNode{
+				Rnge:  ssp,
+				Kind_: "string_typeref",
+			},
+			validConstraints: genStringConstraints,
+		},
+	}
 }
 
-func (s *StringTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
-	if err := validateConstraint(constraint, genStringConstraints); err != nil {
-		return err
-	}
-	s.constraints = append(s.constraints, constraint)
-	s.Range.To = constraint.Range.To
-	return nil
-}
+func (s *StringTypeRef) String() string { return "string" }

@@ -21,24 +21,52 @@ import (
 )
 
 type CommentStatement struct {
-	Range   tokens.Range
+	*baseNode
 	Content string
 }
 
+func NewCommentStatement(content string, ssp tokens.Range) *CommentStatement {
+	return &CommentStatement{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "comment",
+		},
+		Content: content,
+	}
+}
+
 type TrailingCommentExpression struct {
-	Range          tokens.Range
+	*baseNode
 	CommentContent string
 	Wrap           Expression
+}
+
+func NewTrailingCommentExpression(commentContent string, wrap Expression, ssp tokens.Range) *TrailingCommentExpression {
+	return &TrailingCommentExpression{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "trailing_comment",
+		},
+		CommentContent: commentContent,
+		Wrap:           wrap,
+	}
 }
 
 type PrecedingCommentExpression struct {
-	Range          tokens.Range
+	*baseNode
 	CommentContent string
 	Wrap           Expression
 }
 
-func (c CommentStatement) Span() tokens.Range {
-	return c.Range
+func NewPrecedingCommentExpression(commentContent string, wrap Expression, ssp tokens.Range) *PrecedingCommentExpression {
+	return &PrecedingCommentExpression{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "preceding_comment",
+		},
+		CommentContent: commentContent,
+		Wrap:           wrap,
+	}
 }
 
 func (c CommentStatement) String() string {
@@ -51,18 +79,10 @@ func (t TrailingCommentExpression) String() string {
 	return t.Wrap.String() + " -- " + t.CommentContent
 }
 
-func (t TrailingCommentExpression) Span() tokens.Range {
-	return t.Range
-}
-
 func (t TrailingCommentExpression) expressionNode() {}
 
 func (p PrecedingCommentExpression) String() string {
 	return p.CommentContent + " -- " + p.Wrap.String()
-}
-
-func (p PrecedingCommentExpression) Span() tokens.Range {
-	return p.Range
 }
 
 func (p PrecedingCommentExpression) expressionNode() {}

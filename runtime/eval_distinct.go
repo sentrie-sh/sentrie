@@ -11,10 +11,10 @@ import (
 )
 
 func evalDistinct(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, d *ast.DistinctExpression) (any, *trace.Node, error) {
-	node, done := trace.New("distinct", "", d, map[string]any{
+	ctx, node, done := trace.New(ctx, d, "distinct", map[string]any{
 		"collection": d.Collection.String(),
-		"left_iter":  d.LeftIterator,
-		"right_iter": d.RightIterator,
+		"left_iter":  d.Iterator1,
+		"right_iter": d.Iterator2,
 	})
 	defer done()
 
@@ -59,9 +59,9 @@ func evalDistinct(ctx context.Context, ec *ExecutionContext, exec *executorImpl,
 		// now, iterate through the current known distinct items
 		for _, distinctItem := range theDistinct {
 			childContext := ec.AttachedChildContext()
-			childContext.SetLocal(d.LeftIterator, distinctItem, true)
-			childContext.SetLocal(d.RightIterator, item, true)
-			res, resNode, err := eval(ctx, childContext, exec, p, d.Predicate)
+			childContext.SetLocal(d.Iterator1, distinctItem, true)
+			childContext.SetLocal(d.Iterator2, item, true)
+			res, resNode, err := eval(ctx, childContext, exec, p, d.Quantifier)
 			node.Attach(resNode)
 			childContext.Dispose()
 			if err != nil {

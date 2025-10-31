@@ -17,7 +17,7 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type ShapeStatement struct {
-	Range   tokens.Range
+	*baseNode
 	Name    string
 	Simple  TypeRef
 	Complex *Cmplx
@@ -25,7 +25,7 @@ type ShapeStatement struct {
 
 type Cmplx struct {
 	Range  tokens.Range
-	With   FQN // optional
+	With   *FQN
 	Node   Node
 	Fields map[string]*ShapeField
 }
@@ -39,12 +39,20 @@ type ShapeField struct {
 	Node        Node
 }
 
-func (s *ShapeStatement) Span() tokens.Range {
-	return s.Range
+func NewShapeStatement(name string, simple TypeRef, complex *Cmplx, ssp tokens.Range) *ShapeStatement {
+	return &ShapeStatement{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "shape",
+		},
+		Name:    name,
+		Simple:  simple,
+		Complex: complex,
+	}
 }
 
 func (s *ShapeStatement) String() string {
-	return ""
+	return s.Name
 }
 
 func (s *ShapeStatement) statementNode() {}

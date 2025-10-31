@@ -28,6 +28,9 @@ import (
 */
 func parseImportExpression(ctx context.Context, p *Parser) ast.Expression {
 	head := p.head()
+
+	rnge := head.Range
+
 	if !p.expect(tokens.KeywordImport) {
 		return nil
 	}
@@ -36,44 +39,37 @@ func parseImportExpression(ctx context.Context, p *Parser) ast.Expression {
 		return nil // Error in parsing the import expression
 	}
 
-	importExp := &ast.ImportClause{
-		Range: tokens.Range{
-			File: head.Range.File,
-			From: head.Range.From,
-		},
-	}
-
 	what, found := p.advanceExpected(tokens.Ident)
 	if !found {
 		return nil // Error in parsing the import expression
 	}
-	importExp.RuleToImport = what.Value
+	ruleToImport := what.Value
 
 	if !p.expect(tokens.KeywordFrom) {
 		return nil // Error in parsing the import expression
 	}
 
-	fqn, fqnRange := parseFQN(ctx, p)
+	fqn := parseFQN(ctx, p)
 	if fqn == nil {
 		return nil // Error in parsing the import expression
 	}
-	importExp.FromPolicyFQN = fqn
-	importExp.Range.To = fqnRange.To
+	fromPolicyFQN := fqn
+	rnge.To = fqn.Rnge.To
+
+	var withs []*ast.WithClause
 
 	// Check for 'with' clauses
 	for p.head().IsOfKind(tokens.KeywordWith) {
 		withClause := parseWithClause(ctx, p)
 		if withClause != nil {
-			importExp.Withs = append(importExp.Withs, withClause)
-
-			// update the range to the last with clause
-			importExp.Range.To = withClause.Range.To
+			withs = append(withs, withClause)
+			rnge.To = withClause.Span().To
 		}
 	}
-
-	return importExp
+	return ast.NewImportClause(ruleToImport, fromPolicyFQN, withs, rnge)
 }
 
+// 'with @ident as @string'
 func parseWithClause(ctx context.Context, p *Parser) *ast.WithClause {
 	head := p.head()
 	if !p.expect(tokens.KeywordWith) {
@@ -94,21 +90,9 @@ func parseWithClause(ctx context.Context, p *Parser) *ast.WithClause {
 		return nil // Error in parsing the with clause
 	}
 
-	return &ast.WithClause{
-		Range: tokens.Range{
-			File: head.Range.File,
-			From: tokens.Pos{
-				Line:   head.Range.From.Line,
-				Column: head.Range.From.Column,
-				Offset: head.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   head.Range.From.Line,
-				Column: head.Range.From.Column,
-				Offset: head.Range.From.Offset,
-			},
-		},
-		Name: name.Value,
-		Expr: val,
-	}
+	return ast.NewWithClause(name.Value, val, tokens.Range{
+		File: head.Range.File,
+		From: head.Range.From,
+		To:   val.Span().To,
+	})
 }

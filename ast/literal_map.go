@@ -27,8 +27,18 @@ type MapEntry struct {
 }
 
 type MapLiteral struct {
-	Range   tokens.Range
+	*baseNode
 	Entries []MapEntry
+}
+
+func NewMapLiteral(entries []MapEntry, ssp tokens.Range) *MapLiteral {
+	return &MapLiteral{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "map_literal",
+		},
+		Entries: entries,
+	}
 }
 
 func (m *MapLiteral) String() string {
@@ -44,10 +54,6 @@ func (m *MapLiteral) String() string {
 	result += strings.Join(entries, ", ")
 	result += "}"
 	return result
-}
-
-func (m *MapLiteral) Span() tokens.Range {
-	return m.Range
 }
 
 func (m *MapLiteral) expressionNode() {}

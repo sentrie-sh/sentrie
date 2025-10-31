@@ -14,13 +14,13 @@ func (s *AstTestSuite) TestNodeInterface() {
 	}
 
 	// Test Identifier implements Node
-	ident := &Identifier{Range: r, Value: "test"}
+	ident := NewIdentifier("test", r)
 	s.Implements((*Node)(nil), ident)
 	s.Equal("test", ident.String())
 	s.Equal(r, ident.Span())
 
 	// Test StringLiteral implements Node
-	str := &StringLiteral{Range: r, Value: "hello"}
+	str := NewStringLiteral("hello", r)
 	s.Implements((*Node)(nil), str)
 	s.Equal(`"hello"`, str.String())
 	s.Equal(r, str.Span())
@@ -42,14 +42,14 @@ func (s *AstTestSuite) TestStatementInterface() {
 	}
 
 	// Test PolicyStatement implements Statement
-	policy := &PolicyStatement{Range: r, Name: "testPolicy"}
+	policy := NewPolicyStatement("testPolicy", []Statement{}, r)
 	s.Implements((*Statement)(nil), policy)
 	s.Implements((*Node)(nil), policy)
 	s.Equal("testPolicy", policy.String())
 	s.Equal(r, policy.Span())
 
 	// Test RuleStatement implements Statement
-	rule := &RuleStatement{Range: r, RuleName: "testRule"}
+	rule := NewRuleStatement("testRule", nil, nil, nil, r)
 	s.Implements((*Statement)(nil), rule)
 	s.Implements((*Node)(nil), rule)
 	s.Equal("testRule", rule.String())
@@ -66,12 +66,12 @@ func (s *AstTestSuite) TestExpressionInterface() {
 	}
 
 	// Test Identifier implements Expression
-	ident := &Identifier{Range: r, Value: "test"}
+	ident := NewIdentifier("test", r)
 	s.Implements((*Expression)(nil), ident)
 	s.Implements((*Node)(nil), ident)
 
 	// Test StringLiteral implements Expression
-	str := &StringLiteral{Range: r, Value: "hello"}
+	str := NewStringLiteral("hello", r)
 	s.Implements((*Expression)(nil), str)
 	s.Implements((*Node)(nil), str)
 }
@@ -87,10 +87,10 @@ func (s *AstTestSuite) TestNodePositioning() {
 	}
 
 	for _, r := range testRanges {
-		ident := &Identifier{Range: r, Value: "test"}
+		ident := NewIdentifier("test", r)
 		s.Equal(r, ident.Span())
 
-		str := &StringLiteral{Range: r, Value: "test"}
+		str := NewStringLiteral("test", r)
 		s.Equal(r, str.Span())
 	}
 }
@@ -104,17 +104,17 @@ func (s *AstTestSuite) TestNodeStringRepresentation() {
 	}
 
 	// Test Identifier string representation
-	ident := &Identifier{Range: r, Value: "myVariable"}
+	ident := NewIdentifier("myVariable", r)
 	s.Equal("myVariable", ident.String())
 
 	// Test StringLiteral string representation
-	str := &StringLiteral{Range: r, Value: "hello world"}
+	str := NewStringLiteral("hello world", r)
 	s.Equal(`"hello world"`, str.String())
 
 	// Test empty values
-	emptyIdent := &Identifier{Range: r, Value: ""}
+	emptyIdent := NewIdentifier("", r)
 	s.Equal("", emptyIdent.String())
 
-	emptyStr := &StringLiteral{Range: r, Value: ""}
+	emptyStr := NewStringLiteral("", r)
 	s.Equal(`""`, emptyStr.String())
 }

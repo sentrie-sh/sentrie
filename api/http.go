@@ -24,9 +24,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/binaek/gocoll/collection"
+	"github.com/sentrie-sh/sentrie/api/middleware"
 	"github.com/sentrie-sh/sentrie/runtime"
-	"golang.org/x/exp/slices"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type ListenerServerPair struct {
@@ -50,113 +52,134 @@ func (p *ListenerServerPair) Close() error {
 	return nil
 }
 
+// HTTPMetrics holds all HTTP-related OpenTelemetry metrics
+type HTTPMetrics struct {
+	// HTTP server metrics
+	RequestCount    metric.Int64Counter
+	RequestDuration metric.Float64Histogram
+	ActiveRequests  metric.Int64UpDownCounter
+	RequestSize     metric.Int64Histogram
+	ResponseSize    metric.Int64Histogram
+
+	// Decision-specific metrics
+	ActiveEvaluations metric.Int64UpDownCounter
+	DecisionCount     metric.Int64Counter
+	DecisionDuration  metric.Float64Histogram
+}
+
 // HTTPAPI provides HTTP endpoints for rule execution
 type HTTPAPI struct {
 	executor  runtime.Executor
 	listeners []*ListenerServerPair
+	tracer    trace.Tracer
+	meter     metric.Meter
+	logger    *slog.Logger
+	metrics   *HTTPMetrics
 }
 
 // NewHTTPAPI creates a new HTTP API instance
 func NewHTTPAPI(executor runtime.Executor) *HTTPAPI {
-	return &HTTPAPI{executor: executor}
-}
-
-// DecisionRequest represents the request body for rule execution
-type DecisionRequest struct {
-	Facts map[string]any `json:"facts"`
-}
-
-// DecisionResponse represents the response from rule execution
-type DecisionResponse struct {
-	Decisions []*runtime.ExecutorOutput `json:"decisions"`
-	Error     string                    `json:"error,omitempty"`
-}
-
-// ProblemDetails represents an RFC 9457 Problem Details for HTTP APIs
-type ProblemDetails struct {
-	Type     string         `json:"type,omitempty"`
-	Title    string         `json:"title"`
-	Status   int            `json:"status,omitempty"`
-	Detail   string         `json:"detail,omitempty"`
-	Instance string         `json:"instance,omitempty"`
-	Ext      map[string]any `json:"-"`
-}
-
-// MarshalJSON implements custom JSON marshaling for ProblemDetails
-func (p *ProblemDetails) MarshalJSON() ([]byte, error) {
-	// Create a map to hold all fields including extensions
-	result := make(map[string]any)
-
-	// Add standard fields
-	if p.Type != "" {
-		result["type"] = p.Type
-	}
-	if p.Title != "" {
-		result["title"] = p.Title
-	}
-	if p.Status != 0 {
-		result["status"] = p.Status
-	}
-	if p.Detail != "" {
-		result["detail"] = p.Detail
-	}
-	if p.Instance != "" {
-		result["instance"] = p.Instance
+	api := &HTTPAPI{
+		executor: executor,
+		logger:   slog.Default(),
 	}
 
-	// Add extension fields
-	for k, v := range p.Ext {
-		result[k] = v
-	}
+	// Initialize HTTP metrics only if OpenTelemetry is enabled
+	if cfg := executor.OTelConfig(); cfg.Enabled {
+		api.meter = otel.Meter("sentrie/http")
+		api.tracer = otel.Tracer("sentrie/http")
+		api.metrics = &HTTPMetrics{}
+		var err error
 
-	return json.Marshal(result)
-}
-
-func resolveBindings(port int, listen []string) ([]string, error) {
-	predefined := [...]string{"local", "local4", "local6", "network", "network4", "network6"}
-
-	// if any of the listen addresses is in the predefined list - then there MUST be exactly one address
-	for _, listenAddr := range listen {
-		if slices.Contains(predefined[:], listenAddr) {
-			if len(listen) != 1 {
-				return nil, fmt.Errorf("when using predefined listen addresses, there must be exactly one address")
-			}
+		// HTTP server metrics
+		api.metrics.RequestCount, err = api.meter.Int64Counter(
+			"http.server.request.count",
+			metric.WithDescription("Number of HTTP requests"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create request count metric", "error", err)
 		}
-	}
 
-	var addresses []string = make([]string, 0, len(listen))
-	if slices.Contains(predefined[:], listen[0]) {
-		switch listen[0] {
-		case "local":
-			addresses = []string{net.JoinHostPort("localhost", fmt.Sprintf("%d", port))}
-		case "local4":
-			addresses = []string{net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", port))}
-		case "local6":
-			addresses = []string{net.JoinHostPort("[::1]", fmt.Sprintf("%d", port))}
-		case "network":
-			addresses = []string{net.JoinHostPort("", fmt.Sprintf("%d", port))}
-		case "network4":
-			addresses = []string{net.JoinHostPort("0.0.0.0", fmt.Sprintf("%d", port))}
-		case "network6":
-			addresses = []string{net.JoinHostPort("[::]", fmt.Sprintf("%d", port))}
+		api.metrics.RequestDuration, err = api.meter.Float64Histogram(
+			"http.server.request.duration",
+			metric.WithDescription("HTTP request duration in milliseconds"),
+			metric.WithUnit("ms"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create request duration metric", "error", err)
 		}
-	} else {
-		addresses = collection.Map(
-			collection.From(listen...),
-			func(listenAddr string) string {
-				return net.JoinHostPort(listenAddr, fmt.Sprintf("%d", port))
-			},
-		).Elements()
+
+		api.metrics.ActiveRequests, err = api.meter.Int64UpDownCounter(
+			"http.server.active_requests",
+			metric.WithDescription("Number of active HTTP requests"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create active requests metric", "error", err)
+		}
+
+		api.metrics.RequestSize, err = api.meter.Int64Histogram(
+			"http.server.request.size",
+			metric.WithDescription("HTTP request body size in bytes"),
+			metric.WithUnit("bytes"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create request size metric", "error", err)
+		}
+
+		api.metrics.ResponseSize, err = api.meter.Int64Histogram(
+			"http.server.response.size",
+			metric.WithDescription("HTTP response body size in bytes"),
+			metric.WithUnit("bytes"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create response size metric", "error", err)
+		}
+
+		// Decision-specific metrics
+		api.metrics.ActiveEvaluations, err = api.meter.Int64UpDownCounter(
+			"sentrie.evaluations.active",
+			metric.WithDescription("Number of active evaluations"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create active evaluations metric", "error", err)
+		}
+
+		api.metrics.DecisionCount, err = api.meter.Int64Counter(
+			"sentrie.decision.count",
+			metric.WithDescription("Number of decisions made"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create decision count metric", "error", err)
+		}
+
+		api.metrics.DecisionDuration, err = api.meter.Float64Histogram(
+			"sentrie.decision.duration",
+			metric.WithDescription("Decision execution duration in milliseconds"),
+			metric.WithUnit("ms"),
+		)
+		if err != nil {
+			api.logger.Error("Failed to create decision duration metric", "error", err)
+		}
+
 	}
 
-	return addresses, nil
+	return api
 }
 
 func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error {
 	mux := http.NewServeMux()
 
 	// Register the decision endpoint using Go 1.24 syntax
-	mux.Handle("POST /decision/{target...}", http.HandlerFunc(api.handleDecision))
+	mux.Handle("POST /decision/{target...}",
+		middleware.RequestIDMiddleware(
+			middleware.OTelMiddleware(
+				api.executor.OTelConfig(),
+				api.tracer,
+				api.meter,
+				http.HandlerFunc(api.handleDecision),
+			),
+		),
+	)
 
 	// Health check endpoint
 	mux.Handle("GET /health", http.HandlerFunc(api.handleHealth))
@@ -186,7 +209,7 @@ func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error 
 				return ctx
 			},
 		}))
-		slog.DebugContext(ctx, "Listening on server", "binding", binding)
+		api.logger.DebugContext(ctx, "Listening on server", "binding", binding)
 	}
 	return nil
 }
@@ -200,13 +223,13 @@ func (api *HTTPAPI) StartServer(ctx context.Context, port int, listen []string) 
 	for _, ln := range api.listeners {
 		server := ln.Server
 		wg.Go(func() {
-			slog.DebugContext(ctx,
+			api.logger.DebugContext(ctx,
 				"Decision endpoint available",
 				"method", "POST",
 				"address", ln.Listener.Addr().String(),
 				"url", fmt.Sprintf("http://%s/decision/{namespace}/{policy}/{rule}", ln.Listener.Addr().String()))
 
-			slog.DebugContext(ctx,
+			api.logger.DebugContext(ctx,
 				"Health check endpoint available",
 				slog.String("method", "GET"),
 				slog.String("address", ln.Listener.Addr().String()),
@@ -247,7 +270,7 @@ func (api *HTTPAPI) handleHealth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		slog.DebugContext(r.Context(), "Error encoding health response", "error", err)
+		api.logger.DebugContext(r.Context(), "Error encoding health response", "error", err)
 	}
 }
 
@@ -261,13 +284,13 @@ func (api *HTTPAPI) writeErrorResponse(w http.ResponseWriter, r *http.Request, s
 		Title:    title,
 		Status:   statusCode,
 		Detail:   detail,
-		Instance: r.URL.Path,
+		Instance: middleware.GetRequestIDFromRequest(r),
 		Ext: map[string]any{
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		},
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		slog.DebugContext(r.Context(), "Error encoding problem details response", "error", err)
+		api.logger.DebugContext(r.Context(), "Error encoding problem details response", "error", err)
 	}
 }

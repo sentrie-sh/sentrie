@@ -5,8 +5,10 @@ import (
 
 	"github.com/binaek/cling"
 	"github.com/sentrie-sh/sentrie/api"
+	"github.com/sentrie-sh/sentrie/constants"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/loader"
+	"github.com/sentrie-sh/sentrie/otel"
 	"github.com/sentrie-sh/sentrie/runtime"
 )
 
@@ -30,14 +32,47 @@ func addServeCmd(cli *cling.CLI) {
 				WithDefault([]string{"local"}).
 				WithDescription("Address(es) to listen on").
 				AsFlag(),
+			).
+			WithFlag(
+				cling.NewBoolCmdInput("otel-enabled").
+					WithDefault(false).
+					WithDescription("Enable OpenTelemetry tracing").
+					AsFlag().
+					FromEnv([]string{constants.EnvOtelEnabled}),
+			).
+			WithFlag(
+				cling.NewStringCmdInput("otel-endpoint").
+					WithDefault("http://localhost:4317").
+					WithDescription("OpenTelemetry endpoint to send traces to").
+					AsFlag().
+					FromEnv([]string{constants.EnvOtelEndpoint}),
+			).
+			WithFlag(
+				cling.NewStringCmdInput("otel-protocol").
+					WithDefault("grpc").
+					WithValidator(cling.NewEnumValidator("http", "grpc")).
+					WithDescription("OpenTelemetry protocol. Allowed values: http, grpc.").
+					AsFlag().
+					FromEnv([]string{constants.EnvOtelProtocol}),
+			).
+			WithFlag(
+				cling.NewBoolCmdInput("otel-trace-execution").
+					WithDefault(false).
+					WithDescription("Enable OpenTelemetry tracing for detailed policy execution.").
+					AsFlag().
+					FromEnv([]string{constants.EnvOtelTraceExecution}),
 			),
 	)
 }
 
 type serveCmdArgs struct {
-	Port         int      `cling-name:"port"`
-	PackLocation string   `cling-name:"pack-location"`
-	Listen       []string `cling-name:"listen"`
+	Port               int      `cling-name:"port"`
+	PackLocation       string   `cling-name:"pack-location"`
+	Listen             []string `cling-name:"listen"`
+	OtelEnabled        bool     `cling-name:"otel-enabled"`
+	OtelEndpoint       string   `cling-name:"otel-endpoint"`
+	OtelProtocol       string   `cling-name:"otel-protocol"`
+	OtelTraceExecution bool     `cling-name:"otel-trace-execution"`
 }
 
 func serveCmd(ctx context.Context, args []string) error {
@@ -49,6 +84,31 @@ func serveCmd(ctx context.Context, args []string) error {
 	pack, err := loader.LoadPack(ctx, input.PackLocation)
 	if err != nil {
 		return err
+	}
+
+	// Initialize OpenTelemetry if enabled
+	var otelCleanup otel.ShutdownFn
+	otelConfig := otel.OTelConfig{
+		Enabled:        input.OtelEnabled,
+		Endpoint:       input.OtelEndpoint,
+		Protocol:       input.OtelProtocol,
+		ServiceName:    constants.APPNAME,
+		ServiceVersion: constants.APPVERSION,
+		PackName:       pack.Name,
+		TraceExecution: input.OtelEnabled && input.OtelTraceExecution,
+	}
+
+	if otelConfig.Enabled {
+		otelCleanup, err = otel.InitProvider(ctx, otelConfig)
+		if err != nil {
+			return err
+		}
+
+		defer func() {
+			if otelCleanup != nil {
+				_ = otelCleanup(context.WithoutCancel(ctx))
+			}
+		}()
 	}
 
 	idx := index.CreateIndex()
@@ -63,6 +123,9 @@ func serveCmd(ctx context.Context, args []string) error {
 	}
 
 	for _, program := range programs {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		if err := idx.AddProgram(ctx, program); err != nil {
 			return err
 		}
@@ -72,7 +135,11 @@ func serveCmd(ctx context.Context, args []string) error {
 		return err
 	}
 
-	exec, err := runtime.NewExecutor(idx)
+	// Create executor with OpenTelemetry options
+	exec, err := runtime.NewExecutor(
+		idx,
+		runtime.WithOTelConfig(&otelConfig),
+	)
 	if err != nil {
 		return err
 	}

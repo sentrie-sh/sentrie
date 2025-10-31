@@ -24,7 +24,7 @@ type Shape struct {
 }
 
 type ShapeModel struct {
-	WithFQN ast.FQN
+	WithFQN *ast.FQN
 	Fields  map[string]*ShapeModelField
 }
 
@@ -59,7 +59,7 @@ func (s *Shape) resolveDependency(idx *Index, inPolicy *Policy) error {
 		return nil
 	}
 
-	if len(s.Model.WithFQN) == 0 {
+	if s.Model.WithFQN == nil || s.Model.WithFQN.IsEmpty() {
 		// nothing to do
 		return nil
 	}
@@ -143,11 +143,14 @@ func createShape(ns *Namespace, p *Policy, stmt *ast.ShapeStatement) (*Shape, er
 		Policy:    p,
 		Name:      stmt.Name,
 		FQN:       fqn,
-		FilePath:  stmt.Range.File,
+		FilePath:  stmt.Rnge.File,
 	}
 
 	if stmt.Complex != nil {
-		shape.Model = &ShapeModel{WithFQN: stmt.Complex.With, Fields: make(map[string]*ShapeModelField)}
+		shape.Model = &ShapeModel{Fields: make(map[string]*ShapeModelField)}
+		if stmt.Complex.With != nil {
+			shape.Model.WithFQN = stmt.Complex.With
+		}
 		for _, field := range stmt.Complex.Fields {
 			if field.Name == "" {
 				continue

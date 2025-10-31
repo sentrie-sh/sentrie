@@ -21,6 +21,7 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/pack"
 	"github.com/sentrie-sh/sentrie/tokens"
+	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -91,21 +92,13 @@ func (suite *IndexTestSuite) TestSetPackWithCancelledContext() {
 }
 
 func (suite *IndexTestSuite) TestAddProgramWithSimpleShape() {
+	stubRange := tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}
 	// Create a simple program with just a shape
 	program := &ast.Program{
 		Reference: "test.sentra",
 		Statements: []ast.Statement{
-			&ast.NamespaceStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-				Name:  ast.FQN{"com", "example"},
-			},
-			&ast.ShapeStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
-				Name:  "User",
-				Simple: &ast.StringTypeRef{
-					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 20, Offset: 20}},
-				},
-			},
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, stubRange), stubRange),
+			ast.NewShapeStatement("User", ast.NewStringTypeRef(stubRange), nil, stubRange),
 		},
 	}
 
@@ -134,50 +127,39 @@ func (suite *IndexTestSuite) TestAddProgramWithPolicy() {
 	program := &ast.Program{
 		Reference: "test.sentra",
 		Statements: []ast.Statement{
-			&ast.NamespaceStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-				Name:  ast.FQN{"com", "example"},
-			},
-			&ast.PolicyStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
-				Name:  "AuthPolicy",
-				Statements: []ast.Statement{
-					&ast.FactStatement{
-						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
-						Name:  "user",
-						Alias: "user",
-						Type: &ast.StringTypeRef{
-							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 20, Offset: 20}},
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}), tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}),
+			ast.NewPolicyStatement(
+				"AuthPolicy",
+				[]ast.Statement{
+					ast.NewFactStatement(
+						"user",
+						ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 20, Offset: 20}}),
+						"user",
+						ast.NewStringLiteral("testuser", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 20, Offset: 20}, To: tokens.Pos{Line: 3, Column: 30, Offset: 30}}),
+						false,
+						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
+					),
+					ast.NewRuleStatement(
+						"allow",
+						nil,
+						ast.NewTrinaryLiteral(trinary.True, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 25, Offset: 25}}),
+						nil,
+						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}},
+					),
+					ast.NewRuleExportStatement(
+						"allow",
+						[]*ast.AttachmentClause{
+							ast.NewAttachmentClause(
+								"reason",
+								ast.NewStringLiteral("user is allowed", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 25, Offset: 25}, To: tokens.Pos{Line: 5, Column: 35, Offset: 35}}),
+								tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 15, Offset: 15}, To: tokens.Pos{Line: 5, Column: 25, Offset: 25}},
+							),
 						},
-						Default: &ast.StringLiteral{
-							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 20, Offset: 20}, To: tokens.Pos{Line: 3, Column: 30, Offset: 30}},
-							Value: "testuser",
-						},
-					},
-					&ast.RuleStatement{
-						Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}},
-						RuleName: "allow",
-						When: &ast.TrinaryLiteral{
-							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 25, Offset: 25}},
-							Value: 1, // true in trinary
-						},
-					},
-					&ast.RuleExportStatement{
-						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 10, Offset: 10}},
-						Of:    "allow",
-						Attachments: []*ast.AttachmentClause{
-							{
-								Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 15, Offset: 15}, To: tokens.Pos{Line: 5, Column: 25, Offset: 25}},
-								What:  "reason",
-								As: &ast.StringLiteral{
-									Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 25, Offset: 25}, To: tokens.Pos{Line: 5, Column: 35, Offset: 35}},
-									Value: "user is allowed",
-								},
-							},
-						},
-					},
+						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 10, Offset: 10}},
+					),
 				},
-			},
+				tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
+			),
 		},
 	}
 
@@ -207,21 +189,17 @@ func (suite *IndexTestSuite) TestAddProgramWithShapeExport() {
 	program := &ast.Program{
 		Reference: "test.sentra",
 		Statements: []ast.Statement{
-			&ast.NamespaceStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-				Name:  ast.FQN{"com", "example"},
-			},
-			&ast.ShapeStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
-				Name:  "User",
-				Simple: &ast.StringTypeRef{
-					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 20, Offset: 20}},
-				},
-			},
-			&ast.ShapeExportStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
-				Name:  "User",
-			},
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}), tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}),
+			ast.NewShapeStatement(
+				"User",
+				ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 20, Offset: 20}}),
+				nil,
+				tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
+			),
+			ast.NewShapeExportStatement(
+				"User",
+				tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
+			),
 		},
 	}
 
@@ -245,10 +223,7 @@ func (suite *IndexTestSuite) TestAddProgramWithCancelledContext() {
 	program := &ast.Program{
 		Reference: "test.sentra",
 		Statements: []ast.Statement{
-			&ast.NamespaceStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-				Name:  ast.FQN{"com", "example"},
-			},
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}), tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}),
 		},
 	}
 
@@ -263,10 +238,7 @@ func (suite *IndexTestSuite) TestAddProgramWithMultipleNamespaces() {
 	program1 := &ast.Program{
 		Reference: "test1.sentra",
 		Statements: []ast.Statement{
-			&ast.NamespaceStatement{
-				Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-				Name:  ast.FQN{"com", "example"},
-			},
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}), tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}),
 		},
 	}
 
@@ -277,10 +249,7 @@ func (suite *IndexTestSuite) TestAddProgramWithMultipleNamespaces() {
 	program2 := &ast.Program{
 		Reference: "test2.sentra",
 		Statements: []ast.Statement{
-			&ast.NamespaceStatement{
-				Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-				Name:  ast.FQN{"org", "test"},
-			},
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"org", "test"}, tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}), tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}),
 		},
 	}
 
@@ -298,10 +267,7 @@ func (suite *IndexTestSuite) TestAddProgramWithParentChildNamespaces() {
 	parentProgram := &ast.Program{
 		Reference: "parent.sentra",
 		Statements: []ast.Statement{
-			&ast.NamespaceStatement{
-				Range: tokens.Range{File: "parent.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-				Name:  ast.FQN{"com", "example"},
-			},
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "parent.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}), tokens.Range{File: "parent.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}),
 		},
 	}
 
@@ -312,10 +278,7 @@ func (suite *IndexTestSuite) TestAddProgramWithParentChildNamespaces() {
 	childProgram := &ast.Program{
 		Reference: "child.sentra",
 		Statements: []ast.Statement{
-			&ast.NamespaceStatement{
-				Range: tokens.Range{File: "child.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-				Name:  ast.FQN{"com", "example", "sub"},
-			},
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example", "sub"}, tokens.Range{File: "child.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}), tokens.Range{File: "child.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}),
 		},
 	}
 
@@ -338,20 +301,20 @@ func (suite *IndexTestSuite) TestAddProgramWithParentChildNamespaces() {
 
 func (suite *IndexTestSuite) TestEnsureNamespaceWithExistingNamespace() {
 	// Create first namespace
-	nsStmt1 := &ast.NamespaceStatement{
-		Range: tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-		Name:  []string{"com", "example"},
-	}
+	nsStmt1 := ast.NewNamespaceStatement(
+		ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}),
+		tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+	)
 
 	ns1, err := suite.idx.ensureNamespace(suite.ctx, nsStmt1)
 	suite.NoError(err)
 	suite.NotNil(ns1)
 
 	// Try to create the same namespace again
-	nsStmt2 := &ast.NamespaceStatement{
-		Range: tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-		Name:  []string{"com", "example"},
-	}
+	nsStmt2 := ast.NewNamespaceStatement(
+		ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}),
+		tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+	)
 
 	ns2, err := suite.idx.ensureNamespace(suite.ctx, nsStmt2)
 	suite.NoError(err)
@@ -361,28 +324,28 @@ func (suite *IndexTestSuite) TestEnsureNamespaceWithExistingNamespace() {
 
 func (suite *IndexTestSuite) TestEnsureNamespaceWithComplexHierarchy() {
 	// Create root namespace
-	rootStmt := &ast.NamespaceStatement{
-		Range: tokens.Range{File: "root.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-		Name:  []string{"com"},
-	}
+	rootStmt := ast.NewNamespaceStatement(
+		ast.NewFQN([]string{"com"}, tokens.Range{File: "root.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}),
+		tokens.Range{File: "root.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+	)
 
 	rootNs, err := suite.idx.ensureNamespace(suite.ctx, rootStmt)
 	suite.NoError(err)
 
 	// Create intermediate namespace
-	intermediateStmt := &ast.NamespaceStatement{
-		Range: tokens.Range{File: "intermediate.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-		Name:  []string{"com", "example"},
-	}
+	intermediateStmt := ast.NewNamespaceStatement(
+		ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "intermediate.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}),
+		tokens.Range{File: "intermediate.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+	)
 
 	intermediateNs, err := suite.idx.ensureNamespace(suite.ctx, intermediateStmt)
 	suite.NoError(err)
 
 	// Create leaf namespace
-	leafStmt := &ast.NamespaceStatement{
-		Range: tokens.Range{File: "leaf.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-		Name:  []string{"com", "example", "sub"},
-	}
+	leafStmt := ast.NewNamespaceStatement(
+		ast.NewFQN([]string{"com", "example", "sub"}, tokens.Range{File: "leaf.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}),
+		tokens.Range{File: "leaf.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+	)
 
 	leafNs, err := suite.idx.ensureNamespace(suite.ctx, leafStmt)
 	suite.NoError(err)
@@ -404,48 +367,40 @@ func (suite *IndexTestSuite) TestAddProgramWithShapeAndPolicyConflict() {
 	program := &ast.Program{
 		Reference: "test.sentra",
 		Statements: []ast.Statement{
-			&ast.NamespaceStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-				Name:  ast.FQN{"com", "example"},
-			},
-			&ast.ShapeStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
-				Name:  "User",
-				Simple: &ast.StringTypeRef{
-					Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 20, Offset: 20}},
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}), tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}),
+			ast.NewShapeStatement(
+				"User",
+				ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 20, Offset: 20}}),
+				nil,
+				tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
+			),
+			ast.NewPolicyStatement(
+				"User",
+				[]ast.Statement{
+					ast.NewFactStatement(
+						"user",
+						ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 10, Offset: 10}, To: tokens.Pos{Line: 4, Column: 20, Offset: 20}}),
+						"user",
+						ast.NewStringLiteral("testuser", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 20, Offset: 20}, To: tokens.Pos{Line: 4, Column: 30, Offset: 30}}),
+						false,
+						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}},
+					),
+					ast.NewRuleStatement(
+						"allow",
+						nil,
+						ast.NewTrinaryLiteral(trinary.True, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 15, Offset: 15}, To: tokens.Pos{Line: 5, Column: 25, Offset: 25}}),
+						nil,
+						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 10, Offset: 10}},
+					),
+
+					ast.NewRuleExportStatement(
+						"allow",
+						[]*ast.AttachmentClause{},
+						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 0, Offset: 0}, To: tokens.Pos{Line: 6, Column: 10, Offset: 10}},
+					),
 				},
-			},
-			&ast.PolicyStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
-				Name:  "User", // Same name as shape - should cause conflict
-				Statements: []ast.Statement{
-					&ast.FactStatement{
-						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}},
-						Name:  "user",
-						Alias: "user",
-						Type: &ast.StringTypeRef{
-							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 10, Offset: 10}, To: tokens.Pos{Line: 4, Column: 20, Offset: 20}},
-						},
-						Default: &ast.StringLiteral{
-							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 20, Offset: 20}, To: tokens.Pos{Line: 4, Column: 30, Offset: 30}},
-							Value: "testuser",
-						},
-					},
-					&ast.RuleStatement{
-						Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 10, Offset: 10}},
-						RuleName: "allow",
-						When: &ast.TrinaryLiteral{
-							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 15, Offset: 15}, To: tokens.Pos{Line: 5, Column: 25, Offset: 25}},
-							Value: 1, // true in trinary
-						},
-					},
-					&ast.RuleExportStatement{
-						Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 0, Offset: 0}, To: tokens.Pos{Line: 6, Column: 10, Offset: 10}},
-						Of:          "allow",
-						Attachments: []*ast.AttachmentClause{},
-					},
-				},
-			},
+				tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
+			),
 		},
 	}
 
@@ -460,37 +415,29 @@ func (suite *IndexTestSuite) TestAddProgramWithPolicyWithoutExports() {
 	program := &ast.Program{
 		Reference: "test.sentra",
 		Statements: []ast.Statement{
-			&ast.NamespaceStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-				Name:  ast.FQN{"com", "example"},
-			},
-			&ast.PolicyStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
-				Name:  "AuthPolicy",
-				Statements: []ast.Statement{
-					&ast.FactStatement{
-						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
-						Name:  "user",
-						Alias: "user",
-						Type: &ast.StringTypeRef{
-							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 20, Offset: 20}},
-						},
-						Default: &ast.StringLiteral{
-							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 20, Offset: 20}, To: tokens.Pos{Line: 3, Column: 30, Offset: 30}},
-							Value: "testuser",
-						},
-					},
-					&ast.RuleStatement{
-						Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}},
-						RuleName: "allow",
-						When: &ast.TrinaryLiteral{
-							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 25, Offset: 25}},
-							Value: 1, // true in trinary
-						},
-					},
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}), tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}),
+			ast.NewPolicyStatement(
+				"AuthPolicy",
+				[]ast.Statement{
+					ast.NewFactStatement(
+						"user",
+						ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 20, Offset: 20}}),
+						"user",
+						ast.NewStringLiteral("testuser", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 20, Offset: 20}, To: tokens.Pos{Line: 3, Column: 30, Offset: 30}}),
+						false,
+						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
+					),
+					ast.NewRuleStatement(
+						"allow",
+						nil,
+						ast.NewTrinaryLiteral(trinary.True, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 25, Offset: 25}}),
+						nil,
+						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}},
+					),
 					// No rule export statement
 				},
-			},
+				tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
+			),
 		},
 	}
 
@@ -505,45 +452,40 @@ func (suite *IndexTestSuite) TestAddProgramWithInvalidUseStatementPosition() {
 	program := &ast.Program{
 		Reference: "test.sentra",
 		Statements: []ast.Statement{
-			&ast.NamespaceStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-				Name:  ast.FQN{"com", "example"},
-			},
-			&ast.PolicyStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
-				Name:  "AuthPolicy",
-				Statements: []ast.Statement{
-					&ast.FactStatement{
-						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
-						Name:  "user",
-						Alias: "user",
-						Type: &ast.StringTypeRef{
-							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 20, Offset: 20}},
-						},
-						Default: &ast.StringLiteral{
-							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 20, Offset: 20}, To: tokens.Pos{Line: 3, Column: 30, Offset: 30}},
-							Value: "testuser",
-						},
-					},
-					&ast.RuleStatement{
-						Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}},
-						RuleName: "allow",
-						When: &ast.TrinaryLiteral{
-							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 25, Offset: 25}},
-							Value: 1, // true in trinary
-						},
-					},
-					&ast.UseStatement{
-						Range:   tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 10, Offset: 10}},
-						Modules: []string{"com", "other", "policy"},
-					},
-					&ast.RuleExportStatement{
-						Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 0, Offset: 0}, To: tokens.Pos{Line: 6, Column: 10, Offset: 10}},
-						Of:          "allow",
-						Attachments: []*ast.AttachmentClause{},
-					},
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}), tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}),
+			ast.NewPolicyStatement(
+				"AuthPolicy",
+				[]ast.Statement{
+					ast.NewFactStatement(
+						"user",
+						ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 20, Offset: 20}}),
+						"user",
+						ast.NewStringLiteral("testuser", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 20, Offset: 20}, To: tokens.Pos{Line: 3, Column: 30, Offset: 30}}),
+						false,
+						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
+					),
+					ast.NewRuleStatement(
+						"allow",
+						nil,
+						ast.NewTrinaryLiteral(trinary.True, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 25, Offset: 25}}),
+						nil,
+						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}},
+					),
+					ast.NewUseStatement(
+						[]string{"com", "other", "policy"},
+						"",
+						nil,
+						"",
+						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 10, Offset: 10}},
+					),
+					ast.NewRuleExportStatement(
+						"allow",
+						[]*ast.AttachmentClause{},
+						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 0, Offset: 0}, To: tokens.Pos{Line: 6, Column: 10, Offset: 10}},
+					),
 				},
-			},
+				tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
+			),
 		},
 	}
 
@@ -558,41 +500,33 @@ func (suite *IndexTestSuite) TestAddProgramWithInvalidFactStatementPosition() {
 	program := &ast.Program{
 		Reference: "test.sentra",
 		Statements: []ast.Statement{
-			&ast.NamespaceStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
-				Name:  ast.FQN{"com", "example"},
-			},
-			&ast.PolicyStatement{
-				Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
-				Name:  "AuthPolicy",
-				Statements: []ast.Statement{
-					&ast.RuleStatement{
-						Range:    tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
-						RuleName: "allow",
-						When: &ast.TrinaryLiteral{
-							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 15, Offset: 15}, To: tokens.Pos{Line: 3, Column: 25, Offset: 25}},
-							Value: 1, // true in trinary
-						},
-					},
-					&ast.FactStatement{
-						Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}},
-						Name:  "user",
-						Alias: "user",
-						Type: &ast.StringTypeRef{
-							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 10, Offset: 10}, To: tokens.Pos{Line: 4, Column: 20, Offset: 20}},
-						},
-						Default: &ast.StringLiteral{
-							Range: tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 20, Offset: 20}, To: tokens.Pos{Line: 4, Column: 30, Offset: 30}},
-							Value: "testuser",
-						},
-					},
-					&ast.RuleExportStatement{
-						Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 10, Offset: 10}},
-						Of:          "allow",
-						Attachments: []*ast.AttachmentClause{},
-					},
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}), tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}),
+			ast.NewPolicyStatement(
+				"AuthPolicy",
+				[]ast.Statement{
+					ast.NewRuleStatement(
+						"allow",
+						nil,
+						ast.NewTrinaryLiteral(trinary.True, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 15, Offset: 15}, To: tokens.Pos{Line: 3, Column: 25, Offset: 25}}),
+						nil,
+						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
+					),
+					ast.NewFactStatement(
+						"user",
+						ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 10, Offset: 10}, To: tokens.Pos{Line: 4, Column: 20, Offset: 20}}),
+						"user",
+						ast.NewStringLiteral("testuser", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 20, Offset: 20}, To: tokens.Pos{Line: 4, Column: 30, Offset: 30}}),
+						false,
+						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}},
+					),
+					ast.NewRuleExportStatement(
+						"allow",
+						[]*ast.AttachmentClause{},
+						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 10, Offset: 10}},
+					),
 				},
-			},
+				tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}},
+			),
 		},
 	}
 

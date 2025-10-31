@@ -21,8 +21,11 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
+// 'is [not] defined' | 'is [not] empty' | '<expression> is <expression>'
 func parseIsExpression(ctx context.Context, p *Parser, left ast.Expression, precedence Precedence) ast.Expression {
 	start := p.head()
+
+	rnge := start.Range
 
 	// consume the 'is' token
 	if !p.expect(tokens.KeywordIs) {
@@ -39,81 +42,20 @@ func parseIsExpression(ctx context.Context, p *Parser, left ast.Expression, prec
 
 	if p.canExpect(tokens.KeywordDefined) {
 		// 'is [not] defined' case
-		expr = &ast.IsDefinedExpression{
-			Range: tokens.Range{
-				File: start.Range.File,
-				From: tokens.Pos{
-					Line:   start.Range.From.Line,
-					Column: start.Range.From.Column,
-					Offset: start.Range.From.Offset,
-				},
-				To: tokens.Pos{
-					Line:   start.Range.From.Line,
-					Column: start.Range.From.Column,
-					Offset: start.Range.From.Offset,
-				},
-			},
-			Left: left,
-		}
+		expr = ast.NewIsDefinedExpression(left, rnge)
 		p.advance()
 	} else if p.canExpect(tokens.KeywordEmpty) {
-		expr = &ast.IsEmptyExpression{
-			Range: tokens.Range{
-				File: start.Range.File,
-				From: tokens.Pos{
-					Line:   start.Range.From.Line,
-					Column: start.Range.From.Column,
-					Offset: start.Range.From.Offset,
-				},
-				To: tokens.Pos{
-					Line:   start.Range.From.Line,
-					Column: start.Range.From.Column,
-					Offset: start.Range.From.Offset,
-				},
-			},
-			Left: left,
-		}
+		expr = ast.NewIsEmptyExpression(left, rnge)
 		p.advance()
 	} else {
-		expr = &ast.InfixExpression{
-			Range: tokens.Range{
-				File: start.Range.File,
-				From: tokens.Pos{
-					Line:   start.Range.From.Line,
-					Column: start.Range.From.Column,
-					Offset: start.Range.From.Offset,
-				},
-				To: tokens.Pos{
-					Line:   start.Range.From.Line,
-					Column: start.Range.From.Column,
-					Offset: start.Range.From.Offset,
-				},
-			},
-			Left:     left,
-			Operator: start.Value,
-			Right:    p.parseExpression(ctx, precedence),
-		}
+		right := p.parseExpression(ctx, precedence)
+		rnge.To = right.Span().To
+		expr = ast.NewInfixExpression(left, right, start.Value, rnge)
 	}
 
 	// if we have a 'not' then wrap with a not unary
 	if not != nil {
-		expr = &ast.UnaryExpression{
-			Range: tokens.Range{
-				File: start.Range.File,
-				From: tokens.Pos{
-					Line:   start.Range.From.Line,
-					Column: start.Range.From.Column,
-					Offset: start.Range.From.Offset,
-				},
-				To: tokens.Pos{
-					Line:   start.Range.From.Line,
-					Column: start.Range.From.Column,
-					Offset: start.Range.From.Offset,
-				},
-			},
-			Operator: not.Value,
-			Right:    expr,
-		}
+		expr = ast.NewUnaryExpression(not.Value, expr, rnge)
 	}
 
 	return expr

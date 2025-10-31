@@ -21,18 +21,25 @@ import (
 )
 
 type VarDeclaration struct {
-	Range tokens.Range
+	*baseNode
 	Name  string
 	Type  TypeRef
 	Value Expression
 }
 
+func NewVarDeclaration(name string, typeRef TypeRef, value Expression, ssp tokens.Range) *VarDeclaration {
+	return &VarDeclaration{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "let",
+		},
+		Name:  name,
+		Type:  typeRef,
+		Value: value,
+	}
+}
 func (v VarDeclaration) String() string {
 	return fmt.Sprintf("%s: %s = %s", v.Name, v.Type.String(), v.Value.String())
-}
-
-func (v VarDeclaration) Span() tokens.Range {
-	return v.Range
 }
 
 func (v VarDeclaration) statementNode() {}

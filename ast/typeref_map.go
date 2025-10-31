@@ -17,25 +17,24 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type MapTypeRef struct {
-	constraints []*TypeRefConstraint
-	Range       tokens.Range
-	ValueType   TypeRef
+	*baseTypeRef
+	ValueType TypeRef
 }
+
+func NewMapTypeRef(valueType TypeRef, ssp tokens.Range) *MapTypeRef {
+	return &MapTypeRef{
+		baseTypeRef: &baseTypeRef{
+			baseNode: &baseNode{
+				Rnge:  ssp,
+				Kind_: "map_typeref",
+			},
+			validConstraints: genMapConstraints,
+		},
+		ValueType: valueType,
+	}
+}
+
+func (m *MapTypeRef) String() string { return "map[" + m.ValueType.String() + "]" }
 
 var _ TypeRef = &MapTypeRef{}
 var _ Node = &MapTypeRef{}
-
-func (m *MapTypeRef) typeref()           {}
-func (m *MapTypeRef) Span() tokens.Range { return m.Range }
-func (m *MapTypeRef) String() string     { return "map[" + m.ValueType.String() + "]" }
-func (m *MapTypeRef) GetConstraints() []*TypeRefConstraint {
-	return m.constraints
-}
-func (m *MapTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
-	if err := validateConstraint(constraint, genMapConstraints); err != nil {
-		return err
-	}
-	m.constraints = append(m.constraints, constraint)
-	m.Range.To = constraint.Range.To
-	return nil
-}

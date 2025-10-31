@@ -21,13 +21,28 @@ import (
 )
 
 type ReduceExpression struct {
-	Range         tokens.Range
+	*baseNode
 	Collection    Expression
 	From          Expression
 	Accumulator   string
 	ValueIterator string
 	IndexIterator string // optional, may be ""
 	Reducer       Expression
+}
+
+func NewReduceExpression(collection Expression, from Expression, accumulator string, valueIterator string, indexIterator string, reducer Expression, ssp tokens.Range) *ReduceExpression {
+	return &ReduceExpression{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "reduce",
+		},
+		Collection:    collection,
+		From:          from,
+		Accumulator:   accumulator,
+		ValueIterator: valueIterator,
+		IndexIterator: indexIterator,
+		Reducer:       reducer,
+	}
 }
 
 func (r *ReduceExpression) String() string {
@@ -46,10 +61,6 @@ func (r *ReduceExpression) String() string {
 	b.WriteString(r.Reducer.String())
 	b.WriteString(" }")
 	return b.String()
-}
-
-func (r *ReduceExpression) Span() tokens.Range {
-	return r.Range
 }
 
 func (r *ReduceExpression) expressionNode() {}

@@ -135,7 +135,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 			att := []*RuleExportAttachment{}
 			for _, a := range stmt.Attachments {
 				if _, ok := p.RuleExports[a.What]; ok {
-					return nil, errors.Wrapf(ErrIndex, "rule export attachment conflict: '%s' at %s", a.What, a.Range)
+					return nil, errors.Wrapf(ErrIndex, "rule export attachment conflict: '%s' at %s", a.What, a.Span())
 				}
 
 				att = append(att, &RuleExportAttachment{Name: a.What, Value: a.As})
@@ -182,7 +182,7 @@ func (p *Policy) AddRule(rule *ast.RuleStatement) error {
 
 func (p *Policy) AddShape(shape *ast.ShapeStatement) error {
 	if s, ok := p.Shapes[shape.Name]; ok {
-		return errors.Wrapf(ErrIndex, "shape name conflict: '%s' at %s with %s", shape.Name, shape.Span(), s.Statement.Range)
+		return errors.Wrapf(ErrIndex, "shape name conflict: '%s' at %s with %s", shape.Name, shape.Span(), s.Statement.Span())
 	}
 
 	s, err := createShape(p.Namespace, p, shape)

@@ -15,25 +15,35 @@
 package ast
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 type UseStatement struct {
-	Range        tokens.Range
+	*baseNode
 	Modules      []string // List of modules to use
 	RelativeFrom string   //
 	LibFrom      []string // Optional library information
 	As           string
 }
 
-func (s *UseStatement) Span() tokens.Range {
-	return s.Range
+func NewUseStatement(modules []string, relativeFrom string, libFrom []string, as string, ssp tokens.Range) *UseStatement {
+	return &UseStatement{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "use",
+		},
+		Modules:      modules,
+		RelativeFrom: relativeFrom,
+		LibFrom:      libFrom,
+		As:           as,
+	}
 }
 
 func (s *UseStatement) String() string {
-	return "use " + strings.Join(s.Modules, ", ") + " from " + s.RelativeFrom + " as " + s.As
+	return fmt.Sprintf("use %s from %s as %s", strings.Join(s.Modules, ", "), s.RelativeFrom, s.As)
 }
 
 func (s *UseStatement) statementNode() {}

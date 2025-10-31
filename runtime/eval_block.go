@@ -24,7 +24,7 @@ import (
 )
 
 func evalBlock(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, block *ast.BlockExpression) (any, *trace.Node, error) {
-	n, done := trace.New("block", "", block, map[string]any{})
+	ctx, n, done := trace.New(ctx, block, "", map[string]any{})
 	defer done()
 
 	ec = ec.AttachedChildContext()

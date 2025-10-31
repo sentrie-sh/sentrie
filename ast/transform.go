@@ -17,17 +17,23 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type TransformExpression struct {
-	Range       tokens.Range
+	*baseNode
 	Argument    Expression
 	Transformer string
 }
 
+func NewTransformExpression(argument Expression, transformer string, ssp tokens.Range) *TransformExpression {
+	return &TransformExpression{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "transform",
+		},
+		Argument:    argument,
+		Transformer: transformer,
+	}
+}
 func (t *TransformExpression) String() string {
 	return "transform " + " " + t.Argument.String() + " " + t.Transformer
-}
-
-func (t *TransformExpression) Span() tokens.Range {
-	return t.Range
 }
 
 func (t *TransformExpression) expressionNode() {}

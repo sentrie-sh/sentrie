@@ -21,8 +21,9 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
+// 'export shape @ident'
 func parseShapeExportStatement(ctx context.Context, p *Parser) ast.Statement {
-	start := p.head()
+	head := p.head()
 
 	p.advance() // consume 'export'
 
@@ -35,20 +36,9 @@ func parseShapeExportStatement(ctx context.Context, p *Parser) ast.Statement {
 		return nil
 	}
 
-	return &ast.ShapeExportStatement{
-		Name: name.Value,
-		Range: tokens.Range{
-			File: start.Range.File,
-			From: tokens.Pos{
-				Line:   start.Range.From.Line,
-				Column: start.Range.From.Column,
-				Offset: start.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   name.Range.From.Line,
-				Column: name.Range.From.Column,
-				Offset: name.Range.From.Offset,
-			},
-		},
-	}
+	return ast.NewShapeExportStatement(name.Value, tokens.Range{
+		File: head.Range.File,
+		From: head.Range.From,
+		To:   name.Range.To,
+	})
 }

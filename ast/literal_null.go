@@ -17,17 +17,21 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type NullLiteral struct {
-	Range tokens.Range
+	*baseNode
+}
+
+func NewNullLiteral(ssp tokens.Range) *NullLiteral {
+	return &NullLiteral{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "null_literal",
+		},
+	}
 }
 
 func (n *NullLiteral) String() string {
 	return "null"
 }
-
-func (n *NullLiteral) Span() tokens.Range {
-	return n.Range
-}
-
 func (n *NullLiteral) expressionNode() {}
 
 var _ Expression = &NullLiteral{}

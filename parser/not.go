@@ -23,56 +23,26 @@ import (
 
 func parseNotExpression(ctx context.Context, parser *Parser, left ast.Expression, precedence Precedence) ast.Expression {
 	notToken := parser.advance()
+	rnge := notToken.Range
 
-	opToken := parser.head()
-
-	if !opToken.IsOfKind(tokens.KeywordNot, tokens.KeywordMatches, tokens.KeywordContains, tokens.KeywordIn) {
-		parser.errorf("expected 'not', 'matches', 'contains', or 'in' after 'not', got %s", opToken.Kind)
+	if !parser.canExpectAnyOf(tokens.KeywordNot, tokens.KeywordMatches, tokens.KeywordContains, tokens.KeywordIn) {
+		parser.errorf("expected 'not', 'matches', 'contains', or 'in' after 'not', got %s", parser.head().Kind)
 		return nil
 	}
+
+	opToken := parser.advance()
+	rnge.To = opToken.Range.To
 
 	parser.advance()
 	right := parser.parseExpression(ctx, precedence)
 	if right == nil {
 		return nil
 	}
+	rnge.To = right.Span().To
 
-	// build the infix expression
-	bin := &ast.InfixExpression{
-		Range: tokens.Range{
-			File: opToken.Range.File,
-			From: tokens.Pos{
-				Line:   opToken.Range.From.Line,
-				Column: opToken.Range.From.Column,
-				Offset: opToken.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   opToken.Range.From.Line,
-				Column: opToken.Range.From.Column,
-				Offset: opToken.Range.From.Offset,
-			},
-		},
-		Left:     left,
-		Operator: opToken.Value,
-		Right:    right,
-	}
+	// build the infix expression of the right operand
+	bin := ast.NewInfixExpression(left, right, opToken.Value, rnge)
 
-	// wrap it in a unary expression
-	return &ast.UnaryExpression{
-		Range: tokens.Range{
-			File: notToken.Range.File,
-			From: tokens.Pos{
-				Line:   notToken.Range.From.Line,
-				Column: notToken.Range.From.Column,
-				Offset: notToken.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   notToken.Range.From.Line,
-				Column: notToken.Range.From.Column,
-				Offset: notToken.Range.From.Offset,
-			},
-		},
-		Operator: notToken.Value,
-		Right:    bin,
-	}
+	// wrap it in a unary expression with the not token
+	return ast.NewUnaryExpression(notToken.Value, bin, rnge)
 }

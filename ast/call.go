@@ -23,11 +23,24 @@ import (
 )
 
 type CallExpression struct {
+	*baseNode
 	Callee     Expression
 	Arguments  []Expression
 	Memoized   bool
 	MemoizeTTL *time.Duration
-	Range      tokens.Range
+}
+
+func NewCallExpression(callee Expression, arguments []Expression, memoized bool, memoizeTTL *time.Duration, ssp tokens.Range) *CallExpression {
+	return &CallExpression{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "call",
+		},
+		Callee:     callee,
+		Arguments:  arguments,
+		Memoized:   memoized,
+		MemoizeTTL: memoizeTTL,
+	}
 }
 
 func (c *CallExpression) String() string {
@@ -36,10 +49,6 @@ func (c *CallExpression) String() string {
 		args[i] = arg.String()
 	}
 	return fmt.Sprintf("%s(%s)", c.Callee.String(), strings.Join(args, ", "))
-}
-
-func (c *CallExpression) Span() tokens.Range {
-	return c.Range
 }
 
 func (c *CallExpression) expressionNode() {}

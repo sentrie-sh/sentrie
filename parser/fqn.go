@@ -22,31 +22,32 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func parseFQN(ctx context.Context, p *Parser) (ast.FQN, tokens.Range) {
+func parseFQN(ctx context.Context, p *Parser) *ast.FQN {
 	slog.DebugContext(ctx, "PARSE_FQN", "current", p.current)
 	defer slog.DebugContext(ctx, "PARSE_FQN_DONE", "current", p.current)
 
-	var parts ast.FQN
+	var parts []string
 
-	// consume the first ident
-	ident, found := p.advanceExpected(tokens.Ident)
+	// consume the first firstIdent
+	firstIdent, found := p.advanceExpected(tokens.Ident)
 	if !found {
-		return nil, tokens.BadRange(p.reference)
+		return nil
 	}
-	parts = append(parts, ident.Value)
-	start := ident.Range.From
-	end := ident.Range.To
+	parts = append(parts, firstIdent.Value)
+	rnge := firstIdent.Range
 
 	for p.canExpect(tokens.TokenDiv) {
 		p.advance() // consume the '/'
 
 		ident, found := p.advanceExpected(tokens.Ident)
 		if !found {
-			return nil, tokens.BadRange(p.reference)
+			return nil
 		}
 		parts = append(parts, ident.Value)
-		end = ident.Range.To
+		rnge.To = ident.Range.To
 	}
 
-	return parts, tokens.NewRange(ident.Range.File, start, end)
+	fqn := ast.NewFQN(parts, rnge)
+
+	return &fqn
 }

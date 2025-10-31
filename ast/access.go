@@ -3,15 +3,37 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type FieldAccessExpression struct {
-	Range tokens.Range
+	*baseNode
 	Left  Expression
 	Field string
 }
 
+func NewFieldAccessExpression(left Expression, field string, ssp tokens.Range) *FieldAccessExpression {
+	return &FieldAccessExpression{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "field_access",
+		},
+		Left:  left,
+		Field: field,
+	}
+}
+
 type IndexAccessExpression struct {
-	Range tokens.Range
+	*baseNode
 	Left  Expression
 	Index Expression
+}
+
+func NewIndexAccessExpression(left Expression, index Expression, ssp tokens.Range) *IndexAccessExpression {
+	return &IndexAccessExpression{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "index_access",
+		},
+		Left:  left,
+		Index: index,
+	}
 }
 
 var _ Expression = &FieldAccessExpression{}
@@ -25,15 +47,7 @@ func (i *IndexAccessExpression) String() string {
 	return i.Left.String() + "[" + i.Index.String() + "]"
 }
 
-func (f *FieldAccessExpression) Span() tokens.Range {
-	return f.Range
-}
-
 func (f *FieldAccessExpression) expressionNode() {}
-
-func (i *IndexAccessExpression) Span() tokens.Range {
-	return i.Range
-}
 
 func (i *IndexAccessExpression) expressionNode() {}
 

@@ -21,6 +21,20 @@ import (
 type Node interface {
 	String() string
 	Span() tokens.Range
+	Kind() string
+}
+
+type baseNode struct {
+	Rnge  tokens.Range
+	Kind_ string
+}
+
+func (n *baseNode) Span() tokens.Range {
+	return n.Rnge
+}
+
+func (n *baseNode) Kind() string {
+	return n.Kind_
 }
 
 type Statement interface {

@@ -24,11 +24,11 @@ import (
 )
 
 func evalAny(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, q *ast.AnyExpression) (any, *trace.Node, error) {
-	node, done := trace.New("any", "", q, map[string]any{
+	ctx, node, done := trace.New(ctx, q, "any", map[string]any{
 		"collection": q.Collection.String(),
-		"value_iter": q.ValueIterator,
-		"index_iter": q.IndexIterator,
-		"predicate":  q.Predicate.String(),
+		"value_iter": q.Iterator1,
+		"index_iter": q.Iterator2,
+		"predicate":  q.Quantifier.String(),
 	})
 	defer done()
 
@@ -49,11 +49,11 @@ func evalAny(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 
 	for idx, item := range list {
 		childContext := ec.AttachedChildContext()
-		if q.IndexIterator != "" {
-			childContext.SetLocal(q.IndexIterator, idx, true)
+		if q.Iterator2 != "" {
+			childContext.SetLocal(q.Iterator2, idx, true)
 		}
-		childContext.SetLocal(q.ValueIterator, item, true)
-		res, resNode, err := eval(ctx, childContext, exec, p, q.Predicate)
+		childContext.SetLocal(q.Iterator1, item, true)
+		res, resNode, err := eval(ctx, childContext, exec, p, q.Quantifier)
 		if err != nil {
 			return nil, node.SetErr(err), err
 		}
@@ -71,11 +71,11 @@ func evalAny(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 // evalAll evaluates an all expression
 // it returns true if all items in the collection satisfy the predicate
 func evalAll(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, q *ast.AllExpression) (any, *trace.Node, error) {
-	node, done := trace.New("all", "", q, map[string]any{
+	ctx, node, done := trace.New(ctx, q, "all", map[string]any{
 		"collection": q.Collection.String(),
-		"value_iter": q.ValueIterator,
-		"index_iter": q.IndexIterator,
-		"predicate":  q.Predicate.String(),
+		"value_iter": q.Iterator1,
+		"index_iter": q.Iterator2,
+		"predicate":  q.Quantifier.String(),
 	})
 	defer done()
 
@@ -96,11 +96,11 @@ func evalAll(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 
 	for idx, item := range list {
 		childContext := ec.AttachedChildContext()
-		if q.IndexIterator != "" {
-			childContext.SetLocal(q.IndexIterator, idx, true)
+		if q.Iterator2 != "" {
+			childContext.SetLocal(q.Iterator2, idx, true)
 		}
-		childContext.SetLocal(q.ValueIterator, item, true)
-		res, resNode, err := eval(ctx, childContext, exec, p, q.Predicate)
+		childContext.SetLocal(q.Iterator1, item, true)
+		res, resNode, err := eval(ctx, childContext, exec, p, q.Quantifier)
 		if err != nil {
 			return nil, node.SetErr(err), err
 		}
@@ -118,11 +118,11 @@ func evalAll(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 // it returns the first item in the collection that satisfies the predicate
 // if no item satisfies the predicate, it returns undefined
 func evalFirst(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, q *ast.FirstExpression) (any, *trace.Node, error) {
-	node, done := trace.New("first", "", q, map[string]any{
+	ctx, node, done := trace.New(ctx, q, "first", map[string]any{
 		"collection": q.Collection.String(),
-		"value_iter": q.ValueIterator,
-		"index_iter": q.IndexIterator,
-		"predicate":  q.Predicate.String(),
+		"value_iter": q.Iterator1,
+		"index_iter": q.Iterator2,
+		"predicate":  q.Quantifier.String(),
 	})
 	defer done()
 
@@ -143,11 +143,11 @@ func evalFirst(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 
 	for idx, item := range list {
 		childContext := ec.AttachedChildContext()
-		if q.IndexIterator != "" {
-			childContext.SetLocal(q.IndexIterator, idx, true)
+		if q.Iterator2 != "" {
+			childContext.SetLocal(q.Iterator2, idx, true)
 		}
-		childContext.SetLocal(q.ValueIterator, item, true)
-		res, resNode, err := eval(ctx, childContext, exec, p, q.Predicate)
+		childContext.SetLocal(q.Iterator1, item, true)
+		res, resNode, err := eval(ctx, childContext, exec, p, q.Quantifier)
 		if err != nil {
 			return nil, node.SetErr(err), err
 		}
@@ -167,13 +167,14 @@ func evalFirst(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 // it returns a list of items that satisfy the predicate
 // if the predicate is not satisfied, the item is not included in the list
 func evalFilter(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, q *ast.FilterExpression) (any, *trace.Node, error) {
-	node, done := trace.New("filter", "", q, map[string]any{
+	ctx, node, done := trace.New(ctx, q, "filter", map[string]any{
 		"collection": q.Collection.String(),
-		"value_iter": q.ValueIterator,
-		"index_iter": q.IndexIterator,
-		"predicate":  q.Predicate.String(),
+		"value_iter": q.Iterator1,
+		"index_iter": q.Iterator2,
+		"predicate":  q.Quantifier.String(),
 	})
 	defer done()
+
 	col, colNode, err := eval(ctx, ec, exec, p, q.Collection)
 	node.Attach(colNode)
 	if err != nil {
@@ -192,11 +193,11 @@ func evalFilter(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p
 
 	for idx, item := range list {
 		childContext := ec.AttachedChildContext()
-		if q.IndexIterator != "" {
-			childContext.SetLocal(q.IndexIterator, idx, true)
+		if q.Iterator2 != "" {
+			childContext.SetLocal(q.Iterator2, idx, true)
 		}
-		childContext.SetLocal(q.ValueIterator, item, true)
-		res, resNode, err := eval(ctx, childContext, exec, p, q.Predicate)
+		childContext.SetLocal(q.Iterator1, item, true)
+		res, resNode, err := eval(ctx, childContext, exec, p, q.Quantifier)
 		if err != nil {
 			return nil, node.SetErr(err), err
 		}
@@ -212,11 +213,11 @@ func evalFilter(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p
 }
 
 func evalMap(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, m *ast.MapExpression) (any, *trace.Node, error) {
-	node, done := trace.New("map", "", m, map[string]any{
+	ctx, node, done := trace.New(ctx, m, "map", map[string]any{
 		"collection": m.Collection.String(),
-		"value_iter": m.ValueIterator,
-		"index_iter": m.IndexIterator,
-		"transform":  m.Transform.String(),
+		"value_iter": m.Iterator1,
+		"index_iter": m.Iterator2,
+		"transform":  m.Quantifier.String(),
 	})
 	defer done()
 
@@ -234,9 +235,9 @@ func evalMap(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 	transformed := make([]any, 0, len(list))
 	for idx, item := range list {
 		childContext := ec.AttachedChildContext()
-		childContext.SetLocal(m.IndexIterator, idx, true)
-		childContext.SetLocal(m.ValueIterator, item, true)
-		res, resNode, err := eval(ctx, childContext, exec, p, m.Transform)
+		childContext.SetLocal(m.Iterator2, idx, true)
+		childContext.SetLocal(m.Iterator1, item, true)
+		res, resNode, err := eval(ctx, childContext, exec, p, m.Quantifier)
 		node.Attach(resNode)
 		if err != nil {
 			return nil, node.SetErr(err), err
@@ -247,5 +248,3 @@ func evalMap(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 
 	return transformed, node, nil
 }
-
-// TBD: DISTINCT

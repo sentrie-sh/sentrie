@@ -24,7 +24,7 @@ import (
 )
 
 func evalReduce(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, r *ast.ReduceExpression) (any, *trace.Node, error) {
-	node, done := trace.New("reduce", "", r, map[string]any{
+	ctx, node, done := trace.New(ctx, r, "reduce", map[string]any{
 		"collection":  r.Collection,
 		"from":        r.From,
 		"value_iter":  r.ValueIterator,

@@ -21,15 +21,9 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
+// 'export decision of @ident ( attach @ident as @expr )*'
 func parseRuleExportStatement(ctx context.Context, p *Parser) ast.Statement {
 	head := p.head()
-
-	stmt := &ast.RuleExportStatement{
-		Range: tokens.Range{
-			File: head.Range.File,
-			From: head.Range.From,
-		},
-	}
 
 	p.advance() // consume 'export'
 
@@ -41,36 +35,35 @@ func parseRuleExportStatement(ctx context.Context, p *Parser) ast.Statement {
 		return nil
 	}
 
-	ident, found := p.advanceExpected(tokens.Ident)
+	ruleIdent, found := p.advanceExpected(tokens.Ident)
 	if !found {
 		return nil
 	}
 
-	stmt.Of = ident.Value // Set the name of the exported variable or decision
-	stmt.Range.To = ident.Range.To
+	of := ruleIdent.Value // Set the name of the exported variable or decision
+	rnge := tokens.Range{
+		File: head.Range.File,
+		From: head.Range.From,
+		To:   ruleIdent.Range.To,
+	}
 
+	attachments := []*ast.AttachmentClause{}
 	for p.head().IsOfKind(tokens.KeywordAttach) {
 		attachment := parseAttachmentClause(ctx, p)
 		if attachment == nil {
 			return nil
 		}
-		stmt.Attachments = append(stmt.Attachments, attachment)
-		stmt.Range.To = attachment.Range.To
+
+		attachments = append(attachments, attachment)
+		rnge.To = attachment.Span().To
 	}
 
-	return stmt
+	return ast.NewRuleExportStatement(of, attachments, rnge)
 }
 
 // 'attach @ident as @expr'
 func parseAttachmentClause(ctx context.Context, p *Parser) *ast.AttachmentClause {
 	head := p.head()
-
-	attachment := &ast.AttachmentClause{
-		Range: tokens.Range{
-			File: head.Range.File,
-			From: head.Range.From,
-		},
-	}
 
 	p.advance() // consume 'attach'
 
@@ -88,9 +81,9 @@ func parseAttachmentClause(ctx context.Context, p *Parser) *ast.AttachmentClause
 		return nil
 	}
 
-	attachment.What = what.Value // Set the attachment what
-	attachment.As = asExpr
-	attachment.Range.To = asExpr.Span().To
-
-	return attachment
+	return ast.NewAttachmentClause(what.Value, asExpr, tokens.Range{
+		File: head.Range.File,
+		From: head.Range.From,
+		To:   asExpr.Span().To,
+	})
 }

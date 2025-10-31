@@ -21,18 +21,14 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
+// '[' ( <expression> ( ',' <expression> )* )? ']'
 func parseListLiteral(ctx context.Context, p *Parser) ast.Expression {
 	leftBracket, found := p.advanceExpected(tokens.PunctLeftBracket)
 	if !found {
 		return nil
 	}
-	theList := ast.ListLiteral{
-		Range: tokens.Range{
-			File: leftBracket.Range.File,
-			From: leftBracket.Range.From,
-		},
-		Values: []ast.Expression{},
-	}
+
+	theList := []ast.Expression{}
 
 	// Parse the elements of the list
 	for p.hasTokens() && p.current.Kind != tokens.PunctRightBracket {
@@ -41,7 +37,7 @@ func parseListLiteral(ctx context.Context, p *Parser) ast.Expression {
 			return nil // Error in parsing an element
 		}
 
-		theList.Values = append(theList.Values, element)
+		theList = append(theList, element)
 
 		if p.current.Kind == tokens.PunctComma {
 			p.advance() // Consume the comma
@@ -57,46 +53,48 @@ func parseListLiteral(ctx context.Context, p *Parser) ast.Expression {
 		return nil
 	}
 
-	theList.Range.To = rightBracket.Range.To
+	listLiteral := ast.NewListLiteral(theList, tokens.Range{
+		File: leftBracket.Range.File,
+		From: leftBracket.Range.From,
+		To:   rightBracket.Range.To,
+	})
 
-	return &theList
+	return listLiteral
 }
 
+// '{' ( <string | '[' expression ']' > ':' <expression> ( ',' <string | '[' expression ']' > ':' <expression> )* )? '}'
 func parseMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 	leftBrace := p.advance() // Consume the left curly brace
 
-	theMap := ast.MapLiteral{
-		Range: tokens.Range{
-			File: leftBrace.Range.File,
-			From: leftBrace.Range.From,
-		},
-		Entries: []ast.MapEntry{},
-	}
+	entries := []ast.MapEntry{}
 
 	// Parse the entries of the map
 	for p.hasTokens() && p.current.Kind != tokens.PunctRightCurly {
 		var keyExpression ast.Expression
 
 		if p.canExpect(tokens.String) {
+
 			key, found := p.advanceExpected(tokens.String)
 			if !found {
 				return nil
 			}
-			keyExpression = &ast.StringLiteral{
-				Range: tokens.Range{
-					File: key.Range.File,
-					From: key.Range.From,
-				},
-				Value: key.Value,
-			}
+
+			keyExpression = ast.NewStringLiteral(key.Value, tokens.Range{
+				File: key.Range.File,
+				From: key.Range.From,
+				To:   key.Range.To,
+			})
+
 		} else if p.canExpect(tokens.PunctLeftBracket) {
 			if !p.expect(tokens.PunctLeftBracket) {
 				return nil
 			}
+
 			keyExpression = p.parseExpression(ctx, LOWEST)
 			if keyExpression == nil {
 				return nil
 			}
+
 			if !p.expect(tokens.PunctRightBracket) {
 				return nil
 			}
@@ -118,7 +116,7 @@ func parseMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 			Key:   keyExpression,
 			Value: value,
 		}
-		theMap.Entries = append(theMap.Entries, entry)
+		entries = append(entries, entry)
 
 		if p.current.Kind == tokens.PunctComma {
 			p.advance() // Consume the comma
@@ -130,7 +128,12 @@ func parseMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 	if !found {
 		return nil
 	}
-	theMap.Range.To = rightBrace.Range.To
 
-	return &theMap
+	mapLiteral := ast.NewMapLiteral(entries, tokens.Range{
+		File: leftBrace.Range.File,
+		From: leftBrace.Range.From,
+		To:   rightBrace.Range.To,
+	})
+
+	return mapLiteral
 }

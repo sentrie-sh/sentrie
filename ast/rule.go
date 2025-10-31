@@ -17,19 +17,27 @@ package ast
 import "github.com/sentrie-sh/sentrie/tokens"
 
 type RuleStatement struct {
-	Range    tokens.Range
+	*baseNode
 	RuleName string
 	Default  Expression
 	When     Expression
 	Body     Expression
 }
 
+func NewRuleStatement(ruleName string, defaultExpr Expression, whenExpr Expression, bodyExpr Expression, ssp tokens.Range) *RuleStatement {
+	return &RuleStatement{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "rule_statement",
+		},
+		RuleName: ruleName,
+		Default:  defaultExpr,
+		When:     whenExpr,
+		Body:     bodyExpr,
+	}
+}
 func (r RuleStatement) String() string {
 	return r.RuleName
-}
-
-func (r RuleStatement) Span() tokens.Range {
-	return r.Range
 }
 
 func (r RuleStatement) statementNode() {}

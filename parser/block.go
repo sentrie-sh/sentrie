@@ -62,21 +62,17 @@ func parseBlockExpression(ctx context.Context, p *Parser) ast.Expression {
 		return nil // Error in parsing the block expression
 	}
 
-	return &ast.BlockExpression{
-		SourceSpan: tokens.Range{
-			File: lCurly.Range.File,
-			From: tokens.Pos{
-				Line:   lCurly.Range.From.Line,
-				Column: lCurly.Range.From.Column,
-				Offset: lCurly.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   rCurly.Range.From.Line,
-				Column: rCurly.Range.From.Column,
-				Offset: rCurly.Range.From.Offset,
-			},
+	return ast.NewBlockExpression(statements, yieldExpr, tokens.Range{
+		File: lCurly.Range.File,
+		From: tokens.Pos{
+			Line:   lCurly.Range.From.Line,
+			Column: lCurly.Range.From.Column,
+			Offset: lCurly.Range.From.Offset,
 		},
-		Statements: statements,
-		Yield:      yieldExpr,
-	}
+		To: tokens.Pos{
+			Line:   rCurly.Range.From.Line,
+			Column: rCurly.Range.From.Column,
+			Offset: rCurly.Range.From.Offset,
+		},
+	})
 }

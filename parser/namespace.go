@@ -27,27 +27,15 @@ func parseNamespaceStatement(ctx context.Context, p *Parser) ast.Statement {
 	defer slog.DebugContext(ctx, "PARSE_NS_DONE", "current", p.current)
 
 	head := p.head()
+	rnge := head.Range
+
 	if !p.expect(tokens.KeywordNamespace) {
 		return nil // Error in parsing the namespace statement
 	}
-	name, nameRange := parseFQN(ctx, p)
-	if len(name) == 0 {
-		return nil
+	fqn := parseFQN(ctx, p)
+	if fqn == nil {
+		return nil // Error in parsing the namespace statement
 	}
-	return &ast.NamespaceStatement{
-		Range: tokens.Range{
-			File: head.Range.File,
-			From: tokens.Pos{
-				Line:   head.Range.From.Line,
-				Column: head.Range.From.Column,
-				Offset: head.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   nameRange.To.Line,
-				Column: nameRange.To.Column,
-				Offset: nameRange.To.Offset,
-			},
-		},
-		Name: name,
-	}
+	rnge.To = fqn.Rnge.To
+	return ast.NewNamespaceStatement(*fqn, rnge)
 }

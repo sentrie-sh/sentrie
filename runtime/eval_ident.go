@@ -19,28 +19,29 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 )
 
-func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, i string) (any, *trace.Node, error) {
-	n, done := trace.New("identifier", "", nil, map[string]any{"name": i})
+func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, i *ast.Identifier) (any, *trace.Node, error) {
+	ctx, n, done := trace.New(ctx, i, "identifier", map[string]any{"name": i.Value})
 	defer done()
 
 	// check in the local scope
-	if v, ok := ec.GetLocal(i); ok {
+	if v, ok := ec.GetLocal(i.Value); ok {
 		return v, n.SetResult(v), nil
 	}
 
 	// check whether this has been passed in as a FACT
-	if v, ok := ec.GetFact(i); ok {
+	if v, ok := ec.GetFact(i.Value); ok {
 		return v, n.SetResult(v), nil
 	}
 
 	// we couldn't find anything yet - look for a let declaration in the ExecutionContext
-	if v, ok := ec.GetLet(i); ok {
+	if v, ok := ec.GetLet(i.Value); ok {
 		// Check for infinite recursion before evaluating the let declaration
-		if err := ec.PushRefStack(i); err != nil {
+		if err := ec.PushRefStack(i.Value); err != nil {
 			return nil, n.SetErr(err), err
 		}
 		defer ec.PopRefStack()
@@ -59,20 +60,20 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 			}
 		}
 
-		ec.SetLocal(i, val, false)
+		ec.SetLocal(i.Value, val, false)
 		return val, n.SetResult(val), nil
 	}
 
-	if r, found := p.Rules[i]; found {
+	if r, found := p.Rules[i.Value]; found {
 		decision, _, node, err := exec.execRule(ctx, ec, p.Namespace.FQN.String(), p.Name, r.Name)
 		n.Attach(node)
 		if err != nil {
 			return nil, n.SetErr(err), err
 		}
-		ec.SetLocal(i, decision, false)
+		ec.SetLocal(i.Value, decision, false)
 		return decision, n.SetResult(decision), nil
 	}
 
-	err := fmt.Errorf("identifier not found: %s", i)
+	err := fmt.Errorf("identifier not found: %s", i.Value)
 	return nil, n.SetErr(err), err
 }

@@ -24,7 +24,7 @@ import (
 )
 
 func evalTernary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, t *ast.TernaryExpression) (any, *trace.Node, error) {
-	n, done := trace.New("ternary", "", t, map[string]any{})
+	ctx, n, done := trace.New(ctx, t, "ternary", map[string]any{})
 	defer done()
 
 	c, cn, err := eval(ctx, ec, exec, p, t.Condition)

@@ -22,8 +22,18 @@ import (
 
 // StringLiteral represents a string literal
 type StringLiteral struct {
-	Range tokens.Range
+	*baseNode
 	Value string
+}
+
+func NewStringLiteral(value string, ssp tokens.Range) Expression {
+	return &StringLiteral{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "string_literal",
+		},
+		Value: value,
+	}
 }
 
 func (s *StringLiteral) String() string {
@@ -31,10 +41,6 @@ func (s *StringLiteral) String() string {
 }
 
 func (s *StringLiteral) expressionNode() {}
-
-func (s *StringLiteral) Span() tokens.Range {
-	return s.Range
-}
 
 var _ Expression = &StringLiteral{}
 var _ Node = &StringLiteral{}

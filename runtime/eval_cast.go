@@ -25,7 +25,9 @@ import (
 )
 
 func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *index.Policy, cast *ast.CastExpression) (any, *trace.Node, error) {
-	node, done := trace.New("cast", cast.TargetType.String(), cast, map[string]any{})
+	ctx, node, done := trace.New(ctx, cast, "cast", map[string]any{
+		"target": cast.TargetType.String(),
+	})
 	defer done()
 
 	val, child, err := eval(ctx, ec, e, p, cast.Expr)
