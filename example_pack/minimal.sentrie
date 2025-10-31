@@ -65,10 +65,10 @@ policy var_test {
   let min: number = reduce numbers from numbers[0] as acc, num, idx {
     yield num < acc ? num : acc
   }
-  
-  rule another = error("hello world")
+
+  rule errorRule = error("hello world")
 
   export decision of test
-  export decision of another
+  export decision of errorRule
   export decision of w
 }
