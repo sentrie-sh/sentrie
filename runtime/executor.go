@@ -139,6 +139,7 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 	exec.jsRegistry.RegisterBuiltin("crypto", js.BuiltinCryptoGo)
 	exec.jsRegistry.RegisterBuiltin("time", js.BuiltinTimeGo)
 	exec.jsRegistry.RegisterBuiltin("encoding", js.BuiltinEncodingGo)
+	exec.jsRegistry.RegisterBuiltin("collection", js.BuiltinCollectionGo)
 
 	for _, opt := range opts {
 		opt(exec)
