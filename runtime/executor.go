@@ -144,6 +144,7 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 	exec.jsRegistry.RegisterBuiltin("regex", js.BuiltinRegexGo)
 	exec.jsRegistry.RegisterBuiltin("net", js.BuiltinNetGo)
 	exec.jsRegistry.RegisterBuiltin("hash", js.BuiltinHashGo)
+	exec.jsRegistry.RegisterBuiltin("url", js.BuiltinUrlGo)
 
 	for _, opt := range opts {
 		opt(exec)
