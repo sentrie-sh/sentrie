@@ -27,34 +27,30 @@ func parseCallExpression(ctx context.Context, p *Parser, left ast.Expression, pr
 		return nil
 	}
 
+	rnge := left.Span()
+
 	arguments := parseExpressionList(ctx, p, tokens.PunctRightParentheses)
 	if arguments == nil {
 		return nil
 	}
 
 	// Find the closing parenthesis position
-	rparen := p.head()
-	if !rparen.IsOfKind(tokens.PunctRightParentheses) {
+	rparen, found := p.advanceExpected(tokens.PunctRightParentheses)
+	if !found {
 		return nil
 	}
-	p.advance() // consume the closing parenthesis
 
-	exp := ast.NewCallExpression(left, arguments, false, nil, tokens.Range{
-		File: left.Span().File,
-		From: tokens.Pos{
-			Line:   left.Span().From.Line,
-			Column: left.Span().From.Column,
-			Offset: left.Span().From.Offset,
-		},
-		To: tokens.Pos{
-			Line:   rparen.Range.From.Line,
-			Column: rparen.Range.From.Column,
-			Offset: rparen.Range.From.Offset,
-		},
-	})
+	rnge.To = rparen.Range.To
+
+	exp := ast.NewCallExpression(left, arguments, false, nil, rnge)
 
 	if p.head().IsOfKind(tokens.TokenBang) {
-		_ = p.advance()
+		bang, found := p.advanceExpected(tokens.TokenBang)
+		if !found {
+			return nil
+		}
+		rnge.To = bang.Range.To
+
 		exp.Memoized = true
 		exp.MemoizeTTL = nil
 
@@ -65,6 +61,7 @@ func parseCallExpression(ctx context.Context, p *Parser, left ast.Expression, pr
 			}
 			ttl := time.Duration(literal.(*ast.IntegerLiteral).Value) * time.Second
 			exp.MemoizeTTL = &ttl
+			rnge.To = literal.Span().To
 		}
 	}
 
@@ -74,27 +71,17 @@ func parseCallExpression(ctx context.Context, p *Parser, left ast.Expression, pr
 func parseExpressionList(ctx context.Context, parser *Parser, end tokens.Kind) []ast.Expression {
 	exps := []ast.Expression{}
 
-	// TODO :: check if we can do this with an expect
-	if parser.head().IsOfKind(end) {
-		_ = parser.advance() // consume the end token
-		// just return an empty list
-		return exps
-	}
-
-	for parser.hasTokens() {
+	for parser.hasTokens() && !parser.canExpect(end) {
 		exp := parser.parseExpression(ctx, LOWEST)
 		if exp == nil {
 			return nil
 		}
 		exps = append(exps, exp)
-		if parser.head().IsOfKind(tokens.PunctComma) {
-			_ = parser.advance() // consume the comma
+		if parser.canExpect(tokens.PunctComma) {
+			parser.advance() // consume the comma
 			continue
 		}
 
-		if parser.head().IsOfKind(end) {
-			break
-		}
 	}
 
 	return exps

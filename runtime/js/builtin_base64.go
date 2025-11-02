@@ -30,7 +30,7 @@ var BuiltinBase64Go = func(vm *goja.Runtime) (*goja.Object, error) {
 	_ = ex.Set("decode", func(call goja.FunctionCall) goja.Value {
 		decoded, err := base64.StdEncoding.DecodeString(call.Argument(0).String())
 		if err != nil {
-			panic(vm.ToValue(err))
+			return vm.NewGoError(err)
 		}
 		return vm.ToValue(string(decoded))
 	})
@@ -42,7 +42,7 @@ var BuiltinBase64Go = func(vm *goja.Runtime) (*goja.Object, error) {
 	_ = ex.Set("urlDecode", func(call goja.FunctionCall) goja.Value {
 		decoded, err := base64.URLEncoding.DecodeString(call.Argument(0).String())
 		if err != nil {
-			panic(vm.ToValue(err))
+			return vm.NewGoError(err)
 		}
 		return vm.ToValue(string(decoded))
 	})

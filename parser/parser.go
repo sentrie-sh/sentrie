@@ -145,6 +145,6 @@ func (p *Parser) registerInfix(tokenType tokens.Kind, fn infixParser) {
 	p.infixHandlers[tokenType] = fn
 }
 
-func (p *Parser) noPrefixParseFnError(t tokens.Kind) {
-	p.errorf("no prefix parse function found for '%s'", t)
+func (p *Parser) noPrefixParseFnError(t tokens.Instance) {
+	p.errorf("no prefix parse function found for '%s' at %s", t.Value, t.Range)
 }

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
@@ -40,6 +41,8 @@ type ExecutionContext struct {
 	mu sync.Mutex
 
 	policy *index.Policy
+
+	createdAt time.Time
 
 	parent *ExecutionContext
 
@@ -64,14 +67,15 @@ func (ec *ExecutionContext) IsLetInjected(name string) bool {
 
 func NewExecutionContext(policy *index.Policy, executor Executor) *ExecutionContext {
 	return &ExecutionContext{
-		parent:   nil,
-		policy:   policy,
-		refStack: make([]string, 0), // reference stack
-		facts:    make(map[string]injectedFact),
-		locals:   make(map[string]any),
-		lets:     make(map[string]*ast.VarDeclaration),
-		modules:  make(map[string]*ModuleBinding),
-		executor: executor,
+		parent:    nil,
+		createdAt: time.Now(),
+		policy:    policy,
+		refStack:  make([]string, 0), // reference stack
+		facts:     make(map[string]injectedFact),
+		locals:    make(map[string]any),
+		lets:      make(map[string]*ast.VarDeclaration),
+		modules:   make(map[string]*ModuleBinding),
+		executor:  executor,
 	}
 }
 
@@ -88,15 +92,25 @@ func (ec *ExecutionContext) AttachedChildContext() *ExecutionContext {
 	copy(stack, ec.refStack)
 
 	return &ExecutionContext{
-		parent:   ec,
-		refStack: stack,                                // inherit the call stack from the parent
-		policy:   ec.policy,                            // inherit the policy from the parent
-		modules:  ec.modules,                           // inherit the module bindings from the parent
-		executor: ec.executor,                          // inherit the executor from the parent
-		facts:    nil,                                  // a child context should not have facts at all
-		locals:   make(map[string]any),                 // local values
-		lets:     make(map[string]*ast.VarDeclaration), // local let declarations
+		parent:    ec,
+		createdAt: ec.CreatedAt(),
+		refStack:  stack,                                // inherit the call stack from the parent
+		policy:    ec.policy,                            // inherit the policy from the parent
+		modules:   ec.modules,                           // inherit the module bindings from the parent
+		executor:  ec.executor,                          // inherit the executor from the parent
+		facts:     nil,                                  // a child context should not have facts at all
+		locals:    make(map[string]any),                 // local values
+		lets:      make(map[string]*ast.VarDeclaration), // local let declarations
 	}
+}
+
+func (ec *ExecutionContext) CreatedAt() time.Time {
+	ec.mu.Lock()
+	defer ec.mu.Unlock()
+	if ec.parent != nil {
+		return ec.parent.CreatedAt()
+	}
+	return ec.createdAt
 }
 
 // Inject facts into the current context.

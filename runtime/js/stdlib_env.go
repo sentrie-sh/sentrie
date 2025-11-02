@@ -32,7 +32,7 @@ func (ar *AliasRuntime) setupEnvStdLib(_ context.Context, pack *pack.PackFile) e
 			continue // skip malformed environment variables
 		}
 
-		if pack.Permissions.CheckEnvAccess(key) {
+		if pack != nil && pack.Permissions != nil && pack.Permissions.CheckEnvAccess(key) {
 			if err := env.Set(key, value); err != nil {
 				return err
 			}
