@@ -240,7 +240,7 @@ func (l *Lexer) NextToken() tokens.Instance {
 			char := string(l.current)
 			l.readRune()
 			endPos := l.currentPosition()
-			return tokens.New(tokens.Error, "unexpected character: "+char, tokens.NewRange(l.filename, startPos, endPos))
+			return tokens.New(tokens.Error, char, tokens.NewRange(l.filename, startPos, endPos))
 		}
 	}
 }

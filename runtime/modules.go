@@ -23,6 +23,7 @@ import (
 	"github.com/dop251/goja"
 	"github.com/fatih/structs"
 	"github.com/jackc/puddle/v2"
+	"github.com/sentrie-sh/sentrie/constants"
 )
 
 // JSInstance is a context-aware binding for an alias VM.
@@ -37,7 +38,7 @@ type ModuleBinding struct {
 	VMPool       *puddle.Pool[*JSInstance]
 }
 
-func (m ModuleBinding) Call(ctx context.Context, fn string, args ...any) (any, error) {
+func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string, args ...any) (any, error) {
 	if m.VMPool == nil {
 		return nil, fmt.Errorf("module has no JS binding")
 	}
@@ -48,6 +49,10 @@ func (m ModuleBinding) Call(ctx context.Context, fn string, args ...any) (any, e
 	defer binding.Release()
 
 	vm := binding.Value()
+	if err := vm.VM.Set(constants.ExecutionStartTimeUnixKey, ec.CreatedAt().UTC().Unix()); err != nil {
+		return nil, err
+	}
+
 	val, ok := vm.Exports[fn]
 	if !ok {
 		return nil, fmt.Errorf("function '%q' not found in module %q", fn, m.Alias)
@@ -57,7 +62,7 @@ func (m ModuleBinding) Call(ctx context.Context, fn string, args ...any) (any, e
 		return nil, fmt.Errorf("export '%q' is not callable", fn)
 	}
 
-	// Honor context cancel by installing an interrupt
+	// Install an interrupt to honor context cancel
 	done := make(chan struct{})
 	if ctx != nil {
 		vm.VM.ClearInterrupt()
