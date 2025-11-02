@@ -148,6 +148,7 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 	exec.jsRegistry.RegisterBuiltin("string", js.BuiltinStringGo)
 	exec.jsRegistry.RegisterBuiltin("json", js.BuiltinJsonGo)
 	exec.jsRegistry.RegisterBuiltin("semver", js.BuiltinSemverGo)
+	exec.jsRegistry.RegisterBuiltin("math", js.BuiltinMathGo)
 
 	for _, opt := range opts {
 		opt(exec)
