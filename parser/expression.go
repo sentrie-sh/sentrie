@@ -38,7 +38,7 @@ func (p *Parser) parseExpression(ctx context.Context, precedence Precedence) ast
 
 	prefix, exists := p.prefixHandlers[p.current.Kind]
 	if !exists {
-		p.noPrefixParseFnError(p.current.Kind)
+		p.noPrefixParseFnError(p.current)
 		return nil
 	}
 
@@ -58,19 +58,7 @@ func (p *Parser) parseExpression(ctx context.Context, precedence Precedence) ast
 		slices.Reverse(comments)
 	}
 	for len(comments) > 0 {
-		leftExp = ast.NewPrecedingCommentExpression(comments[0].Value, leftExp, tokens.Range{
-			File: comments[0].Range.File,
-			From: tokens.Pos{
-				Line:   comments[0].Range.From.Line,
-				Column: comments[0].Range.From.Column,
-				Offset: comments[0].Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   comments[0].Range.From.Line,
-				Column: comments[0].Range.From.Column,
-				Offset: comments[0].Range.From.Offset,
-			},
-		})
+		leftExp = ast.NewPrecedingCommentExpression(comments[0].Value, leftExp, comments[0].Range)
 		comments = comments[1:]
 	}
 	return leftExp
@@ -82,19 +70,7 @@ func wrapWithTrailingComment(expr ast.Expression, parser *Parser) ast.Expression
 	}
 	if parser.head().IsOfKind(tokens.TrailingComment) {
 		comment := parser.advance()
-		return ast.NewTrailingCommentExpression(comment.Value, expr, tokens.Range{
-			File: comment.Range.File,
-			From: tokens.Pos{
-				Line:   comment.Range.From.Line,
-				Column: comment.Range.From.Column,
-				Offset: comment.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   comment.Range.From.Line,
-				Column: comment.Range.From.Column,
-				Offset: comment.Range.From.Offset,
-			},
-		})
+		return ast.NewTrailingCommentExpression(comment.Value, expr, comment.Range)
 	}
 	return expr
 }

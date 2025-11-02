@@ -50,19 +50,7 @@ func (p *Parser) ParseProgram(ctx context.Context) (*ast.Program, error) {
 			// consume trailing comments
 			if p.canExpect(tokens.TrailingComment) {
 				comment := p.advance()
-				prg.Statements = append(prg.Statements, ast.NewCommentStatement(comment.Value, tokens.Range{
-					File: comment.Range.File,
-					From: tokens.Pos{
-						Line:   comment.Range.From.Line,
-						Column: comment.Range.From.Column,
-						Offset: comment.Range.From.Offset,
-					},
-					To: tokens.Pos{
-						Line:   comment.Range.From.Line,
-						Column: comment.Range.From.Column,
-						Offset: comment.Range.From.Offset,
-					},
-				}))
+				prg.Statements = append(prg.Statements, ast.NewCommentStatement(comment.Value, comment.Range))
 			}
 			continue
 		}
@@ -92,19 +80,7 @@ func (p *Parser) ParseProgram(ctx context.Context) (*ast.Program, error) {
 	// consume trailing comments after namespace
 	if p.canExpect(tokens.TrailingComment) {
 		comment := p.advance()
-		prg.Statements = append(prg.Statements, ast.NewCommentStatement(comment.Value, tokens.Range{
-			File: comment.Range.File,
-			From: tokens.Pos{
-				Line:   comment.Range.From.Line,
-				Column: comment.Range.From.Column,
-				Offset: comment.Range.From.Offset,
-			},
-			To: tokens.Pos{
-				Line:   comment.Range.From.Line,
-				Column: comment.Range.From.Column,
-				Offset: comment.Range.From.Offset,
-			},
-		}))
+		prg.Statements = append(prg.Statements, ast.NewCommentStatement(comment.Value, comment.Range))
 	}
 
 	// Parse remaining statements
@@ -131,19 +107,7 @@ func (p *Parser) ParseProgram(ctx context.Context) (*ast.Program, error) {
 
 		if p.canExpect(tokens.TrailingComment) {
 			comment := p.advance()
-			prg.Statements = append(prg.Statements, ast.NewCommentStatement(comment.Value, tokens.Range{
-				File: comment.Range.File,
-				From: tokens.Pos{
-					Line:   comment.Range.From.Line,
-					Column: comment.Range.From.Column,
-					Offset: comment.Range.From.Offset,
-				},
-				To: tokens.Pos{
-					Line:   comment.Range.From.Line,
-					Column: comment.Range.From.Column,
-					Offset: comment.Range.From.Offset,
-				},
-			}))
+			prg.Statements = append(prg.Statements, ast.NewCommentStatement(comment.Value, comment.Range))
 		}
 
 		// consume the optional semicolon
