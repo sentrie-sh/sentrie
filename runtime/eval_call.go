@@ -130,7 +130,7 @@ func getTarget(_ context.Context, ec *ExecutionContext, p *index.Policy, c *ast.
 
 	return func(ctx context.Context, args ...any) (any, error) {
 		start := time.Now()
-		result, err := modulebinding.Call(ctx, ec, fn, args...)
+		result, err := modulebinding.Call(ctx, fn, args...)
 
 		// Record metrics using the executor's stored instruments
 		if metrics := ec.executor.Metrics(); metrics != nil {

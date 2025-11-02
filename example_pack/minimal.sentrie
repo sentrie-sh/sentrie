@@ -31,8 +31,6 @@ policy user_access {
 }
 
 policy var_test {
-  use { now } from @sentrie/time
-  
   let u1: number = 50
   let u2: float = 50.5
   let u3: string = "hello"
@@ -68,7 +66,7 @@ policy var_test {
     yield num < acc ? num : acc
   }
 
-  rule errorRule = time.now()
+  rule errorRule = error("hello world")
 
   export decision of test
   export decision of errorRule
