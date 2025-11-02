@@ -25,13 +25,10 @@ import (
 var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 	ex := vm.NewObject()
 
-	// Create list namespace object
-	listObj := vm.NewObject()
-
-	// List utilities
-	_ = listObj.Set("includes", func(call goja.FunctionCall) goja.Value {
+	// List utilities with list_ prefix
+	_ = ex.Set("list_includes", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 2 {
-			return vm.NewGoError(errors.New("includes requires exactly 2 arguments"))
+			return vm.NewGoError(errors.New("list_includes requires exactly 2 arguments"))
 		}
 		arrVal := call.Argument(0)
 		item := call.Argument(1)
@@ -52,9 +49,9 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		return vm.ToValue(false)
 	})
 
-	_ = listObj.Set("indexOf", func(call goja.FunctionCall) goja.Value {
+	_ = ex.Set("list_indexOf", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 2 {
-			return vm.NewGoError(errors.New("indexOf requires exactly 2 arguments"))
+			return vm.NewGoError(errors.New("list_indexOf requires exactly 2 arguments"))
 		}
 		arrVal := call.Argument(0)
 		item := call.Argument(1)
@@ -75,9 +72,9 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		return vm.ToValue(-1)
 	})
 
-	_ = listObj.Set("lastIndexOf", func(call goja.FunctionCall) goja.Value {
+	_ = ex.Set("list_lastIndexOf", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 2 {
-			return vm.NewGoError(errors.New("lastIndexOf requires exactly 2 arguments"))
+			return vm.NewGoError(errors.New("list_lastIndexOf requires exactly 2 arguments"))
 		}
 		arrVal := call.Argument(0)
 		item := call.Argument(1)
@@ -99,16 +96,16 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		return vm.ToValue(lastIndex)
 	})
 
-	_ = listObj.Set("sort", func(call goja.FunctionCall) goja.Value {
+	_ = ex.Set("list_sort", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("sort requires exactly 1 argument"))
+			return vm.NewGoError(errors.New("list_sort requires exactly 1 argument"))
 		}
 		arrVal := call.Argument(0)
 
 		arr := arrVal.Export()
 		arrValue := reflect.ValueOf(arr)
 		if arrValue.Kind() != reflect.Slice {
-			return vm.NewGoError(errors.New("sort requires an array"))
+			return vm.NewGoError(errors.New("list_sort requires an array"))
 		}
 
 		// Convert to []interface{} for sorting
@@ -125,16 +122,16 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		return vm.ToValue(arrInterface)
 	})
 
-	_ = listObj.Set("unique", func(call goja.FunctionCall) goja.Value {
+	_ = ex.Set("list_unique", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("unique requires exactly 1 argument"))
+			return vm.NewGoError(errors.New("list_unique requires exactly 1 argument"))
 		}
 		arrVal := call.Argument(0)
 
 		arr := arrVal.Export()
 		arrValue := reflect.ValueOf(arr)
 		if arrValue.Kind() != reflect.Slice && arrValue.Kind() != reflect.Array {
-			return vm.NewGoError(errors.New("unique requires an array"))
+			return vm.NewGoError(errors.New("list_unique requires an array"))
 		}
 
 		seen := make(map[interface{}]bool)
@@ -155,21 +152,21 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		return vm.ToValue(result)
 	})
 
-	_ = listObj.Set("chunk", func(call goja.FunctionCall) goja.Value {
+	_ = ex.Set("list_chunk", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 2 {
-			return vm.NewGoError(errors.New("chunk requires exactly 2 arguments"))
+			return vm.NewGoError(errors.New("list_chunk requires exactly 2 arguments"))
 		}
 		arrVal := call.Argument(0)
 		size := int(call.Argument(1).ToInteger())
 
 		if size <= 0 {
-			return vm.NewGoError(errors.New("chunk size must be positive"))
+			return vm.NewGoError(errors.New("list_chunk size must be positive"))
 		}
 
 		arr := arrVal.Export()
 		arrValue := reflect.ValueOf(arr)
 		if arrValue.Kind() != reflect.Slice && arrValue.Kind() != reflect.Array {
-			return vm.NewGoError(errors.New("chunk requires an array"))
+			return vm.NewGoError(errors.New("list_chunk requires an array"))
 		}
 
 		var chunks [][]interface{}
@@ -192,16 +189,16 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		return vm.ToValue(chunks)
 	})
 
-	_ = listObj.Set("flatten", func(call goja.FunctionCall) goja.Value {
+	_ = ex.Set("list_flatten", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("flatten requires exactly 1 argument"))
+			return vm.NewGoError(errors.New("list_flatten requires exactly 1 argument"))
 		}
 		arrVal := call.Argument(0)
 
 		arr := arrVal.Export()
 		arrValue := reflect.ValueOf(arr)
 		if arrValue.Kind() != reflect.Slice && arrValue.Kind() != reflect.Array {
-			return vm.NewGoError(errors.New("flatten requires an array"))
+			return vm.NewGoError(errors.New("list_flatten requires an array"))
 		}
 
 		var result []interface{}
@@ -210,20 +207,17 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		return vm.ToValue(result)
 	})
 
-	// Create map namespace object
-	mapObj := vm.NewObject()
-
-	// Map utilities
-	_ = mapObj.Set("keys", func(call goja.FunctionCall) goja.Value {
+	// Map utilities with map_ prefix
+	_ = ex.Set("map_keys", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("keys requires exactly 1 argument"))
+			return vm.NewGoError(errors.New("map_keys requires exactly 1 argument"))
 		}
 		mapVal := call.Argument(0)
 
 		mp := mapVal.Export()
 		mapValue := reflect.ValueOf(mp)
 		if mapValue.Kind() != reflect.Map {
-			return vm.NewGoError(errors.New("keys requires a map"))
+			return vm.NewGoError(errors.New("map_keys requires a map"))
 		}
 
 		var keys []interface{}
@@ -234,16 +228,16 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		return vm.ToValue(keys)
 	})
 
-	_ = mapObj.Set("values", func(call goja.FunctionCall) goja.Value {
+	_ = ex.Set("map_values", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("values requires exactly 1 argument"))
+			return vm.NewGoError(errors.New("map_values requires exactly 1 argument"))
 		}
 		mapVal := call.Argument(0)
 
 		mp := mapVal.Export()
 		mapValue := reflect.ValueOf(mp)
 		if mapValue.Kind() != reflect.Map {
-			return vm.NewGoError(errors.New("values requires a map"))
+			return vm.NewGoError(errors.New("map_values requires a map"))
 		}
 
 		var values []interface{}
@@ -254,16 +248,16 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		return vm.ToValue(values)
 	})
 
-	_ = mapObj.Set("entries", func(call goja.FunctionCall) goja.Value {
+	_ = ex.Set("map_entries", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("entries requires exactly 1 argument"))
+			return vm.NewGoError(errors.New("map_entries requires exactly 1 argument"))
 		}
 		mapVal := call.Argument(0)
 
 		mp := mapVal.Export()
 		mapValue := reflect.ValueOf(mp)
 		if mapValue.Kind() != reflect.Map {
-			return vm.NewGoError(errors.New("entries requires a map"))
+			return vm.NewGoError(errors.New("map_entries requires a map"))
 		}
 
 		var entries [][]interface{}
@@ -275,9 +269,9 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		return vm.ToValue(entries)
 	})
 
-	_ = mapObj.Set("has", func(call goja.FunctionCall) goja.Value {
+	_ = ex.Set("map_has", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 2 {
-			return vm.NewGoError(errors.New("has requires exactly 2 arguments"))
+			return vm.NewGoError(errors.New("map_has requires exactly 2 arguments"))
 		}
 		mapVal := call.Argument(0)
 		key := call.Argument(1)
@@ -296,9 +290,9 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		return vm.ToValue(mapValue.MapIndex(keyValue).IsValid())
 	})
 
-	_ = mapObj.Set("get", func(call goja.FunctionCall) goja.Value {
+	_ = ex.Set("map_get", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) < 2 || len(call.Arguments) > 3 {
-			return vm.NewGoError(errors.New("get requires 2 or 3 arguments"))
+			return vm.NewGoError(errors.New("map_get requires 2 or 3 arguments"))
 		}
 		mapVal := call.Argument(0)
 		key := call.Argument(1)
@@ -335,45 +329,45 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		return vm.ToValue(value.Interface())
 	})
 
-	_ = mapObj.Set("size", func(call goja.FunctionCall) goja.Value {
+	_ = ex.Set("map_size", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("size requires exactly 1 argument"))
+			return vm.NewGoError(errors.New("map_size requires exactly 1 argument"))
 		}
 		mapVal := call.Argument(0)
 
 		mp := mapVal.Export()
 		mapValue := reflect.ValueOf(mp)
 		if mapValue.Kind() != reflect.Map {
-			return vm.NewGoError(errors.New("size requires a map"))
+			return vm.NewGoError(errors.New("map_size requires a map"))
 		}
 
 		return vm.ToValue(mapValue.Len())
 	})
 
-	_ = mapObj.Set("isEmpty", func(call goja.FunctionCall) goja.Value {
+	_ = ex.Set("map_isEmpty", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("isEmpty requires exactly 1 argument"))
+			return vm.NewGoError(errors.New("map_isEmpty requires exactly 1 argument"))
 		}
 		mapVal := call.Argument(0)
 
 		mp := mapVal.Export()
 		mapValue := reflect.ValueOf(mp)
 		if mapValue.Kind() != reflect.Map {
-			return vm.NewGoError(errors.New("isEmpty requires a map"))
+			return vm.NewGoError(errors.New("map_isEmpty requires a map"))
 		}
 
 		return vm.ToValue(mapValue.Len() == 0)
 	})
 
-	_ = mapObj.Set("merge", func(call goja.FunctionCall) goja.Value {
+	_ = ex.Set("map_merge", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) < 2 {
-			return vm.NewGoError(errors.New("merge requires at least 2 arguments"))
+			return vm.NewGoError(errors.New("map_merge requires at least 2 arguments"))
 		}
 
 		mp1 := call.Argument(0).Export()
 		map1Value := reflect.ValueOf(mp1)
 		if map1Value.Kind() != reflect.Map {
-			return vm.NewGoError(errors.New("merge requires maps as arguments"))
+			return vm.NewGoError(errors.New("map_merge requires maps as arguments"))
 		}
 
 		// Create a new map and copy map1 into it
@@ -390,7 +384,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 			mp2 := call.Argument(i).Export()
 			map2Value := reflect.ValueOf(mp2)
 			if map2Value.Kind() != reflect.Map {
-				return vm.NewGoError(errors.New("merge requires maps as arguments"))
+				return vm.NewGoError(errors.New("map_merge requires maps as arguments"))
 			}
 
 			// Copy all entries from map2 (overwrites if key exists)
@@ -401,10 +395,6 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 		return vm.ToValue(result.Interface())
 	})
-
-	// Export list and map namespaces
-	_ = ex.Set("list", listObj)
-	_ = ex.Set("map", mapObj)
 
 	return ex, nil
 }
