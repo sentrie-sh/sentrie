@@ -44,8 +44,8 @@ type Policy struct {
 	Facts       map[string]*ast.FactStatement
 	Rules       map[string]*Rule
 	RuleExports map[string]ExportedRule
-	Uses        []*ast.UseStatement
-	Shapes      map[string]*Shape // policy-local shapes
+	Uses        map[string]*ast.UseStatement // alias -> use statement
+	Shapes      map[string]*Shape            // policy-local shapes
 
 	seenIdentifiers map[string]positionable
 }
@@ -70,7 +70,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
 		RuleExports:     make(map[string]ExportedRule),
-		Uses:            make([]*ast.UseStatement, 0),
+		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]positionable), // a map of seen identifiers
 	}
@@ -96,7 +96,10 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 					return nil, errors.Wrapf(ErrIndex, "'use' statement must be immediately after facts have been declared in a policy at %s", stmt.Span())
 				}
 			}
-			p.Uses = append(p.Uses, stmt)
+			if _, ok := p.Uses[stmt.As]; ok {
+				return nil, errors.Wrapf(ErrIndex, "cannot rebind to existing alias '%s' at %s", stmt.As, stmt.Span())
+			}
+			p.Uses[stmt.As] = stmt
 
 		case *ast.VarDeclaration:
 			if err := p.AddLet(stmt); err != nil {

@@ -43,7 +43,11 @@ func NewUseStatement(modules []string, relativeFrom string, libFrom []string, as
 }
 
 func (s *UseStatement) String() string {
-	return fmt.Sprintf("use %s from %s as %s", strings.Join(s.Modules, ", "), s.RelativeFrom, s.As)
+	from := s.RelativeFrom
+	if len(s.LibFrom) > 0 {
+		from = "@" + strings.Join(s.LibFrom, "/")
+	}
+	return fmt.Sprintf("use %s from %s as %s", strings.Join(s.Modules, ", "), from, s.As)
 }
 
 func (s *UseStatement) statementNode() {}

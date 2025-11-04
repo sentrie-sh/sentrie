@@ -183,6 +183,12 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to create JS call errors metric")
 		}
+
+		// Initialize JSPoolGuages perch for lazy metric counter creation
+		exec.metrics.JSPoolGuages = perch.New[metric.Int64UpDownCounter](10 << 20 /* 10 MB */)
+		if err := exec.metrics.JSPoolGuages.Reserve(); err != nil {
+			return nil, errors.Wrap(err, "failed to reserve JSPoolGuages cache")
+		}
 	}
 
 	// Reserve the cache slots
@@ -241,9 +247,15 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 	theLock := &sync.Mutex{}
 	var compositeErr error
 	outputs := make([]*ExecutorOutput, 0, len(p.RuleExports))
-	wg := &sync.WaitGroup{} // should this be a WaitGroup or an ErrorGroup?
+	wg := &sync.WaitGroup{}
 	for _, ruleExport := range p.RuleExports {
 		wg.Go(func() {
+			defer func() {
+				if r := recover(); r != nil {
+					compositeErr = stdErr.New("panic in ExecRule: " + fmt.Sprintf("%v", r))
+				}
+			}()
+
 			output, err := e.ExecRule(ctx, namespace, policy, ruleExport.RuleName, facts)
 
 			// now that we have the output, we can add it to the outputs slice,
@@ -481,8 +493,8 @@ func (e *executorImpl) jsBindingConstructor(ctx context.Context, use *ast.UseSta
 		}
 	}
 	return &JSInstance{
-		VM:      ar.VM,
-		Exports: exports,
+		rt:      ar.VM,
+		exports: exports,
 	}, nil
 }
 
@@ -492,7 +504,7 @@ func (e *executorImpl) bindUses(ctx context.Context, ec *ExecutionContext, p *in
 		return err
 	}
 
-	for _, use := range p.Uses {
+	for alias, use := range p.Uses {
 		ms, err := e.jsRegistry.PrepareUse(use.RelativeFrom, use.LibFrom, fileDir)
 		if err != nil {
 			return err
@@ -504,50 +516,53 @@ func (e *executorImpl) bindUses(ctx context.Context, ec *ExecutionContext, p *in
 			return err
 		}
 
-		ec.BindModule(use.As, binding)
+		ec.BindModule(alias, binding)
 	}
 	return nil
 }
 
 // getModuleBinding resolves and caches a module binding for a given use statement and module spec.
 func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStatement, ms *js.ModuleSpec) (binding *ModuleBinding, _ bool, err error) {
-	return e.moduleBindingPerch.Get(ctx, ms.KeyOrPath(), -1, func(ctx context.Context, _ string) (*ModuleBinding, error) {
-		jsInstancePool, err := puddle.NewPool(&puddle.Config[*JSInstance]{
-			Constructor: func(ctx context.Context) (*JSInstance, error) {
-				b, err := e.jsBindingConstructor(ctx, use, ms)
-				if err != nil {
-					return nil, err
-				}
+	// Get or create the metric counter using perch - cached indefinitely (TTL=0)
+	var poolCounter metric.Int64UpDownCounter
+	if e.otelConfig.Enabled && e.metrics != nil {
+		counter, _, err := e.metrics.JSPoolGuages.Get(ctx, ms.KeyOrPath(), 0, func(ctx context.Context, _ string) (metric.Int64UpDownCounter, error) {
+			return e.meter.Int64UpDownCounter(
+				fmt.Sprintf("sentrie.js.pool.count.%s", strings.ReplaceAll(ms.KeyOrPath(), "/", ".")),
+				metric.WithDescription("Number of JavaScript instances in the pool"),
+			)
+		})
+		if err != nil {
+			return nil, false, err
+		}
+		poolCounter = counter
+	}
 
-				if e.otelConfig.Enabled && e.metrics != nil {
-					counter, _, err := e.metrics.JSPoolGuages.Get(ctx, ms.KeyOrPath(), -1, func(ctx context.Context, _ string) (metric.Int64UpDownCounter, error) {
-						return e.meter.Int64UpDownCounter(
-							fmt.Sprintf("sentrie.js.pool.count.%s", strings.ReplaceAll(ms.KeyOrPath(), "/", ".")),
-							metric.WithDescription("Number of JavaScript instances in the pool"),
-						)
-					})
-					if err == nil {
-						counter.Add(ctx, 1)
-					}
-				}
-				return b, nil
-			},
-			Destructor: func(res *JSInstance) {
-				if e.otelConfig.Enabled && e.metrics != nil {
-					counter, _, err := e.metrics.JSPoolGuages.Get(ctx, ms.KeyOrPath(), -1, func(ctx context.Context, _ string) (metric.Int64UpDownCounter, error) {
-						return e.meter.Int64UpDownCounter(
-							fmt.Sprintf("sentrie.js.pool.count.%s", strings.ReplaceAll(ms.KeyOrPath(), "/", ".")),
-							metric.WithDescription("Number of JavaScript instances in the pool"),
-						)
-					})
-					if err == nil {
-						counter.Add(ctx, -1)
-					}
-				}
-				// clear the interrupt
-				res.VM.ClearInterrupt()
-			},
-			MaxSize: 10,
+	constructor := func(ctx context.Context) (*JSInstance, error) {
+		b, err := e.jsBindingConstructor(ctx, use, ms)
+		if err != nil {
+			return nil, err
+		}
+
+		if poolCounter != nil {
+			poolCounter.Add(ctx, 1)
+		}
+		return b, nil
+	}
+
+	destructor := func(res *JSInstance) {
+		if poolCounter != nil {
+			poolCounter.Add(ctx, -1)
+		}
+		// clear the interrupt
+		res.rt.ClearInterrupt()
+	}
+
+	perchLoader := func(ctx context.Context, _ string) (*ModuleBinding, error) {
+		jsInstancePool, err := puddle.NewPool(&puddle.Config[*JSInstance]{
+			Constructor: constructor,
+			Destructor:  destructor,
+			MaxSize:     10,
 		})
 		if err != nil {
 			return nil, err
@@ -559,9 +574,11 @@ func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStateme
 		return &ModuleBinding{
 			CanonicalKey: ms.KeyOrPath(),
 			Alias:        use.As,
-			VMPool:       jsInstancePool,
+			instancePool: jsInstancePool,
 		}, nil
-	})
+	}
+
+	return e.moduleBindingPerch.Get(ctx, ms.KeyOrPath(), -1, perchLoader)
 }
 
 // evaluateRuleOutcome drives rule evaluation and returns (value, node, error).

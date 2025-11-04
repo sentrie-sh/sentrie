@@ -28,32 +28,32 @@ import (
 
 // JSInstance is a context-aware binding for an alias VM.
 type JSInstance struct {
-	VM      *goja.Runtime
-	Exports map[string]goja.Value
+	rt      *goja.Runtime
+	exports map[string]goja.Value
 }
 
 type ModuleBinding struct {
 	CanonicalKey string
 	Alias        string
-	VMPool       *puddle.Pool[*JSInstance]
+	instancePool *puddle.Pool[*JSInstance]
 }
 
 func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string, args ...any) (any, error) {
-	if m.VMPool == nil {
+	if m.instancePool == nil {
 		return nil, fmt.Errorf("module has no JS binding")
 	}
-	binding, err := m.VMPool.Acquire(ctx)
+	binding, err := m.instancePool.Acquire(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer binding.Release()
 
 	vm := binding.Value()
-	if err := vm.VM.Set(constants.ExecutionStartTimeUnixKey, ec.CreatedAt().UTC().Unix()); err != nil {
+	if err := vm.rt.Set(constants.ExecutionStartTimeUnixKey, ec.CreatedAt().UTC().Unix()); err != nil {
 		return nil, err
 	}
 
-	val, ok := vm.Exports[fn]
+	val, ok := vm.exports[fn]
 	if !ok {
 		return nil, fmt.Errorf("function '%q' not found in module %q", fn, m.Alias)
 	}
@@ -65,14 +65,14 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 	// Install an interrupt to honor context cancel
 	done := make(chan struct{})
 	if ctx != nil {
-		vm.VM.ClearInterrupt()
+		vm.rt.ClearInterrupt()
 		go func() {
 			select {
 			case <-ctx.Done():
-				vm.VM.Interrupt(ctx.Err())
+				vm.rt.Interrupt(ctx.Err())
 			case <-done:
 				// clear the interrupt
-				vm.VM.ClearInterrupt()
+				vm.rt.ClearInterrupt()
 			}
 		}()
 		defer close(done)
@@ -80,7 +80,7 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 
 	ga := make([]goja.Value, 0, len(args))
 	for _, a := range args {
-		ga = append(ga, vm.VM.ToValue(a))
+		ga = append(ga, vm.rt.ToValue(a))
 	}
 	out, err := fnc(goja.Undefined(), ga...)
 	if err != nil {

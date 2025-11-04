@@ -273,7 +273,7 @@ func (suite *PolicyTestSuite) TestAddLet() {
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
 		RuleExports:     make(map[string]ExportedRule),
-		Uses:            make([]*ast.UseStatement, 0),
+		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]positionable),
 	}
@@ -307,7 +307,7 @@ func (suite *PolicyTestSuite) TestAddLetWithNameConflict() {
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
 		RuleExports:     make(map[string]ExportedRule),
-		Uses:            make([]*ast.UseStatement, 0),
+		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]positionable),
 	}
@@ -349,7 +349,7 @@ func (suite *PolicyTestSuite) TestAddRule() {
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
 		RuleExports:     make(map[string]ExportedRule),
-		Uses:            make([]*ast.UseStatement, 0),
+		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]positionable),
 	}
@@ -388,7 +388,7 @@ func (suite *PolicyTestSuite) TestAddRuleWithNameConflict() {
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
 		RuleExports:     make(map[string]ExportedRule),
-		Uses:            make([]*ast.UseStatement, 0),
+		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]positionable),
 	}
@@ -432,7 +432,7 @@ func (suite *PolicyTestSuite) TestAddShape() {
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
 		RuleExports:     make(map[string]ExportedRule),
-		Uses:            make([]*ast.UseStatement, 0),
+		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]positionable),
 	}
@@ -470,7 +470,7 @@ func (suite *PolicyTestSuite) TestAddShapeWithNameConflict() {
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
 		RuleExports:     make(map[string]ExportedRule),
-		Uses:            make([]*ast.UseStatement, 0),
+		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]positionable),
 	}
@@ -512,7 +512,7 @@ func (suite *PolicyTestSuite) TestAddFact() {
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
 		RuleExports:     make(map[string]ExportedRule),
-		Uses:            make([]*ast.UseStatement, 0),
+		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]positionable),
 	}
@@ -548,7 +548,7 @@ func (suite *PolicyTestSuite) TestAddFactWithNameConflict() {
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
 		RuleExports:     make(map[string]ExportedRule),
-		Uses:            make([]*ast.UseStatement, 0),
+		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]positionable),
 	}
@@ -594,7 +594,7 @@ func (suite *PolicyTestSuite) TestPolicyString() {
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
 		RuleExports:     make(map[string]ExportedRule),
-		Uses:            make([]*ast.UseStatement, 0),
+		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]positionable),
 	}
@@ -638,7 +638,7 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithValidUseStatement() {
 		"testPolicy",
 		[]ast.Statement{
 			ast.NewFactStatement("user", ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}}), "user", nil, false, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}}),
-			ast.NewUseStatement([]string{"com", "other", "policy"}, "", nil, "", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}}),
+			ast.NewUseStatement([]string{"fn", "fn2"}, "", []string{"sentrie", "std"}, "std", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}}),
 			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 15, Offset: 15}, To: tokens.Pos{Line: 5, Column: 15, Offset: 15}}), nil, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}}),
 			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 0, Offset: 0}, To: tokens.Pos{Line: 6, Column: 0, Offset: 0}}),
 		},
@@ -658,5 +658,5 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithValidUseStatement() {
 	suite.NoError(err)
 	suite.NotNil(policy)
 	suite.Len(policy.Uses, 1)
-	suite.Equal("use com, other, policy from  as ", policy.Uses[0].String())
+	suite.Equal("use fn, fn2 from @sentrie/std as std", policy.Uses["std"].String())
 }
