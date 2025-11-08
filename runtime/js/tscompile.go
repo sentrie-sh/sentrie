@@ -59,7 +59,7 @@ func TranspileTS(module *ModuleSpec, source string) (TranspileResult, error) {
 	return TranspileResult{Code: string(res.Code), Map: string(res.Map)}, nil
 }
 
-// `WrapAsIIFE` wraps module JS to prevent global pollution AND produce a callable factory.
+// WrapAsIIFE wraps module JS to prevent global pollution AND produce a callable factory.
 //
 // We compile modules to a function form:
 //
