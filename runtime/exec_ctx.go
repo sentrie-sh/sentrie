@@ -38,7 +38,7 @@ type injectedFact struct {
 // ExecutionContext holds ephemeral state for a single rule execution.
 // It owns an arena and is disposed immediately after the run.
 type ExecutionContext struct {
-	mu sync.Mutex
+	rwmu sync.RWMutex
 
 	policy *index.Policy
 
@@ -59,8 +59,8 @@ type ExecutionContext struct {
 }
 
 func (ec *ExecutionContext) IsLetInjected(name string) bool {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
+	ec.rwmu.RLock()
+	defer ec.rwmu.RUnlock()
 	_, ok := ec.lets[name]
 	return ok
 }
@@ -85,15 +85,15 @@ func (ec *ExecutionContext) Dispose() {}
 // AttachedChildContext creates a child context. All lookups will be
 // performed in the child context first, then the parent context.
 func (ec *ExecutionContext) AttachedChildContext() *ExecutionContext {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
+	ec.rwmu.RLock()
+	defer ec.rwmu.RUnlock()
 
 	stack := make([]string, len(ec.refStack))
 	copy(stack, ec.refStack)
 
 	return &ExecutionContext{
 		parent:    ec,
-		createdAt: ec.CreatedAt(),
+		createdAt: ec.createdAt,
 		refStack:  stack,                                // inherit the call stack from the parent
 		policy:    ec.policy,                            // inherit the policy from the parent
 		modules:   ec.modules,                           // inherit the module bindings from the parent
@@ -105,8 +105,8 @@ func (ec *ExecutionContext) AttachedChildContext() *ExecutionContext {
 }
 
 func (ec *ExecutionContext) CreatedAt() time.Time {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
+	ec.rwmu.RLock()
+	defer ec.rwmu.RUnlock()
 	if ec.parent != nil {
 		return ec.parent.CreatedAt()
 	}
@@ -116,8 +116,8 @@ func (ec *ExecutionContext) CreatedAt() time.Time {
 // Inject facts into the current context.
 // It is illegal to inject facts into a child context.
 func (ec *ExecutionContext) InjectFact(ctx context.Context, name string, v any, isDefault bool, typeRef ast.TypeRef) error {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
+	ec.rwmu.Lock()
+	defer ec.rwmu.Unlock()
 
 	if ec.parent != nil {
 		return errors.Wrap(ErrIllegalFactInjection, name)
@@ -132,8 +132,8 @@ func (ec *ExecutionContext) InjectFact(ctx context.Context, name string, v any, 
 }
 
 func (ec *ExecutionContext) IsFactInjected(name string) bool {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
+	ec.rwmu.RLock()
+	defer ec.rwmu.RUnlock()
 	_, ok := ec.facts[name]
 	return ok
 }
@@ -141,8 +141,8 @@ func (ec *ExecutionContext) IsFactInjected(name string) bool {
 // Inject local let declarations into the current context.
 // Let declarations are always injected into the current context - NEVER in the parent.
 func (ec *ExecutionContext) InjectLet(name string, v *ast.VarDeclaration) {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
+	ec.rwmu.Lock()
+	defer ec.rwmu.Unlock()
 	ec.lets[name] = v
 }
 
@@ -150,8 +150,8 @@ func (ec *ExecutionContext) InjectLet(name string, v *ast.VarDeclaration) {
 // with that name.
 func (ec *ExecutionContext) SetLocal(name string, value any, force bool) {
 	if force {
-		ec.mu.Lock()
-		defer ec.mu.Unlock()
+		ec.rwmu.Lock()
+		defer ec.rwmu.Unlock()
 		ec.locals[name] = value
 		return
 	}
@@ -168,8 +168,8 @@ func (ec *ExecutionContext) SetLocal(name string, value any, force bool) {
 	}
 
 	if _, ok := ec.policy.Rules[name]; ok {
-		ec.mu.Lock()
-		defer ec.mu.Unlock()
+		ec.rwmu.RLock()
+		defer ec.rwmu.RUnlock()
 		ec.locals[name] = value
 		return
 	}
@@ -181,8 +181,8 @@ func (ec *ExecutionContext) SetLocal(name string, value any, force bool) {
 
 // GetLocal gets a local value from the current context if present - otherwise the parent context is checked.
 func (ec *ExecutionContext) GetLocal(name string) (any, bool) {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
+	ec.rwmu.RLock()
+	defer ec.rwmu.RUnlock()
 	v, ok := ec.locals[name]
 	if !ok && ec.parent != nil {
 		// if we have a parent, we need to get the local from the parent
@@ -192,8 +192,8 @@ func (ec *ExecutionContext) GetLocal(name string) (any, bool) {
 }
 
 func (ec *ExecutionContext) GetFact(name string) (any, bool) {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
+	ec.rwmu.RLock()
+	defer ec.rwmu.RUnlock()
 	if ec.parent != nil {
 		// if we have a parent, we need to get the fact from the parent
 		return ec.parent.GetFact(name)
@@ -206,8 +206,8 @@ func (ec *ExecutionContext) GetFact(name string) (any, bool) {
 }
 
 func (ec *ExecutionContext) GetLet(name string) (*ast.VarDeclaration, bool) {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
+	ec.rwmu.RLock()
+	defer ec.rwmu.RUnlock()
 	v, ok := ec.lets[name]
 	if !ok && ec.parent != nil {
 		// if we have a parent, we need to get the let from the parent
@@ -217,22 +217,22 @@ func (ec *ExecutionContext) GetLet(name string) (*ast.VarDeclaration, bool) {
 }
 
 func (ec *ExecutionContext) BindModule(alias string, m *ModuleBinding) {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
+	ec.rwmu.Lock()
+	defer ec.rwmu.Unlock()
 	ec.modules[alias] = m
 }
 
 func (ec *ExecutionContext) Module(alias string) (*ModuleBinding, bool) {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
+	ec.rwmu.RLock()
+	defer ec.rwmu.RUnlock()
 	m, ok := ec.modules[alias]
 	return m, ok
 }
 
 // PushRefStack adds an item to the reference stack for cycle detection
 func (ec *ExecutionContext) PushRefStack(item string) error {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
+	ec.rwmu.Lock()
+	defer ec.rwmu.Unlock()
 
 	// Check if this rule is already in the stack (cycle detection)
 	if slices.Contains(ec.refStack, item) {
@@ -245,8 +245,8 @@ func (ec *ExecutionContext) PushRefStack(item string) error {
 
 // PopRefStack removes the last item from the call stack
 func (ec *ExecutionContext) PopRefStack() {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
+	ec.rwmu.Lock()
+	defer ec.rwmu.Unlock()
 
 	if len(ec.refStack) > 0 {
 		ec.refStack = ec.refStack[:len(ec.refStack)-1]
@@ -255,10 +255,7 @@ func (ec *ExecutionContext) PopRefStack() {
 
 // GetCallStack returns a copy of the current reference stack
 func (ec *ExecutionContext) GetRefStack() []string {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
-
-	stack := make([]string, len(ec.refStack))
-	copy(stack, ec.refStack)
-	return stack
+	ec.rwmu.RLock()
+	defer ec.rwmu.RUnlock()
+	return slices.Clone(ec.refStack)
 }
