@@ -38,8 +38,8 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		ref = ast.NewStringTypeRef(p.advance().Range)
 	case tokens.KeywordNumber:
 		ref = ast.NewNumberTypeRef(p.advance().Range)
-	case tokens.KeywordBoolean:
-		ref = ast.NewBoolTypeRef(p.advance().Range)
+	case tokens.KeywordBoolean, tokens.KeywordTrinary:
+		ref = ast.NewTrinaryTypeRef(p.advance().Range)
 	case tokens.Ident:
 		fqn := parseFQN(ctx, p)
 		if fqn == nil {

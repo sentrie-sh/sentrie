@@ -41,7 +41,7 @@ func main() {
 	}{
 		{"genNumberConstraints", toAnyMap(constraints.NumberContraintCheckers)},
 		{"genStringConstraints", toAnyMap(constraints.StringContraintCheckers)},
-		{"genBoolConstraints", toAnyMap(constraints.BoolConstraintCheckers)},
+		{"genTrinaryConstraints", toAnyMap(constraints.TrinaryConstraintCheckers)},
 		{"genListConstraints", toAnyMap(constraints.ListContraintCheckers)},
 		{"genMapConstraints", toAnyMap(constraints.MapContraintCheckers)},
 		{"genDocumentConstraints", toAnyMap(constraints.DocumentContraintCheckers)},

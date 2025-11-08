@@ -118,6 +118,7 @@ var PRIMITIVE_TYPES = []tokens.Kind{
 	tokens.KeywordString,
 	tokens.KeywordNumber,
 	tokens.KeywordBoolean,
+	tokens.KeywordTrinary,
 	tokens.KeywordDocument,
 }
 

@@ -16,23 +16,23 @@ package ast
 
 import "github.com/sentrie-sh/sentrie/tokens"
 
-type BoolTypeRef struct {
+type TrinaryTypeRef struct {
 	*baseTypeRef
 }
 
-func NewBoolTypeRef(ssp tokens.Range) *BoolTypeRef {
-	return &BoolTypeRef{
+func NewTrinaryTypeRef(ssp tokens.Range) *TrinaryTypeRef {
+	return &TrinaryTypeRef{
 		baseTypeRef: &baseTypeRef{
 			baseNode: &baseNode{
 				Rnge:  ssp,
-				Kind_: "boolean_typeref",
+				Kind_: "trinary_typeref",
 			},
-			validConstraints: genBoolConstraints,
+			validConstraints: genTrinaryConstraints,
 		},
 	}
 }
 
-var _ TypeRef = &BoolTypeRef{}
-var _ Node = &BoolTypeRef{}
+var _ TypeRef = &TrinaryTypeRef{}
+var _ Node = &TrinaryTypeRef{}
 
-func (b *BoolTypeRef) String() string { return "boolean" }
+func (b *TrinaryTypeRef) String() string { return "trinary" }
