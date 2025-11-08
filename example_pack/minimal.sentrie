@@ -72,7 +72,7 @@ policy var_test {
   
   let tri:trinary = unknown
 
-  rule errorRule = user.User()
+  rule errorRule = tri
 
   export decision of test
   export decision of errorRule
