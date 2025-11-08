@@ -26,8 +26,8 @@ func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec
 	switch t := typeRef.(type) {
 	case *ast.StringTypeRef:
 		return validateAgainstStringTypeRef(ctx, ec, exec, p, v, t, valueRange)
-	case *ast.BoolTypeRef:
-		return validateAgainstBoolTypeRef(ctx, ec, exec, p, v, t, valueRange)
+	case *ast.TrinaryTypeRef:
+		return validateAgainstTrinaryTypeRef(ctx, ec, exec, p, v, t, valueRange)
 	case *ast.NumberTypeRef:
 		return validateAgainstNumberTypeRef(ctx, ec, exec, p, v, t, valueRange)
 	case *ast.ListTypeRef:

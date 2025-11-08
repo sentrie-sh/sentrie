@@ -67,8 +67,10 @@ policy var_test {
   let min: number = reduce numbers from numbers[0] as acc, num, idx {
     yield num < acc ? num : acc
   }
+  
+  let tri:trinary = unknown
 
-  rule errorRule = time.now()
+  rule errorRule = tri
 
   export decision of test
   export decision of errorRule

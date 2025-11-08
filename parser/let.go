@@ -31,6 +31,12 @@ func parseLetsStatement(ctx context.Context, p *Parser) ast.Statement {
 	if !found {
 		return nil
 	}
+
+	if nameIdent.Value == "tri" {
+		str := ""
+		_ = str
+	}
+
 	name := nameIdent.Value
 	rnge.To = nameIdent.Range.To
 

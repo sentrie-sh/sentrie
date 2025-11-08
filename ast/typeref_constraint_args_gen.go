@@ -64,7 +64,7 @@ var genStringConstraints = map[string]int{
 	"uuid":              0,
 }
 
-var genBoolConstraints = map[string]int{
+var genTrinaryConstraints = map[string]int{
 	"eq":          1,
 	"is_false":    0,
 	"is_true":     0,

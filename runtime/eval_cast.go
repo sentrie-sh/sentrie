@@ -22,6 +22,7 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *index.Policy, cast *ast.CastExpression) (any, *trace.Node, error) {
@@ -83,22 +84,15 @@ func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *ind
 			return nil, node.SetErr(err), err
 		}
 
-	case *ast.BoolTypeRef:
+	case *ast.TrinaryTypeRef:
 		switch v := val.(type) {
-		case bool:
-			result = v
+		case bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+			result = trinary.From(v)
 		case string:
-			parsed, parseErr := strconv.ParseBool(v)
-			if parseErr != nil {
-				return nil, node.SetErr(parseErr), parseErr
-			}
+			parsed := trinary.Parse(v)
 			result = parsed
-		case int:
-			result = v != 0
-		case float64:
-			result = v != 0
 		default:
-			err = fmt.Errorf("cannot cast %T to bool", val)
+			err = fmt.Errorf("cannot cast %T to trinary value", val)
 			return nil, node.SetErr(err), err
 		}
 

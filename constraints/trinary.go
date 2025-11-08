@@ -22,10 +22,10 @@ import (
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
-// BoolConstraintCheckers contains supported boolean constraint validators.
-// For booleans, common constraints include eq/neq (compare to true/false),
+// TrinaryConstraintCheckers contains supported boolean constraint validators.
+// For trinaries, common constraints include eq/neq (compare to true/false/unknown),
 // and truthiness helpers like is_true/is_false.
-var BoolConstraintCheckers map[string]ConstraintDefinition[trinary.Value] = map[string]ConstraintDefinition[trinary.Value]{
+var TrinaryConstraintCheckers map[string]ConstraintDefinition[trinary.Value] = map[string]ConstraintDefinition[trinary.Value]{
 	"not_unknown": {
 		Name:    "not_unknown",
 		NumArgs: 0,

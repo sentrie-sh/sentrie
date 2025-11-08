@@ -25,7 +25,7 @@ import (
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
-func validateAgainstBoolTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.BoolTypeRef, valueRange tokens.Range) error {
+func validateAgainstTrinaryTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.TrinaryTypeRef, valueRange tokens.Range) error {
 	if b, ok := v.(bool); ok {
 		v = trinary.From(b)
 	}
@@ -44,7 +44,7 @@ func validateAgainstBoolTypeRef(ctx context.Context, ec *ExecutionContext, exec 
 			}
 			args[i] = csArg
 		}
-		checker, ok := constraints.BoolConstraintCheckers[constraint.Name]
+		checker, ok := constraints.TrinaryConstraintCheckers[constraint.Name]
 		if !ok {
 			return ErrUnknownConstraint(constraint)
 		}
