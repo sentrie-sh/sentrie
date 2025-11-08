@@ -124,22 +124,11 @@ func (r *Registry) resolveRequire(fromDir, spec string) (key, path, dir string, 
 	}
 
 	if strings.HasPrefix(spec, ".") || strings.HasPrefix(spec, "/") {
-
 		localKey, localPath, localDir, err := r.relativeToLocal(fromDir, spec)
 		if err != nil {
 			return "", "", "", false, err
 		}
-
-		path = localPath
-		// add default extension if missing
-		// if filepath.Ext(path) == "" {
-		// 	if _, statErr := os.Stat(path + ".ts"); statErr == nil {
-		// 		path = path + ".ts"
-		// 	} else if _, statErr2 := os.Stat(path + ".js"); statErr2 == nil {
-		// 		path = path + ".js"
-		// 	}
-		// }
-		return localKey, path, localDir, false, nil
+		return localKey, localPath, localDir, false, nil
 	}
 
 	// bare spec (e.g. "leftpad") not supported yet; could add node_modules later
@@ -229,11 +218,6 @@ func (r *Registry) programFor(m *ModuleSpec) (*goja.Program, error) {
 			}
 			raw = string(b)
 		}
-
-		// if len(raw) == 0 {
-		// 	m.err = fmt.Errorf("module %s is empty", m.KeyOrPath())
-		// 	return
-		// }
 
 		out, err := TranspileTS(m, raw)
 		if err != nil {
