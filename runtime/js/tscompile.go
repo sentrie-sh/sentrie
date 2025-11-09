@@ -43,7 +43,7 @@ func TranspileTS(module *ModuleSpec, source string) (TranspileResult, error) {
 		Target:            api.ES2019,
 		Format:            api.FormatCommonJS, // keep CJS semantics for require/module/exports
 		Platform:          api.PlatformDefault,
-		Sourcemap:         api.SourceMapInline,
+		Sourcemap:         api.SourceMapExternal,
 		LegalComments:     api.LegalCommentsNone,
 		MinifyWhitespace:  false,
 		MinifyIdentifiers: false,
@@ -67,5 +67,5 @@ func TranspileTS(module *ModuleSpec, source string) (TranspileResult, error) {
 //
 // The caller will invoke it with a VM-scoped require() and CJS module/exports.
 func WrapAsIIFE(js string) string {
-	return "(function(require, module, exports) {\n" + js + "\n})"
+	return "(function(require, module, exports) {;" + js + ";})"
 }

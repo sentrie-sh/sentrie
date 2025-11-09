@@ -86,8 +86,6 @@ func (ec *ExecutionContext) Dispose() {}
 // performed in the child context first, then the parent context.
 func (ec *ExecutionContext) AttachedChildContext() *ExecutionContext {
 	ec.rwmu.RLock()
-	defer ec.rwmu.RUnlock()
-
 	stack := make([]string, len(ec.refStack))
 	copy(stack, ec.refStack)
 
@@ -105,8 +103,6 @@ func (ec *ExecutionContext) AttachedChildContext() *ExecutionContext {
 }
 
 func (ec *ExecutionContext) CreatedAt() time.Time {
-	ec.rwmu.RLock()
-	defer ec.rwmu.RUnlock()
 	if ec.parent != nil {
 		return ec.parent.CreatedAt()
 	}
@@ -222,7 +218,7 @@ func (ec *ExecutionContext) BindModule(alias string, m *ModuleBinding) {
 	ec.modules[alias] = m
 }
 
-func (ec *ExecutionContext) Module(alias string) (*ModuleBinding, bool) {
+func (ec *ExecutionContext) Module(alias string) (binding *ModuleBinding, found bool) {
 	ec.rwmu.RLock()
 	defer ec.rwmu.RUnlock()
 	m, ok := ec.modules[alias]

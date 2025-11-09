@@ -15,6 +15,7 @@
 package js
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,6 +26,13 @@ import (
 	"github.com/sentrie-sh/sentrie/constants"
 )
 
+type SourceMap struct {
+	Version  int
+	Sources  []string
+	Mappings string
+	Names    []string
+}
+
 type ModuleSpec struct {
 	Key      string        // canonical key used by registry (e.g., @sentra/math or /abs/path/to/mod.ts)
 	Path     string        // filesystem path if not builtin
@@ -32,6 +40,9 @@ type ModuleSpec struct {
 	Builtin  bool          // this is a builtin module
 	SourceTS string        // original TS/JS (for builtins or disk)
 	Program  *goja.Program // compiled IIFE function returning factory (require,module,exports)=>void
+
+	TranspiledCode string
+	TranspiledMap  *SourceMap
 
 	BuiltInProvider ModuleProvider // if non-nil, this module is native Go-backed
 	once            sync.Once
@@ -76,9 +87,30 @@ func (r *Registry) resolveUse(localFrom string, libFrom []string, fileDir string
 		}
 	}
 
-	// treat localFrom as a file-relative anchor
-	path = filepath.Join(fileDir, localFrom)
-	return filepath.Clean(path), path, filepath.Dir(path), false, nil
+	key, path, dir, err = r.relativeToLocal(fileDir, localFrom)
+	if err != nil {
+		return "", "", "", false, err
+	}
+	return key, path, dir, false, nil
+
+}
+
+func (r *Registry) relativeToLocal(fromDir, spec string) (key, path, dir string, err error) {
+	// convert localfrom to a @local key
+	path = filepath.Join(fromDir, spec)
+	// find relative to the packroot
+	packRootRelative, err := filepath.Rel(r.PackRoot, path)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	// make sure that the relative is not in the parent of the packroot
+	if strings.HasPrefix(packRootRelative, "..") {
+		return "", "", "", fmt.Errorf("relative path is outside the packroot: %s", packRootRelative)
+	}
+
+	key = "@local/" + packRootRelative
+	return key, path, filepath.Dir(path), nil
 }
 
 // Resolve a require() from within a module file.
@@ -92,21 +124,13 @@ func (r *Registry) resolveRequire(fromDir, spec string) (key, path, dir string, 
 	}
 
 	if strings.HasPrefix(spec, ".") || strings.HasPrefix(spec, "/") {
-		path = spec
-		if !filepath.IsAbs(path) {
-			path = filepath.Join(fromDir, spec)
+		localKey, localPath, localDir, err := r.relativeToLocal(fromDir, spec)
+		if err != nil {
+			return "", "", "", false, err
 		}
-		// add default extension if missing
-		if filepath.Ext(path) == "" {
-			if _, statErr := os.Stat(path + ".ts"); statErr == nil {
-				path = path + ".ts"
-			} else if _, statErr2 := os.Stat(path + ".js"); statErr2 == nil {
-				path = path + ".js"
-			}
-		}
-		path = filepath.Clean(path)
-		return path, path, filepath.Dir(path), false, nil
+		return localKey, localPath, localDir, false, nil
 	}
+
 	// bare spec (e.g. "leftpad") not supported yet; could add node_modules later
 	return "", "", "", false, fmt.Errorf("unsupported require spec: %q", spec)
 }
@@ -200,6 +224,14 @@ func (r *Registry) programFor(m *ModuleSpec) (*goja.Program, error) {
 			m.err = err
 			return
 		}
+		m.TranspiledCode = out.Code
+		tm := SourceMap{}
+		err = json.Unmarshal([]byte(out.Map), &tm)
+		if err != nil {
+			m.err = err
+			return
+		}
+		m.TranspiledMap = &tm
 		wrapped := WrapAsIIFE(out.Code)
 
 		// Compile once to a reusable Program (returns function)

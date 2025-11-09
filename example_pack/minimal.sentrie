@@ -31,7 +31,9 @@ policy user_access {
 }
 
 policy var_test {
-  use { now } from @sentrie/time
+
+  use { now } from @sentrie/time as time
+  use { User } from "./user" as user
   
   let u1: number = 50
   let u2: float = 50.5
