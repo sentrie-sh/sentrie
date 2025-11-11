@@ -52,7 +52,8 @@ type ModuleSpec struct {
 type Registry struct {
 	PackRoot string
 
-	builtins map[string]ModuleProvider // name -> Go module provider
+	goBuiltins map[string]ModuleProvider // name -> Go module provider
+	tsBuiltins map[string]string         // name -> TypeScript source
 
 	modsMu sync.RWMutex
 	mods   map[string]*ModuleSpec
@@ -60,14 +61,19 @@ type Registry struct {
 
 func NewRegistry(packRoot string) *Registry {
 	return &Registry{
-		PackRoot: packRoot,
-		builtins: map[string]ModuleProvider{},
-		mods:     map[string]*ModuleSpec{},
+		PackRoot:   packRoot,
+		goBuiltins: map[string]ModuleProvider{},
+		tsBuiltins: map[string]string{},
+		mods:       map[string]*ModuleSpec{},
 	}
 }
 
-func (r *Registry) RegisterBuiltin(name string, provider ModuleProvider) {
-	r.builtins[fmt.Sprintf("@%s/%s", constants.APPNAME, name)] = provider
+func (r *Registry) RegisterGoBuiltin(name string, provider ModuleProvider) {
+	r.goBuiltins[fmt.Sprintf("@%s/%s", constants.APPNAME, name)] = provider
+}
+
+func (r *Registry) RegisterTSBuiltin(name, tsSource string) {
+	r.tsBuiltins[fmt.Sprintf("@%s/%s", constants.APPNAME, name)] = tsSource
 }
 
 // Resolve a "use" style reference into a canonical registry key + filesystem path.
@@ -157,8 +163,11 @@ func (r *Registry) getOrCreateModule(key, path, dir string, builtin bool) *Modul
 	}
 	if builtin {
 		// prefer Go module provider over TS source
-		if gp, ok := r.builtins[key]; ok {
+		if gp, ok := r.goBuiltins[key]; ok {
 			m.BuiltInProvider = gp
+		} else if tsSource, ok := r.tsBuiltins[key]; ok {
+			// fallback to TS builtin if no Go provider
+			m.SourceTS = tsSource
 		}
 	} else {
 		if filepath.Ext(path) == "" {
@@ -171,7 +180,7 @@ func (r *Registry) getOrCreateModule(key, path, dir string, builtin bool) *Modul
 		m.Path = path
 	}
 
-	if m.Path == "" && m.BuiltInProvider == nil {
+	if m.Path == "" && m.BuiltInProvider == nil && m.SourceTS == "" {
 		return nil
 	}
 

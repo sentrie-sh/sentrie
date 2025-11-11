@@ -23,7 +23,8 @@ import (
 // IntegerLiteral represents an integer literal
 type IntegerLiteral struct {
 	*baseNode
-	Value int64
+	// under the hood, all values are floats
+	Value float64
 }
 
 func NewIntegerLiteral(value int64, ssp tokens.Range) *IntegerLiteral {
@@ -32,12 +33,12 @@ func NewIntegerLiteral(value int64, ssp tokens.Range) *IntegerLiteral {
 			Rnge:  ssp,
 			Kind_: "integer_literal",
 		},
-		Value: value,
+		Value: float64(value),
 	}
 }
 
 func (i *IntegerLiteral) String() string {
-	return fmt.Sprintf("%d", i.Value)
+	return fmt.Sprintf("%g", i.Value)
 }
 
 func (i *IntegerLiteral) expressionNode() {}

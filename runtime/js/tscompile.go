@@ -28,6 +28,9 @@ type TranspileResult struct {
 }
 
 func isTS(module *ModuleSpec) bool {
+	if module.Builtin {
+		return true
+	}
 	ext := strings.ToLower(filepath.Ext(module.Path))
 	return ext == ".ts" || ext == ".tsx" || ext == ".mts" || ext == ".cts"
 }

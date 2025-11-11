@@ -1,0 +1,37 @@
+namespace test/js
+
+policy removedFunctionsTest {
+  -- Test that removed functions from @sentrie/math, @sentrie/string, @sentrie/json are no longer available
+  -- These should fail to compile/execute
+
+  use { round } from "@sentrie/js" as math
+  use { length } from "@sentrie/js" as str
+  use { parse } from "@sentrie/js" as json
+
+  fact value!: number
+  fact text!: string
+  fact jsonStr!: string
+
+  rule testMathFromJS = default false {
+    -- This should work - using @sentrie/js
+    let rounded = math.round(value)
+    yield rounded == 5
+  }
+
+  rule testStringFromJS = default false {
+    -- This should work - using @sentrie/js
+    let len = str.length(text)
+    yield len == 5
+  }
+
+  rule testJsonFromJS = default false {
+    -- This should work - using @sentrie/js
+    let parsed = json.parse(jsonStr)
+    yield parsed != null
+  }
+
+  export decision of testMathFromJS
+  export decision of testStringFromJS
+  export decision of testJsonFromJS
+}
+
