@@ -14,31 +14,8 @@
 
 package js
 
-import (
-	"encoding/json"
-	"errors"
+import _ "embed"
 
-	"github.com/dop251/goja"
-)
+//go:embed ts_src/_sentrie_js.ts
+var BuiltinJSTS []byte
 
-var BuiltinJsonGo = func(vm *goja.Runtime) (*goja.Object, error) {
-	ex := vm.NewObject()
-
-	_ = ex.Set("isValid", func(call goja.FunctionCall) goja.Value {
-		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("isValid requires exactly 1 argument"))
-		}
-
-		jsonStr := call.Argument(0).String()
-
-		var result interface{}
-		err := json.Unmarshal([]byte(jsonStr), &result)
-		if err != nil {
-			return vm.ToValue(false)
-		}
-
-		return vm.ToValue(true)
-	})
-
-	return ex, nil
-}

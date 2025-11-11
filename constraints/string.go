@@ -34,9 +34,9 @@ var StringContraintCheckers map[string]ConstraintDefinition[string] = map[string
 			if len(args) != 1 {
 				return fmt.Errorf("length constraint requires 1 argument")
 			}
-			expectedLen := args[0].(int64)
+			expectedLen := args[0].(float64)
 			if len(val) != int(expectedLen) {
-				return fmt.Errorf("string length %d is not equal to %d", len(val), expectedLen)
+				return fmt.Errorf("string length %d is not equal to %g", len(val), expectedLen)
 			}
 			return nil
 		},
@@ -48,9 +48,9 @@ var StringContraintCheckers map[string]ConstraintDefinition[string] = map[string
 			if len(args) != 1 {
 				return fmt.Errorf("minlength constraint requires 1 argument")
 			}
-			expectedLen := args[0].(int64)
+			expectedLen := args[0].(float64)
 			if len(val) < int(expectedLen) {
-				return fmt.Errorf("string length %d is not greater than or equal to %d", len(val), expectedLen)
+				return fmt.Errorf("string length %d is not greater than or equal to %g", len(val), expectedLen)
 			}
 			return nil
 		},
@@ -62,9 +62,9 @@ var StringContraintCheckers map[string]ConstraintDefinition[string] = map[string
 			if len(args) != 1 {
 				return fmt.Errorf("maxlength constraint requires 1 argument")
 			}
-			expectedLen := args[0].(int64)
+			expectedLen := args[0].(float64)
 			if len(val) > int(expectedLen) {
-				return fmt.Errorf("string length %d is not less than or equal to %d", len(val), expectedLen)
+				return fmt.Errorf("string length %d is not less than or equal to %g", len(val), expectedLen)
 			}
 			return nil
 		},

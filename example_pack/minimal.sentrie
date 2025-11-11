@@ -78,3 +78,24 @@ policy var_test {
   export decision of errorRule
   export decision of w
 }
+
+policy jsglobalpolicy {
+  fact price: number default 100
+  fact data: string default "{}"
+
+  use { round, floor, ceil, max, min } from @sentrie/js as math
+  use { length, fromCharCode } from @sentrie/js as str
+  use { parse, stringify } from @sentrie/js as json
+  use { isValid } from @sentrie/json as jsonUtil
+
+  rule processData = default false {
+    let roundedPrice = math.round(price)
+    let strLength = str.length(data)
+    let parsed = json.parse(data)
+    let isValid = jsonUtil.isValid(data)
+    let maxPrice = math.max(price, 100)
+    yield roundedPrice > 0 and strLength > 0 and isValid
+  }
+
+  export decision of processData
+}

@@ -135,20 +135,23 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 		},
 	}
 
-	exec.jsRegistry.RegisterBuiltin("uuid", js.BuiltinUuidGo)
-	exec.jsRegistry.RegisterBuiltin("crypto", js.BuiltinCryptoGo)
-	exec.jsRegistry.RegisterBuiltin("time", js.BuiltinTimeGo)
-	exec.jsRegistry.RegisterBuiltin("encoding", js.BuiltinEncodingGo)
-	exec.jsRegistry.RegisterBuiltin("collection", js.BuiltinCollectionGo)
-	exec.jsRegistry.RegisterBuiltin("jwt", js.BuiltinJwtGo)
-	exec.jsRegistry.RegisterBuiltin("regex", js.BuiltinRegexGo)
-	exec.jsRegistry.RegisterBuiltin("net", js.BuiltinNetGo)
-	exec.jsRegistry.RegisterBuiltin("hash", js.BuiltinHashGo)
-	exec.jsRegistry.RegisterBuiltin("url", js.BuiltinUrlGo)
-	exec.jsRegistry.RegisterBuiltin("string", js.BuiltinStringGo)
-	exec.jsRegistry.RegisterBuiltin("json", js.BuiltinJsonGo)
-	exec.jsRegistry.RegisterBuiltin("semver", js.BuiltinSemverGo)
-	exec.jsRegistry.RegisterBuiltin("math", js.BuiltinMathGo)
+	exec.jsRegistry.RegisterGoBuiltin("uuid", js.BuiltinUuidGo)
+	exec.jsRegistry.RegisterGoBuiltin("crypto", js.BuiltinCryptoGo)
+	exec.jsRegistry.RegisterGoBuiltin("time", js.BuiltinTimeGo)
+	exec.jsRegistry.RegisterGoBuiltin("encoding", js.BuiltinEncodingGo)
+	exec.jsRegistry.RegisterGoBuiltin("collection", js.BuiltinCollectionGo)
+	exec.jsRegistry.RegisterGoBuiltin("jwt", js.BuiltinJwtGo)
+	exec.jsRegistry.RegisterGoBuiltin("regex", js.BuiltinRegexGo)
+	exec.jsRegistry.RegisterGoBuiltin("net", js.BuiltinNetGo)
+	exec.jsRegistry.RegisterGoBuiltin("hash", js.BuiltinHashGo)
+	exec.jsRegistry.RegisterGoBuiltin("url", js.BuiltinUrlGo)
+	exec.jsRegistry.RegisterGoBuiltin("string", js.BuiltinStringGo)
+	exec.jsRegistry.RegisterGoBuiltin("json", js.BuiltinJsonGo)
+	exec.jsRegistry.RegisterGoBuiltin("semver", js.BuiltinSemverGo)
+	exec.jsRegistry.RegisterGoBuiltin("math", js.BuiltinMathGo)
+
+	// Register TypeScript builtin module for JavaScript globals
+	exec.jsRegistry.RegisterTSBuiltin("js", string(js.BuiltinJSTS))
 
 	for _, opt := range opts {
 		opt(exec)
@@ -393,24 +396,24 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 }
 
 func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, namespace, policy, rule string) (*Decision, DecisionAttachments, *trace.Node, error) {
-	p, err := e.index.ResolvePolicy(namespace, policy)
+	thePolicy, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	r, ok := p.Rules[rule]
+	theRule, ok := thePolicy.Rules[rule]
 	if !ok {
 		return nil, nil, nil, xerr.ErrRuleNotFound(index.RuleFQN(namespace, policy, rule))
 	}
 
 	// Check for infinite recursion before evaluating the rule
-	if err := ec.PushRefStack(rule); err != nil {
+	if err := ec.PushRefStack(theRule.FQN.String()); err != nil {
 		return nil, nil, nil, err
 	}
 	defer ec.PopRefStack()
 
 	// Wrap rule evaluation in a decision node
-	ctx, ruleNode, done := trace.New(ctx, r.Node, "rule-outcome", map[string]any{
+	ctx, ruleNode, done := trace.New(ctx, theRule.Node, "rule-outcome", map[string]any{
 		"namespace": namespace,
 		"policy":    policy,
 		"rule":      rule,
@@ -423,14 +426,14 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 			// if there's no shape indication, we skip validation
 			continue
 		}
-		stmt := p.Facts[name]
+		stmt := thePolicy.Facts[name]
 		// validate the value against the type
-		if err := validateValueAgainstTypeRef(ctx, ec, e, p, value.value, value.typeRef, stmt.Span()); err != nil {
+		if err := validateValueAgainstTypeRef(ctx, ec, e, thePolicy, value.value, value.typeRef, stmt.Span()); err != nil {
 			return nil, nil, nil, err
 		}
 	}
 
-	d, node, err := evaluateRuleOutcome(ctx, ec, e, p, r)
+	d, node, err := evaluateRuleOutcome(ctx, ec, e, thePolicy, theRule)
 	ruleNode.Attach(node)
 	ruleNode.SetResult(d)
 	ruleNode.SetErr(err)
@@ -440,14 +443,14 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 
 	// Compute attachment values if exported
 	attachments := map[string]any{}
-	if ex, ok := p.RuleExports[rule]; ok {
+	if ex, ok := thePolicy.RuleExports[rule]; ok {
 		for _, attachment := range ex.Attachments {
 			ctx, attachmentNode, done := trace.New(ctx, attachment.Value, "attachment", map[string]any{
 				"name": attachment.Name,
 			})
 			defer done()
 
-			v, node, err := eval(ctx, ec, e, p, attachment.Value)
+			v, node, err := eval(ctx, ec, e, thePolicy, attachment.Value)
 			attachmentNode.Attach(node)
 			if err != nil {
 				attachmentNode.SetErr(err)

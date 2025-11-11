@@ -86,6 +86,8 @@ func (ec *ExecutionContext) Dispose() {}
 // performed in the child context first, then the parent context.
 func (ec *ExecutionContext) AttachedChildContext() *ExecutionContext {
 	ec.rwmu.RLock()
+	defer ec.rwmu.RUnlock()
+
 	stack := make([]string, len(ec.refStack))
 	copy(stack, ec.refStack)
 
@@ -226,16 +228,16 @@ func (ec *ExecutionContext) Module(alias string) (binding *ModuleBinding, found 
 }
 
 // PushRefStack adds an item to the reference stack for cycle detection
-func (ec *ExecutionContext) PushRefStack(item string) error {
+func (ec *ExecutionContext) PushRefStack(uniqueID string) error {
 	ec.rwmu.Lock()
 	defer ec.rwmu.Unlock()
 
 	// Check if this rule is already in the stack (cycle detection)
-	if slices.Contains(ec.refStack, item) {
-		return errors.Wrapf(xerr.ErrInfiniteRecursion(append(ec.refStack, item)), "'%s' references itself", item)
+	if slices.Contains(ec.refStack, uniqueID) {
+		return errors.Wrapf(xerr.ErrInfiniteRecursion(append(ec.refStack, uniqueID)), "'%s' references itself", uniqueID)
 	}
 
-	ec.refStack = append(ec.refStack, item)
+	ec.refStack = append(ec.refStack, uniqueID)
 	return nil
 }
 
