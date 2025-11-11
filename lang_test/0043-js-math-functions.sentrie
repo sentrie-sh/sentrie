@@ -1,0 +1,65 @@
+namespace test/js
+
+policy mathTest {
+  use { round, floor, ceil, max, min, abs, sqrt, pow, PI, E } from "@sentrie/js" as math
+
+  fact value!: number
+  fact value2!: number
+
+  rule testRound = default false {
+    let rounded = math.round(value)
+    yield rounded == 5
+  }
+
+  rule testFloor = default false {
+    let floored = math.floor(value)
+    yield floored == 4
+  }
+
+  rule testCeil = default false {
+    let ceiled = math.ceil(value)
+    yield ceiled == 5
+  }
+
+  rule testMax = default false {
+    let maxVal = math.max(value, value2)
+    yield maxVal == 10
+  }
+
+  rule testMin = default false {
+    let minVal = math.min(value, value2)
+    yield minVal == 3
+  }
+
+  rule testAbs = default false {
+    let absVal = math.abs(value)
+    yield absVal == 4.5
+  }
+
+  rule testSqrt = default false {
+    let sqrtVal = math.sqrt(value)
+    yield sqrtVal == 2
+  }
+
+  rule testPow = default false {
+    let powVal = math.pow(value, value2)
+    yield powVal == 8
+  }
+
+  rule testConstants = default false {
+    let pi = math.PI
+    let e = math.E
+    yield pi > 3 and e > 2
+  }
+
+  export decision of testRound
+  export decision of testFloor
+  export decision of testCeil
+  export decision of testMax
+  export decision of testMin
+  export decision of testAbs
+  export decision of testSqrt
+  export decision of testPow
+  export decision of testConstants
+}
+

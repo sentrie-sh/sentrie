@@ -1,0 +1,29 @@
+namespace test/js
+
+policy jsonTest {
+  use { parse, stringify } from "@sentrie/js" as json
+  use { isValid } from "@sentrie/json" as jsonUtil
+
+  fact jsonStr!: string
+  fact data!: map[string]any
+
+  rule testParse = default false {
+    let parsed = json.parse(jsonStr)
+    yield parsed != null
+  }
+
+  rule testStringify = default false {
+    let str = json.stringify(data)
+    yield str != ""
+  }
+
+  rule testIsValid = default false {
+    let valid = jsonUtil.isValid(jsonStr)
+    yield valid == true
+  }
+
+  export decision of testParse
+  export decision of testStringify
+  export decision of testIsValid
+}
+

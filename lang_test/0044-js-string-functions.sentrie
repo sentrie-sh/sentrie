@@ -1,0 +1,21 @@
+namespace test/js
+
+policy stringTest {
+  use { length, fromCharCode } from "@sentrie/js" as str
+
+  fact text!: string
+
+  rule testLength = default false {
+    let len = str.length(text)
+    yield len == 5
+  }
+
+  rule testFromCharCode = default false {
+    let result = str.fromCharCode(72, 101, 108, 108, 111)
+    yield result == "Hello"
+  }
+
+  export decision of testLength
+  export decision of testFromCharCode
+}
+
