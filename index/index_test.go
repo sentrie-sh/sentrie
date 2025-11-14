@@ -492,7 +492,7 @@ func (suite *IndexTestSuite) TestAddProgramWithInvalidUseStatementPosition() {
 	err := suite.idx.AddProgram(suite.ctx, program)
 
 	suite.Error(err)
-	suite.Contains(err.Error(), "'use' statement must be immediately after facts")
+	suite.Contains(err.Error(), "'use' statement must be declared immediately after facts")
 }
 
 func (suite *IndexTestSuite) TestAddProgramWithInvalidFactStatementPosition() {

@@ -205,7 +205,7 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithInvalidUsePosition() {
 
 	suite.Error(err)
 	suite.Nil(policy)
-	suite.Contains(err.Error(), "'use' statement must be immediately after facts have been declared in a policy")
+	suite.Contains(err.Error(), "'use' statement must be declared immediately after facts")
 }
 
 func (suite *PolicyTestSuite) TestCreatePolicyWithUnknownRuleExport() {
