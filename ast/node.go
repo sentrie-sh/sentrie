@@ -18,9 +18,13 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-type Node interface {
-	String() string
+type Positionable interface {
 	Span() tokens.Range
+}
+
+type Node interface {
+	Positionable
+	String() string
 	Kind() string
 }
 

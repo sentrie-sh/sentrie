@@ -17,7 +17,6 @@ package index
 import (
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
-	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 type RuleExportAttachment struct {
@@ -47,15 +46,11 @@ type Policy struct {
 	Uses        map[string]*ast.UseStatement // alias -> use statement
 	Shapes      map[string]*Shape            // policy-local shapes
 
-	seenIdentifiers map[string]positionable
+	seenIdentifiers map[string]ast.Positionable
 }
 
 func (p *Policy) String() string {
 	return p.FQN.String()
-}
-
-type positionable interface {
-	Span() tokens.Range
 }
 
 func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Program) (*Policy, error) {
@@ -72,7 +67,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 		RuleExports:     make(map[string]ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
-		seenIdentifiers: make(map[string]positionable), // a map of seen identifiers
+		seenIdentifiers: make(map[string]ast.Positionable), // a map of seen identifiers
 	}
 
 	for idx, stmt := range policy.Statements {
@@ -86,14 +81,14 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 				return nil, err
 			}
 		case *ast.UseStatement:
-			// nothing should precede a use statement expect comments and facts
+			// nothing should precede a use statement except comments and facts
 			if idx > 0 {
 				_, isPrecedingComment := policy.Statements[idx-1].(*ast.CommentStatement)
 				_, isPrecedingFact := policy.Statements[idx-1].(*ast.FactStatement)
 				_, isPrecedingUse := policy.Statements[idx-1].(*ast.UseStatement)
 
 				if !isPrecedingComment && !isPrecedingFact && !isPrecedingUse {
-					return nil, errors.Wrapf(ErrIndex, "'use' statement must be immediately after facts have been declared in a policy at %s", stmt.Span())
+					return nil, errors.Wrapf(ErrIndex, "'use' statement must be declared immediately after facts have been declared in a policy at %s", stmt.Span())
 				}
 			}
 			if _, ok := p.Uses[stmt.As]; ok {
@@ -107,7 +102,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 			}
 
 		case *ast.FactStatement:
-			// nothing should precede a fact statement expect comments
+			// nothing should precede a fact statement except comments and other facts
 			if idx > 0 {
 				_, isPrecedingComment := policy.Statements[idx-1].(*ast.CommentStatement)
 				_, isPrecedingFact := policy.Statements[idx-1].(*ast.FactStatement)
@@ -151,7 +146,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 	}
 
 	if len(p.RuleExports) == 0 {
-		return nil, errors.Wrapf(ErrIndex, "Policy '%s' at '%s' does not export any rules", policy.Name, policy.Span())
+		return nil, errors.Wrapf(ErrIndex, "policy '%s' at '%s' does not export any rules", policy.Name, policy.Span())
 	}
 
 	return p, nil
@@ -200,6 +195,10 @@ func (p *Policy) AddShape(shape *ast.ShapeStatement) error {
 func (p *Policy) AddFact(fact *ast.FactStatement) error {
 	if _, ok := p.seenIdentifiers[fact.Alias]; ok {
 		return errors.Wrapf(ErrIndex, "fact alias conflict: '%s' at %s with %s", fact.Alias, fact.Span(), p.seenIdentifiers[fact.Alias].Span())
+	}
+
+	if fact.Required && fact.Default != nil {
+		return errors.Wrapf(ErrIndex, "required fact '%s' at %s cannot have a default value", fact.Alias, fact.Span())
 	}
 
 	p.Facts[fact.Alias] = fact

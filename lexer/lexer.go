@@ -62,7 +62,7 @@ func (l *Lexer) NextToken() tokens.Instance {
 		l.skipWhitespace()
 
 		if l.current == 0 {
-			return tokens.EofInstance(l.filename)
+			return tokens.EofInstance(l.filename, l.currentPosition())
 		}
 
 		startPos := l.currentPosition()
