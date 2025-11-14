@@ -275,7 +275,7 @@ func (suite *PolicyTestSuite) TestAddLet() {
 		RuleExports:     make(map[string]ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
-		seenIdentifiers: make(map[string]positionable),
+		seenIdentifiers: make(map[string]ast.Positionable),
 	}
 
 	letStmt := ast.NewVarDeclaration(
@@ -309,7 +309,7 @@ func (suite *PolicyTestSuite) TestAddLetWithNameConflict() {
 		RuleExports:     make(map[string]ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
-		seenIdentifiers: make(map[string]positionable),
+		seenIdentifiers: make(map[string]ast.Positionable),
 	}
 
 	// Add first let
@@ -351,7 +351,7 @@ func (suite *PolicyTestSuite) TestAddRule() {
 		RuleExports:     make(map[string]ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
-		seenIdentifiers: make(map[string]positionable),
+		seenIdentifiers: make(map[string]ast.Positionable),
 	}
 
 	ruleStmt := ast.NewRuleStatement(
@@ -390,7 +390,7 @@ func (suite *PolicyTestSuite) TestAddRuleWithNameConflict() {
 		RuleExports:     make(map[string]ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
-		seenIdentifiers: make(map[string]positionable),
+		seenIdentifiers: make(map[string]ast.Positionable),
 	}
 
 	// Add first rule
@@ -434,7 +434,7 @@ func (suite *PolicyTestSuite) TestAddShape() {
 		RuleExports:     make(map[string]ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
-		seenIdentifiers: make(map[string]positionable),
+		seenIdentifiers: make(map[string]ast.Positionable),
 	}
 
 	shapeStmt := ast.NewShapeStatement(
@@ -472,7 +472,7 @@ func (suite *PolicyTestSuite) TestAddShapeWithNameConflict() {
 		RuleExports:     make(map[string]ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
-		seenIdentifiers: make(map[string]positionable),
+		seenIdentifiers: make(map[string]ast.Positionable),
 	}
 
 	// Add first shape
@@ -514,7 +514,7 @@ func (suite *PolicyTestSuite) TestAddFact() {
 		RuleExports:     make(map[string]ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
-		seenIdentifiers: make(map[string]positionable),
+		seenIdentifiers: make(map[string]ast.Positionable),
 	}
 
 	factStmt := ast.NewFactStatement(
@@ -550,7 +550,7 @@ func (suite *PolicyTestSuite) TestAddFactWithNameConflict() {
 		RuleExports:     make(map[string]ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
-		seenIdentifiers: make(map[string]positionable),
+		seenIdentifiers: make(map[string]ast.Positionable),
 	}
 
 	// Add first fact
@@ -596,7 +596,7 @@ func (suite *PolicyTestSuite) TestPolicyString() {
 		RuleExports:     make(map[string]ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
-		seenIdentifiers: make(map[string]positionable),
+		seenIdentifiers: make(map[string]ast.Positionable),
 	}
 
 	suite.Equal("com/example/testPolicy", policy.String())

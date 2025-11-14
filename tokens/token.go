@@ -27,23 +27,11 @@ type Instance struct {
 	Range Range
 }
 
-func EofInstance(file string) Instance {
+func EofInstance(file string, pos Pos) Instance {
 	return Instance{
 		Kind:  EOF,
 		Value: "",
-		Range: Range{
-			File: file,
-			From: Pos{
-				Line:   0,
-				Column: 0,
-				Offset: 0,
-			},
-			To: Pos{
-				Line:   0,
-				Column: 0,
-				Offset: 0,
-			},
-		},
+		Range: NewRangeFromPos(file, pos),
 	}
 }
 
