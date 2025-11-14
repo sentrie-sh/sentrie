@@ -8,7 +8,7 @@ FQN                 ::= IDENT ('/' IDENT)*
 
 /* Declarations */
 policyDecl          ::= 'policy' IDENT '{' ( policyStatement )* '}'
-factDecl            ::= 'fact' IDENT ('!')? ':' typeRef 'as' IDENT 'default' expr
+factDecl            ::= 'fact' IDENT ('?'?) ':' typeRef ('as' IDENT)? ('default' expr)?
 
 
 useStmt             ::= 'use' '{' IDENT ( ',' IDENT )* '}' 'from' execSource ('as' IDENT)?

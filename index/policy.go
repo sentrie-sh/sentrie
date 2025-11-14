@@ -197,7 +197,8 @@ func (p *Policy) AddFact(fact *ast.FactStatement) error {
 		return errors.Wrapf(ErrIndex, "fact alias conflict: '%s' at %s with %s", fact.Alias, fact.Span(), p.seenIdentifiers[fact.Alias].Span())
 	}
 
-	if fact.Required && fact.Default != nil {
+	// Required facts (not optional) cannot have default values
+	if !fact.Optional && fact.Default != nil {
 		return errors.Wrapf(ErrIndex, "required fact '%s' at %s cannot have a default value", fact.Alias, fact.Span())
 	}
 

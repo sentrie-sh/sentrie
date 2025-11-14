@@ -21,7 +21,9 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-// 'fact' @ident ('!'?) ('?'?) ':' <type> ( 'as' @ident )? ( 'default' <expression> )?
+// 'fact' @ident ('?'?) ':' <type> ( 'as' @ident )? ( 'default' <expression> )?
+// ? = optional (sets optional=true)
+// Facts are always non-nullable
 func parseFactStatement(ctx context.Context, p *Parser) ast.Statement {
 	start := p.head()
 
@@ -40,11 +42,18 @@ func parseFactStatement(ctx context.Context, p *Parser) ast.Statement {
 	alias := nameIdent.Value // Set the fact alias
 	rnge.To = nameIdent.Range.To
 
-	required := false
+	optional := false
 
-	if p.canExpect(tokens.TokenBang) {
-		p.advance() // consume '!'
-		required = true
+	if !p.canExpectAnyOf(tokens.PunctColon, tokens.TokenQuestion) {
+		p.errorf("expected ':' or '?' after fact name at %s", rnge.String())
+		return nil
+	}
+
+	// Parse optional modifier
+	if p.canExpect(tokens.TokenQuestion) {
+		p.advance() // consume '?'
+		optional = true
+		rnge.To = p.head().Range.To
 	}
 
 	if !p.expect(tokens.PunctColon) {
@@ -55,6 +64,7 @@ func parseFactStatement(ctx context.Context, p *Parser) ast.Statement {
 	if typ_ == nil {
 		return nil
 	}
+	rnge.To = typ_.Span().To
 
 	if p.canExpect(tokens.KeywordAs) {
 		p.advance() // consume 'as'
@@ -76,5 +86,5 @@ func parseFactStatement(ctx context.Context, p *Parser) ast.Statement {
 		rnge.To = defaultExpr.Span().To
 	}
 
-	return ast.NewFactStatement(name, typ_, alias, defaultExpr, required, rnge)
+	return ast.NewFactStatement(name, typ_, alias, defaultExpr, optional, rnge)
 }

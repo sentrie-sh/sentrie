@@ -62,7 +62,7 @@ func (suite *SegmentsTestSuite) setupTestData() {
 				ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}}),
 				"user",
 				nil,
-				false,
+				true, // optional
 				tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}},
 			),
 			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}}), nil, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}}),
@@ -96,7 +96,7 @@ func (suite *SegmentsTestSuite) setupTestData() {
 	subPolicyStmt := ast.NewPolicyStatement(
 		"admin",
 		[]ast.Statement{
-			ast.NewFactStatement("role", ast.NewStringTypeRef(tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}}), "role", nil, false, tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}}),
+			ast.NewFactStatement("role", ast.NewStringTypeRef(tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}}), "role", nil, true, tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}}),
 			ast.NewRuleStatement("check", nil, ast.NewTrinaryLiteral(trinary.True, tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}}), nil, tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}}),
 			ast.NewRuleExportStatement("check", []*ast.AttachmentClause{}, tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}}),
 		},
@@ -291,7 +291,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithSingleCharacterSegments()
 	singleCharPolicyStmt := ast.NewPolicyStatement(
 		"c",
 		[]ast.Statement{
-			ast.NewFactStatement("d", ast.NewStringTypeRef(tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}}), "d", nil, false, tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}}),
+			ast.NewFactStatement("d", ast.NewStringTypeRef(tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}}), "d", nil, true, tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}}),
 			ast.NewRuleStatement("e", nil, ast.NewTrinaryLiteral(trinary.True, tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}}), nil, tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}}),
 			ast.NewRuleExportStatement("e", []*ast.AttachmentClause{}, tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}}),
 		},
