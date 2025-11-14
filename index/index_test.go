@@ -136,7 +136,7 @@ func (suite *IndexTestSuite) TestAddProgramWithPolicy() {
 						ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 20, Offset: 20}}),
 						"user",
 						ast.NewStringLiteral("testuser", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 20, Offset: 20}, To: tokens.Pos{Line: 3, Column: 30, Offset: 30}}),
-						false,
+						true, // optional (has default)
 						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 					),
 					ast.NewRuleStatement(
@@ -382,7 +382,7 @@ func (suite *IndexTestSuite) TestAddProgramWithShapeAndPolicyConflict() {
 						ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 10, Offset: 10}, To: tokens.Pos{Line: 4, Column: 20, Offset: 20}}),
 						"user",
 						ast.NewStringLiteral("testuser", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 20, Offset: 20}, To: tokens.Pos{Line: 4, Column: 30, Offset: 30}}),
-						false,
+						true, // optional (has default)
 						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}},
 					),
 					ast.NewRuleStatement(
@@ -424,7 +424,7 @@ func (suite *IndexTestSuite) TestAddProgramWithPolicyWithoutExports() {
 						ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 20, Offset: 20}}),
 						"user",
 						ast.NewStringLiteral("testuser", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 20, Offset: 20}, To: tokens.Pos{Line: 3, Column: 30, Offset: 30}}),
-						false,
+						true, // optional (has default)
 						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 					),
 					ast.NewRuleStatement(
@@ -461,7 +461,7 @@ func (suite *IndexTestSuite) TestAddProgramWithInvalidUseStatementPosition() {
 						ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 20, Offset: 20}}),
 						"user",
 						ast.NewStringLiteral("testuser", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 20, Offset: 20}, To: tokens.Pos{Line: 3, Column: 30, Offset: 30}}),
-						false,
+						true, // optional (has default)
 						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}},
 					),
 					ast.NewRuleStatement(
@@ -492,7 +492,7 @@ func (suite *IndexTestSuite) TestAddProgramWithInvalidUseStatementPosition() {
 	err := suite.idx.AddProgram(suite.ctx, program)
 
 	suite.Error(err)
-	suite.Contains(err.Error(), "'use' statement must be immediately after facts")
+	suite.Contains(err.Error(), "'use' statement must be declared immediately after facts")
 }
 
 func (suite *IndexTestSuite) TestAddProgramWithInvalidFactStatementPosition() {
@@ -516,7 +516,7 @@ func (suite *IndexTestSuite) TestAddProgramWithInvalidFactStatementPosition() {
 						ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 10, Offset: 10}, To: tokens.Pos{Line: 4, Column: 20, Offset: 20}}),
 						"user",
 						ast.NewStringLiteral("testuser", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 20, Offset: 20}, To: tokens.Pos{Line: 4, Column: 30, Offset: 30}}),
-						false,
+						true, // optional (has default)
 						tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}},
 					),
 					ast.NewRuleExportStatement(

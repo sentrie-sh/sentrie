@@ -283,7 +283,7 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 }
 
 // ExecRule executes an exported rule and returns the result
-func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, injectFacts map[string]any) (*ExecutorOutput, error) {
+func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, injectedFacts map[string]any) (*ExecutorOutput, error) {
 	// Use otelConfig for decision-level tracing
 	var span oteltrace.Span
 	if e.otelConfig.Enabled {
@@ -294,7 +294,7 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 			attribute.String("sentrie.namespace", namespace),
 			attribute.String("sentrie.policy", policy),
 			attribute.String("sentrie.rule", rule),
-			attribute.Int("sentrie.facts.count", len(injectFacts)),
+			attribute.Int("sentrie.facts.count", len(injectedFacts)),
 		)
 	}
 
@@ -333,19 +333,26 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 
 	for factName, factStatement := range p.Facts {
 		// look for a value for this fact in the passed in facts map
-		if _, ok := injectFacts[factName]; ok {
-			if err := ec.InjectFact(ctx, factName, injectFacts[factName], false, factStatement.Type); err != nil {
+		factValue, ok := injectedFacts[factName]
+
+		// we do not have a value for this fact, and it is required - error
+		if !ok && !factStatement.Optional {
+			return nil, xerr.ErrRequiredFact(factName)
+		}
+
+		if ok {
+			// Facts are always non-nullable - validate value is not null
+			if factValue == nil {
+				return nil, errors.Wrapf(xerr.ErrInvalidInvocation(""), "fact '%s' cannot be null", factName)
+			}
+			err := ec.InjectFact(ctx, factName, factValue, false, factStatement.Type)
+			if err != nil {
 				if e.otelConfig.Enabled && span != nil {
 					span.RecordError(err)
 				}
 				return nil, err
 			}
 			continue // move on to the next fact
-		}
-
-		// if the fact is required, and no value was passed in, we error
-		if factStatement.Required {
-			return nil, xerr.ErrRequiredFact(factName)
 		}
 
 		// if the fact has a default value, evaluate it and inject it into the context
@@ -356,15 +363,15 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 				return nil, errors.Wrap(xerr.ErrUnresolvableFact(factName), err.Error())
 			}
 
+			// Facts are always non-nullable - validate default value is not null
+			if val == nil {
+				return nil, errors.Wrapf(xerr.ErrInvalidInvocation(""), "fact '%s' cannot have null default value", factName)
+			}
+
 			// inject the default value
 			if err := ec.InjectFact(ctx, factStatement.Name, val, true, factStatement.Type); err != nil {
 				return nil, err
 			}
-		}
-
-		// if the fact is required, and no value was passed in, and no default value was provided, we error
-		if factStatement.Required && !ec.IsFactInjected(factName) {
-			return nil, xerr.ErrRequiredFact(factName)
 		}
 	}
 

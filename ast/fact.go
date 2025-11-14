@@ -22,10 +22,10 @@ type FactStatement struct {
 	Type     TypeRef    // Type of the fact
 	Alias    string     // Exposed name of the fact
 	Default  Expression // Default value expression (optional)
-	Required bool       // Whether the fact is required
+	Optional bool       // Whether the fact is optional (default: false, i.e., required)
 }
 
-func NewFactStatement(name string, typeRef TypeRef, alias string, defaultExpr Expression, required bool, ssp tokens.Range) *FactStatement {
+func NewFactStatement(name string, typeRef TypeRef, alias string, defaultExpr Expression, optional bool, ssp tokens.Range) *FactStatement {
 	return &FactStatement{
 		baseNode: &baseNode{
 			Rnge:  ssp,
@@ -35,7 +35,7 @@ func NewFactStatement(name string, typeRef TypeRef, alias string, defaultExpr Ex
 		Type:     typeRef,
 		Alias:    alias,
 		Default:  defaultExpr,
-		Required: required,
+		Optional: optional,
 	}
 }
 

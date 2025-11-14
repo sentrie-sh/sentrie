@@ -85,7 +85,7 @@ func (s *ExpressionTestSuite) TestParseExpressionIntegerLiteral() {
 
 	intLit, ok := expr.(*ast.IntegerLiteral)
 	s.True(ok)
-	s.Equal(int64(42), intLit.Value)
+	s.Equal(float64(42), intLit.Value)
 }
 
 // TestParseExpressionFloatLiteral tests parsing float literal expressions

@@ -95,7 +95,7 @@ func (suite *NamespaceTestSuite) TestAddChildWithNameConflict() {
 				ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}}),
 				"user",
 				nil,
-				false,
+				true, // optional
 				tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
 			),
 			ast.NewRuleStatement(
@@ -149,7 +149,7 @@ func (suite *NamespaceTestSuite) TestCheckNameAvailable() {
 				ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}}),
 				"user",
 				nil,
-				false,
+				true, // optional
 				tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
 			),
 			ast.NewRuleStatement(
@@ -225,7 +225,7 @@ func (suite *NamespaceTestSuite) TestAddPolicy() {
 				ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}}),
 				"user",
 				nil,
-				false,
+				true, // optional
 				tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
 			),
 			ast.NewRuleStatement(
@@ -273,7 +273,7 @@ func (suite *NamespaceTestSuite) TestAddPolicyWithNameConflict() {
 				ast.NewStringTypeRef(tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}}),
 				"user",
 				nil,
-				false,
+				false, // required
 				tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
 			),
 			ast.NewRuleStatement(
@@ -315,7 +315,7 @@ func (suite *NamespaceTestSuite) TestAddPolicyWithNameConflict() {
 				ast.NewStringTypeRef(tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}}),
 				"admin",
 				nil,
-				false,
+				false, // required
 				tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
 			),
 			ast.NewRuleStatement(

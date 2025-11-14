@@ -174,41 +174,56 @@ func (s *StatementTestSuite) TestParseRuleStatementInvalid() {
 // TestParseFactStatement tests parsing fact statements
 func (s *StatementTestSuite) TestParseFactStatement() {
 	testCases := []struct {
-		input    string
-		expected string
+		input       string
+		expected    string
+		optional    bool
+		description string
 	}{
-		{"fact user:string", "user"},
-		{"fact age:int default 25", "age"},
-		{"fact name:string default \"john\"", "name"},
-		{"fact name:ShapeName default \"john\"", "name"},
+		{"fact user:string", "user", false, "required fact"},
+		{"fact user?:string", "user", true, "optional fact"},
+		{"fact age:int default 25", "age", false, "required fact with default"},
+		{"fact age?:int default 25", "age", true, "optional fact with default"},
+		{"fact name:string default \"john\"", "name", false, "required fact with string default"},
+		{"fact name?:string default \"john\"", "name", true, "optional fact with string default"},
+		{"fact name:ShapeName default \"john\"", "name", false, "required fact with shape type"},
+		{"fact name?:ShapeName default \"john\"", "name", true, "optional fact with shape type"},
+		{"fact userId:string as id", "userId", false, "required fact with alias"},
+		{"fact userId?:string as id", "userId", true, "optional fact with alias"},
 	}
 
 	for _, tc := range testCases {
 		parser := NewParserFromString(tc.input, "test.sentra")
 		stmt := parseFactStatement(s.T().Context(), parser)
-		s.NoError(parser.err, "Expected no error for: %s", tc.input)
-		s.NotNil(stmt, "Expected statement for: %s", tc.input)
+		s.NoError(parser.err, "Expected no error for: %s (%s)", tc.input, tc.description)
+		s.NotNil(stmt, "Expected statement for: %s (%s)", tc.input, tc.description)
 
 		factStmt, ok := stmt.(*ast.FactStatement)
-		s.True(ok, "Expected FactStatement for: %s", tc.input)
-		s.Equal(tc.expected, factStmt.Name, "Expected fact name: %s", tc.expected)
+		s.True(ok, "Expected FactStatement for: %s (%s)", tc.input, tc.description)
+		s.Equal(tc.expected, factStmt.Name, "Expected fact name: %s (%s)", tc.expected, tc.description)
+		s.Equal(tc.optional, factStmt.Optional, "Expected optional=%v for: %s (%s)", tc.optional, tc.input, tc.description)
 	}
 }
 
 // TestParseFactStatementInvalid tests parsing invalid fact statements
 func (s *StatementTestSuite) TestParseFactStatementInvalid() {
-	testCases := []string{
-		"fact",            // Missing identifier
-		"fact 123:string", // Invalid identifier
-		"fact user",       // Missing type
-		"fact user:",      // Missing type after colon
+	testCases := []struct {
+		input       string
+		description string
+	}{
+		{"fact", "missing identifier"},
+		{"fact 123:string", "invalid identifier"},
+		{"fact user", "missing type"},
+		{"fact user:", "missing type after colon"},
+		{"fact user!:string", "! operator not allowed (facts are always non-nullable)"},
+		{"fact user!?:string", "! operator not allowed"},
+		{"fact user?!:string", "! operator not allowed"},
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentra")
 		stmt := parseFactStatement(s.T().Context(), parser)
-		s.Error(parser.err, "Expected error for: %s", tc)
-		s.Nil(stmt, "Expected nil statement for: %s", tc)
+		s.Error(parser.err, "Expected error for: %s (%s)", tc.input, tc.description)
+		s.Nil(stmt, "Expected nil statement for: %s (%s)", tc.input, tc.description)
 	}
 }
 
