@@ -22,6 +22,7 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 func evalDistinct(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, d *ast.DistinctExpression) (any, *trace.Node, error) {
@@ -81,7 +82,7 @@ func evalDistinct(ctx context.Context, ec *ExecutionContext, exec *executorImpl,
 			if err != nil {
 				return nil, node.SetErr(err), err
 			}
-			if IsTruthy(res) {
+			if trinary.From(res).IsTrue() {
 				foundMatch = true
 				break
 			}

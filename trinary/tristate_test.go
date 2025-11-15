@@ -260,90 +260,90 @@ func (s *TristateTestSuite) TestFrom() {
 // TestIsTruthy tests the IsTruthy() function
 func (s *TristateTestSuite) TestIsTruthy() {
 	// Test nil
-	s.False(IsTruthy(nil))
+	s.False(isTruthy(nil))
 
 	// Test bool
-	s.True(IsTruthy(true))
-	s.False(IsTruthy(false))
+	s.True(isTruthy(true))
+	s.False(isTruthy(false))
 
 	// Test string
-	s.True(IsTruthy("non-empty"))
-	s.False(IsTruthy(""))
+	s.True(isTruthy("non-empty"))
+	s.False(isTruthy(""))
 
 	// Test integers
-	s.True(IsTruthy(42))
-	s.False(IsTruthy(0))
-	s.True(IsTruthy(int8(1)))
-	s.False(IsTruthy(int8(0)))
-	s.True(IsTruthy(int16(1)))
-	s.False(IsTruthy(int16(0)))
-	s.True(IsTruthy(int32(1)))
-	s.False(IsTruthy(int32(0)))
-	s.True(IsTruthy(int64(1)))
-	s.False(IsTruthy(int64(0)))
+	s.True(isTruthy(42))
+	s.False(isTruthy(0))
+	s.True(isTruthy(int8(1)))
+	s.False(isTruthy(int8(0)))
+	s.True(isTruthy(int16(1)))
+	s.False(isTruthy(int16(0)))
+	s.True(isTruthy(int32(1)))
+	s.False(isTruthy(int32(0)))
+	s.True(isTruthy(int64(1)))
+	s.False(isTruthy(int64(0)))
 
 	// Test unsigned integers
-	s.True(IsTruthy(uint(1)))
-	s.False(IsTruthy(uint(0)))
-	s.True(IsTruthy(uint8(1)))
-	s.False(IsTruthy(uint8(0)))
-	s.True(IsTruthy(uint16(1)))
-	s.False(IsTruthy(uint16(0)))
-	s.True(IsTruthy(uint32(1)))
-	s.False(IsTruthy(uint32(0)))
-	s.True(IsTruthy(uint64(1)))
-	s.False(IsTruthy(uint64(0)))
-	s.True(IsTruthy(uintptr(1)))
-	s.False(IsTruthy(uintptr(0)))
+	s.True(isTruthy(uint(1)))
+	s.False(isTruthy(uint(0)))
+	s.True(isTruthy(uint8(1)))
+	s.False(isTruthy(uint8(0)))
+	s.True(isTruthy(uint16(1)))
+	s.False(isTruthy(uint16(0)))
+	s.True(isTruthy(uint32(1)))
+	s.False(isTruthy(uint32(0)))
+	s.True(isTruthy(uint64(1)))
+	s.False(isTruthy(uint64(0)))
+	s.True(isTruthy(uintptr(1)))
+	s.False(isTruthy(uintptr(0)))
 
 	// Test floats
-	s.True(IsTruthy(3.14))
-	s.False(IsTruthy(0.0))
-	s.True(IsTruthy(float32(1.0)))
-	s.False(IsTruthy(float32(0.0)))
-	s.True(IsTruthy(float64(1.0)))
-	s.False(IsTruthy(float64(0.0)))
+	s.True(isTruthy(3.14))
+	s.False(isTruthy(0.0))
+	s.True(isTruthy(float32(1.0)))
+	s.False(isTruthy(float32(0.0)))
+	s.True(isTruthy(float64(1.0)))
+	s.False(isTruthy(float64(0.0)))
 
 	// Test slices and arrays
-	s.True(IsTruthy([]int{1, 2, 3}))
-	s.False(IsTruthy([]int{}))
-	s.True(IsTruthy([3]int{1, 2, 3}))
-	s.False(IsTruthy([0]int{}))
+	s.True(isTruthy([]int{1, 2, 3}))
+	s.False(isTruthy([]int{}))
+	s.True(isTruthy([3]int{1, 2, 3}))
+	s.False(isTruthy([0]int{}))
 
 	// Test maps
-	s.True(IsTruthy(map[string]int{"key": 1}))
-	s.False(IsTruthy(map[string]int{}))
+	s.True(isTruthy(map[string]int{"key": 1}))
+	s.False(isTruthy(map[string]int{}))
 
 	// Test pointers
 	var nilPtr *int
-	s.False(IsTruthy(nilPtr))
+	s.False(isTruthy(nilPtr))
 
 	intPtr := &[]int{42}[0]
-	s.True(IsTruthy(intPtr))
+	s.True(isTruthy(intPtr))
 
 	// Test interfaces
 	var nilInterface interface{}
-	s.False(IsTruthy(nilInterface))
+	s.False(isTruthy(nilInterface))
 
 	var interfaceValue interface{} = 42
-	s.True(IsTruthy(interfaceValue))
+	s.True(isTruthy(interfaceValue))
 
 	// Test nested pointers
 	var nilPtrPtr **int
-	s.False(IsTruthy(nilPtrPtr))
+	s.False(isTruthy(nilPtrPtr))
 
 	ptrPtr := &intPtr
-	s.True(IsTruthy(ptrPtr))
+	s.True(isTruthy(ptrPtr))
 
 	// Test struct
 	type testStruct struct {
 		Field string
 	}
-	s.True(IsTruthy(testStruct{Field: "value"}))
-	s.True(IsTruthy(testStruct{})) // Non-nil struct is truthy
+	s.True(isTruthy(testStruct{Field: "value"}))
+	s.True(isTruthy(testStruct{})) // Non-nil struct is truthy
 
 	// Test default case (non-nil values are truthy)
-	s.True(IsTruthy(struct{}{}))
+	s.True(isTruthy(struct{}{}))
 }
 
 // testTrinaryValue implements HasTrinary interface for testing
@@ -381,48 +381,48 @@ func (s *TristateTestSuite) TestEdgeCases() {
 	}
 
 	nilNested := (*nestedStruct)(nil)
-	s.False(IsTruthy(nilNested))
+	s.False(isTruthy(nilNested))
 	s.Equal(False, From(nilNested))
 
 	emptyNested := &nestedStruct{}
-	s.True(IsTruthy(emptyNested))
+	s.True(isTruthy(emptyNested))
 	s.Equal(True, From(emptyNested))
 
 	// Test channels
 	var nilChan chan int
-	s.True(IsTruthy(nilChan)) // Zero value of channel is truthy by default
+	s.True(isTruthy(nilChan)) // Zero value of channel is truthy by default
 	s.Equal(True, From(nilChan))
 
 	ch := make(chan int, 1)
-	s.True(IsTruthy(ch)) // Non-nil channels are truthy by default
+	s.True(isTruthy(ch)) // Non-nil channels are truthy by default
 	s.Equal(True, From(ch))
 	close(ch)
 
 	// Test functions
 	var nilFunc func()
-	s.True(IsTruthy(nilFunc)) // Zero value of function is truthy by default
+	s.True(isTruthy(nilFunc)) // Zero value of function is truthy by default
 	s.Equal(True, From(nilFunc))
 
 	funcValue := func() {}
-	s.True(IsTruthy(funcValue)) // Non-nil functions are truthy by default
+	s.True(isTruthy(funcValue)) // Non-nil functions are truthy by default
 	s.Equal(True, From(funcValue))
 
 	// Test complex slices
 	var nilSlice []int
-	s.False(IsTruthy(nilSlice))
+	s.False(isTruthy(nilSlice))
 	s.Equal(False, From(nilSlice))
 
 	emptySlice := []int{}
-	s.False(IsTruthy(emptySlice))
+	s.False(isTruthy(emptySlice))
 	s.Equal(False, From(emptySlice))
 
 	// Test complex maps
 	var nilMap map[string]int
-	s.False(IsTruthy(nilMap))
+	s.False(isTruthy(nilMap))
 	s.Equal(False, From(nilMap))
 
 	emptyMap := map[string]int{}
-	s.False(IsTruthy(emptyMap))
+	s.False(isTruthy(emptyMap))
 	s.Equal(False, From(emptyMap))
 }
 

@@ -183,14 +183,14 @@ func From(v any) Value {
 		return False
 	}
 
-	if IsTruthy(v) {
+	if isTruthy(v) {
 		return True
 	}
 
 	return False
 }
 
-// IsTruthy checks if a value is truthy.
+// isTruthy checks if a value is truthy.
 // - nil → false
 // - IsUndefined → false
 // - bool → as-is
@@ -201,7 +201,7 @@ func From(v any) Value {
 // - ptr, interface → !IsNil()
 // - struct → non-nil struct
 // - default → true
-func IsTruthy(v any) bool {
+func isTruthy(v any) bool {
 	if v == nil {
 		return false
 	}
@@ -232,7 +232,7 @@ func IsTruthy(v any) bool {
 			return false
 		}
 		// Deref once and re-evaluate
-		return IsTruthy(rv.Elem().Interface())
+		return isTruthy(rv.Elem().Interface())
 	}
 
 	// Default: non-nil values are truthy

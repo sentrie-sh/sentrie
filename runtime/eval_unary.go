@@ -21,6 +21,7 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 func evalUnary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, u *ast.UnaryExpression) (any, *trace.Node, error) {
@@ -40,10 +41,8 @@ func evalUnary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 	}
 
 	switch u.Operator {
-	case "not":
-		fallthrough
-	case "!":
-		out := not(v)
+	case "not", "!":
+		out := trinary.From(v).Not()
 		return out, node.SetResult(out), nil
 	case "-":
 		switch x := v.(type) {
@@ -64,8 +63,4 @@ func evalUnary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		err := fmt.Errorf("unsupported unary op: %s", u.Operator)
 		return nil, node.SetErr(err), err
 	}
-}
-
-func not(v any) bool {
-	return !IsTruthy(v)
 }
