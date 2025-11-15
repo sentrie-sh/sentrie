@@ -15,8 +15,11 @@
 package index
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 type RuleExportAttachment struct {
@@ -42,7 +45,7 @@ type Policy struct {
 	Lets        map[string]*ast.VarDeclaration
 	Facts       map[string]*ast.FactStatement
 	Rules       map[string]*Rule
-	RuleExports map[string]ExportedRule
+	RuleExports map[string]*ExportedRule
 	Uses        map[string]*ast.UseStatement // alias -> use statement
 	Shapes      map[string]*Shape            // policy-local shapes
 
@@ -64,7 +67,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 		Lets:            make(map[string]*ast.VarDeclaration),
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
-		RuleExports:     make(map[string]ExportedRule),
+		RuleExports:     make(map[string]*ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]ast.Positionable), // a map of seen identifiers
@@ -127,18 +130,18 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 			}
 
 			if _, ok := p.RuleExports[stmt.Of]; ok {
-				return nil, errors.Wrapf(ErrIndex, "rule export conflict: '%s' at %s", stmt.Of, stmt.Span())
+				return nil, xerr.ErrConflict(fmt.Sprintf("duplicate rule export '%s' at %s", stmt.Of, stmt.Span()))
 			}
 
 			att := []*RuleExportAttachment{}
 			for _, a := range stmt.Attachments {
 				if _, ok := p.RuleExports[a.What]; ok {
-					return nil, errors.Wrapf(ErrIndex, "rule export attachment conflict: '%s' at %s", a.What, a.Span())
+					return nil, xerr.ErrConflict(fmt.Sprintf("duplicate rule export attachment '%s' at %s", a.What, a.Span()))
 				}
 
 				att = append(att, &RuleExportAttachment{Name: a.What, Value: a.As})
 			}
-			p.RuleExports[stmt.Of] = ExportedRule{RuleName: stmt.Of, Attachments: att}
+			p.RuleExports[stmt.Of] = &ExportedRule{RuleName: stmt.Of, Attachments: att}
 		default:
 			// ignore other statements
 			_ = stmt
@@ -154,7 +157,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 
 func (p *Policy) AddLet(let *ast.VarDeclaration) error {
 	if _, ok := p.seenIdentifiers[let.Name]; ok {
-		return errors.Wrapf(ErrIndex, "let name conflict: '%s' at %s with %s", let.Name, let.Span(), p.seenIdentifiers[let.Name].Span())
+		return xerr.ErrConflict(fmt.Sprintf("duplicate let declaration '%s' at %s", let.Name, let.Span()))
 	}
 
 	p.Lets[let.Name] = let
@@ -169,7 +172,7 @@ func (p *Policy) AddRule(rule *ast.RuleStatement) error {
 	}
 
 	if _, ok := p.seenIdentifiers[rule.RuleName]; ok {
-		return errors.Wrapf(ErrIndex, "rule name conflict: '%s' at %s with %s", rule.RuleName, rule.Span(), p.seenIdentifiers[rule.RuleName].Span())
+		return xerr.ErrConflict(fmt.Sprintf("duplicate rule declaration '%s' at %s", rule.RuleName, rule.Span()))
 	}
 
 	p.Rules[rule.RuleName] = r
@@ -179,8 +182,8 @@ func (p *Policy) AddRule(rule *ast.RuleStatement) error {
 }
 
 func (p *Policy) AddShape(shape *ast.ShapeStatement) error {
-	if s, ok := p.Shapes[shape.Name]; ok {
-		return errors.Wrapf(ErrIndex, "shape name conflict: '%s' at %s with %s", shape.Name, shape.Span(), s.Statement.Span())
+	if _, ok := p.Shapes[shape.Name]; ok {
+		return xerr.ErrConflict(fmt.Sprintf("duplicate shape declaration '%s' at %s", shape.Name, shape.Span()))
 	}
 
 	s, err := createShape(p.Namespace, p, shape)
@@ -194,12 +197,12 @@ func (p *Policy) AddShape(shape *ast.ShapeStatement) error {
 
 func (p *Policy) AddFact(fact *ast.FactStatement) error {
 	if _, ok := p.seenIdentifiers[fact.Alias]; ok {
-		return errors.Wrapf(ErrIndex, "fact alias conflict: '%s' at %s with %s", fact.Alias, fact.Span(), p.seenIdentifiers[fact.Alias].Span())
+		return xerr.ErrConflict(fmt.Sprintf("duplicate fact declaration '%s' at %s", fact.Alias, fact.Span()))
 	}
 
 	// Required facts (not optional) cannot have default values
 	if !fact.Optional && fact.Default != nil {
-		return errors.Wrapf(ErrIndex, "required fact '%s' at %s cannot have a default value", fact.Alias, fact.Span())
+		return xerr.ErrInvalidInvocation(fmt.Sprintf("required fact '%s' at %s cannot have a default value", fact.Alias, fact.Span()))
 	}
 
 	p.Facts[fact.Alias] = fact

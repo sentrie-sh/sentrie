@@ -138,10 +138,15 @@ func (ec *ExecutionContext) IsFactInjected(name string) bool {
 
 // Inject local let declarations into the current context.
 // Let declarations are always injected into the current context - NEVER in the parent.
-func (ec *ExecutionContext) InjectLet(name string, v *ast.VarDeclaration) {
+func (ec *ExecutionContext) InjectLet(name string, v *ast.VarDeclaration) error {
 	ec.rwmu.Lock()
 	defer ec.rwmu.Unlock()
+
+	if _, ok := ec.lets[name]; ok {
+		return xerr.ErrConflict(fmt.Sprintf("duplicate let declaration '%s' at %s", name, v.Span()))
+	}
 	ec.lets[name] = v
+	return nil
 }
 
 // SetLocal sets a local value in the current context if and only if the current context supplied an identifier

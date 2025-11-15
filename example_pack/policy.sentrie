@@ -7,7 +7,7 @@ shape User {
 
 policy user_access {
 
-  fact user!:User default {"role": "admin", "status": "active"}
+  fact user:User
 
   rule allow_admin = {
     yield user.role == "admin"
