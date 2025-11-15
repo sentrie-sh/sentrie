@@ -16,6 +16,7 @@ package index
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
@@ -130,17 +131,23 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 			}
 
 			if _, ok := p.RuleExports[stmt.Of]; ok {
-				return nil, xerr.ErrConflict(fmt.Sprintf("duplicate rule export '%s' at %s", stmt.Of, stmt.Span()))
+				return nil, xerr.ErrConflict("rule export", stmt.Span(), stmt.Span())
 			}
 
 			att := []*RuleExportAttachment{}
 			for _, a := range stmt.Attachments {
-				if _, ok := p.RuleExports[a.What]; ok {
-					return nil, xerr.ErrConflict(fmt.Sprintf("duplicate rule export attachment '%s' at %s", a.What, a.Span()))
+				// check if this attachment is already added
+				exists := slices.IndexFunc(att, func(t *RuleExportAttachment) bool {
+					return t.Name == a.What
+				})
+
+				if exists != -1 {
+					return nil, xerr.ErrConflict("rule export attachment", a.Span(), att[exists].Value.Span())
 				}
 
 				att = append(att, &RuleExportAttachment{Name: a.What, Value: a.As})
 			}
+
 			p.RuleExports[stmt.Of] = &ExportedRule{RuleName: stmt.Of, Attachments: att}
 		default:
 			// ignore other statements
@@ -156,8 +163,8 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 }
 
 func (p *Policy) AddLet(let *ast.VarDeclaration) error {
-	if _, ok := p.seenIdentifiers[let.Name]; ok {
-		return xerr.ErrConflict(fmt.Sprintf("duplicate let declaration '%s' at %s", let.Name, let.Span()))
+	if seen, ok := p.seenIdentifiers[let.Name]; ok {
+		return xerr.ErrConflict("let declaration", let.Span(), seen.Span())
 	}
 
 	p.Lets[let.Name] = let
@@ -171,8 +178,8 @@ func (p *Policy) AddRule(rule *ast.RuleStatement) error {
 		return err
 	}
 
-	if _, ok := p.seenIdentifiers[rule.RuleName]; ok {
-		return xerr.ErrConflict(fmt.Sprintf("duplicate rule declaration '%s' at %s", rule.RuleName, rule.Span()))
+	if seen, ok := p.seenIdentifiers[rule.RuleName]; ok {
+		return xerr.ErrConflict("rule declaration", rule.Span(), seen.Span())
 	}
 
 	p.Rules[rule.RuleName] = r
@@ -182,8 +189,8 @@ func (p *Policy) AddRule(rule *ast.RuleStatement) error {
 }
 
 func (p *Policy) AddShape(shape *ast.ShapeStatement) error {
-	if _, ok := p.Shapes[shape.Name]; ok {
-		return xerr.ErrConflict(fmt.Sprintf("duplicate shape declaration '%s' at %s", shape.Name, shape.Span()))
+	if seen, ok := p.Shapes[shape.Name]; ok {
+		return xerr.ErrConflict("shape declaration", shape.Span(), seen.Span())
 	}
 
 	s, err := createShape(p.Namespace, p, shape)
@@ -196,8 +203,8 @@ func (p *Policy) AddShape(shape *ast.ShapeStatement) error {
 }
 
 func (p *Policy) AddFact(fact *ast.FactStatement) error {
-	if _, ok := p.seenIdentifiers[fact.Alias]; ok {
-		return xerr.ErrConflict(fmt.Sprintf("duplicate fact declaration '%s' at %s", fact.Alias, fact.Span()))
+	if seen, ok := p.seenIdentifiers[fact.Alias]; ok {
+		return xerr.ErrConflict("fact declaration", fact.Span(), seen.Span())
 	}
 
 	// Required facts (not optional) cannot have default values

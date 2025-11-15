@@ -407,7 +407,7 @@ func (suite *IndexTestSuite) TestAddProgramWithShapeAndPolicyConflict() {
 	err := suite.idx.AddProgram(suite.ctx, program)
 
 	suite.Error(err)
-	suite.Contains(err.Error(), "name conflict")
+	suite.Contains(err.Error(), "conflict: shape declaration")
 }
 
 func (suite *IndexTestSuite) TestAddProgramWithPolicyWithoutExports() {

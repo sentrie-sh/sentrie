@@ -132,7 +132,7 @@ func (suite *NamespaceTestSuite) TestAddChildWithNameConflict() {
 	err = suite.parentNs.addChild(suite.childNs)
 
 	suite.Error(err)
-	suite.Contains(err.Error(), "name conflict")
+	suite.Contains(err.Error(), "conflict: policy declaration")
 }
 
 func (suite *NamespaceTestSuite) TestCheckNameAvailable() {
@@ -185,7 +185,7 @@ func (suite *NamespaceTestSuite) TestCheckNameAvailable() {
 	// Test conflict with policy name
 	err = suite.parentNs.checkNameAvailable("testPolicy")
 	suite.Error(err)
-	suite.Contains(err.Error(), "name conflict")
+	suite.Contains(err.Error(), "conflict: policy declaration")
 
 	// Add a shape
 	shapeStmt := ast.NewShapeStatement(
@@ -204,7 +204,7 @@ func (suite *NamespaceTestSuite) TestCheckNameAvailable() {
 	// Test conflict with shape name
 	err = suite.parentNs.checkNameAvailable("testShape")
 	suite.Error(err)
-	suite.Contains(err.Error(), "name conflict")
+	suite.Contains(err.Error(), "conflict: shape declaration")
 
 	// Add a child namespace
 	err = suite.parentNs.addChild(suite.childNs)
@@ -213,7 +213,7 @@ func (suite *NamespaceTestSuite) TestCheckNameAvailable() {
 	// Test conflict with child namespace name
 	err = suite.parentNs.checkNameAvailable("sub")
 	suite.Error(err)
-	suite.Contains(err.Error(), "namespace conflict")
+	suite.Contains(err.Error(), "conflict: namespace declaration")
 }
 
 func (suite *NamespaceTestSuite) TestAddPolicy() {
@@ -348,7 +348,7 @@ func (suite *NamespaceTestSuite) TestAddPolicyWithNameConflict() {
 	err = suite.parentNs.addPolicy(policy2)
 
 	suite.Error(err)
-	suite.Contains(err.Error(), "name conflict")
+	suite.Contains(err.Error(), "conflict: policy declaration")
 }
 
 func (suite *NamespaceTestSuite) TestAddShape() {
@@ -399,7 +399,7 @@ func (suite *NamespaceTestSuite) TestAddShapeWithNameConflict() {
 	err = suite.parentNs.addShape(shape2)
 
 	suite.Error(err)
-	suite.Contains(err.Error(), "name conflict")
+	suite.Contains(err.Error(), "conflict: shape declaration")
 }
 
 func (suite *NamespaceTestSuite) TestAddShapeExport() {
@@ -450,7 +450,7 @@ func (suite *NamespaceTestSuite) TestAddShapeExportWithNameConflict() {
 	err = suite.parentNs.addShapeExport(export2)
 
 	suite.Error(err)
-	suite.Contains(err.Error(), "shape export conflict")
+	suite.Contains(err.Error(), "conflict: shape export")
 }
 
 func (suite *NamespaceTestSuite) TestIsChildOf() {

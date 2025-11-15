@@ -142,8 +142,8 @@ func (ec *ExecutionContext) InjectLet(name string, v *ast.VarDeclaration) error 
 	ec.rwmu.Lock()
 	defer ec.rwmu.Unlock()
 
-	if _, ok := ec.lets[name]; ok {
-		return xerr.ErrConflict(fmt.Sprintf("duplicate let declaration '%s' at %s", name, v.Span()))
+	if other, ok := ec.lets[name]; ok {
+		return xerr.ErrConflict("let declaration", v.Span(), other.Span())
 	}
 	ec.lets[name] = v
 	return nil
