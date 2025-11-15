@@ -43,11 +43,11 @@ func (ns *Namespace) addChild(child *Namespace) error {
 }
 
 func (ns *Namespace) checkNameAvailable(name string) error {
-	if _, ok := ns.Policies[name]; ok {
-		return xerr.ErrConflict("policy declaration", ns.Statement.Span(), ns.Policies[name].Statement.Span())
+	if other, ok := ns.Policies[name]; ok {
+		return xerr.ErrConflict("policy declaration", ns.Statement.Span(), other.Statement.Span())
 	}
-	if _, ok := ns.Shapes[name]; ok {
-		return xerr.ErrConflict("shape declaration", ns.Statement.Span(), ns.Shapes[name].Statement.Span())
+	if other, ok := ns.Shapes[name]; ok {
+		return xerr.ErrConflict("shape declaration", ns.Statement.Span(), other.Statement.Span())
 	}
 	// there shouldn't be a child namespace
 	for _, child := range ns.Children {
@@ -77,8 +77,8 @@ func (n *Namespace) addPolicy(policy *Policy) error {
 		return err
 	}
 
-	if _, ok := n.Policies[policy.Name]; ok {
-		return xerr.ErrConflict("policy declaration", policy.Statement.Span(), n.Policies[policy.Name].Statement.Span())
+	if other, ok := n.Policies[policy.Name]; ok {
+		return xerr.ErrConflict("policy declaration", policy.Statement.Span(), other.Statement.Span())
 	}
 
 	n.Policies[policy.Name] = policy
@@ -91,8 +91,8 @@ func (n *Namespace) addShape(shape *Shape) error {
 		return err
 	}
 
-	if _, ok := n.Shapes[shape.Name]; ok {
-		return xerr.ErrConflict("shape declaration", shape.Statement.Span(), n.Shapes[shape.Name].Statement.Span())
+	if other, ok := n.Shapes[shape.Name]; ok {
+		return xerr.ErrConflict("shape declaration", shape.Statement.Span(), other.Statement.Span())
 	}
 
 	n.Shapes[shape.Name] = shape
@@ -100,8 +100,8 @@ func (n *Namespace) addShape(shape *Shape) error {
 }
 
 func (n *Namespace) addShapeExport(export *ExportedShape) error {
-	if _, ok := n.ShapeExports[export.Name]; ok {
-		return xerr.ErrConflict("shape export", export.Statement.Span(), n.ShapeExports[export.Name].Statement.Span())
+	if other, ok := n.ShapeExports[export.Name]; ok {
+		return xerr.ErrConflict("shape export", export.Statement.Span(), other.Statement.Span())
 	}
 
 	n.ShapeExports[export.Name] = export
