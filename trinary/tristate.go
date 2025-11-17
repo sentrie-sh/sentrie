@@ -157,9 +157,21 @@ func FromToken(t tokens.Instance) Value {
 // - Trinary Value → itself
 // - bool → True/False
 // - *bool → True/False/Unknown
-// - anything else → truthy test via IsTruthy (true→True, false→False)
+// - IsUndefined → Unknown
+// - HasTrinary → ToTrinary()
+// - string → len > 0 → True/False
+// - int, uint, float → != 0 → True/False
+// - slice, array, map → len > 0 → True/False
+// - ptr, interface → dereference and re-evaluate
+// - struct → True (non-nil struct)
+// - default → True (non-nil values are truthy)
 func From(v any) Value {
+	// Check for actual nil first (returns Unknown)
 	if v == nil {
+		return Unknown
+	}
+
+	if u, ok := v.(IsUndefined); ok && u.IsUndefined() {
 		return Unknown
 	}
 
@@ -183,58 +195,42 @@ func From(v any) Value {
 		return False
 	}
 
-	if IsTruthy(v) {
-		return True
-	}
-
-	return False
-}
-
-// IsTruthy checks if a value is truthy.
-// - nil → false
-// - IsUndefined → false
-// - bool → as-is
-// - string → len > 0
-// - int, uint, float → != 0
-// - slice, array → > len > 0
-// - map → > len > 0
-// - ptr, interface → !IsNil()
-// - struct → non-nil struct
-// - default → true
-func IsTruthy(v any) bool {
-	if v == nil {
-		return false
-	}
-
-	if u, ok := v.(HasTrinary); ok {
-		return u.ToTrinary().IsTrue()
-	}
-
-	if u, ok := v.(IsUndefined); ok && u.IsUndefined() {
-		return false
-	}
-
 	rv := reflect.ValueOf(v)
 
 	switch rv.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return rv.Int() != 0
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return rv.Uint() != 0
-	case reflect.Float32, reflect.Float64:
-		return rv.Float() != 0
-	case reflect.Bool:
-		return rv.Bool()
-	case reflect.Slice, reflect.Array, reflect.Map, reflect.String:
-		return rv.Len() > 0
 	case reflect.Ptr, reflect.Interface:
 		if rv.IsNil() {
-			return false
+			return False
 		}
 		// Deref once and re-evaluate
-		return IsTruthy(rv.Elem().Interface())
+		return From(rv.Elem().Interface())
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if rv.Int() != 0 {
+			return True
+		}
+		return False
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		if rv.Uint() != 0 {
+			return True
+		}
+		return False
+	case reflect.Float32, reflect.Float64:
+		if rv.Float() != 0 {
+			return True
+		}
+		return False
+	case reflect.Bool:
+		if rv.Bool() {
+			return True
+		}
+		return False
+	case reflect.Slice, reflect.Array, reflect.Map, reflect.String:
+		if rv.Len() > 0 {
+			return True
+		}
+		return False
 	}
 
 	// Default: non-nil values are truthy
-	return true
+	return True
 }

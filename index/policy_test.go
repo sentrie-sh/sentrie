@@ -258,7 +258,7 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithDuplicateRuleExport() {
 
 	suite.Error(err)
 	suite.Nil(policy)
-	suite.Contains(err.Error(), "rule export conflict")
+	suite.Contains(err.Error(), "conflict: rule export")
 }
 
 func (suite *PolicyTestSuite) TestAddLet() {
@@ -272,7 +272,7 @@ func (suite *PolicyTestSuite) TestAddLet() {
 		Lets:            make(map[string]*ast.VarDeclaration),
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
-		RuleExports:     make(map[string]ExportedRule),
+		RuleExports:     make(map[string]*ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]ast.Positionable),
@@ -306,7 +306,7 @@ func (suite *PolicyTestSuite) TestAddLetWithNameConflict() {
 		Lets:            make(map[string]*ast.VarDeclaration),
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
-		RuleExports:     make(map[string]ExportedRule),
+		RuleExports:     make(map[string]*ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]ast.Positionable),
@@ -334,7 +334,7 @@ func (suite *PolicyTestSuite) TestAddLetWithNameConflict() {
 	err = policy.AddLet(letStmt2)
 
 	suite.Error(err)
-	suite.Contains(err.Error(), "let name conflict")
+	suite.Contains(err.Error(), "conflict: let declaration")
 }
 
 func (suite *PolicyTestSuite) TestAddRule() {
@@ -348,7 +348,7 @@ func (suite *PolicyTestSuite) TestAddRule() {
 		Lets:            make(map[string]*ast.VarDeclaration),
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
-		RuleExports:     make(map[string]ExportedRule),
+		RuleExports:     make(map[string]*ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]ast.Positionable),
@@ -387,7 +387,7 @@ func (suite *PolicyTestSuite) TestAddRuleWithNameConflict() {
 		Lets:            make(map[string]*ast.VarDeclaration),
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
-		RuleExports:     make(map[string]ExportedRule),
+		RuleExports:     make(map[string]*ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]ast.Positionable),
@@ -417,7 +417,7 @@ func (suite *PolicyTestSuite) TestAddRuleWithNameConflict() {
 	err = policy.AddRule(ruleStmt2)
 
 	suite.Error(err)
-	suite.Contains(err.Error(), "rule name conflict")
+	suite.Contains(err.Error(), "conflict: rule declaration")
 }
 
 func (suite *PolicyTestSuite) TestAddShape() {
@@ -431,7 +431,7 @@ func (suite *PolicyTestSuite) TestAddShape() {
 		Lets:            make(map[string]*ast.VarDeclaration),
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
-		RuleExports:     make(map[string]ExportedRule),
+		RuleExports:     make(map[string]*ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]ast.Positionable),
@@ -469,7 +469,7 @@ func (suite *PolicyTestSuite) TestAddShapeWithNameConflict() {
 		Lets:            make(map[string]*ast.VarDeclaration),
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
-		RuleExports:     make(map[string]ExportedRule),
+		RuleExports:     make(map[string]*ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]ast.Positionable),
@@ -497,7 +497,7 @@ func (suite *PolicyTestSuite) TestAddShapeWithNameConflict() {
 	err = policy.AddShape(shapeStmt2)
 
 	suite.Error(err)
-	suite.Contains(err.Error(), "shape name conflict")
+	suite.Contains(err.Error(), "conflict: shape declaration")
 }
 
 func (suite *PolicyTestSuite) TestAddFact() {
@@ -511,7 +511,7 @@ func (suite *PolicyTestSuite) TestAddFact() {
 		Lets:            make(map[string]*ast.VarDeclaration),
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
-		RuleExports:     make(map[string]ExportedRule),
+		RuleExports:     make(map[string]*ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]ast.Positionable),
@@ -547,7 +547,7 @@ func (suite *PolicyTestSuite) TestAddFactRequiredCannotHaveDefault() {
 		Lets:            make(map[string]*ast.VarDeclaration),
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
-		RuleExports:     make(map[string]ExportedRule),
+		RuleExports:     make(map[string]*ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]ast.Positionable),
@@ -581,7 +581,7 @@ func (suite *PolicyTestSuite) TestAddFactOptionalCanHaveDefault() {
 		Lets:            make(map[string]*ast.VarDeclaration),
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
-		RuleExports:     make(map[string]ExportedRule),
+		RuleExports:     make(map[string]*ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]ast.Positionable),
@@ -616,7 +616,7 @@ func (suite *PolicyTestSuite) TestAddFactRequiredWithoutDefault() {
 		Lets:            make(map[string]*ast.VarDeclaration),
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
-		RuleExports:     make(map[string]ExportedRule),
+		RuleExports:     make(map[string]*ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]ast.Positionable),
@@ -652,7 +652,7 @@ func (suite *PolicyTestSuite) TestAddFactWithNameConflict() {
 		Lets:            make(map[string]*ast.VarDeclaration),
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
-		RuleExports:     make(map[string]ExportedRule),
+		RuleExports:     make(map[string]*ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]ast.Positionable),
@@ -684,7 +684,7 @@ func (suite *PolicyTestSuite) TestAddFactWithNameConflict() {
 	err = policy.AddFact(factStmt2)
 
 	suite.Error(err)
-	suite.Contains(err.Error(), "fact alias conflict")
+	suite.Contains(err.Error(), "conflict: fact declaration")
 }
 
 func (suite *PolicyTestSuite) TestPolicyString() {
@@ -698,7 +698,7 @@ func (suite *PolicyTestSuite) TestPolicyString() {
 		Lets:            make(map[string]*ast.VarDeclaration),
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
-		RuleExports:     make(map[string]ExportedRule),
+		RuleExports:     make(map[string]*ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
 		seenIdentifiers: make(map[string]ast.Positionable),

@@ -14,8 +14,6 @@
 
 package runtime
 
-import "github.com/sentrie-sh/sentrie/trinary"
-
 // Runtime values are plain Go values:
 //  - bool, int64, float64, string
 //  - []any (lists)
@@ -23,38 +21,6 @@ import "github.com/sentrie-sh/sentrie/trinary"
 // Attachments & imports use map[string]any too.
 
 // Helpers:
-func AsBool(v any) bool { b, _ := v.(bool); return b }
-func AsInt(v any) int64 {
-	switch t := v.(type) {
-	case int:
-		return int64(t)
-	case int64:
-		return t
-	case float64:
-		return int64(t)
-	default:
-		return 0
-	}
-}
-
-func AsFloat(v any) float64 {
-	switch t := v.(type) {
-	case float64:
-		return t
-	case int:
-		return float64(t)
-	case int64:
-		return float64(t)
-	default:
-		return 0
-	}
-}
-func AsString(v any) string { s, _ := v.(string); return s }
-
-func IsTruthy(v any) bool {
-	return trinary.IsTruthy(v)
-}
-
 func IsUndefined(v any) bool {
 	return v == Undefined
 }

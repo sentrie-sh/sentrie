@@ -15,8 +15,8 @@
 package index
 
 import (
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 // Namespace is an index of policies and shapes visible within (namespace & sub-namespaces).
@@ -43,17 +43,17 @@ func (ns *Namespace) addChild(child *Namespace) error {
 }
 
 func (ns *Namespace) checkNameAvailable(name string) error {
-	if _, ok := ns.Policies[name]; ok {
-		return errors.Wrapf(ErrIndex, "name conflict: '%s' at %s", name, ns.Statement.Span())
+	if other, ok := ns.Policies[name]; ok {
+		return xerr.ErrConflict("policy declaration", ns.Statement.Span(), other.Statement.Span())
 	}
-	if _, ok := ns.Shapes[name]; ok {
-		return errors.Wrapf(ErrIndex, "name conflict: '%s' at %s", name, ns.Statement.Span())
+	if other, ok := ns.Shapes[name]; ok {
+		return xerr.ErrConflict("shape declaration", ns.Statement.Span(), other.Statement.Span())
 	}
 	// there shouldn't be a child namespace
 	for _, child := range ns.Children {
 		cName := child.FQN.LastSegment()
 		if cName == name {
-			return errors.Wrapf(ErrIndex, "namespace conflict: '%s' at %s", cName, ns.Statement.Span())
+			return xerr.ErrConflict("namespace declaration", ns.Statement.Span(), child.Statement.Span())
 		}
 	}
 	return nil
@@ -77,8 +77,8 @@ func (n *Namespace) addPolicy(policy *Policy) error {
 		return err
 	}
 
-	if _, ok := n.Policies[policy.Name]; ok {
-		return errors.Wrapf(ErrIndex, "policy name conflict: '%s' at %s", policy.Name, policy.Statement.Span())
+	if other, ok := n.Policies[policy.Name]; ok {
+		return xerr.ErrConflict("policy declaration", policy.Statement.Span(), other.Statement.Span())
 	}
 
 	n.Policies[policy.Name] = policy
@@ -91,8 +91,8 @@ func (n *Namespace) addShape(shape *Shape) error {
 		return err
 	}
 
-	if _, ok := n.Shapes[shape.Name]; ok {
-		return errors.Wrapf(ErrIndex, "shape name conflict: '%s' at %s", shape.Name, shape.Statement.Span())
+	if other, ok := n.Shapes[shape.Name]; ok {
+		return xerr.ErrConflict("shape declaration", shape.Statement.Span(), other.Statement.Span())
 	}
 
 	n.Shapes[shape.Name] = shape
@@ -100,8 +100,8 @@ func (n *Namespace) addShape(shape *Shape) error {
 }
 
 func (n *Namespace) addShapeExport(export *ExportedShape) error {
-	if _, ok := n.ShapeExports[export.Name]; ok {
-		return errors.Wrapf(ErrIndex, "shape export conflict: '%s' at %s", export.Name, export.Statement.Span())
+	if other, ok := n.ShapeExports[export.Name]; ok {
+		return xerr.ErrConflict("shape export", export.Statement.Span(), other.Statement.Span())
 	}
 
 	n.ShapeExports[export.Name] = export

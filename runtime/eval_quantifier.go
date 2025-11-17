@@ -21,6 +21,7 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 func evalAny(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, q *ast.AnyExpression) (any, *trace.Node, error) {
@@ -59,7 +60,7 @@ func evalAny(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 		}
 		node.Attach(resNode)
 		childContext.Dispose()
-		if IsTruthy(res) {
+		if trinary.From(res).IsTrue() {
 			return true, node, nil
 		}
 	}
@@ -106,7 +107,7 @@ func evalAll(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 		}
 		node.Attach(resNode)
 		childContext.Dispose()
-		if !IsTruthy(res) {
+		if !trinary.From(res).IsTrue() {
 			return false, node, nil
 		}
 	}
@@ -153,7 +154,7 @@ func evalFirst(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		}
 		node.Attach(resNode)
 		childContext.Dispose()
-		if IsTruthy(res) {
+		if trinary.From(res).IsTrue() {
 			return item, node, nil
 		}
 	}
@@ -204,7 +205,7 @@ func evalFilter(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p
 		node.Attach(resNode)
 		childContext.Dispose()
 
-		if IsTruthy(res) {
+		if trinary.From(res).IsTrue() {
 			filtered = append(filtered, item)
 		}
 	}

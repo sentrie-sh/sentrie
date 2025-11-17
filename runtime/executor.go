@@ -377,7 +377,12 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 
 	// bind lets
 	for k, v := range p.Lets {
-		ec.InjectLet(k, v)
+		if err := ec.InjectLet(k, v); err != nil {
+			if e.otelConfig.Enabled && span != nil {
+				span.RecordError(err)
+			}
+			return nil, err
+		}
 	}
 
 	// Bind `use` modules

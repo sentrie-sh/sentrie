@@ -15,9 +15,11 @@
 package xerr
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 // Error injected by calling the `error` function in sentrie code
@@ -36,10 +38,17 @@ func (e InfiniteRecursionError) Error() string {
 	return "infinite recursion: " + strings.Join(e.stack, " -> ")
 }
 
-type ConflictError struct{ name string }
+type ConflictError struct {
+	what        string
+	where, with tokens.Range // where the conflict is, with what
+}
 
 func (e ConflictError) Error() string {
-	return "conflict: " + e.name
+	return fmt.Sprintf("conflict: %s at %s with %s", e.what, e.where.String(), e.with.String())
+}
+
+func ErrConflict(what string, where, with tokens.Range) error {
+	return ConflictError{what: what, where: where, with: with}
 }
 
 type InvalidTypeError struct{ got, expected string }
@@ -50,10 +59,6 @@ func (e InvalidTypeError) Error() string {
 
 func ErrInvalidType(got, expected string) error {
 	return InvalidTypeError{got: got, expected: expected}
-}
-
-func ErrConflict(name string) error {
-	return ConflictError{name: name}
 }
 
 func ErrInfiniteRecursion(stack []string) error {
