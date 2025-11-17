@@ -257,6 +257,31 @@ func (s *TristateTestSuite) TestFrom() {
 	s.Equal(True, From(testStruct{})) // Non-nil struct is truthy
 }
 
+func (s *TristateTestSuite) TestFromStringLikeTypes() {
+	s.Equal(Unknown, From("unknown"))
+	s.Equal(Unknown, From("-1"))
+	s.Equal(True, From("TrUe"))
+	s.Equal(False, From("F"))
+
+	type customString string
+	s.Equal(True, From(customString("true")))
+	s.Equal(False, From(customString("")))
+	s.Equal(Unknown, From(customString("null")))
+	s.Equal(True, From(customString("something")))
+}
+
+func (s *TristateTestSuite) TestFromStructKinds() {
+	type customStruct struct {
+		A int
+	}
+
+	var value any = customStruct{}
+	s.Equal(True, From(value))
+
+	value = customStruct{A: 10}
+	s.Equal(True, From(value))
+}
+
 // TestIsTruthy tests the truthiness logic now in From() function
 func (s *TristateTestSuite) TestIsTruthy() {
 	// Test nil

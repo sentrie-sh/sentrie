@@ -17,6 +17,7 @@ package trinary
 import (
 	"encoding/json"
 	"reflect"
+	"strings"
 
 	"github.com/sentrie-sh/sentrie/tokens"
 )
@@ -152,19 +153,15 @@ func FromToken(t tokens.Instance) Value {
 	}
 }
 
-// FromAny coerces any Go value into a Trinary Value.
-// - nil → Unknown
-// - Trinary Value → itself
-// - bool → True/False
-// - *bool → True/False/Unknown
-// - IsUndefined → Unknown
-// - HasTrinary → ToTrinary()
-// - string → len > 0 → True/False
-// - int, uint, float → != 0 → True/False
-// - slice, array, map → len > 0 → True/False
-// - ptr, interface → dereference and re-evaluate
-// - struct → True (non-nil struct)
-// - default → True (non-nil values are truthy)
+// From coerces any Go value into a trinary Value:
+//   - nil or IsUndefined → Unknown
+//   - HasTrinary / Value → delegates directly
+//   - bool → True/False
+//   - numeric primitives (int/uint/float families) → True when != 0
+//   - string → textual keywords first, otherwise True when len > 0
+//   - pointers and interfaces → dereference once and retry
+//   - reflected string/slice/array/map kinds → reuse the string/len rules
+//   - everything else defaults to True (non-nil structs, etc.)
 func From(v any) Value {
 	// Check for actual nil first (returns Unknown)
 	if v == nil {
@@ -181,56 +178,67 @@ func From(v any) Value {
 	case Value:
 		return t
 	case bool:
-		if t {
-			return True
-		}
-		return False
+		return boolToValue(t)
 	case *bool:
 		if t == nil {
 			return Unknown
 		}
-		if *t {
+		return boolToValue(*t)
+	case int, int8, int16, int32, int64:
+		return boolToValue(reflect.ValueOf(t).Int() != 0)
+	case uint, uint8, uint16, uint32, uint64, uintptr:
+		return boolToValue(reflect.ValueOf(t).Uint() != 0)
+	case float32, float64:
+		return boolToValue(reflect.ValueOf(t).Float() != 0)
+	case string:
+		return stringToValue(t)
+	default:
+		rv := reflect.ValueOf(v)
+		switch rv.Kind() {
+		case reflect.Ptr:
+			if rv.IsNil() {
+				if rv.Type().Elem().Kind() == reflect.Bool {
+					return Unknown
+				}
+				return False
+			}
+			// Deref once and re-evaluate
+			return From(rv.Elem().Interface())
+		case reflect.Interface:
+			if rv.IsNil() {
+				return Unknown
+			}
+			return From(rv.Elem().Interface())
+		case reflect.String:
+			return stringToValue(rv.String())
+		case reflect.Slice, reflect.Array, reflect.Map:
+			return boolToValue(rv.Len() > 0)
+		case reflect.Struct:
 			return True
 		}
-		return False
 	}
 
-	rv := reflect.ValueOf(v)
-
-	switch rv.Kind() {
-	case reflect.Ptr, reflect.Interface:
-		if rv.IsNil() {
-			return False
-		}
-		// Deref once and re-evaluate
-		return From(rv.Elem().Interface())
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		if rv.Int() != 0 {
-			return True
-		}
-		return False
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		if rv.Uint() != 0 {
-			return True
-		}
-		return False
-	case reflect.Float32, reflect.Float64:
-		if rv.Float() != 0 {
-			return True
-		}
-		return False
-	case reflect.Bool:
-		if rv.Bool() {
-			return True
-		}
-		return False
-	case reflect.Slice, reflect.Array, reflect.Map, reflect.String:
-		if rv.Len() > 0 {
-			return True
-		}
-		return False
-	}
-
-	// Default: non-nil values are truthy
+	// Default to True - this is a non-zero value
 	return True
+}
+
+func boolToValue(condition bool) Value {
+	if condition {
+		return True
+	}
+	return False
+}
+
+func stringToValue(s string) Value {
+	x := strings.ToLower(s)
+	switch x {
+	case "true", "1", "t":
+		return True
+	case "false", "0", "f":
+		return False
+	case "unknown", "-1", "n", "nil", "null", "undefined":
+		return Unknown
+	default:
+		return boolToValue(len(s) > 0)
+	}
 }
