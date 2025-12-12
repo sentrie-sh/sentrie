@@ -26,9 +26,6 @@ import (
 
 	"github.com/sentrie-sh/sentrie/api/middleware"
 	"github.com/sentrie-sh/sentrie/runtime"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type ListenerServerPair struct {
@@ -52,118 +49,19 @@ func (p *ListenerServerPair) Close() error {
 	return nil
 }
 
-// HTTPMetrics holds all HTTP-related OpenTelemetry metrics
-type HTTPMetrics struct {
-	// HTTP server metrics
-	RequestCount    metric.Int64Counter
-	RequestDuration metric.Float64Histogram
-	ActiveRequests  metric.Int64UpDownCounter
-	RequestSize     metric.Int64Histogram
-	ResponseSize    metric.Int64Histogram
-
-	// Decision-specific metrics
-	ActiveEvaluations metric.Int64UpDownCounter
-	DecisionCount     metric.Int64Counter
-	DecisionDuration  metric.Float64Histogram
-}
-
 // HTTPAPI provides HTTP endpoints for rule execution
 type HTTPAPI struct {
 	executor  runtime.Executor
 	listeners []*ListenerServerPair
-	tracer    trace.Tracer
-	meter     metric.Meter
 	logger    *slog.Logger
-	metrics   *HTTPMetrics
 }
 
 // NewHTTPAPI creates a new HTTP API instance
 func NewHTTPAPI(executor runtime.Executor) *HTTPAPI {
-	api := &HTTPAPI{
+	return &HTTPAPI{
 		executor: executor,
 		logger:   slog.Default(),
 	}
-
-	// Initialize HTTP metrics only if OpenTelemetry is enabled
-	if cfg := executor.OTelConfig(); cfg.Enabled {
-		api.meter = otel.Meter("sentrie/http")
-		api.tracer = otel.Tracer("sentrie/http")
-		api.metrics = &HTTPMetrics{}
-		var err error
-
-		// HTTP server metrics
-		api.metrics.RequestCount, err = api.meter.Int64Counter(
-			"http.server.request.count",
-			metric.WithDescription("Number of HTTP requests"),
-		)
-		if err != nil {
-			api.logger.Error("Failed to create request count metric", "error", err)
-		}
-
-		api.metrics.RequestDuration, err = api.meter.Float64Histogram(
-			"http.server.request.duration",
-			metric.WithDescription("HTTP request duration in milliseconds"),
-			metric.WithUnit("ms"),
-		)
-		if err != nil {
-			api.logger.Error("Failed to create request duration metric", "error", err)
-		}
-
-		api.metrics.ActiveRequests, err = api.meter.Int64UpDownCounter(
-			"http.server.active_requests",
-			metric.WithDescription("Number of active HTTP requests"),
-		)
-		if err != nil {
-			api.logger.Error("Failed to create active requests metric", "error", err)
-		}
-
-		api.metrics.RequestSize, err = api.meter.Int64Histogram(
-			"http.server.request.size",
-			metric.WithDescription("HTTP request body size in bytes"),
-			metric.WithUnit("bytes"),
-		)
-		if err != nil {
-			api.logger.Error("Failed to create request size metric", "error", err)
-		}
-
-		api.metrics.ResponseSize, err = api.meter.Int64Histogram(
-			"http.server.response.size",
-			metric.WithDescription("HTTP response body size in bytes"),
-			metric.WithUnit("bytes"),
-		)
-		if err != nil {
-			api.logger.Error("Failed to create response size metric", "error", err)
-		}
-
-		// Decision-specific metrics
-		api.metrics.ActiveEvaluations, err = api.meter.Int64UpDownCounter(
-			"sentrie.evaluations.active",
-			metric.WithDescription("Number of active evaluations"),
-		)
-		if err != nil {
-			api.logger.Error("Failed to create active evaluations metric", "error", err)
-		}
-
-		api.metrics.DecisionCount, err = api.meter.Int64Counter(
-			"sentrie.decision.count",
-			metric.WithDescription("Number of decisions made"),
-		)
-		if err != nil {
-			api.logger.Error("Failed to create decision count metric", "error", err)
-		}
-
-		api.metrics.DecisionDuration, err = api.meter.Float64Histogram(
-			"sentrie.decision.duration",
-			metric.WithDescription("Decision execution duration in milliseconds"),
-			metric.WithUnit("ms"),
-		)
-		if err != nil {
-			api.logger.Error("Failed to create decision duration metric", "error", err)
-		}
-
-	}
-
-	return api
 }
 
 func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error {
@@ -172,12 +70,7 @@ func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error 
 	// Register the decision endpoint using Go 1.24 syntax
 	mux.Handle("POST /decision/{target...}",
 		middleware.RequestIDMiddleware(
-			middleware.OTelMiddleware(
-				api.executor.OTelConfig(),
-				api.tracer,
-				api.meter,
-				http.HandlerFunc(api.handleDecision),
-			),
+			http.HandlerFunc(api.handleDecision),
 		),
 	)
 

@@ -19,9 +19,7 @@ import (
 	stdErr "errors"
 	"fmt"
 	"path/filepath"
-	"strings"
 	"sync"
-	"time"
 
 	"github.com/binaek/perch"
 	"github.com/dop251/goja"
@@ -29,24 +27,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
-	otelconfig "github.com/sentrie-sh/sentrie/otel"
 	"github.com/sentrie-sh/sentrie/runtime/js"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/sentrie-sh/sentrie/xerr"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric"
-	oteltrace "go.opentelemetry.io/otel/trace"
 )
-
-// ExecutionMetrics holds metrics for runtime execution
-type ExecutionMetrics struct {
-	JSCallCount    metric.Int64Counter
-	JSCallDuration metric.Float64Histogram
-	JSCallErrors   metric.Int64Counter
-	JSPoolGuages   *perch.Perch[metric.Int64UpDownCounter] // pool name -> gauge
-}
 
 type NewExecutorOption func(*executorImpl)
 
@@ -54,13 +39,6 @@ type NewExecutorOption func(*executorImpl)
 func WithCallMemoizeCacheSize(size int) NewExecutorOption {
 	return func(e *executorImpl) {
 		e.callMemoizePerch = perch.New[any](size << 20 /* size in megabytes */)
-	}
-}
-
-// WithOTelConfig sets the OpenTelemetry configuration for the executor
-func WithOTelConfig(config *otelconfig.OTelConfig) NewExecutorOption {
-	return func(e *executorImpl) {
-		e.otelConfig = config
 	}
 }
 
@@ -78,14 +56,6 @@ func (e *ExecutorOutput) ToTrinary() trinary.Value {
 }
 
 type Executor interface {
-	// Tracer returns the tracer for the executor
-	Tracer() oteltrace.Tracer
-	// Meter returns the meter for the executor
-	Meter() metric.Meter
-	// OTelConfig returns the OpenTelemetry configuration for the executor
-	OTelConfig() *otelconfig.OTelConfig
-	// Metrics returns the metrics for the executor
-	Metrics() *ExecutionMetrics
 	ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) ([]*ExecutorOutput, error)
 	ExecRule(ctx context.Context, namespace, policy, rule string, facts map[string]any) (*ExecutorOutput, error)
 	Index() *index.Index
@@ -97,26 +67,6 @@ type executorImpl struct {
 	jsRegistry         *js.Registry
 	moduleBindingPerch *perch.Perch[*ModuleBinding] // --> (policy.useAlias) -> module binding
 	callMemoizePerch   *perch.Perch[any]
-	tracer             oteltrace.Tracer
-	meter              metric.Meter
-	otelConfig         *otelconfig.OTelConfig
-	metrics            *ExecutionMetrics // Execution metrics (initialized once)
-}
-
-func (e *executorImpl) Tracer() oteltrace.Tracer {
-	return e.tracer
-}
-
-func (e *executorImpl) Meter() metric.Meter {
-	return e.meter
-}
-
-func (e *executorImpl) OTelConfig() *otelconfig.OTelConfig {
-	return e.otelConfig
-}
-
-func (e *executorImpl) Metrics() *ExecutionMetrics {
-	return e.metrics
 }
 
 // NewExecutor builds an Executor with built-in @sentra/* modules registered.
@@ -126,13 +76,6 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 		jsRegistry:         js.NewRegistry(idx.Pack.Location),
 		moduleBindingPerch: perch.New[*ModuleBinding](100 << 20 /* 100 MB */), // --> (policy.useAlias) -> module binding
 		callMemoizePerch:   perch.New[any](10 << 20 /* 10 MB */),
-		tracer:             otel.Tracer("sentrie/executor"),
-		meter:              otel.Meter("sentrie/executor"),
-		metrics:            nil,
-		otelConfig: &otelconfig.OTelConfig{
-			Enabled:        false,
-			TraceExecution: false,
-		},
 	}
 
 	exec.jsRegistry.RegisterGoBuiltin("uuid", js.BuiltinUuidGo)
@@ -157,51 +100,10 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 		opt(exec)
 	}
 
-	// Initialize execution metrics if tracing is enabled and meter is available
-	if exec.otelConfig.Enabled && exec.otelConfig.TraceExecution && exec.meter != nil {
-		exec.metrics = &ExecutionMetrics{}
-
-		var err error
-		exec.metrics.JSCallCount, err = exec.meter.Int64Counter(
-			"sentrie.js.call.count",
-			metric.WithDescription("Number of JavaScript function calls"),
-		)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to create JS call count metric")
-		}
-
-		exec.metrics.JSCallDuration, err = exec.meter.Float64Histogram(
-			"sentrie.js.call.duration",
-			metric.WithDescription("JavaScript call execution duration in milliseconds"),
-			metric.WithUnit("ms"),
-		)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to create JS call duration metric")
-		}
-
-		exec.metrics.JSCallErrors, err = exec.meter.Int64Counter(
-			"sentrie.js.call.errors",
-			metric.WithDescription("Number of JavaScript call failures"),
-		)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to create JS call errors metric")
-		}
-
-		// Initialize JSPoolGuages perch for lazy metric counter creation
-		exec.metrics.JSPoolGuages = perch.New[metric.Int64UpDownCounter](10 << 20 /* 10 MB */)
-		if err := exec.metrics.JSPoolGuages.Reserve(); err != nil {
-			return nil, errors.Wrap(err, "failed to reserve JSPoolGuages cache")
-		}
-	}
-
 	// Reserve the cache slots
-	if err := exec.moduleBindingPerch.Reserve(); err != nil {
-		return nil, err
-	}
+	exec.moduleBindingPerch.Reserve()
 
-	if err := exec.callMemoizePerch.Reserve(); err != nil {
-		return nil, err
-	}
+	exec.callMemoizePerch.Reserve()
 
 	return exec, nil
 }
@@ -212,38 +114,8 @@ func (e *executorImpl) Index() *index.Index {
 
 // ExecPolicy executes all exported rules and returns the results
 func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) ([]*ExecutorOutput, error) {
-	// Use otelConfig for decision-level tracing
-	var span oteltrace.Span
-	if e.otelConfig.Enabled {
-		ctx, span = e.tracer.Start(ctx, "executor.exec_policy")
-		defer span.End()
-
-		span.SetAttributes(
-			attribute.String("sentrie.namespace", namespace),
-			attribute.String("sentrie.policy", policy),
-			attribute.Int("sentrie.facts.count", len(facts)),
-		)
-	}
-
-	start := time.Now()
-	defer func() {
-		duration := time.Since(start)
-		// Record policy execution duration metric
-		if policyDuration, err := e.meter.Float64Histogram("sentrie.policy.exec.duration"); err == nil {
-			policyDuration.Record(ctx, float64(duration.Nanoseconds())/1e6,
-				metric.WithAttributes(
-					attribute.String("sentrie.namespace", namespace),
-					attribute.String("sentrie.policy", policy),
-				),
-			)
-		}
-	}()
-
 	p, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
-		if e.otelConfig.Enabled && span != nil {
-			span.RecordError(err)
-		}
 		return nil, err
 	}
 
@@ -266,9 +138,6 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 			theLock.Lock()
 			defer theLock.Unlock()
 			if err != nil {
-				if e.otelConfig.Enabled && span != nil {
-					span.RecordError(err)
-				}
 				compositeErr = stdErr.Join(compositeErr, err)
 				return
 			}
@@ -284,47 +153,12 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 
 // ExecRule executes an exported rule and returns the result
 func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, injectedFacts map[string]any) (*ExecutorOutput, error) {
-	// Use otelConfig for decision-level tracing
-	var span oteltrace.Span
-	if e.otelConfig.Enabled {
-		ctx, span = e.tracer.Start(ctx, "ExecRule")
-		defer span.End()
-
-		span.SetAttributes(
-			attribute.String("sentrie.namespace", namespace),
-			attribute.String("sentrie.policy", policy),
-			attribute.String("sentrie.rule", rule),
-			attribute.Int("sentrie.facts.count", len(injectedFacts)),
-		)
-	}
-
-	start := time.Now()
-	defer func() {
-		duration := time.Since(start)
-		// Record rule execution duration metric
-		if ruleDuration, err := e.meter.Float64Histogram("sentrie.rule.exec.duration"); err == nil {
-			ruleDuration.Record(ctx, float64(duration.Nanoseconds())/1e6,
-				metric.WithAttributes(
-					attribute.String("sentrie.namespace", namespace),
-					attribute.String("sentrie.policy", policy),
-					attribute.String("sentrie.rule", rule),
-				),
-			)
-		}
-	}()
-
 	// Validate exported
 	p, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
-		if e.otelConfig.Enabled && span != nil {
-			span.RecordError(err)
-		}
 		return nil, err
 	}
 	if err := p.VerifyRuleExported(rule); err != nil {
-		if e.otelConfig.Enabled && span != nil {
-			span.RecordError(err)
-		}
 		return nil, err
 	}
 
@@ -347,9 +181,6 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 			}
 			err := ec.InjectFact(ctx, factName, factValue, false, factStatement.Type)
 			if err != nil {
-				if e.otelConfig.Enabled && span != nil {
-					span.RecordError(err)
-				}
 				return nil, err
 			}
 			continue // move on to the next fact
@@ -378,18 +209,12 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 	// bind lets
 	for k, v := range p.Lets {
 		if err := ec.InjectLet(k, v); err != nil {
-			if e.otelConfig.Enabled && span != nil {
-				span.RecordError(err)
-			}
 			return nil, err
 		}
 	}
 
 	// Bind `use` modules
 	if err := e.bindUses(ctx, ec, p); err != nil {
-		if e.otelConfig.Enabled && span != nil {
-			span.RecordError(err)
-		}
 		return nil, err
 	}
 
@@ -538,37 +363,11 @@ func (e *executorImpl) bindUses(ctx context.Context, ec *ExecutionContext, p *in
 
 // getModuleBinding resolves and caches a module binding for a given use statement and module spec.
 func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStatement, ms *js.ModuleSpec) (binding *ModuleBinding, _ bool, err error) {
-	// Get or create the metric counter using perch - cached indefinitely (TTL=0)
-	var poolCounter metric.Int64UpDownCounter
-	if e.otelConfig.Enabled && e.metrics != nil {
-		counter, _, err := e.metrics.JSPoolGuages.Get(ctx, ms.KeyOrPath(), 0, func(ctx context.Context, _ string) (metric.Int64UpDownCounter, error) {
-			return e.meter.Int64UpDownCounter(
-				fmt.Sprintf("sentrie.js.pool.count.%s", strings.ReplaceAll(ms.KeyOrPath(), "/", ".")),
-				metric.WithDescription("Number of JavaScript instances in the pool"),
-			)
-		})
-		if err != nil {
-			return nil, false, err
-		}
-		poolCounter = counter
-	}
-
 	constructor := func(ctx context.Context) (*JSInstance, error) {
-		b, err := e.jsBindingConstructor(ctx, use, ms)
-		if err != nil {
-			return nil, err
-		}
-
-		if poolCounter != nil {
-			poolCounter.Add(ctx, 1)
-		}
-		return b, nil
+		return e.jsBindingConstructor(ctx, use, ms)
 	}
 
 	destructor := func(res *JSInstance) {
-		if poolCounter != nil {
-			poolCounter.Add(ctx, -1)
-		}
 		// clear the interrupt
 		res.rt.ClearInterrupt()
 	}

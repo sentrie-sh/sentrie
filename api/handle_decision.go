@@ -18,11 +18,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/sentrie-sh/sentrie/runtime"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric"
 )
 
 // DecisionRequest represents the request body for rule execution
@@ -39,11 +36,6 @@ type DecisionResponse struct {
 // handleDecision handles POST /decision/{namespace...} requests
 func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	ctx, span := api.tracer.Start(ctx, "decision.request")
-	defer span.End()
-
-	// Start timing
-	start := time.Now()
 
 	// Set CORS headers
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -58,13 +50,6 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 
 	api.logger.InfoContext(ctx, "handleDecision", "path", path)
 
-	// Create span for path resolution
-	namespace, policy, rule, err := api.executor.Index().ResolveSegments(strings.TrimPrefix(path, "/decision/"))
-	if err != nil {
-		api.writeErrorResponse(w, r, http.StatusNotFound, "Invalid Path", err.Error())
-		return
-	}
-
 	// Handle preflight OPTIONS requests
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
@@ -74,6 +59,13 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 	// Only allow POST requests
 	if r.Method != "POST" {
 		api.writeErrorResponse(w, r, http.StatusMethodNotAllowed, "Method Not Allowed", "Only POST requests are supported for this endpoint")
+		return
+	}
+
+	// Create span for path resolution
+	namespace, policy, rule, err := api.executor.Index().ResolveSegments(strings.TrimPrefix(path, "/decision/"))
+	if err != nil {
+		api.writeErrorResponse(w, r, http.StatusNotFound, "Invalid Path", err.Error())
 		return
 	}
 
@@ -88,7 +80,6 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	var req DecisionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		span.RecordError(err)
 		api.writeErrorResponse(w, r, http.StatusBadRequest, "Invalid JSON", "The request body could not be parsed as valid JSON")
 		return
 	}
@@ -96,62 +87,12 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 	// Execute policy/rule
 	var outputs []*runtime.ExecutorOutput
 	var runErr error
-	if api.metrics != nil {
-		api.metrics.ActiveEvaluations.Add(ctx, 1,
-			metric.WithAttributes(
-				attribute.String("sentrie.namespace", namespace),
-				attribute.String("sentrie.policy", policy),
-				attribute.String("sentrie.rule", rule),
-			),
-		)
-	}
 	if len(rule) == 0 {
 		outputs, runErr = api.executor.ExecPolicy(ctx, namespace, policy, req.Facts)
 	} else {
 		output, e := api.executor.ExecRule(ctx, namespace, policy, rule, req.Facts)
 		outputs = []*runtime.ExecutorOutput{output}
 		runErr = e
-	}
-
-	// Record execution metrics
-	execDuration := float64(time.Since(start).Nanoseconds()) / 1e6 // Convert to milliseconds
-	if api.metrics != nil {
-		api.metrics.DecisionDuration.Record(ctx, execDuration)
-	}
-
-	// Determine outcome for metrics
-	outcome := "unknown"
-	if runErr == nil && len(outputs) > 0 {
-		switch outputs[0].Decision.State.String() {
-		case "true":
-			outcome = "true"
-		case "false":
-			outcome = "false"
-		default:
-			outcome = "unknown"
-		}
-	} else if runErr != nil {
-		outcome = "error"
-	}
-
-	// Record decision count
-	if api.metrics != nil {
-		api.metrics.DecisionCount.Add(ctx, 1,
-			metric.WithAttributes(
-				attribute.String("sentrie.namespace", namespace),
-				attribute.String("sentrie.policy", policy),
-				attribute.String("sentrie.rule", rule),
-				attribute.String("sentrie.outcome", outcome),
-			),
-		)
-
-		api.metrics.ActiveEvaluations.Add(ctx, -1,
-			metric.WithAttributes(
-				attribute.String("sentrie.namespace", namespace),
-				attribute.String("sentrie.policy", policy),
-				attribute.String("sentrie.rule", rule),
-			),
-		)
 	}
 
 	response := DecisionResponse{
@@ -164,7 +105,6 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		span.RecordError(err)
 		api.logger.ErrorContext(ctx, "Error encoding response", "error", err)
 	}
 }
