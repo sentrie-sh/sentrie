@@ -26,14 +26,22 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
+      - name: Get dependencies
+        run: go mod download
+
       - name: Build
         run: go build -v ./...
 
       - name: Test
-        run: go test -v -race -coverprofile=coverage.out ./...
+        timeout-minutes: 10
+        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
       - name: Generate coverage report
-        run: go tool cover -html=coverage.out -o coverage.html
+        if: always()
+        run: |
+          if [ -f coverage.out ] && [ -s coverage.out ]; then
+            go tool cover -html=coverage.out -o coverage.html
+          fi
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
@@ -48,7 +56,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.24
+          go-version: 1.25
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
