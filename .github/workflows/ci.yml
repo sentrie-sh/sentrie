@@ -26,10 +26,7 @@ jobs:
         with:
           # Pin to a v2.x that supports Go 1.25 (>= v2.4.0)
           version: v2.4.0
-          args: >
-            run
-            --timeout=5m
-            --out-format=github-actions
+          args: --timeout=5m
 
   test:
     runs-on: ubuntu-latest
