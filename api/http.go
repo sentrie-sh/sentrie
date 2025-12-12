@@ -89,7 +89,7 @@ func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error 
 		if err != nil {
 			// Close any already opened listeners
 			for _, l := range api.listeners {
-				l.Close()
+				_ = l.Close()
 			}
 			api.listeners = nil
 			return fmt.Errorf("failed to listen on %s: %w", binding, err)
@@ -144,7 +144,7 @@ func (api *HTTPAPI) StartServer(ctx context.Context, port int, listen []string) 
 func (api *HTTPAPI) StopServer(ctx context.Context) error {
 	if api.listeners != nil {
 		for _, ln := range api.listeners {
-			ln.Close()
+			_ = ln.Close()
 		}
 		api.listeners = nil
 	}

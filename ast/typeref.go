@@ -58,7 +58,7 @@ func (b *baseTypeRef) AddConstraint(constraint *TypeRefConstraint) error {
 		return err
 	}
 	b.constraints = append(b.constraints, constraint)
-	b.baseNode.Rnge.To = constraint.baseNode.Rnge.To
+	b.Rnge.To = constraint.Rnge.To
 	return nil
 }
 

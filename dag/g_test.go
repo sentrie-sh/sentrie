@@ -214,8 +214,8 @@ func (s *DagTestSuite) TestTopoSort() {
 	graph.AddNode(nodeA)
 	graph.AddNode(nodeB)
 	graph.AddNode(nodeC)
-	graph.AddEdge(nodeA, nodeB)
-	graph.AddEdge(nodeB, nodeC)
+	_ = graph.AddEdge(nodeA, nodeB)
+	_ = graph.AddEdge(nodeB, nodeC)
 
 	nodes, err = s.topoSort(graph)
 	s.NoError(err)
@@ -235,10 +235,10 @@ func (s *DagTestSuite) TestTopoSort() {
 	graph.AddNode(nodeB)
 	graph.AddNode(nodeC)
 	graph.AddNode(nodeD)
-	graph.AddEdge(nodeA, nodeB)
-	graph.AddEdge(nodeA, nodeC)
-	graph.AddEdge(nodeB, nodeD)
-	graph.AddEdge(nodeC, nodeD)
+	_ = graph.AddEdge(nodeA, nodeB)
+	_ = graph.AddEdge(nodeA, nodeC)
+	_ = graph.AddEdge(nodeB, nodeD)
+	_ = graph.AddEdge(nodeC, nodeD)
 
 	nodes, err = s.topoSort(graph)
 	s.NoError(err)
@@ -268,8 +268,8 @@ func (s *DagTestSuite) TestTopoSortWithCycle() {
 	nodeB := TestNode{ID: "B"}
 	graph.AddNode(nodeA)
 	graph.AddNode(nodeB)
-	graph.AddEdge(nodeA, nodeB)
-	graph.AddEdge(nodeB, nodeA)
+	_ = graph.AddEdge(nodeA, nodeB)
+	_ = graph.AddEdge(nodeB, nodeA)
 
 	nodes, err := s.topoSort(graph)
 	s.Error(err)
@@ -290,9 +290,9 @@ func (s *DagTestSuite) TestTopoSortWithCycle() {
 	graph.AddNode(nodeA)
 	graph.AddNode(nodeB)
 	graph.AddNode(nodeC)
-	graph.AddEdge(nodeA, nodeB)
-	graph.AddEdge(nodeB, nodeC)
-	graph.AddEdge(nodeC, nodeA)
+	_ = graph.AddEdge(nodeA, nodeB)
+	_ = graph.AddEdge(nodeB, nodeC)
+	_ = graph.AddEdge(nodeC, nodeA)
 
 	nodes, err = s.topoSort(graph)
 	s.Error(err)
@@ -321,8 +321,8 @@ func (s *DagTestSuite) TestDetectAllCycles() {
 	graph.AddNode(nodeA)
 	graph.AddNode(nodeB)
 	graph.AddNode(nodeC)
-	graph.AddEdge(nodeA, nodeB)
-	graph.AddEdge(nodeB, nodeC)
+	_ = graph.AddEdge(nodeA, nodeB)
+	_ = graph.AddEdge(nodeB, nodeC)
 
 	cycles = graph.DetectFirstCycle()
 	s.Empty(cycles)
@@ -333,8 +333,8 @@ func (s *DagTestSuite) TestDetectAllCycles() {
 	nodeB = TestNode{ID: "B"}
 	graph.AddNode(nodeA)
 	graph.AddNode(nodeB)
-	graph.AddEdge(nodeA, nodeB)
-	graph.AddEdge(nodeB, nodeA)
+	_ = graph.AddEdge(nodeA, nodeB)
+	_ = graph.AddEdge(nodeB, nodeA)
 
 	cycles = graph.DetectFirstCycle()
 	s.Len(cycles, 3)
@@ -351,11 +351,11 @@ func (s *DagTestSuite) TestDetectAllCycles() {
 	graph.AddNode(nodeB)
 	graph.AddNode(nodeC)
 	graph.AddNode(nodeD)
-	graph.AddEdge(nodeA, nodeB)
-	graph.AddEdge(nodeB, nodeA) // Cycle 1: A -> B -> A
-	graph.AddEdge(nodeB, nodeC) // Connect the components
-	graph.AddEdge(nodeC, nodeD)
-	graph.AddEdge(nodeD, nodeC) // Cycle 2: C -> D -> C
+	_ = graph.AddEdge(nodeA, nodeB)
+	_ = graph.AddEdge(nodeB, nodeA) // Cycle 1: A -> B -> A
+	_ = graph.AddEdge(nodeB, nodeC) // Connect the components
+	_ = graph.AddEdge(nodeC, nodeD)
+	_ = graph.AddEdge(nodeD, nodeC) // Cycle 2: C -> D -> C
 
 	cycles = graph.DetectFirstCycle()
 	s.NotEmpty(cycles, "Should detect at least one cycle")
@@ -375,8 +375,8 @@ func (s *DagTestSuite) TestComplexGraphStructures() {
 	graph.AddNode(nodeB)
 	graph.AddNode(nodeC)
 	graph.AddNode(nodeD)
-	graph.AddEdge(nodeA, nodeB) // Component 1: A -> B
-	graph.AddEdge(nodeC, nodeD) // Component 2: C -> D
+	_ = graph.AddEdge(nodeA, nodeB) // Component 1: A -> B
+	_ = graph.AddEdge(nodeC, nodeD) // Component 2: C -> D
 
 	nodes, err := s.topoSort(graph)
 	s.NoError(err)
@@ -404,12 +404,12 @@ func (s *DagTestSuite) TestComplexGraphStructures() {
 	graph.AddNode(rightLeft)
 	graph.AddNode(rightRight)
 
-	graph.AddEdge(root, left)
-	graph.AddEdge(root, right)
-	graph.AddEdge(left, leftLeft)
-	graph.AddEdge(left, leftRight)
-	graph.AddEdge(right, rightLeft)
-	graph.AddEdge(right, rightRight)
+	_ = graph.AddEdge(root, left)
+	_ = graph.AddEdge(root, right)
+	_ = graph.AddEdge(left, leftLeft)
+	_ = graph.AddEdge(left, leftRight)
+	_ = graph.AddEdge(right, rightLeft)
+	_ = graph.AddEdge(right, rightRight)
 
 	nodes, err = s.topoSort(graph)
 	s.NoError(err)
@@ -440,7 +440,7 @@ func (s *DagTestSuite) TestConcurrency() {
 		go func(i int) {
 			source := TestNode{ID: fmt.Sprintf("node%d", i)}
 			dest := TestNode{ID: fmt.Sprintf("node%d", i+1)}
-			graph.AddEdge(source, dest)
+			_ = graph.AddEdge(source, dest)
 			done <- true
 		}(i)
 	}
@@ -453,7 +453,7 @@ func (s *DagTestSuite) TestConcurrency() {
 	// Test concurrent read operations (these are thread-safe)
 	for i := 0; i < 5; i++ {
 		go func() {
-			s.topoSort(graph)
+			_, _ = s.topoSort(graph)
 			graph.DetectFirstCycle()
 			done <- true
 		}()
@@ -504,8 +504,8 @@ func (s *DagTestSuite) TestEdgeCases() {
 	graph.AddNode(specialNode1)
 	graph.AddNode(specialNode2)
 	graph.AddNode(specialNode3)
-	graph.AddEdge(specialNode1, specialNode2)
-	graph.AddEdge(specialNode2, specialNode3)
+	_ = graph.AddEdge(specialNode1, specialNode2)
+	_ = graph.AddEdge(specialNode2, specialNode3)
 
 	nodes, err = s.topoSort(graph)
 	s.NoError(err)
@@ -539,14 +539,14 @@ func (s *DagTestSuite) findNodeIndex(nodes []TestNode, target TestNode) int {
 	return -1
 }
 
-func (s *DagTestSuite) containsNode(nodes []TestNode, target TestNode) bool {
-	for _, node := range nodes {
-		if node.ID == target.ID {
-			return true
-		}
-	}
-	return false
-}
+// func (s *DagTestSuite) containsNode(nodes []TestNode, target TestNode) bool {
+// 	for _, node := range nodes {
+// 		if node.ID == target.ID {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
 
 // topoSort is a helper method to call TopoSort on the concrete implementation
 func (s *DagTestSuite) topoSort(graph G[TestNode]) ([]TestNode, error) {

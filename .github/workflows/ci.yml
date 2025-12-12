@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: false
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          # Pin to a v2.x that supports Go 1.25 (>= v2.4.0)
+          version: v2.4.0
+          args: >
+            --timeout=5m
+            --output.text.path=stdout
+            --output.text.print-linter-name=true
+            --output.text.print-issued-lines=true
+            --output.text.colors=true
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests (race)
+        run: |
+          echo "## Running race tests..."
+          go test -v -race ./...
+
+      - name: Run tests (coverage)
+        if: success()
+        run: |
+          echo "## Running coverage tests..."
+          # Disable exit on error so we can capture and handle exit codes
+          set +e
+          # Ensure pipeline failures are reflected in PIPESTATUS
+          set -o pipefail
+
+          # Run coverage tests and capture both output and exit code
+          # Note: covdata errors for packages without tests are harmless warnings
+          # They occur when Go tries to merge coverage but the tool isn't available in the toolchain
+          go test -v -covermode=atomic -coverprofile=coverage.out ./... 2>&1 | tee test_output.log | grep -v "go: no such tool \"covdata\"" || true
+          TEST_EXIT_CODE=${PIPESTATUS[0]}
+
+          # Re-enable exit on error for the rest of the script
+          set -e
+
+          echo "## go test (coverage) exit code: $TEST_EXIT_CODE"
+          echo
+
+          # Look for actual test failures
+          if grep -q "^FAIL" test_output.log; then
+            echo "## Actual FAIL lines detected in test output"
+            echo "❌ Real test failures found. Failing CI."
+            exit 1
+          else
+            echo "## No FAIL lines detected in test output"
+          fi
+
+          # If exit code is 0, all good
+          if [ "$TEST_EXIT_CODE" -eq 0 ]; then
+            echo "✅ Coverage tests passed cleanly"
+            exit 0
+          fi
+
+          # Exit code 1, but no FAIL and coverage.out exists & is non-empty
+          if [ -f coverage.out ] && [ -s coverage.out ]; then
+            echo "⚠ go test returned exit code 1, but:"
+            echo "   - No FAIL lines in output"
+            echo "   - coverage.out exists and is non-empty"
+            echo "   Treating this as a known go test -coverprofile false positive."
+            exit 0
+          fi
+
+          # Anything else is a genuine failure
+          echo "❌ go test exited with code $TEST_EXIT_CODE and no valid coverage file."
+          exit "$TEST_EXIT_CODE"
+
+      - name: Upload coverage to Codecov
+        if: success()
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.out
+          fail_ci_if_error: false

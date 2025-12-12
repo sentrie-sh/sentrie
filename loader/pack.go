@@ -59,7 +59,7 @@ func LoadPack(ctx context.Context, root string) (_ *pack.PackFile, e error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "open pack file")
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var p pack.PackFile
 	decoder := toml.NewDecoder(f)
