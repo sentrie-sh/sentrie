@@ -34,7 +34,7 @@ func resolveBindings(port int, listen []string) ([]string, error) {
 		}
 	}
 
-	var addresses []string = make([]string, 0, len(listen))
+	var addresses = make([]string, 0, len(listen))
 	if slices.Contains(predefined[:], listen[0]) {
 		switch listen[0] {
 		case "local":

@@ -196,7 +196,7 @@ func sortOutputs(outputs []*runtime.ExecutorOutput) ExecutorOutputMap {
 func formatOutputJSON(m []*runtime.ExecutorOutput) {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
-	enc.Encode(m)
+	_ = enc.Encode(m)
 }
 
 // formatOutputTable formats the decision output in the specified format
@@ -321,7 +321,7 @@ func setupDefaultLogger() *slog.Logger {
 	logLevel := slog.LevelVar{}
 	if _, ok := os.LookupEnv(constants.EnvDebug); ok {
 		// force debug log if we are running in DEBUG mode
-		os.Setenv(constants.EnvLogLevel, "DEBUG")
+		_ = os.Setenv(constants.EnvLogLevel, "DEBUG")
 	}
 
 	// set log level from env

@@ -68,7 +68,7 @@ func initCmd(ctx context.Context, args []string) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not create pack file")
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	encoder := toml.NewEncoder(f)
 	encoder.SetTablesInline(true)

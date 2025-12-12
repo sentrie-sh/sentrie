@@ -169,60 +169,60 @@ func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Polic
 }
 
 // containsSelfReference recursively checks if an AST node contains a self-reference
-func containsSelfReference(node ast.Node, ident string) bool {
-	switch n := node.(type) {
-	case *ast.Identifier:
-		return n.Value == ident
-	case *ast.CallExpression:
-		if containsSelfReference(n.Callee, ident) {
-			return true
-		}
-		for _, arg := range n.Arguments {
-			if containsSelfReference(arg, ident) {
-				return true
-			}
-		}
-	case *ast.InfixExpression:
-		return containsSelfReference(n.Left, ident) || containsSelfReference(n.Right, ident)
-	case *ast.UnaryExpression:
-		return containsSelfReference(n.Right, ident)
-	case *ast.TernaryExpression:
-		return containsSelfReference(n.Condition, ident) ||
-			containsSelfReference(n.ThenBranch, ident) ||
-			containsSelfReference(n.ElseBranch, ident)
-	case *ast.BlockExpression:
-		for _, stmt := range n.Statements {
-			if containsSelfReference(stmt, ident) {
-				return true
-			}
-		}
-		// Also check the yield expression
-		if n.Yield != nil && containsSelfReference(n.Yield, ident) {
-			return true
-		}
-	case *ast.ListLiteral:
-		for _, elem := range n.Values {
-			if containsSelfReference(elem, ident) {
-				return true
-			}
-		}
-	case *ast.MapLiteral:
-		for _, entry := range n.Entries {
-			if containsSelfReference(entry.Value, ident) {
-				return true
-			}
-		}
-	case *ast.FieldAccessExpression:
-		return containsSelfReference(n.Left, ident)
-	case *ast.ImportClause:
-		// Import clauses don't contain self-references
-		return false
-	default:
-		// For any other node types, we don't need to check them
-		return false
-	}
-	return false
-}
+// func containsSelfReference(node ast.Node, ident string) bool {
+// 	switch n := node.(type) {
+// 	case *ast.Identifier:
+// 		return n.Value == ident
+// 	case *ast.CallExpression:
+// 		if containsSelfReference(n.Callee, ident) {
+// 			return true
+// 		}
+// 		for _, arg := range n.Arguments {
+// 			if containsSelfReference(arg, ident) {
+// 				return true
+// 			}
+// 		}
+// 	case *ast.InfixExpression:
+// 		return containsSelfReference(n.Left, ident) || containsSelfReference(n.Right, ident)
+// 	case *ast.UnaryExpression:
+// 		return containsSelfReference(n.Right, ident)
+// 	case *ast.TernaryExpression:
+// 		return containsSelfReference(n.Condition, ident) ||
+// 			containsSelfReference(n.ThenBranch, ident) ||
+// 			containsSelfReference(n.ElseBranch, ident)
+// 	case *ast.BlockExpression:
+// 		for _, stmt := range n.Statements {
+// 			if containsSelfReference(stmt, ident) {
+// 				return true
+// 			}
+// 		}
+// 		// Also check the yield expression
+// 		if n.Yield != nil && containsSelfReference(n.Yield, ident) {
+// 			return true
+// 		}
+// 	case *ast.ListLiteral:
+// 		for _, elem := range n.Values {
+// 			if containsSelfReference(elem, ident) {
+// 				return true
+// 			}
+// 		}
+// 	case *ast.MapLiteral:
+// 		for _, entry := range n.Entries {
+// 			if containsSelfReference(entry.Value, ident) {
+// 				return true
+// 			}
+// 		}
+// 	case *ast.FieldAccessExpression:
+// 		return containsSelfReference(n.Left, ident)
+// 	case *ast.ImportClause:
+// 		// Import clauses don't contain self-references
+// 		return false
+// 	default:
+// 		// For any other node types, we don't need to check them
+// 		return false
+// 	}
+// 	return false
+// }
 
 func (idx *Index) detectRuleCycle(ctx context.Context) (dag.G[*Rule], error) {
 	ruleDag := dag.New[*Rule]()

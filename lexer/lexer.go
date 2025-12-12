@@ -450,7 +450,7 @@ func (l *Lexer) readHereDoc() (string, error) {
 
 	// Disallow spaces before tag to keep syntax tight.
 	// Require TAG immediately.
-	if !(unicode.IsLetter(l.current) || l.current == '_') {
+	if !unicode.IsLetter(l.current) && l.current != '_' {
 		return "", errors.Wrap(InvalidHereDocSyntaxError(l.filename, l.currentPosition()), "heredoc requires identifier tag after <<<")
 	}
 
