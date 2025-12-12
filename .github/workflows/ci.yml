@@ -26,7 +26,13 @@ jobs:
         with:
           # Pin to a v2.x that supports Go 1.25 (>= v2.4.0)
           version: v2.4.0
-          args: --timeout=5m
+          args: >
+            run
+            --timeout=5m
+            --output.text.path=stdout
+            --output.text.print-linter-name=true
+            --output.text.print-issued-lines=true
+            --output.text.colors=true
 
   test:
     runs-on: ubuntu-latest
