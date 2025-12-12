@@ -26,8 +26,6 @@ import (
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 	"github.com/sentrie-sh/sentrie/xerr"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric"
 )
 
 func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, t *ast.CallExpression) (response any, traceNode *trace.Node, err error) {
@@ -129,31 +127,6 @@ func getTarget(_ context.Context, ec *ExecutionContext, p *index.Policy, c *ast.
 	}
 
 	return func(ctx context.Context, args ...any) (any, error) {
-		start := time.Now()
-		result, err := modulebinding.Call(ctx, ec, fn, args...)
-
-		// Record metrics using the executor's stored instruments
-		if metrics := ec.executor.Metrics(); metrics != nil {
-			attrs := []attribute.KeyValue{
-				attribute.String("sentrie.js.call.module.canonical_key", modulebinding.CanonicalKey),
-				attribute.String("sentrie.js.call.module.alias", modulebinding.Alias),
-				attribute.String("sentrie.js.call.module.function", fn),
-			}
-			if err != nil {
-				attrs = append(attrs, attribute.String("sentrie.js.call.error", err.Error()))
-			}
-
-			attrSet := attribute.NewSet(attrs...)
-			dur := time.Since(start)
-
-			// Record duration in milliseconds
-			metrics.JSCallDuration.Record(ctx, float64(dur.Nanoseconds())/1e6, metric.WithAttributeSet(attrSet))
-			if err != nil {
-				metrics.JSCallErrors.Add(ctx, 1, metric.WithAttributeSet(attrSet))
-			}
-			metrics.JSCallCount.Add(ctx, 1, metric.WithAttributeSet(attrSet))
-		}
-
-		return result, err
+		return modulebinding.Call(ctx, ec, fn, args...)
 	}, nil
 }
