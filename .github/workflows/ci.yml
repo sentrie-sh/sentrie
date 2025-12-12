@@ -32,21 +32,91 @@ jobs:
       - name: Build
         run: go build -v ./...
 
+      - name: List packages
+        run: |
+          echo "## Packages to test:"
+          go list ./... | while read pkg; do
+            echo "  - $pkg"
+          done
+          echo ""
+          echo "Total packages: $(go list ./... | wc -l)"
+
       - name: Test
         timeout-minutes: 10
-        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+        id: test
+        run: |
+          echo "## Running tests with race detector and coverage..."
+          echo "Go version: $(go version)"
+          echo ""
+
+          # Run tests and capture exit code (don't fail immediately)
+          set +e
+          go test -v -race -covermode=atomic ./... -coverprofile=coverage.out
+          TEST_EXIT_CODE=$?
+          set -e
+
+          echo ""
+          echo "## Test execution completed with exit code: $TEST_EXIT_CODE"
+
+          # Check coverage file status regardless of test exit code
+          if [ -f coverage.out ]; then
+            COVERAGE_SIZE=$(wc -c < coverage.out)
+            echo "## Coverage file exists: coverage.out ($COVERAGE_SIZE bytes)"
+            if [ "$COVERAGE_SIZE" -eq 0 ]; then
+              echo "## Warning: Coverage file is empty"
+            else
+              echo "## Coverage file preview (first 10 lines):"
+              head -10 coverage.out || true
+            fi
+          else
+            echo "## Warning: Coverage file not found"
+          fi
+
+          # Show summary of test results
+          echo ""
+          echo "## Test summary:"
+          if [ $TEST_EXIT_CODE -eq 0 ]; then
+            echo "✓ All tests passed"
+          else
+            echo "✗ Tests failed with exit code: $TEST_EXIT_CODE"
+          fi
+
+          # Exit with the test exit code (fail the step if tests failed)
+          exit $TEST_EXIT_CODE
+
+      - name: Check coverage file
+        if: always()
+        run: |
+          echo "## Coverage file status check:"
+          if [ -f coverage.out ]; then
+            echo "✓ Coverage file exists"
+            echo "  Size: $(wc -c < coverage.out) bytes"
+            echo "  First line: $(head -1 coverage.out || echo 'empty')"
+          else
+            echo "✗ Coverage file not found"
+            echo "## Creating empty coverage file for downstream steps..."
+            echo "mode: atomic" > coverage.out
+          fi
 
       - name: Generate coverage report
         if: always()
         run: |
           if [ -f coverage.out ] && [ -s coverage.out ]; then
+            echo "## Generating HTML coverage report..."
             go tool cover -html=coverage.out -o coverage.html
+            echo "✓ Coverage report generated: coverage.html"
+          else
+            echo "## Skipping coverage report generation (no coverage data)"
           fi
 
       - name: Upload coverage reports to Codecov
+        if: always()
         uses: codecov/codecov-action@v5
+        continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          verbose: true
 
   lint:
     runs-on: ubuntu-latest
