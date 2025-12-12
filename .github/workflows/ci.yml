@@ -22,7 +22,7 @@ jobs:
           cache: false
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v8
         with:
           # Pin to a v2.x that supports Go 1.25 (>= v2.4.0)
           version: v2.4.0
@@ -49,13 +49,11 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      # 1. Race tests (no coverage) – fail fast on real issues
       - name: Run tests (race)
         run: |
           echo "## Running race tests..."
           go test -v -race ./...
 
-      # 2. Coverage tests – handle the flaky exit-code=1 case
       - name: Run tests (coverage)
         if: success()
         run: |
