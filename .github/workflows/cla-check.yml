@@ -14,45 +14,78 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Short-circuit for bots and maintainers
-        id: bypass
+      - name: Short-circuit for bots
+        id: skip_bots
         shell: bash
         env:
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           set -euo pipefail
 
-          # List of users that bypass CLA (maintainers + bots)
-          BYPASS_USERS=(
+          # Hardcoded list of bots that bypass CLA
+          BOTS=(
             "dependabot[bot]"
             "renovate[bot]"
-            "sentrie-bot"        # if you create a bot account later
-            "binaek"             # core maintainer
           )
 
-          bypass="false"
-          for u in "${BYPASS_USERS[@]}"; do
-            if [[ "${PR_AUTHOR}" == "${u}" ]]; then
-              bypass="true"
+          skip="false"
+          for bot in "${BOTS[@]}"; do
+            if [[ "${PR_AUTHOR}" == "${bot}" ]]; then
+              skip="true"
+              echo "Skipping CLA check for bot: ${PR_AUTHOR}"
               break
             fi
           done
 
-          echo "bypass=${bypass}" >> "${GITHUB_OUTPUT}"
-          echo "bypass=${bypass}"
-
-      - name: Exit early for bypassed authors
-        if: steps.bypass.outputs.bypass == 'true'
-        shell: bash
-        run: |
-          echo "Author is in CLA bypass list. Skipping CLA checks."
+          echo "skip=${skip}" >> "${GITHUB_OUTPUT}"
 
       - name: Checkout base (main) branch
-        if: steps.bypass.outputs.bypass != 'true'
+        if: steps.skip_bots.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.ref }}
           fetch-depth: 0
+
+      - name: Skip CLA check for maintainers
+        id: skip_maintainers
+        if: steps.skip_bots.outputs.skip != 'true'
+        shell: bash
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          set -euo pipefail
+
+          skip="false"
+
+          if [[ -f "MAINTAINERS" ]]; then
+            # Read maintainers from file, ignoring comments and empty lines
+            while IFS= read -r line || [[ -n "${line}" ]]; do
+              # Skip comments and empty lines
+              [[ "${line}" =~ ^#.*$ ]] && continue
+              [[ -z "${line}" ]] && continue
+              # Trim whitespace
+              line="${line// /}"
+              if [[ "${PR_AUTHOR}" == "${line}" ]]; then
+                skip="true"
+                echo "Skipping CLA check for maintainer: ${PR_AUTHOR}"
+                break
+              fi
+            done < "MAINTAINERS"
+          fi
+
+          echo "skip=${skip}" >> "${GITHUB_OUTPUT}"
+
+      - name: Set skip status
+        id: bypass
+        shell: bash
+        run: |
+          if [[ "${{ steps.skip_bots.outputs.skip }}" == "true" ]] || \
+             [[ "${{ steps.skip_maintainers.outputs.skip }}" == "true" ]]; then
+            echo "bypass=true" >> "${GITHUB_OUTPUT}"
+            echo "CLA check bypassed."
+          else
+            echo "bypass=false" >> "${GITHUB_OUTPUT}"
+          fi
 
       - name: Validate cla-signers.yaml exists
         if: steps.bypass.outputs.bypass != 'true'
