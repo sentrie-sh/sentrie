@@ -14,7 +14,7 @@ Contributions **may use** third-party libraries only if they are licensed under 
 - ISC
 - Public Domain (CC0)
 
-These licenses are permissive and compatible with both open-source and commercial redistribution [link](LICENSE-DUAL.md).
+These licenses are permissive and compatible with both open-source and commercial redistribution. See [LICENSE-DUAL.md](LICENSE-DUAL.md) for details.
 
 ---
 
@@ -30,7 +30,7 @@ The following licenses may **not** be added as dependencies:
 - Licenses requiring source redistribution on link (copyleft)
 - Licenses requiring redistribution of “interactive network use” source
 
-These licenses introduce obligations incompatible with Sentrie’s dual-license and commercial-licensing options [link](LICENSE-DUAL.md).
+These licenses introduce obligations incompatible with Sentrie's dual-license and commercial-licensing options. See [LICENSE-DUAL.md](LICENSE-DUAL.md) for details.
 
 ---
 
@@ -58,7 +58,7 @@ All new dependencies will be reviewed during PR approval.
 
 Contributors are responsible for confirming that **transitive dependencies** also satisfy this policy.
 
-Tools like `go mod graph` or `go-licenses` may be used to verify license ancestry [link](https://github.com/google/go-licenses).
+Tools like `go mod graph` or [go-licenses](https://github.com/google/go-licenses) may be used to verify license ancestry.
 
 ---
 
