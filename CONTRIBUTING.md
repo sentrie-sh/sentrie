@@ -34,7 +34,7 @@ The CLA:
 
 The CLA text lives in:
 
-- `CLA.md` in the repository [link](CLA.md)
+- [`CLA.md`](CLA.md) in the repository
 
 > **The CLA check is enforced by a GitHub Action.**  
 > If you have not signed for the current `cla_version`, the PR check will fail with a message telling you what to do.
