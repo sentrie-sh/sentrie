@@ -1,0 +1,179 @@
+name: Third Party Dependency Policy
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dependency-policy:
+    runs-on: ubuntu-latest
+
+    env:
+      REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Detect dependency file changes
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Checking changed files for PR #${PR_NUMBER}"
+
+          FILES=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}/files" --paginate --jq '.[].filename')
+          echo "Changed files:"
+          echo "${FILES}"
+
+          dep_changed="false"
+
+          # Extend this list as needed (package.json, pnpm-lock.yaml, etc)
+          if grep -qx "go.mod" <<< "${FILES}" || grep -qx "go.sum" <<< "${FILES}"; then
+            dep_changed="true"
+          fi
+
+          echo "dep_changed=${dep_changed}" >> "${GITHUB_OUTPUT}"
+          echo "Dependency files changed: ${dep_changed}"
+
+      - name: Skip if dependencies did not change
+        if: steps.detect.outputs.dep_changed == 'false'
+        shell: bash
+        run: |
+          echo "No dependency manifest changes detected. Skipping dependency policy checks."
+
+      - name: Ensure PR has Dependencies section filled
+        id: deps_section
+        if: steps.detect.outputs.dep_changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Fetching PR body for #${PR_NUMBER}"
+
+          BODY=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}" --jq '.body')
+
+          echo "PR body:"
+          echo "---------------------------------"
+          echo "${BODY}"
+          echo "---------------------------------"
+
+          # Very simple heuristic: section header plus something other than '- None'
+          has_section="false"
+          if grep -q "## Dependencies" <<< "${BODY}"; then
+            has_section="true"
+          fi
+
+          has_content="false"
+          if grep -q "## Dependencies" <<< "${BODY}"; then
+            # Get everything after the Dependencies header
+            after=$(awk '/^## Dependencies/{flag=1;next}/^## /{flag=0}flag' <<< "${BODY}" || true)
+            # Check if the block is not just '- None'
+            trimmed=$(echo "${after}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' || true)
+            if [[ -n "${trimmed}" && "${trimmed}" != "- None" ]]; then
+              has_content="true"
+            fi
+          fi
+
+          echo "has_section=${has_section}" >> "${GITHUB_OUTPUT}"
+          echo "has_content=${has_content}" >> "${GITHUB_OUTPUT}"
+          echo "Dependencies section present: ${has_section}, content provided: ${has_content}"
+
+      - name: Enforce Dependencies section
+        if: steps.detect.outputs.dep_changed == 'true' && steps.deps_section.outputs.has_content != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Dependency files changed but PR does not contain a filled Dependencies section."
+          echo "Please describe the new/changed dependencies and their licenses under '## Dependencies'."
+          exit 1
+
+      - name: Set up Go
+        if: steps.detect.outputs.dep_changed == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+
+      - name: Install go-licenses
+        if: steps.detect.outputs.dep_changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Installing go-licenses..."
+          go install github.com/google/go-licenses@latest
+          echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
+
+      - name: Run license scan (Go modules)
+        id: scan
+        if: steps.detect.outputs.dep_changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Running go-licenses report ./..."
+          echo "This scans all dependencies including transitive dependencies."
+          REPORT=$(go-licenses report ./... 2>&1 || true)
+
+          echo "Raw go-licenses output:"
+          echo "---------------------------------"
+          echo "${REPORT}"
+          echo "---------------------------------"
+
+          disallowed_lines=""
+          # Process only CSV lines (skip warnings starting with 'W...')
+          while IFS= read -r line; do
+            # Skip empty lines and warnings
+            [[ -z "${line}" ]] && continue
+            [[ "${line}" =~ ^W[0-9] ]] && continue
+
+            module=$(echo "${line}" | awk -F',' '{print $1}')
+            license=$(echo "${line}" | awk -F',' '{print $3}')
+
+            # Normalize whitespace
+            license=$(echo "${license}" | xargs)
+
+            # Check license against our denylist
+            # Match GPL variants (GPL, GPL-2.0, GPL-3.0, etc.), LGPL, AGPL, EPL, MPL
+            # Note: This will also catch licenses like "Apache-2.0 WITH GPL-2.0-exception"
+            # which should be reviewed manually as they may be acceptable
+            case "${license}" in
+              *GPL*|*LGPL*|*AGPL*|*EPL*|*MPL*)
+                disallowed_lines+="${module},${license}"$'\n'
+                ;;
+            esac
+          done <<< "${REPORT}"
+
+          if [[ -n "${disallowed_lines}" ]]; then
+            echo "disallowed=true" >> "${GITHUB_OUTPUT}"
+            echo "disallowed_report<<EOF" >> "${GITHUB_OUTPUT}"
+            printf "%s" "${disallowed_lines}" >> "${GITHUB_OUTPUT}"
+            echo "EOF" >> "${GITHUB_OUTPUT}"
+          else
+            echo "disallowed=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Fail on disallowed licenses (GPL/AGPL/LGPL/MPL/EPL)
+        if: steps.detect.outputs.dep_changed == 'true' && steps.scan.outputs.disallowed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Dependency license policy violation detected."
+          echo "The following modules appear to use disallowed licenses (GPL/AGPL/LGPL/MPL/EPL):"
+          echo "---------------------------------"
+          echo "${{ steps.scan.outputs.disallowed_report }}"
+          echo "---------------------------------"
+          echo "Please remove or replace these dependencies, or open a discussion with maintainers."
+          exit 1
