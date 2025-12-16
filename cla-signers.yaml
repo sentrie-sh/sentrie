@@ -1,5 +1,11 @@
 cla_version: 1
 
-individuals: []
+individuals:
+  - handle: binaek
+    cla_version: 1
 
-organizations: []
+organizations:
+  - name: "Sentrie Open Source Team"
+    cla_version: 1
+    representatives:
+      - handle: binaek
