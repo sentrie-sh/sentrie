@@ -72,6 +72,10 @@ jobs:
               handle="${maintainer##*(@}"
               handle="${handle%%)*}"
 
+              echo "Maintainer line: ${maintainer}"
+              echo "Parsed handle: ${handle}"
+              echo "PR_AUTHOR: ${PR_AUTHOR}"
+
               if [[ -n "${handle}" && "${PR_AUTHOR}" == "${handle}" ]]; then
                 skip="true"
                 echo "Skipping CLA check for maintainer: ${handle}"
