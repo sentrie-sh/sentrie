@@ -57,28 +57,35 @@ jobs:
 
           skip="false"
 
-          if [[ -f "MAINTAINERS" ]]; then
-            # Expected format:
-            #   Name <email> (@handle)
-            #   Name (@handle)
-            while IFS= read -r line || [[ -n "${line}" ]]; do
-              # Skip comments and empty lines
-              [[ "${line}" =~ ^#.*$ ]] && continue
-              [[ -z "${line}" ]] && continue
+          MAINTAINERS=(
+            "# Sentrie Core Maintainers"
+            "#"
+            "# This file lists the GitHub core maintainers who have"
+            "# commit access to this repository. These users bypass CLA checks"
+            "# as they are trusted contributors with repository write access."
+            "#"
+            "# Format: one maintainer per line, using:"
+            "#   Name <email> (@handle)"
+            "# Lines starting with # are comments."
+            "#"
+            "binaek <binaek89@gmail.com> (@binaek)"
+          )
 
-              # Extract GitHub handle from the trailing \"(@handle)\" pattern.
-              handle="${line##*(@}"
-              handle="${handle%%)*}"
-              
-              echo "handle=${handle}"
+          for maintainer in "${MAINTAINERS[@]}"; do
+            # Skip comments and empty lines
+            [[ "${maintainer}" =~ ^#.*$ ]] && continue
+            [[ -z "${maintainer}" ]] && continue
 
-              if [[ -n "${handle}" && "${PR_AUTHOR}" == "${handle}" ]]; then
-                skip="true"
-                echo "Skipping CLA check for maintainer: ${PR_AUTHOR}"
-                break
-              fi
-            done < "MAINTAINERS"
-          fi
+            # Extract GitHub handle from the trailing \"(@handle)\" pattern.
+            handle="${maintainer##*(@}"
+            handle="${handle%%)*}"
+
+            if [[ -n "${handle}" && "${PR_AUTHOR}" == "${handle}" ]]; then
+              skip="true"
+              echo "Skipping CLA check for maintainer: ${handle}"
+              break
+            fi
+          done
 
           echo "skip=${skip}" >> "${GITHUB_OUTPUT}"
 
