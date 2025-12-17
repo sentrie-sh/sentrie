@@ -9,7 +9,7 @@ on:
       - "LICENSE"
       - "LICENSE-DUAL.md"
       - "THIRD_PARTY_POLICY.md"
-      - ".github/workflows/**"
+      - ".github/**"
 
 permissions:
   contents: read
@@ -61,12 +61,43 @@ jobs:
 
           echo "is_maintainer=${is_maintainer}" >> "${GITHUB_OUTPUT}"
 
-      - name: Fail if non-maintainer edits protected files
+      - name: Fail (and comment) if non-maintainer edits protected files
         if: steps.maintainer.outputs.is_maintainer != 'true'
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
 
-          echo "Non-maintainer editing protected files. Failing workflow."
+          echo "Non-maintainer editing protected files. Adding PR comment and failing workflow."
           echo "Only maintainers listed in MAINTAINERS may change CLA, license, policy, or workflow files."
+
+          MARKER="[Sentrie Protected Files]"
+
+          # Check if we've already posted a protected-files comment.
+          EXISTING=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate --jq '.[].body' | grep -F "${MARKER}" || true)
+
+          if [[ -z "${EXISTING}" ]]; then
+            echo "Posting protected-files instructions comment on PR #${PR_NUMBER}"
+
+            COMMENT_BODY="[$MARKER]\n\n"
+            COMMENT_BODY+="Hi @${PR_AUTHOR}, and thanks for your contribution.\n\n"
+            COMMENT_BODY+="One or more protected files in this pull request were modified, but @${PR_AUTHOR} is not listed as a maintainer in the MAINTAINERS file.\n\n"
+            COMMENT_BODY+="The following paths are restricted to maintainers only:\n"
+            COMMENT_BODY+="- CLA.md\n"
+            COMMENT_BODY+="- LICENSE\n"
+            COMMENT_BODY+="- LICENSE-DUAL.md\n"
+            COMMENT_BODY+="- THIRD_PARTY_POLICY.md\n"
+            COMMENT_BODY+="- .github/**\n\n"
+            COMMENT_BODY+="If you believe this is incorrect, please reach out to the Sentrie maintainers or ask a maintainer to make the changes on your behalf.\n"
+
+            gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+              -f body="${COMMENT_BODY}"
+          else
+            echo "Protected-files instructions comment already exists. Not posting again."
+          fi
+
           exit 1
