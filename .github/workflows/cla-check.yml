@@ -62,28 +62,23 @@ jobs:
           #   Name (@handle)
           # Lines starting with # are comments.
           # The file is expected to be in the root of the repository.
-          MAINTAINERS=$(cat "MAINTAINERS")
+          if [[ -f "MAINTAINERS" ]]; then
+            while IFS= read -r maintainer || [[ -n "${maintainer}" ]]; do
+              # Skip comments and empty lines
+              [[ "${maintainer}" =~ ^#.*$ ]] && continue
+              [[ -z "${maintainer}" ]] && continue
 
-          for maintainer in "${MAINTAINERS[@]}"; do
-            # Skip comments and empty lines
-            [[ "${maintainer}" =~ ^#.*$ ]] && continue
-            [[ -z "${maintainer}" ]] && continue
+              # Extract GitHub handle from the trailing "(@handle)" pattern.
+              handle="${maintainer##*(@}"
+              handle="${handle%%)*}"
 
-            
-            # Extract GitHub handle from the trailing \"(@handle)\" pattern.
-            handle="${maintainer##*(@}"
-            handle="${handle%%)*}"
-            
-            echo "##[debug]Maintainer: ${maintainer}"
-            echo "##[debug]Handle: ${handle}"
-            echo "##[debug]PR_AUTHOR: ${PR_AUTHOR}"
-
-            if [[ -n "${handle}" && "${PR_AUTHOR}" == "${handle}" ]]; then
-              skip="true"
-              echo "Skipping CLA check for maintainer: ${handle}"
-              break
-            fi
-          done
+              if [[ -n "${handle}" && "${PR_AUTHOR}" == "${handle}" ]]; then
+                skip="true"
+                echo "Skipping CLA check for maintainer: ${handle}"
+                break
+              fi
+            done < "MAINTAINERS"
+          fi
 
           echo "skip=${skip}" >> "${GITHUB_OUTPUT}"
 
