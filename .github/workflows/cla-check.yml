@@ -57,7 +57,12 @@ jobs:
 
           skip="false"
 
-          MAINTAINERS=$(cat MAINTAINERS)
+          # Expected format:
+          #   Name <email> (@handle)
+          #   Name (@handle)
+          # Lines starting with # are comments.
+          # The file is expected to be in the root of the repository.
+          MAINTAINERS=$(cat "MAINTAINERS")
 
           for maintainer in "${MAINTAINERS[@]}"; do
             # Skip comments and empty lines
@@ -94,8 +99,6 @@ jobs:
         shell: bash
         run: |
           echo "Author is in CLA bypass list. Skipping CLA checks."
-
-      # --- Begin inlined CLA validation logic (from cla-validate.yml) ---
 
       - name: Validate cla-signers.yaml exists
         if: steps.bypass.outputs.bypass != 'true'
