@@ -60,14 +60,19 @@ jobs:
           skip="false"
 
           if [[ -f "MAINTAINERS" ]]; then
-            # Read maintainers from file, ignoring comments and empty lines
+            # Expected format:
+            #   Name <email> (@handle)
+            #   Name (@handle)
             while IFS= read -r line || [[ -n "${line}" ]]; do
               # Skip comments and empty lines
               [[ "${line}" =~ ^#.*$ ]] && continue
               [[ -z "${line}" ]] && continue
-              # Trim whitespace
-              line="${line// /}"
-              if [[ "${PR_AUTHOR}" == "${line}" ]]; then
+
+              # Extract GitHub handle from the trailing \"(@handle)\" pattern.
+              handle="${line##*(@}"
+              handle="${handle%%)*}"
+
+              if [[ -n "${handle}" && "${PR_AUTHOR}" == "${handle}" ]]; then
                 skip="true"
                 echo "Skipping CLA check for maintainer: ${PR_AUTHOR}"
                 break
