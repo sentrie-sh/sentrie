@@ -362,17 +362,44 @@ jobs:
           if [[ -z "${EXISTING}" ]]; then
             echo "Posting CLA instructions comment on PR #${PR_NUMBER}"
 
-            TEMPLATE_PATH=".github/CLA_INSTRUCTIONS_COMMENT.md"
-            if [[ ! -f "${TEMPLATE_PATH}" ]]; then
-              echo "Error: ${TEMPLATE_PATH} not found in repo root" >&2
-              exit 1
-            fi
-
-            # Substitute template placeholders with actual values.
-            COMMENT_BODY=$(sed \
-              -e "s/{{PR_AUTHOR}}/${PR_AUTHOR}/g" \
-              -e "s/{{CURRENT_VERSION}}/${CURRENT_VERSION}/g" \
-              "${TEMPLATE_PATH}")
+            COMMENT_BODY=""
+            COMMENT_BODY+="[${MARKER}]\n\n"
+            COMMENT_BODY+="Hi @${PR_AUTHOR}, and thanks for your contribution.\n\n"
+            COMMENT_BODY+="Before we can merge this pull request, you need to agree to the Sentrie Contributor License Agreement (CLA).\n\n"
+            COMMENT_BODY+="1. Read the [CLA document](CLA.md) in this repository.\n"
+            COMMENT_BODY+="2. In this PR, edit the [\`cla-signers.yaml\`](cla-signers.yaml) file and add yourself:\n\n"
+            COMMENT_BODY+="For individuals:\n"
+            COMMENT_BODY+="\`\`\`yaml\n"
+            COMMENT_BODY+="- handle: ${PR_AUTHOR}\n"
+            COMMENT_BODY+="  cla_version: ${CURRENT_VERSION}\n"
+            COMMENT_BODY+="\`\`\`\n\n"
+            COMMENT_BODY+="If you are contributing on behalf of an organization:\n\n"
+            COMMENT_BODY+="- If your organization is already listed under \`organizations\`, add yourself as an additional representative. For example, if it currently looks like:\n\n"
+            COMMENT_BODY+="\`\`\`yaml\n"
+            COMMENT_BODY+="organizations:\n"
+            COMMENT_BODY+="  - name: \"Existing Org Name\"\n"
+            COMMENT_BODY+="    cla_version: ${CURRENT_VERSION}\n"
+            COMMENT_BODY+="    representatives:\n"
+            COMMENT_BODY+="      - handle: existing-rep\n"
+            COMMENT_BODY+="\`\`\`\n\n"
+            COMMENT_BODY+="you can update it to:\n\n"
+            COMMENT_BODY+="\`\`\`yaml\n"
+            COMMENT_BODY+="organizations:\n"
+            COMMENT_BODY+="  - name: \"Existing Org Name\"\n"
+            COMMENT_BODY+="    cla_version: ${CURRENT_VERSION}\n"
+            COMMENT_BODY+="    representatives:\n"
+            COMMENT_BODY+="      - handle: existing-rep\n"
+            COMMENT_BODY+="      - handle: ${PR_AUTHOR}\n"
+            COMMENT_BODY+="\`\`\`\n\n"
+            COMMENT_BODY+="- If your organization is not yet listed, add a new entry under \`organizations\`, for example:\n\n"
+            COMMENT_BODY+="\`\`\`yaml\n"
+            COMMENT_BODY+="organizations:\n"
+            COMMENT_BODY+="  - name: \"Your Organization Name\"\n"
+            COMMENT_BODY+="    cla_version: ${CURRENT_VERSION}\n"
+            COMMENT_BODY+="    representatives:\n"
+            COMMENT_BODY+="      - handle: ${PR_AUTHOR}\n"
+            COMMENT_BODY+="\`\`\`\n\n"
+            COMMENT_BODY+="Once this PR includes your entry and it is merged, future PRs from this account will pass the CLA check automatically for this CLA version.\n"
 
             gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
               -f body="${COMMENT_BODY}"
