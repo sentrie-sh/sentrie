@@ -1,0 +1,419 @@
+name: CLA check
+
+on:
+  pull_request:
+    branches: ["main"]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  cla:
+    name: CLA check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Short-circuit for bots
+        id: skip_bots
+        shell: bash
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          set -euo pipefail
+
+          # Hardcoded list of bots that bypass CLA
+          BOTS=(
+            "dependabot[bot]"
+            "renovate[bot]"
+          )
+
+          skip="false"
+          for bot in "${BOTS[@]}"; do
+            if [[ "${PR_AUTHOR}" == "${bot}" ]]; then
+              skip="true"
+              echo "Skipping CLA check for bot: ${PR_AUTHOR}"
+              break
+            fi
+          done
+
+          echo "skip=${skip}" >> "${GITHUB_OUTPUT}"
+
+      - name: Checkout base (main) branch
+        if: steps.skip_bots.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 0
+
+      - name: Skip CLA check for maintainers
+        id: skip_maintainers
+        if: steps.skip_bots.outputs.skip != 'true'
+        shell: bash
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          set -euo pipefail
+
+          skip="false"
+
+          # Expected format:
+          #   Name <email> (@handle)
+          #   Name (@handle)
+          # Lines starting with # are comments.
+          # The file is expected to be in the root of the repository.
+          if [[ -f "MAINTAINERS" ]]; then
+            while IFS= read -r maintainer || [[ -n "${maintainer}" ]]; do
+              # Skip comments and empty lines
+              [[ "${maintainer}" =~ ^#.*$ ]] && continue
+              [[ -z "${maintainer}" ]] && continue
+
+              # Extract GitHub handle from the trailing "(@handle)" pattern.
+              handle="${maintainer##*(@}"
+              handle="${handle%%)*}"
+
+              echo "Maintainer line: ${maintainer}"
+              echo "Parsed handle: ${handle}"
+              echo "PR_AUTHOR: ${PR_AUTHOR}"
+
+              if [[ -n "${handle}" && "${PR_AUTHOR}" == "${handle}" ]]; then
+                skip="true"
+                echo "Skipping CLA check for maintainer: ${handle}"
+                break
+              fi
+            done < "MAINTAINERS"
+          fi
+
+          echo "skip=${skip}" >> "${GITHUB_OUTPUT}"
+
+      - name: Set bypass status
+        id: bypass
+        shell: bash
+        run: |
+          if [[ "${{ steps.skip_bots.outputs.skip }}" == "true" ]] || \
+             [[ "${{ steps.skip_maintainers.outputs.skip }}" == "true" ]]; then
+            echo "bypass=true" >> "${GITHUB_OUTPUT}"
+            echo "CLA check bypassed."
+          else
+            echo "bypass=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Exit early for bypassed authors
+        if: steps.bypass.outputs.bypass == 'true'
+        shell: bash
+        run: |
+          echo "Author is in CLA bypass list. Skipping CLA checks."
+
+      - name: Validate cla-signers.yaml exists
+        if: steps.bypass.outputs.bypass != 'true'
+        id: validate_file
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f "cla-signers.yaml" ]]; then
+            echo "cla-signers.yaml not found in repo root. Failing."
+            exit 1
+          fi
+
+      - name: Validate YAML syntax
+        if: steps.bypass.outputs.bypass != 'true'
+        id: validate_yaml
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! yq eval '.' cla-signers.yaml > /dev/null 2>&1; then
+            echo "Error: cla-signers.yaml is not valid YAML"
+            exit 1
+          fi
+
+      - name: Get and validate cla_version
+        if: steps.bypass.outputs.bypass != 'true'
+        id: get_version
+        shell: bash
+        run: |
+          set -euo pipefail
+          CURRENT_VERSION=$(yq '.cla_version' cla-signers.yaml 2>/dev/null || echo "")
+          if [[ -z "${CURRENT_VERSION}" ]]; then
+            echo "Error: cla_version field not found or empty in cla-signers.yaml"
+            exit 1
+          fi
+          if [[ ! "${CURRENT_VERSION}" =~ ^[0-9]+$ ]]; then
+            echo "Error: cla_version must be a positive integer, got: ${CURRENT_VERSION}"
+            exit 1
+          fi
+          echo "current_cla_version=${CURRENT_VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "Current CLA version on main: ${CURRENT_VERSION}"
+
+      - name: Check individual signers
+        if: steps.bypass.outputs.bypass != 'true'
+        id: check_individuals
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          CURRENT_VERSION: ${{ steps.get_version.outputs.current_cla_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_INDIV_VER=$(AUTHOR="${PR_AUTHOR}" yq '(.individuals[]? | select(.handle == strenv(AUTHOR)) | .cla_version) // ""' cla-signers.yaml 2>/dev/null || echo "")
+          echo "Base individual cla_version='${BASE_INDIV_VER}'"
+
+          if [[ "${BASE_INDIV_VER}" =~ ^[0-9]+$ ]] && (( BASE_INDIV_VER >= CURRENT_VERSION )); then
+            echo "individual_signed=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "individual_signed=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Check organization signers
+        if: steps.bypass.outputs.bypass != 'true'
+        id: check_orgs
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          CURRENT_VERSION: ${{ steps.get_version.outputs.current_cla_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_ORG_VER=$(AUTHOR="${PR_AUTHOR}" yq '(.organizations[]? | select(.representatives[].handle == strenv(AUTHOR)) | .cla_version) // ""' cla-signers.yaml 2>/dev/null || echo "")
+          echo "Base org cla_version='${BASE_ORG_VER}'"
+
+          if [[ "${BASE_ORG_VER}" =~ ^[0-9]+$ ]] && (( BASE_ORG_VER >= CURRENT_VERSION )); then
+            echo "org_signed=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "org_signed=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Determine base status
+        if: steps.bypass.outputs.bypass != 'true'
+        id: base
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ steps.check_individuals.outputs.individual_signed }}" == "true" ]] || \
+             [[ "${{ steps.check_orgs.outputs.org_signed }}" == "true" ]]; then
+            echo "base_status=signed" >> "${GITHUB_OUTPUT}"
+            echo "Base CLA status for @${{ github.event.pull_request.user.login }}: signed"
+          else
+            echo "base_status=unsigned" >> "${GITHUB_OUTPUT}"
+            echo "Base CLA status for @${{ github.event.pull_request.user.login }}: unsigned"
+          fi
+
+      - name: Skip further checks if already signed on main
+        if: steps.bypass.outputs.bypass != 'true' && steps.base.outputs.base_status == 'signed'
+        shell: bash
+        run: |
+          echo "Author is already signed for current CLA version on main. Nothing else to do."
+
+      - name: Fetch changed files
+        if: steps.bypass.outputs.bypass != 'true' && steps.base.outputs.base_status != 'signed'
+        id: fetch_files
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Fetching changed files for PR #${PR_NUMBER}"
+          CHANGED_FILES=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}/files" --paginate --jq '.[].filename')
+          echo "${CHANGED_FILES}" > /tmp/changed_files.txt
+          echo "Changed files:"
+          echo "${CHANGED_FILES}"
+
+      - name: Check if cla-signers.yaml changed
+        if: steps.bypass.outputs.bypass != 'true' && steps.base.outputs.base_status != 'signed'
+        id: changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -qx "cla-signers.yaml" /tmp/changed_files.txt; then
+            echo "cla_changed=true" >> "${GITHUB_OUTPUT}"
+            echo "cla-signers.yaml changed in PR: true"
+          else
+            echo "cla_changed=false" >> "${GITHUB_OUTPUT}"
+            echo "cla-signers.yaml changed in PR: false"
+          fi
+
+      - name: Checkout head CLA file
+        if: steps.bypass.outputs.bypass != 'true' && steps.base.outputs.base_status != 'signed' && steps.changed.outputs.cla_changed == 'true'
+        id: fetch_head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: head
+
+      - name: Validate head YAML syntax
+        if: steps.bypass.outputs.bypass != 'true' && steps.base.outputs.base_status != 'signed' && steps.changed.outputs.cla_changed == 'true'
+        id: validate_head_yaml
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! yq eval '.' head/cla-signers.yaml > /dev/null 2>&1; then
+            echo "Error: cla-signers.yaml in PR branch is not valid YAML"
+            echo "Please ensure the YAML syntax is correct."
+            exit 1
+          fi
+
+      - name: Validate head cla_version
+        if: steps.bypass.outputs.bypass != 'true' && steps.base.outputs.base_status != 'signed' && steps.changed.outputs.cla_changed == 'true'
+        id: validate_head_version
+        env:
+          CURRENT_VERSION: ${{ steps.get_version.outputs.current_cla_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEAD_CURRENT_VERSION=$(yq '.cla_version' head/cla-signers.yaml 2>/dev/null || echo "")
+          if [[ -z "${HEAD_CURRENT_VERSION}" ]]; then
+            echo "Error: cla_version field not found or empty in cla-signers.yaml in PR branch"
+            exit 1
+          fi
+          if [[ ! "${HEAD_CURRENT_VERSION}" =~ ^[0-9]+$ ]]; then
+            echo "Error: cla_version must be a positive integer, got: ${HEAD_CURRENT_VERSION}"
+            exit 1
+          fi
+          if [[ "${HEAD_CURRENT_VERSION}" != "${CURRENT_VERSION}" ]]; then
+            echo "Error: cla_version in PR branch (${HEAD_CURRENT_VERSION}) must match current CLA version on main (${CURRENT_VERSION})."
+            echo "Please do not change cla_version when adding yourself as a signer."
+            exit 1
+          fi
+
+      - name: Check individual signers in head
+        if: steps.bypass.outputs.bypass != 'true' && steps.base.outputs.base_status != 'signed' && steps.changed.outputs.cla_changed == 'true'
+        id: check_head_individuals
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          CURRENT_VERSION: ${{ steps.get_version.outputs.current_cla_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEAD_INDIV_VER=$(AUTHOR="${PR_AUTHOR}" yq '(.individuals[]? | select(.handle == strenv(AUTHOR)) | .cla_version) // ""' head/cla-signers.yaml 2>/dev/null || echo "")
+          echo "Head individual cla_version='${HEAD_INDIV_VER}'"
+
+          if [[ "${HEAD_INDIV_VER}" =~ ^[0-9]+$ ]] && (( HEAD_INDIV_VER >= CURRENT_VERSION )); then
+            echo "head_individual_signed=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "head_individual_signed=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Check organization signers in head
+        if: steps.bypass.outputs.bypass != 'true' && steps.base.outputs.base_status != 'signed' && steps.changed.outputs.cla_changed == 'true'
+        id: check_head_orgs
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          CURRENT_VERSION: ${{ steps.get_version.outputs.current_cla_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEAD_ORG_VER=$(AUTHOR="${PR_AUTHOR}" yq '(.organizations[]? | select(.representatives[].handle == strenv(AUTHOR)) | .cla_version) // ""' head/cla-signers.yaml 2>/dev/null || echo "")
+          echo "Head org cla_version='${HEAD_ORG_VER}'"
+
+          if [[ "${HEAD_ORG_VER}" =~ ^[0-9]+$ ]] && (( HEAD_ORG_VER >= CURRENT_VERSION )); then
+            echo "head_org_signed=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "head_org_signed=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Determine head status
+        if: steps.bypass.outputs.bypass != 'true' && steps.base.outputs.base_status != 'signed' && steps.changed.outputs.cla_changed == 'true'
+        id: head
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ steps.check_head_individuals.outputs.head_individual_signed }}" == "true" ]] || \
+             [[ "${{ steps.check_head_orgs.outputs.head_org_signed }}" == "true" ]]; then
+            echo "head_status=signed" >> "${GITHUB_OUTPUT}"
+            echo "Head CLA status for @${{ github.event.pull_request.user.login }}: signed"
+          else
+            echo "head_status=unsigned" >> "${GITHUB_OUTPUT}"
+            echo "Head CLA status for @${{ github.event.pull_request.user.login }}: unsigned"
+          fi
+
+      - name: Check if CLA satisfied
+        if: steps.bypass.outputs.bypass != 'true' && steps.base.outputs.base_status != 'signed'
+        id: check_satisfied
+        env:
+          CLA_CHANGED: ${{ steps.changed.outputs.cla_changed }}
+          HEAD_STATUS: ${{ steps.head.outputs.head_status }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${CLA_CHANGED}" == "true" && "${HEAD_STATUS}" == "signed" ]]; then
+            echo "CLA is satisfied by changes in this PR. Passing."
+            echo "cla_satisfied=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          else
+            echo "cla_satisfied=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Ensure comment exists
+        if: steps.bypass.outputs.bypass != 'true' && steps.base.outputs.base_status != 'signed' && steps.check_satisfied.outputs.cla_satisfied != 'true'
+        id: ensure_comment
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          REPO: ${{ github.repository }}
+          CURRENT_VERSION: ${{ steps.get_version.outputs.current_cla_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "CLA not satisfied. We will ensure a comment exists and then fail."
+
+          MARKER="[Sentrie CLA]"
+          EXISTING=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate --jq '.[].body' | grep -F "${MARKER}" || true)
+
+          if [[ -z "${EXISTING}" ]]; then
+            echo "Posting CLA instructions comment on PR #${PR_NUMBER}"
+
+            COMMENT_BODY=""
+            COMMENT_BODY+="[${MARKER}]\n\n"
+            COMMENT_BODY+="Hi @${PR_AUTHOR}, and thanks for your contribution.\n\n"
+            COMMENT_BODY+="Before we can merge this pull request, you need to agree to the Sentrie Contributor License Agreement (CLA).\n\n"
+            COMMENT_BODY+="1. Read the [CLA document](CLA.md) in this repository.\n"
+            COMMENT_BODY+="2. In this PR, edit the [\`cla-signers.yaml\`](cla-signers.yaml) file and add yourself:\n\n"
+            COMMENT_BODY+="For individuals:\n"
+            COMMENT_BODY+="\`\`\`yaml\n"
+            COMMENT_BODY+="- handle: ${PR_AUTHOR}\n"
+            COMMENT_BODY+="  cla_version: ${CURRENT_VERSION}\n"
+            COMMENT_BODY+="\`\`\`\n\n"
+            COMMENT_BODY+="If you are contributing on behalf of an organization:\n\n"
+            COMMENT_BODY+="If your organization is already listed under \`organizations\`, add yourself as an additional representative.\n\n"
+            COMMENT_BODY+="For example, if it currently looks like:\n\n"
+            COMMENT_BODY+="\`\`\`yaml\n"
+            COMMENT_BODY+="organizations:\n"
+            COMMENT_BODY+="  - name: \"Existing Org Name\"\n"
+            COMMENT_BODY+="    cla_version: ${CURRENT_VERSION}\n"
+            COMMENT_BODY+="    representatives:\n"
+            COMMENT_BODY+="      - handle: existing-rep\n"
+            COMMENT_BODY+="\`\`\`\n\n"
+            COMMENT_BODY+="you can update it to:\n\n"
+            COMMENT_BODY+="\`\`\`yaml\n"
+            COMMENT_BODY+="organizations:\n"
+            COMMENT_BODY+="  - name: \"Existing Org Name\"\n"
+            COMMENT_BODY+="    cla_version: ${CURRENT_VERSION}\n"
+            COMMENT_BODY+="    representatives:\n"
+            COMMENT_BODY+="      - handle: existing-rep\n"
+            COMMENT_BODY+="      - handle: ${PR_AUTHOR}\n"
+            COMMENT_BODY+="\`\`\`\n\n"
+            COMMENT_BODY+="If your organization is not yet listed, add a new entry under \`organizations\`, for example:\n\n"
+            COMMENT_BODY+="\`\`\`yaml\n"
+            COMMENT_BODY+="organizations:\n"
+            COMMENT_BODY+="  - name: \"Your Organization Name\"\n"
+            COMMENT_BODY+="    cla_version: ${CURRENT_VERSION}\n"
+            COMMENT_BODY+="    representatives:\n"
+            COMMENT_BODY+="      - handle: ${PR_AUTHOR}\n"
+            COMMENT_BODY+="\`\`\`\n\n"
+            COMMENT_BODY+="Once this PR includes your entry and it is merged, future PRs from this account will pass the CLA check automatically for this CLA version.\n"
+
+            # Use printf to interpret \n escape sequences as actual newlines
+            COMMENT_BODY_FORMATTED=$(printf "%b" "${COMMENT_BODY}")
+
+            gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+              -f body="${COMMENT_BODY_FORMATTED}"
+          else
+            echo "CLA instructions comment already exists. Not posting again."
+          fi
+
+      - name: Fail if CLA not satisfied
+        if: steps.bypass.outputs.bypass != 'true' && steps.base.outputs.base_status != 'signed' && steps.check_satisfied.outputs.cla_satisfied != 'true'
+        shell: bash
+        run: |
+          echo "Failing CLA check."
+          exit 1
