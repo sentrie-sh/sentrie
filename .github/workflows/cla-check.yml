@@ -69,6 +69,8 @@ jobs:
               # Extract GitHub handle from the trailing \"(@handle)\" pattern.
               handle="${line##*(@}"
               handle="${handle%%)*}"
+              
+              echo "handle=${handle}"
 
               if [[ -n "${handle}" && "${PR_AUTHOR}" == "${handle}" ]]; then
                 skip="true"
