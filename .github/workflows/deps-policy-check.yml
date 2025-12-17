@@ -1,10 +1,9 @@
 name: Third Party Dependency Policy
 
 on:
-  workflow_dispatch:
-# pull_request:
-#   branches: ["main"]
-#   types: [opened, reopened, synchronize, ready_for_review]
+  pull_request:
+    branches: ["main"]
+    types: [opened, reopened, synchronize, ready_for_review]
 
 permissions:
   contents: read
