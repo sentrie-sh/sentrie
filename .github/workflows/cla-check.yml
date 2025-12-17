@@ -361,8 +361,31 @@ jobs:
 
           if [[ -z "${EXISTING}" ]]; then
             echo "Posting CLA instructions comment on PR #${PR_NUMBER}"
+
+            COMMENT_BODY=$(cat <<EOF
+            [${MARKER}]
+
+            Hi @${PR_AUTHOR}, and thanks for your contribution.
+
+            Before we can merge this pull request, you need to agree to the Sentrie Contributor License Agreement (CLA).
+
+            1. Read the [CLA document](CLA.md) in this repository.
+            2. In this PR, edit the \`cla-signers.yaml\` file and add yourself:
+
+            For individuals:
+            \`\`\`yaml
+            - handle: ${PR_AUTHOR}
+              cla_version: ${CURRENT_VERSION}
+            \`\`\`
+
+            If you are contributing on behalf of an organization, follow the \`organizations\` section in \`cla-signers.yaml\`.
+
+            Once this PR includes your entry and it is merged, future PRs from this account will pass the CLA check automatically for this CLA version.
+            EOF
+            )
+
             gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
-              -f body=$'['"${MARKER}"$']\n\n'"Hi @${PR_AUTHOR}, and thanks for your contribution.\n\nBefore we can merge this pull request, you need to agree to the Sentrie Contributor License Agreement (CLA).\n\n1. Read the [CLA document](CLA.md) in this repository.\n2. In this PR, edit the \`cla-signers.yaml\` file and add yourself:\n\nFor individuals:\n\`\`\`yaml\n- handle: ${PR_AUTHOR}\n  cla_version: ${CURRENT_VERSION}\n\`\`\`\n\nIf you are contributing on behalf of an organization, follow the \`organizations\` section in \`cla-signers.yaml\`.\n\nOnce this PR includes your entry and it is merged, future PRs from this account will pass the CLA check automatically for this CLA version."'
+              -f body="${COMMENT_BODY}"
           else
             echo "CLA instructions comment already exists. Not posting again."
           fi
@@ -373,5 +396,3 @@ jobs:
         run: |
           echo "Failing CLA check."
           exit 1
-
-      # --- End inlined CLA validation logic ---
