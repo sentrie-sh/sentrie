@@ -231,21 +231,13 @@ jobs:
             echo "cla-signers.yaml changed in PR: false"
           fi
 
-      - name: Fetch head content
+      - name: Checkout head CLA file
         if: steps.bypass.outputs.bypass != 'true' && steps.base.outputs.base_status != 'signed' && steps.changed.outputs.cla_changed == 'true'
         id: fetch_head
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "Fetching cla-signers.yaml from ${HEAD_REPO}@${HEAD_REF}"
-          HEAD_CONTENT=$(gh api "repos/${HEAD_REPO}/contents/cla-signers.yaml" \
-            -H "Accept: application/vnd.github.raw" \
-            -f ref="${HEAD_REF}")
-          echo "${HEAD_CONTENT}" > /tmp/head_cla.yaml
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: head
 
       - name: Validate head YAML syntax
         if: steps.bypass.outputs.bypass != 'true' && steps.base.outputs.base_status != 'signed' && steps.changed.outputs.cla_changed == 'true'
@@ -253,7 +245,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if ! yq eval '.' /tmp/head_cla.yaml > /dev/null 2>&1; then
+          if ! yq eval '.' head/cla-signers.yaml > /dev/null 2>&1; then
             echo "Error: cla-signers.yaml in PR branch is not valid YAML"
             echo "Please ensure the YAML syntax is correct."
             exit 1
@@ -267,7 +259,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          HEAD_CURRENT_VERSION=$(yq '.cla_version' /tmp/head_cla.yaml 2>/dev/null || echo "")
+          HEAD_CURRENT_VERSION=$(yq '.cla_version' head/cla-signers.yaml 2>/dev/null || echo "")
           if [[ -z "${HEAD_CURRENT_VERSION}" ]]; then
             echo "Error: cla_version field not found or empty in cla-signers.yaml in PR branch"
             exit 1
@@ -291,7 +283,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          HEAD_INDIV_VER=$(AUTHOR="${PR_AUTHOR}" yq '(.individuals[]? | select(.handle == strenv(AUTHOR)) | .cla_version) // ""' /tmp/head_cla.yaml 2>/dev/null || echo "")
+          HEAD_INDIV_VER=$(AUTHOR="${PR_AUTHOR}" yq '(.individuals[]? | select(.handle == strenv(AUTHOR)) | .cla_version) // ""' head/cla-signers.yaml 2>/dev/null || echo "")
           echo "Head individual cla_version='${HEAD_INDIV_VER}'"
 
           if [[ "${HEAD_INDIV_VER}" =~ ^[0-9]+$ ]] && (( HEAD_INDIV_VER >= CURRENT_VERSION )); then
@@ -309,7 +301,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          HEAD_ORG_VER=$(AUTHOR="${PR_AUTHOR}" yq '(.organizations[]? | select(.representatives[].handle == strenv(AUTHOR)) | .cla_version) // ""' /tmp/head_cla.yaml 2>/dev/null || echo "")
+          HEAD_ORG_VER=$(AUTHOR="${PR_AUTHOR}" yq '(.organizations[]? | select(.representatives[].handle == strenv(AUTHOR)) | .cla_version) // ""' head/cla-signers.yaml 2>/dev/null || echo "")
           echo "Head org cla_version='${HEAD_ORG_VER}'"
 
           if [[ "${HEAD_ORG_VER}" =~ ^[0-9]+$ ]] && (( HEAD_ORG_VER >= CURRENT_VERSION )); then
