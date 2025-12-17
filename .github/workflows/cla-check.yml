@@ -236,15 +236,15 @@ jobs:
         id: fetch_head
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
         shell: bash
         run: |
           set -euo pipefail
-          echo "Fetching cla-signers.yaml from PR branch at ${HEAD_SHA}"
+          echo "Fetching cla-signers.yaml from PR #${PR_NUMBER}"
           HEAD_CONTENT=$(gh api "repos/${REPO}/contents/cla-signers.yaml" \
             -H "Accept: application/vnd.github.raw" \
-            -f ref="${HEAD_SHA}")
+            -f ref="refs/pull/${PR_NUMBER}/head")
           echo "${HEAD_CONTENT}" > /tmp/head_cla.yaml
 
       - name: Validate head YAML syntax
