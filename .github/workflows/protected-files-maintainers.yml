@@ -1,0 +1,72 @@
+name: Protected files maintainer gate
+
+on:
+  pull_request:
+    branches: ["main"]
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - "CLA.md"
+      - "LICENSE"
+      - "LICENSE-DUAL.md"
+      - "THIRD_PARTY_POLICY.md"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  protected-files:
+    name: Enforce maintainer-only edits for protected files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout base (main) branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 0
+
+      - name: Determine if author is a maintainer
+        id: maintainer
+        shell: bash
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          set -euo pipefail
+
+          echo "Checking maintainer status for @${PR_AUTHOR}"
+
+          is_maintainer="false"
+
+          if [[ -f "MAINTAINERS" ]]; then
+            while IFS= read -r line || [[ -n "${line}" ]]; do
+              # Skip comments and empty lines
+              [[ "${line}" =~ ^#.*$ ]] && continue
+              [[ -z "${line}" ]] && continue
+
+              # Expected format: Name <email> (@handle)
+              handle="${line##*(@}"
+              handle="${handle%%)*}"
+
+              if [[ -n "${handle}" && "${PR_AUTHOR}" == "${handle}" ]]; then
+                is_maintainer="true"
+                echo "@${PR_AUTHOR} is a maintainer (matched line: ${line})"
+                break
+              fi
+            done < "MAINTAINERS"
+          else
+            echo "MAINTAINERS file not found in repo root; treating as no maintainers." >&2
+          fi
+
+          echo "is_maintainer=${is_maintainer}" >> "${GITHUB_OUTPUT}"
+
+      - name: Fail if non-maintainer edits protected files
+        if: steps.maintainer.outputs.is_maintainer != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Non-maintainer editing protected files. Failing workflow."
+          echo "Only maintainers listed in MAINTAINERS may change CLA, license, policy, or workflow files."
+          exit 1
