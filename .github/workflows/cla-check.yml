@@ -401,8 +401,11 @@ jobs:
             COMMENT_BODY+="\`\`\`\n\n"
             COMMENT_BODY+="Once this PR includes your entry and it is merged, future PRs from this account will pass the CLA check automatically for this CLA version.\n"
 
+            # Use printf to interpret \n escape sequences as actual newlines
+            COMMENT_BODY_FORMATTED=$(printf "%b" "${COMMENT_BODY}")
+
             gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
-              -f body="${COMMENT_BODY}"
+              -f body="${COMMENT_BODY_FORMATTED}"
           else
             echo "CLA instructions comment already exists. Not posting again."
           fi
