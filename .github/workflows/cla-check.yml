@@ -391,7 +391,7 @@ jobs:
             COMMENT_BODY+="      - handle: existing-rep\n"
             COMMENT_BODY+="      - handle: ${PR_AUTHOR}\n"
             COMMENT_BODY+="\`\`\`\n\n"
-            COMMENT_BODY+="- If your organization is not yet listed, add a new entry under \`organizations\`, for example:\n\n"
+            COMMENT_BODY+="If your organization is not yet listed, add a new entry under \`organizations\`, for example:\n\n"
             COMMENT_BODY+="\`\`\`yaml\n"
             COMMENT_BODY+="organizations:\n"
             COMMENT_BODY+="  - name: \"Your Organization Name\"\n"
