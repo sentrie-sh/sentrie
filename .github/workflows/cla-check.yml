@@ -69,9 +69,14 @@ jobs:
             [[ "${maintainer}" =~ ^#.*$ ]] && continue
             [[ -z "${maintainer}" ]] && continue
 
+            
             # Extract GitHub handle from the trailing \"(@handle)\" pattern.
             handle="${maintainer##*(@}"
             handle="${handle%%)*}"
+            
+            echo "::debug::Maintainer: ${maintainer}"
+            echo "::debug::Handle: ${handle}"
+            echo "::debug::PR_AUTHOR: ${PR_AUTHOR}"
 
             if [[ -n "${handle}" && "${PR_AUTHOR}" == "${handle}" ]]; then
               skip="true"
