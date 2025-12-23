@@ -20,7 +20,7 @@ These licenses are permissive and compatible with both open-source and commercia
 
 ## 2. Prohibited or Restricted Licenses
 
-The following licenses may **not** be added as dependencies:
+The following licenses may **not** be added as direct or transitive dependencies:
 
 - GPL (all versions)
 - AGPL (all versions)
@@ -30,7 +30,9 @@ The following licenses may **not** be added as dependencies:
 - Licenses requiring source redistribution on link (copyleft)
 - Licenses requiring redistribution of “interactive network use” source
 
-These licenses introduce obligations incompatible with Sentrie's dual-license and commercial-licensing options. See [LICENSE-DUAL.md](LICENSE-DUAL.md) for details.
+These licenses introduce obligations incompatible with Sentrie's open licensing model. Sentrie is released under the Apache License 2.0 and as such, hinder enterprise adoption and distribution of the project. See [LICENSE.md](LICENSE.md) for details.
+
+> Sentrie has a Github Actions workflow that will check for prohibited licenses and will fail the build if any are found. This workflow can be audited at [.github/workflows/deps-policy-check.yml](.github/workflows/deps-policy-check.yml).
 
 ---
 
@@ -67,10 +69,10 @@ Tools like `go mod graph` or [go-licenses](https://github.com/google/go-licenses
 All dependencies must pass:
 
 - Basic security checks (`govulncheck`)
-- Active maintenance status (no abandoned packages)
+- Active maintenance status (no abandoned packages), unless declared stable by the maintainers
 - Stable versioning (no random Git SHAs unless justified)
 
-The maintainers may replace or reject dependencies that do not meet these standards.
+The maintainers may request replacement of dependencies that do not meet these standards.
 
 ---
 
@@ -78,10 +80,9 @@ The maintainers may replace or reject dependencies that do not meet these standa
 
 If a dependency is added that violates this policy:
 
-- It may be removed or replaced immediately
 - The contributor may be asked to rework their PR
 - Future contributions may be restricted if violations are repeated
 
 ---
 
-This policy ensures Sentrie remains sustainable, redistributable, and legally safe for the long term.
+This policy ensures Sentrie remains sustainable, redistributable, and legally safe for enterprises to adopt and use for the long term.
