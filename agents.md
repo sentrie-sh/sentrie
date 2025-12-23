@@ -10,4 +10,32 @@ The title in the @PR_DESCRIPTION.md file should be such that it completes the se
 - Notes on what to focus on in a review of the PR
 - Clear answers to questions that reviewers may have
 
+Follow the format:
+
+```markdown
+## Summary
+
+<!-- What does this PR change and why? -->
+
+## Testing
+
+<!-- How did you test this change? -->
+
+## Dependencies
+
+<!--
+If this PR adds or changes third-party dependencies, list them here.
+
+Example:
+
+- Added: github.com/google/go-licenses (Apache-2.0)
+- Reason: Used for license scanning in CI.
+- Type: direct dependency
+
+If no dependencies were added/changed, write:
+
+- None
+-->
+```
+
 Make sure that all sources files have the correct license headers.
