@@ -26,6 +26,8 @@ import (
 	"github.com/sentrie-sh/sentrie/constants"
 )
 
+// version is overridden at build time using -ldflags
+// Example: -ldflags "-X main.version=v1.0.0"
 var version = constants.APPVERSION
 
 func main() {

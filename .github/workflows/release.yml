@@ -1,0 +1,169 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Copyright 2025 Binaek Sarkar
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#	http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write # upload archives as GitHub Releases
+  id-token: write # Cosign with GitHub OIDC
+  actions: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Validate tag format
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          if ! echo "$TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'; then
+            echo "Error: Tag '$TAG' does not match semver format (vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-rc.N)" 1>&2
+            exit 1
+          fi
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: "v2.6.0"
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sign release artifacts
+        env:
+          COSIGN_EXPERIMENTAL: 1
+          COSIGN_YES: "true"
+        run: |
+          shopt -s globstar nullglob
+          # Sign all archives and checksums.txt
+          for artifact in dist/**/*.tar.gz dist/**/*.zip dist/checksums.txt; do
+            if [ -f "$artifact" ]; then
+              cosign sign-blob --yes "$artifact" \
+                --output-signature="${artifact}.sig" \
+                --output-certificate="${artifact}.crt" \
+                --bundle "${artifact}.bundle"
+            fi
+          done
+          # Sign install scripts
+          for script in install.sh install.ps1; do
+            if [ -f "$script" ]; then
+              cosign sign-blob --yes "$script" \
+                --output-signature="${script}.sig" \
+                --output-certificate="${script}.crt" \
+                --bundle "${script}.bundle"
+            fi
+          done
+
+      - name: Generate build provenance predicate
+        run: |
+          cat > /tmp/predicate.json <<EOF
+          {
+            "buildType": "https://github.com/sentrie-sh/sentrie/.github/workflows/release.yml",
+            "builder": {
+              "id": "https://github.com/actions/runner"
+            },
+            "invocation": {
+              "configSource": {
+                "uri": "git+https://github.com/${{ github.repository }}@${{ github.ref }}",
+                "digest": {
+                  "sha1": "${{ github.sha }}"
+                },
+                "entryPoint": ".github/workflows/release.yml"
+              },
+              "parameters": {
+                "workflow": "${{ github.workflow }}",
+                "run_id": "${{ github.run_id }}",
+                "run_attempt": "${{ github.run_attempt }}"
+              }
+            },
+            "metadata": {
+              "buildInvocationID": "${{ github.run_id }}",
+              "completeness": {
+                "parameters": true,
+                "environment": true,
+                "materials": true
+              },
+              "reproducible": false
+            },
+            "materials": [
+              {
+                "uri": "git+https://github.com/${{ github.repository }}@${{ github.ref }}",
+                "digest": {
+                  "sha1": "${{ github.sha }}"
+                }
+              }
+            ]
+          }
+          EOF
+
+      - name: Generate build provenance attestations
+        env:
+          COSIGN_EXPERIMENTAL: 1
+          COSIGN_YES: "true"
+        run: |
+          shopt -s globstar nullglob
+          for artifact in dist/**/*.tar.gz dist/**/*.zip; do
+            if [ -f "$artifact" ]; then
+              cosign attest-blob --yes "$artifact" \
+                --type slsaprovenance \
+                --predicate /tmp/predicate.json \
+                --output-signature="${artifact}.attestation.sig" \
+                --output-certificate="${artifact}.attestation.crt" \
+                --bundle "${artifact}.attestation.bundle"
+            fi
+          done
+
+      - name: Attach verification artifacts to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          shopt -s globstar nullglob
+          # Upload all signatures, certificates, bundles, and attestations from dist/
+          for file in dist/**/*.sig dist/**/*.crt dist/**/*.bundle dist/**/*.attestation.*; do
+            if [ -f "$file" ]; then
+              gh release upload "$TAG" "$file" --clobber
+            fi
+          done
+          # Upload install script signatures, certificates, and bundles
+          for file in install.sh.* install.ps1.*; do
+            if [ -f "$file" ]; then
+              gh release upload "$TAG" "$file" --clobber
+            fi
+          done
