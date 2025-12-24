@@ -1,11 +1,16 @@
 # Sentrie Core Maintainers
 #
 # This file lists the GitHub core maintainers who have
-# commit access to this repository. These users bypass CLA checks
-# as they are trusted contributors with repository write access.
+# commit access to this repository. 
+#
+# These users bypass CLA checks as they are trusted 
+# contributors with repository write access.
+# 
+# These users are also trusted to make changes to the CLA, 
+# license, policy, and workflow files.
 #
 # Format: one maintainer per line, using:
 #   Name <email> (@handle)
 # Lines starting with # are comments.
 #
-binaek <binaek89@gmail.com> (@binaek)
+Binaek Sarkar <binaek89@gmail.com> (@binaek)

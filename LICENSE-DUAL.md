@@ -16,8 +16,8 @@ This dual-licensing model enables:
 - A permissive open-source core for the community
 - A commercial option for organizations with specialized needs
 
-Your contributions to Sentrie are governed by the [**Sentrie Contributor License Agreement (CLA)**](CLA.md), which grants the maintainers permission to use your contributions under both the open-source and commercial terms.
+Your contributions to Sentrie are governed by the [**Sentrie Contributor License Agreement (CLA)**](CLA.md), which grants the [maintainers](MAINTAINERS) permission to use your contributions under both the open-source and commercial terms.
 
-You retain full ownership and copyright of your contributions.
+You **retain full ownership** and copyright of your contributions.
 
-For commercial licensing inquiries, reach out to the maintainers.
+For commercial licensing inquiries, please reach out to the [maintainers](MAINTAINERS).

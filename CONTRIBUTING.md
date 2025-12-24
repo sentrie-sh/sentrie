@@ -12,12 +12,17 @@ This document explains how to contribute code, how the CLA works, and what we ex
 There are many ways to help:
 
 - Fix bugs
-- Improve documentation or examples
+- Improve documentation or examples (README.md, docs, etc.)
 - Add small, focused features
-- Improve error messages or UX
-- Tidy internals (refactors, tests, performance)
+- Improve error messages or user experience
+- Tidy up internals (refactors, tests, performance)
 
-For large or architectural changes, **open an issue first** so we can align on the direction before you invest a lot of time.
+Ideally, the contribution workflow is:
+
+- **open an issue first** to discuss the change you want to make for alignment before you invest a lot of time
+- **open a pull request** to implement the change
+- **sign the CLA** if necessary
+- maintainers **merge the pull request**
 
 ---
 
@@ -75,25 +80,21 @@ If you are contributing on behalf of a company or organization:
        cla_version: 1
        representatives:
          - handle: acme-dev-1
-           type: representative
          - handle: acme-dev-2
-           type: representative
    ```
 
 2. After this is merged:
-   - Any handle listed under representatives is treated as contributing on behalf of that organization for the specified cla_version.
+   - Any handle listed under representatives is treated as contributing on behalf of that organization for the specified `cla_version`.
    - Additional representatives can be added later via small PRs updating `cla-signers.yaml`.
-
-> Right now, we expect that most contributors will probably use the individual path. The organization flow is there so we don’t have to redesign this later.
 
 # What the CLA GitHub Action does
 
 On each pull request, a GitHub Action will:
 
-1. Read `cla-signers.yaml` from the base branch (usually main).
+1. Read `cla-signers.yaml` from the base branch (`main`).
 2. Check if your GitHub handle:
    - Appears under individuals with `cla_version >= cla_version` at the top, or
-   - Appears under `organizations[*].representatives` where the organization’s `cla_version >= cla_version` at the top.
+   - Appears under `organizations[*].representatives[*].handle` where the organization’s `cla_version >= cla_version` at the top.
 3. If not found or outdated:
 
 - Check whether this PR modifies `cla-signers.yaml` to add/update your entry.
@@ -128,18 +129,12 @@ To keep the project maintainable and reviewable:
 This will evolve over time, but the rough flow is:
 
 1. Fork the repo and create a topic branch.
-
 2. Make your changes.
-
 3. Add or update tests where appropriate.
-
 4. If this is your first contribution (or the CLA version has changed), update cla-signers.yaml as described above.
-
 5. Open a pull request:
-
-- Explain what changed and why.
-
-- Mention any backwards-incompatible behavior.
+   - Explain what changed and why.
+   - Mention any backwards-incompatible behavior.
 
 > We’ll do our best to review in a timely manner.
 
@@ -149,8 +144,8 @@ This will evolve over time, but the rough flow is:
 
 We’re looking forward to your contributions!
 
-If you have any questions, please feel free to reach out to us.
+If you have any questions, please feel free to reach out to us at [maintainers](MAINTAINERS).
 
-Thanks again for contributing to Sentrie.
+Thanks again for contributing to Sentrie 💙
 
-You’re helping build a deterministic, explainable policy engine that people can actually trust in production.
+You’re helping build a deterministic, explainable policy engine that people can actually trust in production. 🚀

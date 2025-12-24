@@ -24,12 +24,6 @@ curl -fsSL https://sentrie.sh/install.sh | bash
 irm https://sentrie.sh/install.ps1 | iex
 ```
 
-**Go install:**
-
-```bash
-go install github.com/sentrie-sh/sentrie@latest
-```
-
 For detailed installation instructions and platform-specific options, see the [installation guide](https://sentrie.sh/getting-started/installation/).
 
 ## Basic Usage
@@ -63,7 +57,7 @@ policy user_access {
 sentrie exec user_management/user_access/allow --facts '{"user":{"role":"admin","status":"active"}}'
 ```
 
-### Run as HTTP Server
+### Run as HTTP Service
 
 ```bash
 sentrie serve
