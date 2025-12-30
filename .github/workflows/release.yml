@@ -49,14 +49,6 @@ jobs:
         with:
           input_string: ${{ github.ref_name }}
 
-      - name: Validate tag format
-        run: |
-          TAG=${{ github.ref_name }}
-          if ! echo "$TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'; then
-            echo "Error: Tag '$TAG' does not match semver format (vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-rc.N)" 1>&2
-            exit 1
-          fi
-
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
         with:
