@@ -1,10 +1,8 @@
 OUTPUT_DIR?=~/.local/bin
 
 build:
-	$(eval TIMESTAMP := $(shell date +%Y%m%d%H%M%S))
-	$(eval GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD | sed 's/[\/_]/-/g' | sed 's/[^a-zA-Z0-9.-]//g'))
 
-	go build -o $(OUTPUT_DIR)/sentrie -ldflags "-X main.version=0.0.0-dev-$(GIT_BRANCH).$(TIMESTAMP)" .
+	go build -o $(OUTPUT_DIR)/sentrie .
 
 clean-git:
 	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then \

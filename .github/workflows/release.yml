@@ -56,6 +56,10 @@ jobs:
         with:
           cosign-release: "v2.6.0"
 
+      - name: Check Cosign version
+        run: |
+          cosign version
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:

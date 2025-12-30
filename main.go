@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime/debug"
+	"time"
 
 	"github.com/sentrie-sh/sentrie/cmd"
 	"github.com/sentrie-sh/sentrie/constants"
@@ -28,6 +30,7 @@ import (
 
 // version is overridden at build time using -ldflags
 // Example: -ldflags "-X main.version=v1.0.0"
+// commit, date, and dirty are extracted from debug.ReadBuildInfo() at runtime
 var version = constants.APPVERSION
 
 func main() {
@@ -39,11 +42,51 @@ func main() {
 	// set an exit code
 	exitCode := 0
 
-	cli := cmd.Setup(ctx, version)
+	cli := cmd.Setup(ctx, getVersionString())
 	if err := cmd.Execute(ctx, cli, os.Args); err != nil {
 		// pretty print the error in the forn <red>Error</red>: <error>
 		fmt.Printf("Error: %s\n", err)
 		exitCode = 1
 	}
 	os.Exit(exitCode)
+}
+
+// if dirty, return the version string of the following format:
+// <version> (<commit>) <date> <os>/<arch> <go-version>
+// else return the version string as is
+func getVersionString() string {
+	trueVersion := version
+	commit, date, dirty := getBuildInfo()
+	if dirty {
+		buildNumber := date.Format("20060102150405")
+		if len(commit) > 7 {
+			commit = commit[:7]
+		}
+		trueVersion = fmt.Sprintf("%s-dirty.%s+%s", version, buildNumber, commit)
+	}
+	return trueVersion
+}
+
+func getBuildInfo() (commit string, date time.Time, dirty bool) {
+	commit = "none"
+	date = time.Time{}
+	dirty = false
+
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return commit, date, dirty
+	}
+
+	for _, setting := range info.Settings {
+		switch setting.Key {
+		case "vcs.revision":
+			commit = setting.Value
+		case "vcs.time":
+			date, _ = time.Parse(time.RFC3339, setting.Value)
+		case "vcs.modified":
+			dirty = setting.Value == "true"
+		}
+	}
+
+	return commit, date, dirty
 }
