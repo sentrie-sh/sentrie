@@ -17,8 +17,7 @@
 package constants
 
 const (
-	APPNAME    = "sentrie"
-	APPVERSION = "0.1.0"
+	APPNAME = "sentrie"
 
 	PackFileExtension   = "pack.toml"
 	PolicyFileExtension = APPNAME
