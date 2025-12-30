@@ -64,6 +64,9 @@ func getVersionString() string {
 			commit = commit[:7]
 		}
 		trueVersion = fmt.Sprintf("%s-dirty.%s+%s", version, buildNumber, commit)
+		if builtWithMakefile == "true" {
+			trueVersion = fmt.Sprintf("%s(makefile)", trueVersion)
+		}
 	}
 	return trueVersion
 }
