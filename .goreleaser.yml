@@ -38,6 +38,19 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
+    hooks:
+      post:
+        - cmd: |
+            # Sign the binary that was just built
+            if [ -f "{{ .Path }}" ]; then
+              cosign sign-blob --yes "{{ .Path }}" \
+                --output-signature="{{ .Path }}.sig" \
+                --output-certificate="{{ .Path }}.crt" \
+                --bundle="{{ .Path }}.bundle"
+            fi
+          env:
+            - COSIGN_EXPERIMENTAL=1
+            - COSIGN_YES=true
 
 archives:
   - id: default
@@ -47,7 +60,10 @@ archives:
         format: zip
     files:
       - LICENSE
-      - README.md
+      - "{{ .Binary }}"
+      - "{{ .Binary }}.sig"
+      - "{{ .Binary }}.crt"
+      - "{{ .Binary }}.bundle"
     format: tar.gz
 
 checksum:

@@ -28,6 +28,7 @@ permissions:
 
 jobs:
   release:
+    name: Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -43,20 +44,10 @@ jobs:
       - name: Run tests
         run: go test ./...
 
-      - name: Parse semver string
-        id: semver_parse
-        uses: booxmedialtd/ws-action-parse-semver@v1
-        with:
-          input_string: ${{ github.ref_name }}
-
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
         with:
           cosign-release: "v2.6.0"
-
-      - name: Check Cosign version
-        run: |
-          cosign version
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
@@ -66,31 +57,21 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COSIGN_EXPERIMENTAL: 1
+          COSIGN_YES: "true"
 
-      - name: Sign release artifacts
+      - name: Sign checksums
         env:
           COSIGN_EXPERIMENTAL: 1
           COSIGN_YES: "true"
         run: |
-          shopt -s globstar nullglob
-          # Sign all archives and checksums.txt
-          for artifact in dist/**/*.tar.gz dist/**/*.zip dist/checksums.txt; do
-            if [ -f "$artifact" ]; then
-              cosign sign-blob --yes "$artifact" \
-                --output-signature="${artifact}.sig" \
-                --output-certificate="${artifact}.crt" \
-                --bundle "${artifact}.bundle"
-            fi
-          done
-          # Sign install scripts
-          for script in install.sh install.ps1; do
-            if [ -f "$script" ]; then
-              cosign sign-blob --yes "$script" \
-                --output-signature="${script}.sig" \
-                --output-certificate="${script}.crt" \
-                --bundle "${script}.bundle"
-            fi
-          done
+          # Sign checksums.txt
+          if [ -f "dist/checksums.txt" ]; then
+            cosign sign-blob --yes dist/checksums.txt \
+              --output-signature="dist/checksums.txt.sig" \
+              --output-certificate="dist/checksums.txt.crt" \
+              --bundle="dist/checksums.txt.bundle"
+          fi
 
       - name: Generate build provenance predicate
         run: |
@@ -157,14 +138,9 @@ jobs:
         run: |
           TAG=${GITHUB_REF#refs/tags/}
           shopt -s globstar nullglob
-          # Upload all signatures, certificates, bundles, and attestations from dist/
-          for file in dist/**/*.sig dist/**/*.crt dist/**/*.bundle dist/**/*.attestation.*; do
-            if [ -f "$file" ]; then
-              gh release upload "$TAG" "$file" --clobber
-            fi
-          done
-          # Upload install script signatures, certificates, and bundles
-          for file in install.sh.* install.ps1.*; do
+          # Upload archive attestations and checksums signatures
+          # Note: Binary signatures (.sig, .crt, .bundle) are already included in archives, so we don't upload them separately
+          for file in dist/**/*.attestation.* dist/checksums.txt.sig dist/checksums.txt.crt dist/checksums.txt.bundle; do
             if [ -f "$file" ]; then
               gh release upload "$TAG" "$file" --clobber
             fi
