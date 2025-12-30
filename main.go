@@ -32,6 +32,7 @@ import (
 // Example: -ldflags "-X main.version=v1.0.0"
 // commit, date, and dirty are extracted from debug.ReadBuildInfo() at runtime
 var version = constants.APPVERSION
+var builtWithMakefile = "false"
 
 func main() {
 	ctx := context.Background()
@@ -57,7 +58,7 @@ func main() {
 func getVersionString() string {
 	trueVersion := version
 	commit, date, dirty := getBuildInfo()
-	if dirty {
+	if dirty || builtWithMakefile == "true" {
 		buildNumber := date.Format("20060102150405")
 		if len(commit) > 7 {
 			commit = commit[:7]

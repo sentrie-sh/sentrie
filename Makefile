@@ -2,7 +2,7 @@ OUTPUT_DIR?=~/.local/bin
 
 build:
 
-	go build -o $(OUTPUT_DIR)/sentrie .
+	go build -o $(OUTPUT_DIR)/sentrie -ldflags "-X main.builtWithMakefile=true" .
 
 clean-git:
 	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then \
