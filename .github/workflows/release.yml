@@ -136,7 +136,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG=${GITHUB_REF#refs/tags/}
+          TAG=${{ github.ref_name }}
           shopt -s globstar nullglob
           # Upload archive attestations and checksums signatures
           # Note: Binary signatures (.sig, .crt, .bundle) are already included in archives, so we don't upload them separately

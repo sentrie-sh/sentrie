@@ -102,19 +102,19 @@ try {
 	}
 
 	if (Get-Command cosign -ErrorAction SilentlyContinue) {
-		Write-Host "Verifying Cosign signature"
-		$bundle_uri = "https://github.com/sentrie-sh/sentrie/releases/download/${Version}/${archive_name}.bundle"
-		$bundle_location = "$tmp_dir\${archive_name}.bundle"
+		Write-Host "Verifying archive attestation"
+		$attestation_bundle_uri = "https://github.com/sentrie-sh/sentrie/releases/download/${Version}/${archive_name}.attestation.bundle"
+		$attestation_bundle_location = "$tmp_dir\${archive_name}.attestation.bundle"
 		
 		try {
-			Invoke-WebRequest -Uri $bundle_uri -OutFile $bundle_location -UseBasicParsing -ErrorAction SilentlyContinue
-			if (Test-Path $bundle_location) {
-				$verify_result = & cosign verify-blob --bundle $bundle_location $archive_location 2>&1
+			Invoke-WebRequest -Uri $attestation_bundle_uri -OutFile $attestation_bundle_location -UseBasicParsing -ErrorAction SilentlyContinue
+			if (Test-Path $attestation_bundle_location) {
+				$verify_result = & cosign verify-blob --bundle $attestation_bundle_location $archive_location 2>&1
 				if ($LASTEXITCODE -ne 0) {
-					Write-Host "Error: Cosign signature verification failed" -ForegroundColor Red
+					Write-Host "Error: Archive attestation verification failed" -ForegroundColor Red
 					exit 1
 				}
-				Remove-Item $bundle_location
+				Remove-Item $attestation_bundle_location
 			}
 		} catch {
 			# Bundle not available, skip Cosign verification
@@ -124,6 +124,18 @@ try {
 	Write-Host "Deflating downloaded archive"
 	$extract_path = "$tmp_dir\extract"
 	Expand-Archive -Path $archive_location -DestinationPath $extract_path -Force
+
+	if (Get-Command cosign -ErrorAction SilentlyContinue) {
+		Write-Host "Verifying binary signature"
+		$binary_bundle_location = "$extract_path\sentrie.bundle"
+		if (Test-Path $binary_bundle_location) {
+			$verify_result = & cosign verify-blob --bundle $binary_bundle_location "$extract_path\sentrie.exe" 2>&1
+			if ($LASTEXITCODE -ne 0) {
+				Write-Host "Error: Binary signature verification failed" -ForegroundColor Red
+				exit 1
+			}
+		}
+	}
 
 	Write-Host "Installing"
 	if (!(Test-Path $bin_dir)) {

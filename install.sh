@@ -130,32 +130,43 @@ if [ "$expected_hash" != "$actual_hash" ]; then
 fi
 
 if command -v cosign >/dev/null; then
-	echo "Verifying Cosign signature"
-	bundle_uri="https://github.com/sentrie-sh/sentrie/releases/download/${version}/${archive_name}.bundle"
-	bundle_location="$tmp_dir/${archive_name}.bundle"
+	echo "Verifying archive attestation"
+	attestation_bundle_uri="https://github.com/sentrie-sh/sentrie/releases/download/${version}/${archive_name}.attestation.bundle"
+	attestation_bundle_location="$tmp_dir/${archive_name}.attestation.bundle"
 	
 	if command -v wget >/dev/null; then
 		wget --help | grep -q '\--showprogress' && _FORCE_PROGRESS_BAR="--no-verbose --show-progress" || _FORCE_PROGRESS_BAR=""
-		if wget --prefer-family=IPv4 --progress=bar:force:noscroll $_FORCE_PROGRESS_BAR -O "$bundle_location" "$bundle_uri" 2>/dev/null; then
-			if ! cosign verify-blob --bundle "$bundle_location" "$archive_location"; then
-				echo "Error: Cosign signature verification failed" 1>&2
+		if wget --prefer-family=IPv4 --progress=bar:force:noscroll $_FORCE_PROGRESS_BAR -O "$attestation_bundle_location" "$attestation_bundle_uri" 2>/dev/null; then
+			if ! cosign verify-blob --bundle "$attestation_bundle_location" "$archive_location"; then
+				echo "Error: Archive attestation verification failed" 1>&2
 				exit 1
 			fi
-			rm "$bundle_location"
+			rm "$attestation_bundle_location"
 		fi
 	elif command -v curl >/dev/null; then
-		if curl --fail --location --progress-bar --output "$bundle_location" "$bundle_uri" 2>/dev/null; then
-			if ! cosign verify-blob --bundle "$bundle_location" "$archive_location"; then
-				echo "Error: Cosign signature verification failed" 1>&2
+		if curl --fail --location --progress-bar --output "$attestation_bundle_location" "$attestation_bundle_uri" 2>/dev/null; then
+			if ! cosign verify-blob --bundle "$attestation_bundle_location" "$archive_location"; then
+				echo "Error: Archive attestation verification failed" 1>&2
 				exit 1
 			fi
-			rm "$bundle_location"
+			rm "$attestation_bundle_location"
 		fi
 	fi
 fi
 
 echo "Deflating downloaded archive"
 tar -xf "$archive_location" -C "$tmp_dir"
+
+if command -v cosign >/dev/null; then
+	echo "Verifying binary signature"
+	binary_bundle_location="$tmp_dir/sentrie.bundle"
+	if [ -f "$binary_bundle_location" ]; then
+		if ! cosign verify-blob --bundle "$binary_bundle_location" "$tmp_dir/sentrie"; then
+			echo "Error: Binary signature verification failed" 1>&2
+			exit 1
+		fi
+	fi
+fi
 
 echo "Installing"
 install -d "$bin_dir"
