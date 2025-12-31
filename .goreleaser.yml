@@ -16,6 +16,8 @@
 
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 
+version: 2
+
 project_name: sentrie
 
 builds:
@@ -38,13 +40,20 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
-    hooks:
-      post:
-        - cmd: cosign sign-blob --yes "{{ .Path }}" --bundle="{{ .Path }}.bundle"
-          output: true
-          env:
-            - COSIGN_EXPERIMENTAL=1
-            - COSIGN_YES=true
+
+binary_signs:
+  - cmd: cosign
+    args:
+      - "sign-blob"
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: binary
+    env:
+      - COSIGN_EXPERIMENTAL=1
+      - COSIGN_YES=true
+    output: true
+    signature: "${artifact}.cosign.bundle"
 
 archives:
   - id: default
@@ -53,9 +62,6 @@ archives:
     format_overrides:
       - goos: windows
         formats: ["zip"]
-    files:
-      - "{{ .Path }}"
-      - "{{ .Path }}.bundle"
 
 checksum:
   name_template: "checksums.txt"
