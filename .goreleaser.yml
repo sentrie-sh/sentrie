@@ -41,6 +41,7 @@ builds:
     hooks:
       post:
         - cmd: cosign sign-blob --yes "{{ .Path }}" --bundle="{{ .Path }}.bundle"
+          output: true
           env:
             - COSIGN_EXPERIMENTAL=1
             - COSIGN_YES=true
@@ -48,14 +49,13 @@ builds:
 archives:
   - id: default
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    formats: ["tar.gz"]
     format_overrides:
       - goos: windows
-        format: zip
+        formats: ["zip"]
     files:
-      - LICENSE
       - "{{ .Path }}"
       - "{{ .Path }}.bundle"
-    format: tar.gz
 
 checksum:
   name_template: "checksums.txt"
