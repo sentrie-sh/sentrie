@@ -40,11 +40,7 @@ builds:
         goarch: arm64
     hooks:
       post:
-        - cmd: |
-            cosign sign-blob --yes "{{ .Path }}" \
-              --output-signature="{{ .Path }}.sig" \
-              --output-certificate="{{ .Path }}.crt" \
-              --bundle="{{ .Path }}.bundle"
+        - cmd: cosign sign-blob --yes "{{ .Path }}" --output-signature="{{ .Path }}.sig" --output-certificate="{{ .Path }}.crt" --bundle="{{ .Path }}.bundle"
           env:
             - COSIGN_EXPERIMENTAL=1
             - COSIGN_YES=true
