@@ -57,21 +57,17 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COSIGN_EXPERIMENTAL: 1
-          COSIGN_YES: "true"
 
-      - name: Sign checksums
+      - name: Sign archives and Checksums
         env:
-          COSIGN_EXPERIMENTAL: 1
           COSIGN_YES: "true"
         run: |
-          # Sign checksums.txt
-          if [ -f "dist/checksums.txt" ]; then
-            cosign sign-blob --yes dist/checksums.txt \
-              --output-signature="dist/checksums.txt.sig" \
-              --output-certificate="dist/checksums.txt.crt" \
-              --bundle="dist/checksums.txt.bundle"
-          fi
+          shopt -s globstar nullglob
+          for artifact in dist/**/*.tar.gz dist/**/*.zip dist/checksums.txt; do
+            if [ -f "$artifact" ]; then
+              cosign sign-blob --yes "$artifact" --bundle="$artifact.signature.bundle.json"
+            fi
+          done
 
       - name: Generate build provenance predicate
         run: |
@@ -117,7 +113,6 @@ jobs:
 
       - name: Generate build provenance attestations
         env:
-          COSIGN_EXPERIMENTAL: 1
           COSIGN_YES: "true"
         run: |
           shopt -s globstar nullglob
@@ -126,9 +121,7 @@ jobs:
               cosign attest-blob --yes "$artifact" \
                 --type slsaprovenance \
                 --predicate /tmp/predicate.json \
-                --output-signature="${artifact}.attestation.sig" \
-                --output-certificate="${artifact}.attestation.crt" \
-                --bundle "${artifact}.attestation.bundle"
+                --bundle "${artifact}.attestation.bundle.json"
             fi
           done
 
@@ -139,8 +132,7 @@ jobs:
           TAG=${{ github.ref_name }}
           shopt -s globstar nullglob
           # Upload archive attestations and checksums signatures
-          # Note: Binary signatures (.sig, .crt, .bundle) are already included in archives, so we don't upload them separately
-          for file in dist/**/*.attestation.* dist/checksums.txt.sig dist/checksums.txt.crt dist/checksums.txt.bundle; do
+          for file in dist/**/*.bundle.json; do
             if [ -f "$file" ]; then
               gh release upload "$TAG" "$file" --clobber
             fi

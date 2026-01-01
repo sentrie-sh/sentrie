@@ -41,19 +41,13 @@ builds:
       - goos: windows
         goarch: arm64
 
-binary_signs:
-  - id: cosign_signature_bundle
-    cmd: cosign
-    args:
-      - "sign-blob"
-      - "--bundle=${signature}"
-      - "${artifact}"
-      - "--yes"
-    artifacts: binary
-    env:
-      - COSIGN_YES=true
-    output: true
-    signature: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}.cosign.bundle.json"
+archives:
+  - id: default
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    formats: ["tar.gz"]
+    format_overrides:
+      - goos: windows
+        formats: ["zip"]
 
 checksum:
   name_template: "checksums.txt"
