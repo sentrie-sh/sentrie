@@ -19,6 +19,19 @@
 
 set -e
 
+if [ "$OS" = "Windows_NT" ]; then
+	echo "Error: This installer is for macOS, Linux, and WSL2. Windows is not supported. Use install.ps1 instead." 1>&2
+	exit 1
+else
+	case $(uname -sm) in
+	"Darwin x86_64") target="darwin_amd64.tar.gz" ;;
+	"Darwin arm64") target="darwin_arm64.tar.gz" ;;
+	"Linux x86_64") target="linux_amd64.tar.gz" ;;
+	"Linux aarch64") target="linux_arm64.tar.gz" ;;
+	*) echo "Error: '$(uname -sm)' is not supported yet." 1>&2; exit 1 ;;
+	esac
+fi
+
 if ! command -v tar >/dev/null; then
 	echo "Error: 'tar' is required to install Sentrie." 1>&2
 	exit 1
@@ -34,22 +47,40 @@ if ! command -v install >/dev/null; then
 	exit 1
 fi
 
-if [ "$OS" = "Windows_NT" ]; then
-	echo "Error: Windows is not supported. Use install.ps1 instead." 1>&2
-	exit 1
-else
-	case $(uname -sm) in
-	"Darwin x86_64") target="darwin_amd64.tar.gz" ;;
-	"Darwin arm64") target="darwin_arm64.tar.gz" ;;
-	"Linux x86_64") target="linux_amd64.tar.gz" ;;
-	"Linux aarch64") target="linux_arm64.tar.gz" ;;
-	*) echo "Error: '$(uname -sm)' is not supported yet." 1>&2; exit 1 ;;
-	esac
-fi
+# Utility function to download a file from a URL to a local file
+function download_file() {
+	local url="$1"
+	local output="$2"
+	if command -v wget >/dev/null; then
+		wget --help | grep -q '\--showprogress' && _FORCE_PROGRESS_BAR="--no-verbose --show-progress" || _FORCE_PROGRESS_BAR=""
+		if ! wget --prefer-family=IPv4 --progress=bar:force:noscroll $_FORCE_PROGRESS_BAR -O "$output" "$url"; then
+			echo "Could not download $url" 1>&2
+			exit 1
+		fi
+	elif command -v curl >/dev/null; then
+		if ! curl --fail --location --progress-bar --output "$output" "$url"; then
+			echo "Could not download $url" 1>&2
+			exit 1
+		fi
+	fi
+  
+  echo "Downloaded $url to $output"
+}
+
+test -z "$tmp_dir" && tmp_dir="$(mktemp -d)"
+mkdir -p "${tmp_dir}"
+tmp_dir="${tmp_dir%/}"
+
+echo "Created temporary directory at $tmp_dir."
+echo "Changing to $tmp_dir"
+cd "$tmp_dir"
 
 if [ $# -eq 0 ]; then
-	version=$(curl -sSL https://api.github.com/repos/sentrie-sh/sentrie/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+' | head -1)
-	if [ -z "$version" ]; then
+  # If no version is provided, get the latest version
+	echo "Determining latest version"
+  download_file "https://api.github.com/repos/sentrie-sh/sentrie/releases/latest" "$tmp_dir/latest-release.json"
+	version=$(grep '"tag_name"' "$tmp_dir/latest-release.json" | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
+	if [ -z "$version" ] || [ "$version" = "null" ]; then
 		echo "Error: Could not determine latest version" 1>&2
 		exit 1
 	fi
@@ -61,15 +92,11 @@ version_no_v=$(echo "$version" | sed 's/^v//')
 sentrie_uri="https://github.com/sentrie-sh/sentrie/releases/download/${version}/sentrie_${version_no_v}_${target}"
 checksums_uri="https://github.com/sentrie-sh/sentrie/releases/download/${version}/checksums.txt"
 
+echo "Detected version: $version"
+echo "Detected target: $target"
+
 bin_dir="/usr/local/bin"
 exe="$bin_dir/sentrie"
-
-test -z "$tmp_dir" && tmp_dir="$(mktemp -d)"
-mkdir -p "${tmp_dir}"
-tmp_dir="${tmp_dir%/}"
-
-echo "Created temporary directory at $tmp_dir. Changing to $tmp_dir"
-cd "$tmp_dir"
 
 # set a trap for a clean exit - even in failures
 trap 'rm -rf $tmp_dir' EXIT
@@ -78,32 +105,8 @@ archive_location="$tmp_dir/sentrie.tar.gz"
 checksums_location="$tmp_dir/checksums.txt"
 
 echo "Downloading from $sentrie_uri"
-if command -v wget >/dev/null; then
-	# because --show-progress was introduced in 1.16.
-	wget --help | grep -q '\--showprogress' && _FORCE_PROGRESS_BAR="--no-verbose --show-progress" || _FORCE_PROGRESS_BAR=""
-	# prefer an IPv4 connection, since github.com does not handle IPv6 connections properly.
-	if ! wget --prefer-family=IPv4 --progress=bar:force:noscroll $_FORCE_PROGRESS_BAR -O "$archive_location" "$sentrie_uri"; then
-		echo "Could not find version $version" 1>&2
-		exit 1
-	fi
-	if ! wget --prefer-family=IPv4 --progress=bar:force:noscroll $_FORCE_PROGRESS_BAR -O "$checksums_location" "$checksums_uri"; then
-		echo "Could not download checksums" 1>&2
-		exit 1
-	fi
-elif command -v curl >/dev/null; then
-	# curl uses HappyEyeball for connections, therefore, no preference is required
-	if ! curl --fail --location --progress-bar --output "$archive_location" "$sentrie_uri"; then
-		echo "Could not find version $version" 1>&2
-		exit 1
-	fi
-	if ! curl --fail --location --progress-bar --output "$checksums_location" "$checksums_uri"; then
-		echo "Could not download checksums" 1>&2
-		exit 1
-	fi
-else
-	echo "Unable to find wget or curl. Cannot download." 1>&2
-	exit 1
-fi
+download_file "$sentrie_uri" "$archive_location"
+download_file "$checksums_uri" "$checksums_location"
 
 echo "Verifying checksum"
 archive_name=$(basename "$sentrie_uri")
@@ -129,44 +132,25 @@ if [ "$expected_hash" != "$actual_hash" ]; then
 	exit 1
 fi
 
+echo "Checksum verification successful"
+
 if command -v cosign >/dev/null; then
-	echo "Verifying archive attestation"
-	attestation_bundle_uri="https://github.com/sentrie-sh/sentrie/releases/download/${version}/${archive_name}.attestation.bundle"
-	attestation_bundle_location="$tmp_dir/${archive_name}.attestation.bundle"
-	
-	if command -v wget >/dev/null; then
-		wget --help | grep -q '\--showprogress' && _FORCE_PROGRESS_BAR="--no-verbose --show-progress" || _FORCE_PROGRESS_BAR=""
-		if wget --prefer-family=IPv4 --progress=bar:force:noscroll $_FORCE_PROGRESS_BAR -O "$attestation_bundle_location" "$attestation_bundle_uri" 2>/dev/null; then
-			if ! cosign verify-blob --bundle "$attestation_bundle_location" "$archive_location"; then
-				echo "Error: Archive attestation verification failed" 1>&2
-				exit 1
-			fi
-			rm "$attestation_bundle_location"
-		fi
-	elif command -v curl >/dev/null; then
-		if curl --fail --location --progress-bar --output "$attestation_bundle_location" "$attestation_bundle_uri" 2>/dev/null; then
-			if ! cosign verify-blob --bundle "$attestation_bundle_location" "$archive_location"; then
-				echo "Error: Archive attestation verification failed" 1>&2
-				exit 1
-			fi
-			rm "$attestation_bundle_location"
-		fi
-	fi
+  echo "Downloading archive signature bundle"
+  archive_name=$(basename "$sentrie_uri")
+
+  artifact_signature_bundle_uri="https://github.com/sentrie-sh/sentrie/releases/download/${version}/${archive_name}.signature.bundle.json"
+  artifact_signature_bundle_location="$tmp_dir/${archive_name}.signature.bundle.json"
+  download_file "$artifact_signature_bundle_uri" "$artifact_signature_bundle_location"
+  
+   echo "Verifying artifact signature"
+   if ! cosign verify-blob --bundle "$artifact_signature_bundle_location" "$archive_location" --certificate-identity="https://github.com/sentrie-sh/sentrie/.github/workflows/release.yml@refs/tags/${version}" --certificate-oidc-issuer="https://token.actions.githubusercontent.com"; then
+     echo "Error: Artifact signature verification failed" 1>&2
+     exit 1
+   fi
 fi
 
 echo "Deflating downloaded archive"
 tar -xf "$archive_location" -C "$tmp_dir"
-
-if command -v cosign >/dev/null; then
-	echo "Verifying binary signature"
-	binary_bundle_location="$tmp_dir/sentrie.bundle"
-	if [ -f "$binary_bundle_location" ]; then
-		if ! cosign verify-blob --bundle "$binary_bundle_location" "$tmp_dir/sentrie"; then
-			echo "Error: Binary signature verification failed" 1>&2
-			exit 1
-		fi
-	fi
-fi
 
 echo "Installing"
 install -d "$bin_dir"
