@@ -67,6 +67,11 @@ func main() {
 // <version> (<commit>) <date> <os>/<arch> <go-version>
 // else return the version string as is
 func getVersionString() string {
+	if len(version) > 0 {
+		// if a version string is set, return it as is
+		// this was set using -ldflags "-X main.version=v1.0.0"
+		return strings.TrimPrefix(version, "v")
+	}
 	trueVersion := version
 	commit, date, dirty := getBuildInfo()
 	if dirty || builtWithMakefile == "true" {
