@@ -69,9 +69,11 @@ jobs:
           shopt -s globstar nullglob
           for artifact in dist/**/*.tar.gz dist/**/*.zip dist/checksums.txt; do
             if [ -f "$artifact" ]; then
-              cosign sign-blob --yes "$artifact" --bundle="dist/$artifact.signature.bundle.json"
+              cosign sign-blob --yes "$artifact" --bundle="$artifact.signature.bundle.json"
             fi
           done
+          ls -la dist
+          ls -la dist/**/*.signature.bundle.json
 
       - name: Attach signature artifacts to release
         env:
