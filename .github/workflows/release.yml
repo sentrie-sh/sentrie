@@ -72,8 +72,6 @@ jobs:
               cosign sign-blob --yes "$artifact" --bundle="$artifact.signature.bundle.json"
             fi
           done
-          ls -la dist
-          ls -la dist/**/*.signature.bundle.json
 
       - name: Attach signature artifacts to release
         env:

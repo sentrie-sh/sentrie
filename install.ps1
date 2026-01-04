@@ -44,6 +44,7 @@ if ($Version -eq "") {
 $version_no_v = $Version -replace '^v', ''
 $sentrie_uri = "https://github.com/sentrie-sh/sentrie/releases/download/${Version}/sentrie_${version_no_v}_${target}"
 $checksums_uri = "https://github.com/sentrie-sh/sentrie/releases/download/${Version}/checksums.txt"
+$signature_uri = "https://github.com/sentrie-sh/sentrie/releases/download/${Version}/sentrie_${version_no_v}_${target}.signature.bundle.json"
 
 $bin_dir = "$env:LOCALAPPDATA\sentrie\bin"
 $exe = "$bin_dir\sentrie.exe"
@@ -55,6 +56,7 @@ Set-Location "$tmp_dir"
 
 $archive_location = "$tmp_dir\sentrie.zip"
 $checksums_location = "$tmp_dir\checksums.txt"
+$signature_location = "$tmp_dir\sentrie_signature.bundle.json"
 
 try {
 	Write-Host "Downloading from $sentrie_uri"
@@ -69,6 +71,14 @@ try {
 	Write-Host "Downloading checksums"
 	if (!(Invoke-WebRequest -Uri $checksums_uri -OutFile $checksums_location -UseBasicParsing)) {
 		Write-Host "Could not download checksums" -ForegroundColor Red
+		exit 1
+	}
+
+	Write-Host "Downloading signature"
+	try {
+		Invoke-WebRequest -Uri $signature_uri -OutFile $signature_location -UseBasicParsing -ErrorAction Stop
+	} catch {
+		Write-Host "Could not download signature" -ForegroundColor Red
 		exit 1
 	}
 
@@ -101,41 +111,20 @@ try {
 		exit 1
 	}
 
+	Write-Host "Checksum verification successful"
+
 	if (Get-Command cosign -ErrorAction SilentlyContinue) {
-		Write-Host "Verifying archive attestation"
-		$attestation_bundle_uri = "https://github.com/sentrie-sh/sentrie/releases/download/${Version}/${archive_name}.attestation.bundle"
-		$attestation_bundle_location = "$tmp_dir\${archive_name}.attestation.bundle"
-		
-		try {
-			Invoke-WebRequest -Uri $attestation_bundle_uri -OutFile $attestation_bundle_location -UseBasicParsing -ErrorAction SilentlyContinue
-			if (Test-Path $attestation_bundle_location) {
-				$verify_result = & cosign verify-blob --bundle $attestation_bundle_location $archive_location 2>&1
-				if ($LASTEXITCODE -ne 0) {
-					Write-Host "Error: Archive attestation verification failed" -ForegroundColor Red
-					exit 1
-				}
-				Remove-Item $attestation_bundle_location
-			}
-		} catch {
-			# Bundle not available, skip Cosign verification
+		Write-Host "Verifying artifact signature"
+		$verify_result = & cosign verify-blob --bundle $signature_location $archive_location --certificate-identity="https://github.com/sentrie-sh/sentrie/.github/workflows/release.yml@refs/tags/${Version}" --certificate-oidc-issuer="https://token.actions.githubusercontent.com" 2>&1
+		if ($LASTEXITCODE -ne 0) {
+			Write-Host "Error: Artifact signature verification failed" -ForegroundColor Red
+			exit 1
 		}
 	}
 
 	Write-Host "Deflating downloaded archive"
 	$extract_path = "$tmp_dir\extract"
 	Expand-Archive -Path $archive_location -DestinationPath $extract_path -Force
-
-	if (Get-Command cosign -ErrorAction SilentlyContinue) {
-		Write-Host "Verifying binary signature"
-		$binary_bundle_location = "$extract_path\sentrie.bundle"
-		if (Test-Path $binary_bundle_location) {
-			$verify_result = & cosign verify-blob --bundle $binary_bundle_location "$extract_path\sentrie.exe" 2>&1
-			if ($LASTEXITCODE -ne 0) {
-				Write-Host "Error: Binary signature verification failed" -ForegroundColor Red
-				exit 1
-			}
-		}
-	}
 
 	Write-Host "Installing"
 	if (!(Test-Path $bin_dir)) {

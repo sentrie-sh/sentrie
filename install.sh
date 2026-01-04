@@ -91,11 +91,29 @@ fi
 version_no_v=$(echo "$version" | sed 's/^v//')
 sentrie_uri="https://github.com/sentrie-sh/sentrie/releases/download/${version}/sentrie_${version_no_v}_${target}"
 checksums_uri="https://github.com/sentrie-sh/sentrie/releases/download/${version}/checksums.txt"
+signature_uri="https://github.com/sentrie-sh/sentrie/releases/download/${version}/sentrie_${version_no_v}_${target}.signature.bundle.json"
 
 echo "Detected version: $version"
 echo "Detected target: $target"
 
-bin_dir="/usr/local/bin"
+# Check if sentrie is already installed and use that location if writable
+bin_dir=""
+if command -v sentrie >/dev/null 2>&1; then
+	existing_path=$(command -v sentrie)
+	existing_dir=$(dirname "$existing_path")
+	if [ -w "$existing_dir" ] 2>/dev/null; then
+		bin_dir="$existing_dir"
+	fi
+fi
+
+# If not found, use default location
+if [ -z "$bin_dir" ]; then
+	sentrie_install="${SENTRIE_INSTALL:-$HOME/.local}"
+	bin_dir="$sentrie_install/bin"
+	# Create directory if it doesn't exist
+	mkdir -p "$bin_dir"
+fi
+
 exe="$bin_dir/sentrie"
 
 # set a trap for a clean exit - even in failures
@@ -103,10 +121,12 @@ trap 'rm -rf $tmp_dir' EXIT
 
 archive_location="$tmp_dir/sentrie.tar.gz"
 checksums_location="$tmp_dir/checksums.txt"
+signature_location="$tmp_dir/sentrie_signature.bundle.json"
 
 echo "Downloading from $sentrie_uri"
 download_file "$sentrie_uri" "$archive_location"
 download_file "$checksums_uri" "$checksums_location"
+download_file "$signature_uri" "$signature_location"
 
 echo "Verifying checksum"
 archive_name=$(basename "$sentrie_uri")
@@ -136,25 +156,18 @@ echo "Checksum verification successful"
 
 if command -v cosign >/dev/null; then
   echo "Downloading archive signature bundle"
-  archive_name=$(basename "$sentrie_uri")
-
-  artifact_signature_bundle_uri="https://github.com/sentrie-sh/sentrie/releases/download/${version}/${archive_name}.signature.bundle.json"
-  artifact_signature_bundle_location="$tmp_dir/${archive_name}.signature.bundle.json"
-  download_file "$artifact_signature_bundle_uri" "$artifact_signature_bundle_location"
-  
-   echo "Verifying artifact signature"
-   if ! cosign verify-blob --bundle "$artifact_signature_bundle_location" "$archive_location" --certificate-identity="https://github.com/sentrie-sh/sentrie/.github/workflows/release.yml@refs/tags/${version}" --certificate-oidc-issuer="https://token.actions.githubusercontent.com"; then
-     echo "Error: Artifact signature verification failed" 1>&2
-     exit 1
-   fi
+  echo "Verifying artifact signature"
+  if ! cosign verify-blob --bundle "$signature_location" "$archive_location" --certificate-identity="https://github.com/sentrie-sh/sentrie/.github/workflows/release.yml@refs/tags/${version}" --certificate-oidc-issuer="https://token.actions.githubusercontent.com"; then
+    echo "Error: Artifact signature verification failed" 1>&2
+    exit 1
+  fi
 fi
 
 echo "Deflating downloaded archive"
 tar -xf "$archive_location" -C "$tmp_dir"
 
 echo "Installing"
-install -d "$bin_dir"
-install "$tmp_dir/sentrie" "$bin_dir"
+cp "$tmp_dir/sentrie" "$exe"
 
 echo "Applying necessary permissions"
 chmod +x "$exe"
@@ -165,7 +178,16 @@ rm "$checksums_location"
 
 echo "Sentrie was installed successfully to $exe"
 
-if ! command -v "$bin_dir/sentrie" >/dev/null; then
-	echo "Sentrie was installed, but could not be executed. Are you sure '$bin_dir/sentrie' has the necessary permissions?" 1>&2
-	exit 1
+if ! command -v sentrie >/dev/null; then
+	echo ""
+	echo "Note: 'sentrie' is not in your PATH."
+	echo "Add it to your PATH by running:"
+	echo "  export PATH=\"\$PATH:$bin_dir\""
+	echo "Or add it permanently to your shell profile (~/.bashrc, ~/.zshrc, etc.)"
+	echo ""
+	echo "You can also run Sentrie directly:"
+	echo "  $exe"
+	echo ""
 fi
+
+rm -rf "$tmp_dir"
