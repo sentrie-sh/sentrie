@@ -48,10 +48,10 @@ if ! command -v install >/dev/null; then
 fi
 
 # Utility function to download a file from a URL to a local file
-function download_file() {
-	local url="$1"
-	local output="$2"
-	if command -v wget >/dev/null; then
+download_file() {
+  url="$1"
+  output="$2"
+  if command -v wget >/dev/null; then
 		wget --help | grep -q '\--showprogress' && _FORCE_PROGRESS_BAR="--no-verbose --show-progress" || _FORCE_PROGRESS_BAR=""
 		if ! wget --prefer-family=IPv4 --progress=bar:force:noscroll $_FORCE_PROGRESS_BAR -O "$output" "$url"; then
 			echo "Could not download $url" 1>&2
@@ -62,7 +62,10 @@ function download_file() {
 			echo "Could not download $url" 1>&2
 			exit 1
 		fi
-	fi
+  else
+    echo "Error: need 'curl' or 'wget' to download Sentrie." 1>&2
+    exit 1
+  fi
   
   echo "Downloaded $url to $output"
 }
@@ -130,7 +133,7 @@ download_file "$signature_uri" "$signature_location"
 
 echo "Verifying checksum"
 archive_name=$(basename "$sentrie_uri")
-expected_hash=$(grep "$archive_name" "$checksums_location" | awk '{print $1}')
+expected_hash=$(awk -v name="$archive_name" '$2==name {print $1}' "$checksums_location")
 if [ -z "$expected_hash" ]; then
 	echo "Error: Checksum not found for $archive_name" 1>&2
 	exit 1
@@ -164,13 +167,10 @@ if command -v cosign >/dev/null; then
 fi
 
 echo "Deflating downloaded archive"
-tar -xf "$archive_location" -C "$tmp_dir"
+tar -xzf "$archive_location" -C "$tmp_dir"
 
-echo "Installing"
-cp "$tmp_dir/sentrie" "$exe"
-
-echo "Applying necessary permissions"
-chmod +x "$exe"
+echo "Installing and applying necessary permissions"
+install -m 0755 "$tmp_dir/sentrie" "$exe"
 
 echo "Removing downloaded archive"
 rm "$archive_location"

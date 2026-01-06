@@ -116,7 +116,7 @@ try {
 	$checksums_content = Get-Content $checksums_location
 	$expected_hash = ""
 	foreach ($line in $checksums_content) {
-		if ($line -match "^([a-f0-9]{64})\s+$([^\s]+)$") {
+    if ($line -match '^([a-f0-9]{64})\s+\*?(\S+)$') {
 			$hash = $matches[1]
 			$file = $matches[2]
 			if ($file -eq $archive_name) {
@@ -143,7 +143,6 @@ try {
 	Write-Host "Checksum verification successful"
 
 	if (Get-Command cosign -ErrorAction SilentlyContinue) {
-		Write-Host "Downloading archive signature bundle"
 		Write-Host "Verifying artifact signature"
 		$verify_result = & cosign verify-blob --bundle $signature_location $archive_location --certificate-identity="https://github.com/sentrie-sh/sentrie/.github/workflows/release.yml@refs/tags/${Version}" --certificate-oidc-issuer="https://token.actions.githubusercontent.com" 2>&1
 		if ($LASTEXITCODE -ne 0) {

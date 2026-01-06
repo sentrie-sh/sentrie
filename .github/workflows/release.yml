@@ -85,9 +85,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           for file in dist/*.bundle.json; do
-              if [ -f "$file" ]; then
-                gh release upload "${{ github.ref_name }}" "$file" --clobber
-              fi
+            if [ -f "$file" ]; then
+              gh release upload "${{ github.ref_name }}" "$file" --clobber
+            fi
           done
 
       # Attach the LICENSE and LICENSE-DUAL.md files to the release
