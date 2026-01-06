@@ -190,4 +190,10 @@ if ! command -v sentrie >/dev/null; then
 	echo ""
 fi
 
+# Verify the binary can be executed
+if ! "$exe" --version >/dev/null 2>&1; then
+	echo "Sentrie was installed, but could not be executed. Are you sure '$exe' has the necessary permissions?" 1>&2
+	exit 1
+fi
+
 rm -rf "$tmp_dir"

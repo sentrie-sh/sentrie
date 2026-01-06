@@ -46,7 +46,36 @@ $sentrie_uri = "https://github.com/sentrie-sh/sentrie/releases/download/${Versio
 $checksums_uri = "https://github.com/sentrie-sh/sentrie/releases/download/${Version}/checksums.txt"
 $signature_uri = "https://github.com/sentrie-sh/sentrie/releases/download/${Version}/sentrie_${version_no_v}_${target}.signature.bundle.json"
 
-$bin_dir = "$env:LOCALAPPDATA\sentrie\bin"
+Write-Host "Detected version: $Version"
+Write-Host "Detected target: $target"
+
+# Check if sentrie is already installed and use that location if writable
+$bin_dir = ""
+if (Get-Command sentrie -ErrorAction SilentlyContinue) {
+	$existing_path = (Get-Command sentrie).Source
+	$existing_dir = Split-Path $existing_path -Parent
+	if (Test-Path $existing_dir -PathType Container) {
+		try {
+			$test_file = Join-Path $existing_dir ".test_write"
+			[System.IO.File]::WriteAllText($test_file, "test")
+			Remove-Item $test_file -ErrorAction SilentlyContinue
+			$bin_dir = $existing_dir
+		} catch {
+			# Directory not writable, continue
+		}
+	}
+}
+
+# If not found, use default location
+if ($bin_dir -eq "") {
+	$sentrie_install = if ($env:SENTRIE_INSTALL) { $env:SENTRIE_INSTALL } else { "$env:LOCALAPPDATA\sentrie" }
+	$bin_dir = "$sentrie_install\bin"
+	# Create directory if it doesn't exist
+	if (!(Test-Path $bin_dir)) {
+		New-Item -ItemType Directory -Path $bin_dir -Force | Out-Null
+	}
+}
+
 $exe = "$bin_dir\sentrie.exe"
 
 $tmp_dir = New-TemporaryFile | ForEach-Object { Remove-Item $_; New-Item -ItemType Directory -Path $_ }
@@ -114,6 +143,7 @@ try {
 	Write-Host "Checksum verification successful"
 
 	if (Get-Command cosign -ErrorAction SilentlyContinue) {
+		Write-Host "Downloading archive signature bundle"
 		Write-Host "Verifying artifact signature"
 		$verify_result = & cosign verify-blob --bundle $signature_location $archive_location --certificate-identity="https://github.com/sentrie-sh/sentrie/.github/workflows/release.yml@refs/tags/${Version}" --certificate-oidc-issuer="https://token.actions.githubusercontent.com" 2>&1
 		if ($LASTEXITCODE -ne 0) {
@@ -135,8 +165,21 @@ try {
 	Write-Host "Removing downloaded archive"
 	Remove-Item $archive_location
 	Remove-Item $checksums_location
+	Remove-Item $signature_location -ErrorAction SilentlyContinue
 
 	Write-Host "Sentrie was installed successfully to $exe"
+
+	if (!(Get-Command sentrie -ErrorAction SilentlyContinue)) {
+		Write-Host ""
+		Write-Host "Note: 'sentrie' is not in your PATH."
+		Write-Host "Add it to your PATH by running:"
+		Write-Host "  `$env:PATH += `";$bin_dir`""
+		Write-Host "Or add it permanently to your user environment variables."
+		Write-Host ""
+		Write-Host "You can also run Sentrie directly:"
+		Write-Host "  $exe"
+		Write-Host ""
+	}
 
 	# Verify the binary can be executed
 	try {
