@@ -139,14 +139,13 @@ jobs:
           major="${mm%.*}"     # 1
 
           make_versioned() {
-            local suffix="$1"                 # e.g. 1 or 1.2
-            local suffix_us="${suffix//./_}"       # 1_2
-            local file="Casks/sentrie@${suffix_us}.rb"
+            local suffix="$1"                       # e.g. 1 or 1.2
+            local file="Casks/sentrie@${suffix}.rb"
 
             cp "Casks/sentrie.rb" "$file"
 
             # 1) Change the token
-            sed -i '0,/^cask "sentrie" do$/s//cask "sentrie@'"${suffix_us}"'" do/' "$file"
+            sed -i '0,/^cask "sentrie" do$/s//cask "sentrie@'"${suffix}"'" do/' "$file"
 
             # 2) Rename the installed command to avoid collisions
             #    binary "sentrie"  ->  binary "sentrie", target: "sentrie@X"
