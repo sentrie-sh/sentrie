@@ -18,28 +18,55 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
-	"runtime/debug"
 	"strings"
-	"time"
+	"sync"
 
 	"github.com/google/uuid"
 	"github.com/sentrie-sh/sentrie/cmd"
 	"github.com/sentrie-sh/sentrie/constants"
+	vers "github.com/sentrie-sh/sentrie/version"
 )
 
-// version is overridden at build time using -ldflags
-// Example: -ldflags "-X main.version=v1.0.0"
-// commit, date, and dirty are extracted from debug.ReadBuildInfo() at runtime
-var version = ""
+// these values are overridden at build time using -ldflags
+// Example: -ldflags "-X main.version=v1.0.0 -X main.builtBy=make"
+//
+//nolint:gochecknoglobals
+var (
+	version   = ""
+	commit    = ""
+	treeState = ""
+	date      = ""
+	builtBy   = ""
+)
 
-// this gets overridden at build time when we build using the Makefile
-// we use this to indicate that the version string was built with the Makefile
-// even if the build is not dirty
-var builtWithMakefile = "false"
+var versionOnce = sync.OnceValue(func() vers.Info {
+	return vers.GetVersionInfo(
+		vers.WithAppDetails("Sentrie", "Extensible policy evaluation engine", website),
+		vers.WithASCIIName(asciiArt),
+		func(i *vers.Info) {
+			if version != "" {
+				i.GitVersion = version
+			}
+			if commit != "" {
+				i.GitCommit = commit
+			}
+			if treeState != "" {
+				i.GitTreeState = treeState
+			}
+			if date != "" {
+				i.BuildDate = date
+			}
+			if builtBy != "" {
+				i.BuiltBy = builtBy
+			}
+		},
+	)
+})
 
 func main() {
 	ctx := context.Background()
@@ -50,7 +77,7 @@ func main() {
 	// set an exit code
 	exitCode := 0
 
-	vers := getVersionString()
+	vers := versionOnce().String()
 	logger := setupDefaultLogger(vers)
 	slog.SetDefault(logger)
 
@@ -61,54 +88,6 @@ func main() {
 		exitCode = 1
 	}
 	os.Exit(exitCode)
-}
-
-// if dirty, return the version string of the following format:
-// <version> (<commit>) <date> <os>/<arch> <go-version>
-// else return the version string as is
-func getVersionString() string {
-	if len(version) > 0 {
-		// if a version string is set, return it as is
-		// this was set using -ldflags "-X main.version=v1.0.0"
-		return strings.TrimPrefix(version, "v")
-	}
-	trueVersion := version
-	commit, date, dirty := getBuildInfo()
-	if dirty || builtWithMakefile == "true" {
-		buildNumber := date.Format("20060102150405")
-		if len(commit) > 7 {
-			commit = commit[:7]
-		}
-		trueVersion = fmt.Sprintf("%s-dirty.%s+%s", version, buildNumber, commit)
-		if builtWithMakefile == "true" {
-			trueVersion = fmt.Sprintf("%s(makefile)", trueVersion)
-		}
-	}
-	return trueVersion
-}
-
-func getBuildInfo() (commit string, date time.Time, dirty bool) {
-	commit = "none"
-	date = time.Time{}
-	dirty = false
-
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
-		return commit, date, dirty
-	}
-
-	for _, setting := range info.Settings {
-		switch setting.Key {
-		case "vcs.revision":
-			commit = setting.Value
-		case "vcs.time":
-			date, _ = time.Parse(time.RFC3339, setting.Value)
-		case "vcs.modified":
-			dirty = setting.Value == "true"
-		}
-	}
-
-	return commit, date, dirty
 }
 
 func setupDefaultLogger(version string) *slog.Logger {
@@ -159,3 +138,8 @@ func setupDefaultLogger(version string) *slog.Logger {
 
 	return logger
 }
+
+const website = "https://sentrie.sh"
+
+//go:embed art.txt
+var asciiArt string
