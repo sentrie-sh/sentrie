@@ -30,11 +30,23 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    outputs:
+      major: ${{ steps.semver_parser.outputs.major }}
+      minor: ${{ steps.semver_parser.outputs.minor }}
+      patch: ${{ steps.semver_parser.outputs.patch }}
+      prerelease: ${{ steps.semver_parser.outputs.prerelease }}
+      build: ${{ steps.semver_parser.outputs.build }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Parse semver string
+        id: semver_parser
+        uses: booxmedialtd/ws-action-parse-semver@v1
+        with:
+          input_string: "${{ github.ref_name }}"
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -109,6 +121,7 @@ jobs:
     name: Homebrew Cask Release
     needs: release
     runs-on: ubuntu-latest
+    # if: ${{ needs.release.outputs.prerelease == '' && needs.release.outputs.build == '' }}
     env:
       GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
     steps:
@@ -129,32 +142,30 @@ jobs:
           name: homebrew-cask
           path: ./Casks
 
-      - name: Create versioned cask (token + filename)
+      # get node so that we can run the script to create the versioned casks
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Create versioned casks (token + filename)
+        env:
+          VERSION: ${{ github.ref_name }}
         run: |
           set -euo pipefail
+          node scripts/create-sentrie-casks.js
 
-          ver="${{ github.ref_name }}"
-          ver="${ver#v}"       # 1.2.3
-          mm="${ver%.*}"       # 1.2
-          major="${mm%.*}"     # 1
+      - name: Verify versioned casks
+        run: |
+          set -euo pipefail
+          ls -la Casks
+          test -f Casks/sentrie.rb
+          test -f Casks/sentrie@*.rb
 
-          make_versioned() {
-            local suffix="$1"                       # e.g. 1 or 1.2
-            local file="Casks/sentrie@${suffix}.rb"
+          # stage the expected files
+          git add Casks/sentrie.rb Casks/sentrie@*.rb
 
-            cp "Casks/sentrie.rb" "$file"
-
-            # 1) Change the token
-            sed -i '0,/^cask "sentrie" do$/s//cask "sentrie@'"${suffix}"'" do/' "$file"
-
-            # 2) Rename the installed command to avoid collisions
-            #    binary "sentrie"  ->  binary "sentrie", target: "sentrie@X"
-            sed -i '0,/^  binary "sentrie"$/s//  binary "sentrie", target: "sentrie@'"${suffix}"'"/' "$file"
-          }
-
-          make_versioned "$ver"
-          make_versioned "$mm"
-          make_versioned "$major"
+          # ensure exactly 4 files are staged: sentrie.rb + 3 versioned
+          git diff --cached --name-only | wc -l | tr -d ' ' | grep -qx '4'
 
       - name: Commit and push Homebrew Cask changes
         env:
@@ -174,10 +185,11 @@ jobs:
           set -euo pipefail
           head="update-sentrie-cask-${{ github.ref_name }}"
           existing="$(gh pr list --state open --head "$head" --json number -q '.[].number')"
+          # create if not existing - if existing, that PR will be updated by GitHub anyway
           if [ -z "$existing" ]; then
             gh pr create \
               --base main \
-              --reviewer binaek
+              --reviewer binaek \
               --title "[sentrie][brew-cask][${{ github.ref_name }}] Update sentrie cask to ${{ github.ref_name }}" \
               --body "Updates Casks/sentrie.rb and adds/updates versioned cask."
           fi
