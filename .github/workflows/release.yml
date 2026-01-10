@@ -31,22 +31,30 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     outputs:
-      major: ${{ steps.semver_parser.outputs.major }}
-      minor: ${{ steps.semver_parser.outputs.minor }}
-      patch: ${{ steps.semver_parser.outputs.patch }}
-      prerelease: ${{ steps.semver_parser.outputs.prerelease }}
-      build: ${{ steps.semver_parser.outputs.build }}
+      major: ${{ steps.ver.outputs.major }}
+      minor: ${{ steps.ver.outputs.minor }}
+      patch: ${{ steps.ver.outputs.patch }}
+      prerelease: ${{ steps.ver.outputs.prerelease }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Parse semver string
-        id: semver_parser
-        uses: booxmedialtd/ws-action-parse-semver@v1
-        with:
-          input_string: "${{ github.ref_name }}"
+      - name: Parse version from tag
+        id: ver
+        run: |
+          set -euo pipefail
+          tag="${{ github.ref_name }}"   # e.g. v0.0.1-test.release.001
+          v="${tag#v}"
+
+          major="${v%%.*}"
+          minor="${v#*.}"
+          patch="${minor#*.}"
+
+          echo "major=$major" >> "$GITHUB_OUTPUT"
+          echo "minor=$minor" >> "$GITHUB_OUTPUT"
+          echo "patch=$patch" >> "$GITHUB_OUTPUT"
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -121,7 +129,7 @@ jobs:
     name: Homebrew Cask Release
     needs: release
     runs-on: ubuntu-latest
-    # if: ${{ needs.release.outputs.prerelease == '' && needs.release.outputs.build == '' }}
+    # if: ${{ needs.release.outputs.prerelease == 'false' }}
     env:
       GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
     steps:
