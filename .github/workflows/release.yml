@@ -146,11 +146,15 @@ jobs:
         run: |
           gh release upload "${{ github.ref_name }}" LICENSE LICENSE-DUAL.md --clobber
 
+      - name: Rename the cask file as a template
+        run: |
+          mv dist/homebrew/Casks/sentrie.rb dist/homebrew/Casks/sentrie.rb.tmpl
+
       - name: Upload Homebrew Cask Artifact for use in Homebrew Cask Release
         uses: actions/upload-artifact@v4
         with:
           name: homebrew-cask
-          path: dist/homebrew/Casks/sentrie.rb
+          path: dist/homebrew/Casks/sentrie.rb.tmpl
 
   brew-cask-release:
     name: Homebrew Cask Release
@@ -200,6 +204,7 @@ jobs:
         env:
           VERSION: ${{ github.ref_name }}
           PRERELEASE: ${{ needs.release.outputs.prerelease }}
+          TEMPLATE_NAME: sentrie.rb.tmpl
         run: |
           set -euo pipefail
           node scripts/create-sentrie-casks.js
@@ -211,10 +216,6 @@ jobs:
         run: |
           set -euo pipefail
           ls -la Casks
-
-          if [ "$PRERELEASE" = "true" ] && [ -f Casks/sentrie.rb ]; then
-            git restore Casks/sentrie.rb
-          fi
 
           # stage the expected files (sentrie.rb + versioned casks)
           if [ "$PRERELEASE" = "true" ]; then
