@@ -212,12 +212,14 @@ jobs:
           set -euo pipefail
           ls -la Casks
 
-          if [ "$PRERELEASE" = "true" ]; then
+          if [ "$PRERELEASE" = "true" ] && [ -f Casks/sentrie.rb ]; then
             git restore Casks/sentrie.rb
           fi
 
           # stage the expected files (sentrie.rb + versioned casks)
           if [ "$PRERELEASE" = "true" ]; then
+            files="$(ls -1 Casks/sentrie@*.rb 2>/dev/null || true)"
+            [ -n "$files" ] || (echo "no versioned casks found to stage"; exit 1)
             git add Casks/sentrie@*.rb
           else
             git add Casks/sentrie.rb Casks/sentrie@*.rb
@@ -228,7 +230,7 @@ jobs:
 
           if [ "$PRERELEASE" = "true" ]; then
             # must not touch default channel
-            echo "$changed" | grep -qx 'Casks/sentrie.rb' && (echo "default cask changed on prerelease"; exit 1)
+            echo "$changed" | grep -Fxq 'Casks/sentrie.rb' && (echo "default cask changed on prerelease"; exit 1)
             [ "$count" -eq 1 ] || (echo "expected 1 changed cask, got $count"; echo "$changed"; exit 1)
           else
             # stable should change 3 versioned files, and may also change sentrie.rb
@@ -257,13 +259,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           set -euo pipefail
-          head="update-sentrie-cask-${{ github.ref_name }}"
+          head="update-sentrie-cask-${{ github.ref_name }}"  # e.g. update-sentrie-cask-v1.2.3
           existing="$(gh pr list --state open --head "$head" --json number -q '.[].number')"
           # create if not existing - if existing, that PR will be updated by GitHub anyway
           if [ -z "$existing" ]; then
             gh pr create \
               --base main \
               --reviewer binaek \
+              --head "$head" \
               --title "[sentrie][brew-cask][${{ github.ref_name }}] Update sentrie cask to ${{ github.ref_name }}" \
               --body "Updates Casks/sentrie.rb and adds/updates versioned cask."
           fi
