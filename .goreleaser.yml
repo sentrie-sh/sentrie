@@ -58,7 +58,7 @@ checksum:
 
 homebrew_casks:
   - name: sentrie
-    skip_upload: true # we skip the upload because we want to upload the homebrew cask separately
+    skip_upload: true # we skip the upload - handled in a separate job to account for versioned casks
     repository:
       owner: sentrie-sh
       name: homebrew-tap
