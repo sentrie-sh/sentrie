@@ -29,7 +29,13 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - -X main.version={{.Version}} -X main.builtBy=Sentrie-Release -s -w
+      - -X main.version={{.Version}}
+      - -X main.builtBy=Sentrie-Release
+      - -X main.commit={{.FullCommit}}
+      - -X main.treeState={{.GitTreeState}}
+      - -X main.date={{.CommitDate}}
+      - -s
+      - -w
     goos:
       - linux
       - darwin
@@ -58,7 +64,11 @@ checksum:
 
 homebrew_casks:
   - name: sentrie
-    skip_upload: true # we skip the upload - handled in a separate job to account for versioned casks
+    # we skip the upload - handled in a separate job to account for versioned casks
+    # we do this because our requirement is exactly opposite of what goreleaser defaults to
+    # goreleaser does not do a release if this is a prerelease
+    # we always want to release, but only set the major/minor channels if not a prerelease
+    skip_upload: true
     repository:
       owner: sentrie-sh
       name: homebrew-tap
@@ -69,6 +79,7 @@ homebrew_casks:
       verified: "github.com/sentrie-sh/sentrie"
 
 release:
-  draft: true
-  replace_existing_draft: true
-  prerelease: auto
+  prerelease: auto # auto-detects prerelease based on the tag
+  github:
+    owner: sentrie-sh
+    name: sentrie

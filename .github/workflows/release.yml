@@ -160,7 +160,6 @@ jobs:
     name: Homebrew Cask Release
     needs: release
     runs-on: ubuntu-latest
-    # if: ${{ needs.release.outputs.prerelease == 'false' }}
     env:
       GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
       PRERELEASE: ${{ needs.release.outputs.prerelease }}
@@ -244,6 +243,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           PRERELEASE: ${{ needs.release.outputs.prerelease }}
         run: |
+          set -euo pipefail
           git config user.name "GitHub Actions"
           git config user.email "github-actions@users.noreply.github.com"
           if [ "${PRERELEASE}" = "true" ]; then
