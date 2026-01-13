@@ -1,0 +1,273 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Copyright 2025 Binaek Sarkar
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#	http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Release
+
+# This pipeline assumes tags are immutable and will never be rerun.
+# Safety checks exist to enforce this invariant.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write # upload archives as GitHub Releases
+  id-token: write # Cosign with GitHub OIDC
+  actions: read
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    outputs:
+      major: ${{ steps.ver.outputs.major }}
+      minor: ${{ steps.ver.outputs.minor }}
+      patch: ${{ steps.ver.outputs.patch }}
+      prerelease: ${{ steps.ver.outputs.prerelease }}
+    steps:
+      - name: Fail if release already exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="${{ github.ref_name }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release already exists for tag $tag. Refusing to rerun."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Parse version from tag
+        id: ver
+        run: |
+          set -euo pipefail
+          tag="${{ github.ref_name }}"   # e.g. v0.0.1-test.release.1
+          v="${tag#v}"
+
+          core="${v%%[-+]*}"            # X.Y.Z
+          if ! echo "$core" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Invalid tag core (expected vX.Y.Z...): $tag" >&2
+            exit 1
+          fi
+
+          major="${core%%.*}"
+          rest="${core#*.}"
+          minor="${rest%%.*}"
+          patch="${rest#*.}"
+
+          prerelease=false
+          if echo "$v" | grep -q -- '-'; then
+            prerelease=true
+          fi
+
+          echo "major=$major" >> "$GITHUB_OUTPUT"
+          echo "minor=$minor" >> "$GITHUB_OUTPUT"
+          echo "patch=$patch" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: "v2.6.0"
+
+      # check that the working tree is clean
+      - name: Sanity check working tree
+        run: |
+          echo "== git status =="
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sign archives and checksum
+        env:
+          COSIGN_YES: "true"
+        run: |
+          shopt -s globstar nullglob
+          for artifact in dist/**/*.tar.gz dist/**/*.zip dist/checksums.txt; do
+            if [ -f "$artifact" ]; then
+              cosign sign-blob --yes "$artifact" --bundle="$artifact.signature.bundle.json"
+            fi
+          done
+
+      - name: Attach signature artifacts to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for file in dist/*.bundle.json; do
+            if [ -f "$file" ]; then
+              gh release upload "${{ github.ref_name }}" "$file" --clobber
+            fi
+          done
+
+      # Attach the LICENSE and LICENSE-DUAL.md files to the release
+      # we put these in the archives as well
+      # putting it here for easy discovery
+      - name: Attach LICENSE and LICENSE-DUAL.md files to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.ref_name }}" LICENSE LICENSE-DUAL.md --clobber
+
+      - name: Rename the cask file as a template
+        run: |
+          mv dist/homebrew/Casks/sentrie.rb dist/homebrew/Casks/sentrie.rb.tmpl
+
+      - name: Upload Homebrew Cask Artifact for use in Homebrew Cask Release
+        uses: actions/upload-artifact@v4
+        with:
+          name: homebrew-cask
+          path: dist/homebrew/Casks/sentrie.rb.tmpl
+
+  brew-cask-release:
+    name: Homebrew Cask Release
+    needs: release
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+      PRERELEASE: ${{ needs.release.outputs.prerelease }}
+      VERSION: ${{ github.ref_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          repository: sentrie-sh/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Fail if versioned cask already exists in tap
+        run: |
+          set -euo pipefail
+          tag="${{ github.ref_name }}"
+          v="${tag#v}"
+          full_us="$(printf '%s' "$v" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/_/g; s/^_+|_+$//g')"
+          file="Casks/sentrie@${full_us}.rb"
+          if [ -f "$file" ]; then
+            echo "Tap already contains $file. Refusing to rerun."
+            exit 1
+          fi
+
+      - name: Create a new branch
+        run: |
+          git checkout -b update-sentrie-cask-${{ github.ref_name }}
+
+      - name: Download Homebrew Cask Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: homebrew-cask
+          path: ./Casks
+
+      # get node so that we can run the script to create the versioned casks
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Create versioned casks (token + filename)
+        env:
+          VERSION: ${{ github.ref_name }}
+          PRERELEASE: ${{ needs.release.outputs.prerelease }}
+          TEMPLATE_NAME: sentrie.rb.tmpl
+        run: |
+          set -euo pipefail
+          node scripts/create-sentrie-casks.js
+
+      - name: Verify versioned casks
+        env:
+          VERSION: ${{ github.ref_name }}
+          PRERELEASE: ${{ needs.release.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          ls -la Casks
+
+          # stage the expected files (sentrie.rb + versioned casks)
+          if [ "$PRERELEASE" = "true" ]; then
+            files="$(ls -1 Casks/sentrie@*.rb 2>/dev/null || true)"
+            [ -n "$files" ] || (echo "no versioned casks found to stage"; exit 1)
+            git add Casks/sentrie@*.rb
+          else
+            git add Casks/sentrie.rb Casks/sentrie@*.rb
+          fi
+
+          changed="$(git diff --cached --name-only | grep '^Casks/' || true)"
+          count="$(printf '%s\n' "$changed" | sed '/^$/d' | wc -l | tr -d ' ')"
+
+          if [ "$PRERELEASE" = "true" ]; then
+            # must not touch default channel
+            echo "$changed" | grep -Fxq 'Casks/sentrie.rb' && (echo "default cask changed on prerelease"; exit 1)
+            [ "$count" -eq 1 ] || (echo "expected 1 changed cask, got $count"; echo "$changed"; exit 1)
+          else
+            # stable should change 3 versioned files, and may also change sentrie.rb
+            [ "$count" -ge 3 ] || (echo "expected >= 3 changed casks, got $count"; echo "$changed"; exit 1)
+            [ "$count" -le 4 ] || (echo "expected <= 4 changed casks, got $count"; echo "$changed"; exit 1)
+          fi
+
+      - name: Commit and push Homebrew Cask changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          PRERELEASE: ${{ needs.release.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          git config user.name "GitHub Actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          if [ "${PRERELEASE}" = "true" ]; then
+            git add Casks/sentrie@*.rb
+          else
+            git add Casks/sentrie.rb Casks/sentrie@*.rb
+          fi
+          git commit -m "Update sentrie cask to ${{ github.ref_name }}"
+          # always push with set-upstream - this is idempotent
+          git push --set-upstream origin update-sentrie-cask-${{ github.ref_name }}
+
+      - name: Create a pull request if not already created
+        env:
+          GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          set -euo pipefail
+          head="update-sentrie-cask-${{ github.ref_name }}"  # e.g. update-sentrie-cask-v1.2.3
+          existing="$(gh pr list --state open --head "$head" --json number -q '.[].number')"
+          # create if not existing - if existing, that PR will be updated by GitHub anyway
+          if [ -z "$existing" ]; then
+            gh pr create \
+              --base main \
+              --reviewer binaek \
+              --head "$head" \
+              --title "[sentrie][brew-cask][${{ github.ref_name }}] Update sentrie cask to ${{ github.ref_name }}" \
+              --body "Updates Casks/sentrie.rb and adds/updates versioned cask."
+          fi

@@ -19,11 +19,8 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      - name: Checkout PR head
+      - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
 
       - name: Detect dependency file changes
         id: detect
@@ -100,6 +97,24 @@ jobs:
           echo "Please describe the new/changed dependencies and their licenses under '## Dependencies'."
           exit 1
 
+      - name: Dependency Review
+        if: steps.detect.outputs.dep_changed == 'true'
+        uses: actions/dependency-review-action@v4
+        with:
+          # Fail on any vulnerability severity (low, moderate, high, critical)
+          fail-on-severity: low
+          # Allow only permissive licenses per THIRD_PARTY_POLICY.md
+          # Permissive licenses: Apache-2.0, MIT, BSD-2-Clause, BSD-3-Clause, ISC, CC0-1.0
+          allow-licenses: Apache-2.0, MIT, BSD-2-Clause, BSD-3-Clause, ISC, CC0-1.0
+          # Check vulnerabilities in runtime dependencies
+          fail-on-scopes: runtime
+          # Enable license checking
+          license-check: true
+          # Enable vulnerability checking
+          vulnerability-check: true
+          # Comment summary on failure
+          comment-summary-in-pr: on-failure
+
       - name: Set up Go
         if: steps.detect.outputs.dep_changed == 'true'
         uses: actions/setup-go@v5
@@ -116,24 +131,23 @@ jobs:
           go install github.com/google/go-licenses@latest
           echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
 
-      - name: Run license scan (Go modules)
-        id: scan
+      - name: Run go-licenses report (detailed license scan)
         if: steps.detect.outputs.dep_changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
 
           echo "Running go-licenses report ./..."
-          echo "This scans all dependencies including transitive dependencies."
+          echo "This provides detailed license information for all dependencies including transitive dependencies."
+          echo "=========================================="
+
           REPORT=$(go-licenses report ./... 2>&1 || true)
 
-          echo "Raw go-licenses output:"
-          echo "---------------------------------"
           echo "${REPORT}"
-          echo "---------------------------------"
+          echo "=========================================="
 
+          # Check for disallowed licenses and report them (but don't fail - dependency-review-action already enforces)
           disallowed_lines=""
-          # Process only CSV lines (skip warnings starting with 'W...')
           while IFS= read -r line; do
             # Skip empty lines and warnings
             [[ -z "${line}" ]] && continue
@@ -147,8 +161,6 @@ jobs:
 
             # Check license against our denylist
             # Match GPL variants (GPL, GPL-2.0, GPL-3.0, etc.), LGPL, AGPL, EPL, MPL
-            # Note: This will also catch licenses like "Apache-2.0 WITH GPL-2.0-exception"
-            # which should be reviewed manually as they may be acceptable
             case "${license}" in
               *GPL*|*LGPL*|*AGPL*|*EPL*|*MPL*)
                 disallowed_lines+="${module},${license}"$'\n'
@@ -157,24 +169,14 @@ jobs:
           done <<< "${REPORT}"
 
           if [[ -n "${disallowed_lines}" ]]; then
-            echo "disallowed=true" >> "${GITHUB_OUTPUT}"
-            echo "disallowed_report<<EOF" >> "${GITHUB_OUTPUT}"
-            printf "%s" "${disallowed_lines}" >> "${GITHUB_OUTPUT}"
-            echo "EOF" >> "${GITHUB_OUTPUT}"
+            echo ""
+            echo "⚠️  WARNING: go-licenses detected potentially disallowed licenses:"
+            echo "---------------------------------"
+            echo "${disallowed_lines}"
+            echo "---------------------------------"
+            echo "Note: dependency-review-action should have already blocked these."
+            echo "This is for informational purposes only."
           else
-            echo "disallowed=false" >> "${GITHUB_OUTPUT}"
+            echo ""
+            echo "✅ go-licenses scan: No disallowed licenses detected in detailed scan."
           fi
-
-      - name: Fail on disallowed licenses (GPL/AGPL/LGPL/MPL/EPL)
-        if: steps.detect.outputs.dep_changed == 'true' && steps.scan.outputs.disallowed == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "Dependency license policy violation detected."
-          echo "The following modules appear to use disallowed licenses (GPL/AGPL/LGPL/MPL/EPL):"
-          echo "---------------------------------"
-          echo "${{ steps.scan.outputs.disallowed_report }}"
-          echo "---------------------------------"
-          echo "Please remove or replace these dependencies, or open a discussion with maintainers."
-          exit 1

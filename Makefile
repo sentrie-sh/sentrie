@@ -1,10 +1,8 @@
 OUTPUT_DIR?=~/.local/bin
+VERSION?=$(shell result=$$(git tag --sort=-version:refname | head -n 1); echo $${result:-0.0.1-dev})
 
 build:
-	$(eval TIMESTAMP := $(shell date +%Y%m%d%H%M%S))
-	$(eval GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD | sed 's/[\/_]/-/g' | sed 's/[^a-zA-Z0-9.-]//g'))
-
-	go build -o $(OUTPUT_DIR)/sentrie -ldflags "-X main.version=0.0.0-dev-$(GIT_BRANCH).$(TIMESTAMP)" .
+	go build -o $(OUTPUT_DIR)/sentrie -ldflags "-X main.builtBy=make -X main.version=$(VERSION) -X main.commit=$(shell git rev-parse HEAD) -X main.treeState=dirty -X main.date=$(shell date -u '+%Y-%m-%dT%H:%M:%SZ') -s -w" .
 
 clean-git:
 	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then \

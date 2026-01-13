@@ -1,0 +1,85 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Copyright 2025 Binaek Sarkar
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#	http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+
+version: 2
+
+project_name: sentrie
+
+builds:
+  - id: sentrie
+    main: .
+    binary: sentrie
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -X main.version={{.Version}}
+      - -X main.builtBy=Sentrie-Release
+      - -X main.commit={{.FullCommit}}
+      - -X main.treeState={{.GitTreeState}}
+      - -X main.date={{.CommitDate}}
+      - -s
+      - -w
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - id: default
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: ["tar.gz"]
+    files:
+      - LICENSE
+      - LICENSE-DUAL.md
+    format_overrides:
+      - goos: windows
+        formats: ["zip"]
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+homebrew_casks:
+  - name: sentrie
+    # we skip the upload - handled in a separate job to account for versioned casks
+    # we do this because our requirement is exactly opposite of what goreleaser defaults to
+    # goreleaser does not do a release if this is a prerelease
+    # we always want to release, but only set the major/minor channels if not a prerelease
+    skip_upload: true
+    repository:
+      owner: sentrie-sh
+      name: homebrew-tap
+    homepage: "https://sentrie.sh"
+    description: "Sentrie policy engine"
+    license: "Apache-2.0"
+    url:
+      verified: "github.com/sentrie-sh/sentrie"
+
+release:
+  prerelease: auto # auto-detects prerelease based on the tag
+  github:
+    owner: sentrie-sh
+    name: sentrie
