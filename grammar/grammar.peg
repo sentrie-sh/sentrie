@@ -78,7 +78,7 @@ PrimaryExpr = Literal
             / FunctionCall
             / IndexAccess
             / FieldAccess
-            / ParenExpr
+            / GroupedExpr
 
 /* Specific Expression Types */
 EqualityExpr = AddExpr ("==" / "!=") AddExpr
@@ -94,11 +94,11 @@ InExpr = AddExpr ("not")? "in" AddExpr
 KvInExpr = MapLiteral "in" AddExpr
 
 /* Higher-Order Operations */
-AnyExpr = "any" AddExpr "as" IDENT ("," IDENT)? BlockExpr
-AllExpr = "all" AddExpr "as" IDENT ("," IDENT)? BlockExpr
-FilterExpr = "filter" AddExpr "as" IDENT ("," IDENT)? BlockExpr
-MapExpr = "map" AddExpr "as" IDENT ("," IDENT)? BlockExpr
-DistinctExpr = "distinct" AddExpr "as" IDENT ("," IDENT)? BlockExpr
+AnyExpr = "any" AddExpr "as" IDENT ("," IDENT)? (BlockExpr / GroupedExpr)
+AllExpr = "all" AddExpr "as" IDENT ("," IDENT)? (BlockExpr / GroupedExpr)
+FilterExpr = "filter" AddExpr "as" IDENT ("," IDENT)? (BlockExpr / GroupedExpr)
+MapExpr = "map" AddExpr "as" IDENT ("," IDENT)? (BlockExpr / GroupedExpr)
+DistinctExpr = "distinct" AddExpr "as" IDENT ("," IDENT)? (BlockExpr / GroupedExpr)
 ReduceExpr = "reduce" AddExpr "from" Expr "as" IDENT ("," IDENT)? BlockExpr
 CastExpr = "cast" AddExpr "as" PrimitiveType
 CountExpr = "count" AddExpr
@@ -108,7 +108,7 @@ DefinedExpr = AddExpr "is" ("not")? "defined"
 EmptyExpr = AddExpr "is" ("not")? "empty"
 
 /* Basic Expression Structures */
-ParenExpr = "(" Expr ")"
+GroupedExpr = "(" Expr ")"
 FunctionCall = IDENT ("." IDENT)? "(" CommaSeparatedExpr? ")"
 CommaSeparatedExpr = Expr ("," Expr)*
 IndexAccess = PrimaryExpr "[" Expr "]"
