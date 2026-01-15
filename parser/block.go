@@ -78,3 +78,36 @@ func parseBlockExpression(ctx context.Context, p *Parser) ast.Expression {
 		},
 	})
 }
+
+/*
+*
+
+	( some_expression )
+
+*
+*/
+func parseGroupedExpression(ctx context.Context, p *Parser) ast.Expression {
+	p.advance() // consume the left parenthesis
+	expression := p.parseExpression(ctx, LOWEST)
+	if !p.expect(tokens.PunctRightParentheses) {
+		return nil // Error in parsing the grouped expression
+	}
+	return expression
+}
+
+/*
+*
+Parses a grouped expression (parentheses) or a block expression (curly braces)
+
+	( some_expression ) or {
+		let statement = some_expression
+		-- a comment statement
+		yield another_expression -- must be the last statement
+	}
+*/
+func parseGroupedOrBlockExpression(ctx context.Context, p *Parser) ast.Expression {
+	if p.head().IsOfKind(tokens.PunctLeftParentheses) {
+		return parseGroupedExpression(ctx, p)
+	}
+	return parseBlockExpression(ctx, p)
+}

@@ -50,7 +50,7 @@ func parseDistinctExpression(ctx context.Context, parser *Parser) ast.Expression
 		return nil
 	}
 
-	predicateBlock := parseBlockExpression(ctx, parser)
+	predicateBlock := parseGroupedOrBlockExpression(ctx, parser)
 	if predicateBlock == nil {
 		return nil
 	}

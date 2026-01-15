@@ -76,12 +76,3 @@ func wrapWithTrailingComment(expr ast.Expression, parser *Parser) ast.Expression
 	}
 	return expr
 }
-
-func parseGroupedExpression(ctx context.Context, p *Parser) ast.Expression {
-	p.advance() // consume the left parenthesis
-	expression := p.parseExpression(ctx, LOWEST)
-	if !p.expect(tokens.PunctRightParentheses) {
-		return nil // Error in parsing the grouped expression
-	}
-	return expression
-}
