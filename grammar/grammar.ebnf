@@ -78,7 +78,7 @@ primaryExpr         ::= literal
                       | functionCall
                       | indexAccess
                       | fieldAccess
-                      | parenExpr
+                      | groupedExpr
 
 /* Specific Expression Types */
 equalityExpr        ::= addExpr ( '==' | '!=' ) addExpr
@@ -94,11 +94,11 @@ inExpr              ::= addExpr ( 'not' )? 'in' addExpr
 kvInExpr            ::= mapLiteral 'in' addExpr
 
 /* Higher-Order Operations */
-anyExpr             ::= 'any' addExpr 'as' IDENT (',' IDENT)? blockExpr
-allExpr             ::= 'all' addExpr 'as' IDENT (',' IDENT)? blockExpr
-filterExpr          ::= 'filter' addExpr 'as' IDENT (',' IDENT)? blockExpr
-mapExpr             ::= 'map' addExpr 'as' IDENT (',' IDENT)? blockExpr
-distinctExpr        ::= 'distinct' addExpr 'as' IDENT (',' IDENT)? blockExpr
+anyExpr             ::= 'any' addExpr 'as' IDENT (',' IDENT)? (blockExpr | groupedExpr)
+allExpr             ::= 'all' addExpr 'as' IDENT (',' IDENT)? (blockExpr | groupedExpr)
+filterExpr          ::= 'filter' addExpr 'as' IDENT (',' IDENT)? (blockExpr | groupedExpr)
+mapExpr             ::= 'map' addExpr 'as' IDENT (',' IDENT)? (blockExpr | groupedExpr)
+distinctExpr        ::= 'distinct' addExpr 'as' IDENT (',' IDENT)? (blockExpr | groupedExpr)
 reduceExpr          ::= 'reduce' addExpr 'from' expr 'as' IDENT (',' IDENT)? blockExpr
 castExpr            ::= 'cast' addExpr 'as' primitiveType
 countExpr           ::= 'count' addExpr
@@ -108,7 +108,7 @@ definedExpr         ::= addExpr 'is' 'not'? 'defined'
 emptyExpr           ::= addExpr 'is' 'not'? 'empty'
 
 /* Basic Expression Structures */
-parenExpr           ::= '(' expr ')'
+groupedExpr         ::= '(' expr ')'
 functionCall        ::= IDENT ('.' IDENT)? '(' commaSeparatedExpr? ')'
 commaSeparatedExpr  ::= expr (',' expr)*
 indexAccess         ::= primaryExpr '[' expr ']'
