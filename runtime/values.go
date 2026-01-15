@@ -42,3 +42,27 @@ func (u *undefined) String() string {
 func (u *undefined) Value() any {
 	return nil
 }
+
+func num(v any) float64 {
+	switch t := v.(type) {
+	case int:
+		return float64(t)
+	case int64:
+		return float64(t)
+	case float64:
+		return t
+	default:
+		return 0
+	}
+}
+
+func toInt(v any) (int64, bool) {
+	switch t := v.(type) {
+	case int, int8, int16, int32:
+		return int64(t.(int)), true
+	case int64:
+		return t, true
+	default:
+		return 0, false
+	}
+}

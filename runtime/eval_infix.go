@@ -162,19 +162,6 @@ func or(l, r any) trinary.Value {
 	return left.Or(right)
 }
 
-func num(v any) float64 {
-	switch t := v.(type) {
-	case int:
-		return float64(t)
-	case int64:
-		return float64(t)
-	case float64:
-		return t
-	default:
-		return 0
-	}
-}
-
 func equals(a, b any) bool {
 	switch av := a.(type) {
 	case string:
