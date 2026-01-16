@@ -17,6 +17,7 @@
 package pack
 
 import (
+	"encoding/json"
 	"slices"
 
 	"github.com/Masterminds/semver/v3"
@@ -28,36 +29,84 @@ type Pack struct {
 	Programs []*ast.Program
 }
 
-type PackFile struct {
-	SchemaVersion *semver.Version   `toml:"schema_version"`
-	Name          string            `toml:"name"`
-	Version       *semver.Version   `toml:"version,omitempty"`
-	Description   string            `toml:"description,omitempty"`
-	License       string            `toml:"license,omitempty"`
-	Repository    string            `toml:"repository,omitempty"`
-	Engine        *Engine           `toml:"engine,omitempty"`
-	Authors       map[string]string `toml:"authors,omitempty"`
-	Permissions   *Permissions      `toml:"permissions,omitempty"`
-	Metadata      map[string]any    `toml:"metadata,omitempty"`
-	Location      string            `toml:"-"`
-}
-
 func NewPackFile(name string) *PackFile {
 	return &PackFile{
-		SchemaVersion: semver.MustParse("0.1.0"),
-		Name:          name,
-		Version:       semver.MustParse("0.1.0"),
+		SchemaVersion: &SentrieSchema{Version: 1},
+		Pack: &PackInformation{
+			Name:    name,
+			Version: semver.MustParse("0.0.1"),
+		},
 	}
 }
 
+type PackFile struct {
+	SchemaVersion *SentrieSchema   `toml:"schema" json:"schema"`
+	Pack          *PackInformation `toml:"pack" json:"pack"`
+	Permissions   *Permissions     `toml:"permissions,omitempty" json:"permissions"`
+	Engine        *Engine          `toml:"engine,omitempty" json:"engine"`
+	Metadata      map[string]any   `toml:"metadata,omitempty" json:"metadata"`
+	Location      string           `toml:"-" json:"-"`
+}
+
+type SentrieSchema struct {
+	Version uint64 `toml:"version" json:"version"`
+}
+
+type PackInformation struct {
+	Name        string            `toml:"name" json:"name"`
+	Version     *semver.Version   `toml:"version" json:"version"`
+	Description string            `toml:"description,omitempty" json:"description"`
+	License     string            `toml:"license,omitempty" json:"license"`
+	Repository  string            `toml:"repository,omitempty" json:"repository"`
+	Authors     map[string]string `toml:"authors,omitempty" json:"authors"`
+}
+
 type Engine struct {
-	Sentrie *semver.Constraints `toml:"sentrie"`
+	Sentrie *semver.Constraints `toml:"sentrie" json:"sentrie"`
+}
+
+// MarshalJSON implements json.Marshaler for Engine to serialize semver.Constraints as string
+// this is necessary because semver.Constraints does not implement json.Marshaler
+func (e *Engine) MarshalJSON() ([]byte, error) {
+	type Alias Engine
+	aux := &struct {
+		Sentrie string `json:"sentrie"`
+		*Alias
+	}{
+		Alias: (*Alias)(e),
+	}
+	if e.Sentrie != nil {
+		aux.Sentrie = e.Sentrie.String()
+	}
+	return json.Marshal(aux)
+}
+
+// UnmarshalJSON implements json.Unmarshaler for Engine to deserialize semver.Constraints from string
+func (e *Engine) UnmarshalJSON(data []byte) error {
+	type Alias Engine
+	aux := &struct {
+		Sentrie string `json:"sentrie"`
+		*Alias
+	}{
+		Alias: (*Alias)(e),
+	}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	if aux.Sentrie != "" {
+		constraint, err := semver.NewConstraint(aux.Sentrie)
+		if err != nil {
+			return err
+		}
+		e.Sentrie = constraint
+	}
+	return nil
 }
 
 type Permissions struct {
-	FSRead []string `toml:"fs_read,omitempty"`
-	Net    []string `toml:"net,omitempty"`
-	Env    []string `toml:"env,omitempty"`
+	FSRead []string `toml:"fs_read,omitempty" json:"fs_read"`
+	Net    []string `toml:"net,omitempty" json:"net"`
+	Env    []string `toml:"env,omitempty" json:"env"`
 }
 
 func (p *Permissions) CheckEnvAccess(name string) bool {
