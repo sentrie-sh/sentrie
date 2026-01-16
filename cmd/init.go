@@ -47,7 +47,14 @@ func initCmd(ctx context.Context, args []string) error {
 		return err
 	}
 
+	if !loader.IsValidPackName(input.Name) {
+		return errors.New("name needs to be a valid identity. It must start with a letter and can only contain letters, numbers, underscores and `dot`.")
+	}
+
 	packFile := pack.NewPackFile(input.Name)
+	if err := loader.ValidatePackFile(packFile); err != nil {
+		return err
+	}
 
 	stat, err := os.Stat(input.Directory)
 	if err != nil {
@@ -73,7 +80,7 @@ func initCmd(ctx context.Context, args []string) error {
 	defer func() { _ = f.Close() }()
 
 	encoder := toml.NewEncoder(f)
-	encoder.SetTablesInline(true)
+	encoder.SetTablesInline(false)
 	if err := encoder.Encode(packFile); err != nil {
 		return errors.Wrapf(err, "could not encode pack file")
 	}

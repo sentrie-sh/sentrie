@@ -20,6 +20,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 
@@ -36,7 +37,12 @@ var (
 
 var (
 	PackFileName = (constants.APPNAME + "." + constants.PackFileExtension)
+	NameRegex    = regexp.MustCompile(`^([a-zA-Z][a-zA-Z0-9_-]*)(\.[a-zA-Z][a-zA-Z0-9_-]*)*$`)
 )
+
+func IsValidPackName(name string) bool {
+	return NameRegex.MatchString(name)
+}
 
 func LoadPack(ctx context.Context, root string) (_ *pack.PackFile, e error) {
 	if ctx.Err() != nil {
@@ -57,24 +63,67 @@ func LoadPack(ctx context.Context, root string) (_ *pack.PackFile, e error) {
 		return nil, errors.New("pack file is empty")
 	}
 
-	f, err := os.Open(packPath)
+	// Read file content into memory
+	fileContent, err := os.ReadFile(packPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "open pack file")
+		return nil, errors.Wrap(err, "read pack file")
 	}
-	defer func() { _ = f.Close() }()
 
+	// First decode into a map to check for unknown top-level keys
+	var rawData map[string]interface{}
+	if err := toml.Unmarshal(fileContent, &rawData); err != nil {
+		return nil, errors.Wrap(err, "failed to parse pack file")
+	}
+
+	// Check for unknown top-level keys
+	allowedKeys := map[string]bool{
+		"schema":      true,
+		"pack":        true,
+		"engine":      true,
+		"permissions": true,
+		"metadata":    true,
+	}
+	for key := range rawData {
+		if !allowedKeys[key] {
+			return nil, errors.Errorf("unknown top-level table '[%s]'. Allowed tables are: schema, pack, engine, permissions, metadata", key)
+		}
+	}
+
+	// Now decode into the struct
 	var p pack.PackFile
-	decoder := toml.NewDecoder(f)
-	if err := decoder.Decode(&p); err != nil {
-		return nil, errors.Wrap(err, "parse pack file failed")
+	if err := toml.Unmarshal(fileContent, &p); err != nil {
+		return nil, errors.Wrap(err, "failed to parse pack file")
 	}
 
 	if p.SchemaVersion == nil {
 		return nil, errors.New("schema version is required")
 	}
 
-	if p.Name == "" {
+	if p.Pack == nil || p.Pack.Name == "" {
 		return nil, errors.New("name is required")
+	}
+
+	// make sure that the name is an identity
+	if !IsValidPackName(p.Pack.Name) {
+		return nil, errors.New("name must be a valid identity")
+	}
+
+	// Check that if engine table exists, it must have sentrie field
+	if engineData, exists := rawData["engine"]; exists {
+		if engineMap, ok := engineData.(map[string]interface{}); ok {
+			if _, hasSentrie := engineMap["sentrie"]; !hasSentrie {
+				return nil, errors.New("engine table exists but 'sentrie' field is required")
+			}
+			c, ok := engineMap["sentrie"].(string)
+			if ok && len(c) == 0 {
+				return nil, errors.New("engine table exists but 'sentrie' field is required")
+			}
+		}
+	}
+
+	// Validate against JSON Schema
+	if err := ValidatePackFile(&p); err != nil {
+		return nil, errors.Wrap(err, "schema validation failed")
 	}
 
 	p.Location = filepath.Dir(packPath)
