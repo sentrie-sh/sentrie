@@ -253,7 +253,7 @@ jobs:
           fi
           git commit -m "Update sentrie cask to ${{ github.ref_name }}"
           # always push with set-upstream - this is idempotent
-          git push --set-upstream origin update-sentrie-cask-${{ github.ref_name }}
+          git push --set-upstream origin update-sentrie-cask-${{ github.ref_name }} --force
 
       - name: Create a pull request if not already created
         env:
