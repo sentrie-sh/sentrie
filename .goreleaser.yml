@@ -58,6 +58,9 @@ archives:
       - goos: windows
         formats: ["zip"]
 
+changelog:
+  disable: true
+
 checksum:
   name_template: "checksums.txt"
   algorithm: sha256
