@@ -78,6 +78,25 @@ homebrew_casks:
     url:
       verified: "github.com/sentrie-sh/sentrie"
 
+brews:
+  - name: sentrie
+    ids:
+      - default
+    # we skip the upload - handled in a separate job
+    skip_upload: true
+    repository:
+      owner: sentrie-sh
+      name: homebrew-tap
+    homepage: "https://sentrie.sh"
+    description: "Sentrie policy engine"
+    license: "Apache-2.0"
+    # Binary formula - installs prebuilt binary from GitHub Releases
+    # This reduces macOS Gatekeeper friction compared to Casks
+    install: |
+      bin.install "sentrie"
+    test: |
+      system "#{bin}/sentrie", "version"
+
 release:
   prerelease: auto # auto-detects prerelease based on the tag
   github:
