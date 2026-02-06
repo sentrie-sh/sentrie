@@ -38,6 +38,7 @@ jobs:
       minor: ${{ steps.ver.outputs.minor }}
       patch: ${{ steps.ver.outputs.patch }}
       prerelease: ${{ steps.ver.outputs.prerelease }}
+      build: ${{ steps.ver.outputs.build }}
     steps:
       - name: Fail if release already exists
         env:
@@ -73,15 +74,26 @@ jobs:
           minor="${rest%%.*}"
           patch="${rest#*.}"
 
-          prerelease=false
+          # Extract prerelease value: the part after '-' and before '+' (if any)
+          prerelease=""
           if echo "$v" | grep -q -- '-'; then
-            prerelease=true
+            # Extract everything after the first '-' and before the first '+' (if present)
+            prerelease="${v#*-}"
+            prerelease="${prerelease%%+*}"
+          fi
+
+          # Extract build metadata: the part after '+' (if any)
+          build=""
+          if echo "$v" | grep -q -- '+'; then
+            # Extract everything after the first '+'
+            build="${v#*+}"
           fi
 
           echo "major=$major" >> "$GITHUB_OUTPUT"
           echo "minor=$minor" >> "$GITHUB_OUTPUT"
           echo "patch=$patch" >> "$GITHUB_OUTPUT"
           echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -146,16 +158,9 @@ jobs:
         run: |
           gh release upload "${{ github.ref_name }}" LICENSE LICENSE-DUAL.md --clobber
 
-      - name: Rename the cask file as a template
+      - name: Rename the formula file as a template
         run: |
-          mv dist/homebrew/Casks/sentrie.rb dist/homebrew/Casks/sentrie.rb.tmpl
           mv dist/homebrew/sentrie.rb dist/homebrew/sentrie.rb.tmpl
-
-      - name: Upload Homebrew Cask Artifact for use in Homebrew Cask Release
-        uses: actions/upload-artifact@v4
-        with:
-          name: homebrew-cask
-          path: dist/homebrew/Casks/sentrie.rb.tmpl
 
       - name: Upload Homebrew Formula Artifact for use in Homebrew Release
         uses: actions/upload-artifact@v4
@@ -166,10 +171,11 @@ jobs:
   brew-release:
     name: Homebrew Release
     needs: release
+    # Only run for stable releases (skip prereleases)
+    if: needs.release.outputs.prerelease == ''
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-      PRERELEASE: ${{ needs.release.outputs.prerelease }}
       VERSION: ${{ github.ref_name }}
     steps:
       - name: Checkout
@@ -179,16 +185,15 @@ jobs:
           repository: sentrie-sh/homebrew-tap
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
-      - name: Fail if versioned cask or formula already exists in tap
+      - name: Fail if versioned formula already exists in tap
         run: |
           set -euo pipefail
           tag="${{ github.ref_name }}"
           v="${tag#v}"
           full_us="$(printf '%s' "$v" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/_/g; s/^_+|_+$//g')"
-          cask_file="Casks/sentrie@${full_us}.rb"
           formula_file="Formula/sentrie@${full_us}.rb"
-          if [ -f "$cask_file" ] || [ -f "$formula_file" ]; then
-            echo "Tap already contains $cask_file or $formula_file. Refusing to rerun."
+          if [ -f "$formula_file" ]; then
+            echo "Tap already contains $formula_file. Refusing to rerun."
             exit 1
           fi
 
@@ -196,30 +201,11 @@ jobs:
         run: |
           git checkout -b update-sentrie-${{ github.ref_name }}
 
-      - name: Download Homebrew Cask Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: homebrew-cask
-          path: ./tmp-cask
-
       - name: Download Homebrew Formula Artifact
         uses: actions/download-artifact@v4
         with:
           name: homebrew-formula
           path: ./tmp-formula
-
-      - name: Move Cask to correct location
-        run: |
-          set -euo pipefail
-          mkdir -p Casks
-          cask_file="$(find tmp-cask -type f -name "sentrie.rb.tmpl" | head -1)"
-          if [ -z "$cask_file" ]; then
-            echo "Error: Could not find sentrie.rb.tmpl in artifact" >&2
-            find tmp-cask -type f || true
-            exit 1
-          fi
-          mv "$cask_file" Casks/sentrie.rb.tmpl
-          rm -rf tmp-cask
 
       - name: Move Formula to correct location
         run: |
@@ -234,77 +220,47 @@ jobs:
           mv "$formula_file" Formula/sentrie.rb.tmpl
           rm -rf tmp-formula
 
-      # get node so that we can run the script to create the versioned casks
+      # get node so that we can run the script to create the versioned formulas
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      - name: Process cask and formula templates
+      - name: Process formula template
         env:
           VERSION: ${{ github.ref_name }}
-          PRERELEASE: ${{ needs.release.outputs.prerelease }}
         run: |
           set -euo pipefail
-          node scripts/create-sentrie-casks.js
+          node scripts/create-sentrie-formulas.js
 
-      - name: Verify casks and formula
+      - name: Verify formula
         env:
           VERSION: ${{ github.ref_name }}
-          PRERELEASE: ${{ needs.release.outputs.prerelease }}
         run: |
           set -euo pipefail
-          ls -la Casks Formula 2>/dev/null || true
+          ls -la Formula 2>/dev/null || true
 
-          # stage the expected files (sentrie.rb + versioned casks and formulas)
-          if [ "$PRERELEASE" = "true" ]; then
-            cask_files="$(ls -1 Casks/sentrie@*.rb 2>/dev/null || true)"
-            formula_files="$(ls -1 Formula/sentrie@*.rb 2>/dev/null || true)"
-            [ -n "$cask_files" ] || (echo "no versioned casks found to stage"; exit 1)
-            [ -n "$formula_files" ] || (echo "no versioned formulas found to stage"; exit 1)
-            git add Casks/sentrie@*.rb Formula/sentrie@*.rb
-            # Default files should not be updated on prerelease
-            [ ! -f "Formula/sentrie.rb" ] || (echo "Formula should not exist on prerelease"; exit 1)
-            [ ! -f "Casks/sentrie.rb" ] || (echo "Cask should not exist on prerelease"; exit 1)
-          else
-            git add Casks/sentrie.rb Casks/sentrie@*.rb
-            git add Formula/sentrie.rb Formula/sentrie@*.rb
-          fi
+          # stage the expected files (sentrie.rb + versioned formulas)
+          # This job only runs for stable releases
+          git add Formula/sentrie.rb Formula/sentrie@*.rb
 
-          changed="$(git diff --cached --name-only | grep -E '^(Casks|Formula)/' || true)"
-          cask_changed="$(echo "$changed" | grep '^Casks/' || true)"
+          changed="$(git diff --cached --name-only | grep -E '^Formula/' || true)"
           formula_changed="$(echo "$changed" | grep '^Formula/' || true)"
-          cask_count="$(printf '%s\n' "$cask_changed" | sed '/^$/d' | wc -l | tr -d ' ')"
           formula_count="$(printf '%s\n' "$formula_changed" | sed '/^$/d' | wc -l | tr -d ' ')"
 
-          if [ "$PRERELEASE" = "true" ]; then
-            # must not touch default channel
-            echo "$cask_changed" | grep -Fxq 'Casks/sentrie.rb' && (echo "default cask changed on prerelease"; exit 1)
-            echo "$formula_changed" | grep -Fxq 'Formula/sentrie.rb' && (echo "default formula changed on prerelease"; exit 1)
-            [ "$cask_count" -eq 1 ] || (echo "expected 1 changed cask, got $cask_count"; echo "$cask_changed"; exit 1)
-            [ "$formula_count" -eq 1 ] || (echo "expected 1 changed formula, got $formula_count"; echo "$formula_changed"; exit 1)
-          else
-            # stable should change 3 versioned cask files, and may also change sentrie.rb
-            [ "$cask_count" -ge 3 ] || (echo "expected >= 3 changed casks, got $cask_count"; echo "$cask_changed"; exit 1)
-            [ "$cask_count" -le 4 ] || (echo "expected <= 4 changed casks, got $cask_count"; echo "$cask_changed"; exit 1)
-            # stable should change 3 versioned formula files, and may also change sentrie.rb
-            [ "$formula_count" -ge 3 ] || (echo "expected >= 3 changed formulas, got $formula_count"; echo "$formula_changed"; exit 1)
-            [ "$formula_count" -le 4 ] || (echo "expected <= 4 changed formulas, got $formula_count"; echo "$formula_changed"; exit 1)
-          fi
+          # Stable releases should change 3-4 formula files (sentrie.rb + 3 versioned formulas)
+          [ "$formula_count" -ge 3 ] || (echo "expected >= 3 changed formulas, got $formula_count"; echo "$formula_changed"; exit 1)
+          [ "$formula_count" -le 4 ] || (echo "expected <= 4 changed formulas, got $formula_count"; echo "$formula_changed"; exit 1)
 
       - name: Commit and push Homebrew changes
         env:
           GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          PRERELEASE: ${{ needs.release.outputs.prerelease }}
         run: |
           set -euo pipefail
           git config user.name "GitHub Actions"
           git config user.email "github-actions@users.noreply.github.com"
-          if [ "${PRERELEASE}" = "true" ]; then
-            git add Casks/sentrie@*.rb Formula/sentrie@*.rb
-          else
-            git add Casks/sentrie.rb Casks/sentrie@*.rb Formula/sentrie.rb Formula/sentrie@*.rb
-          fi
-          git commit -m "Update sentrie formula and cask to ${{ github.ref_name }}"
+          # This job only runs for stable releases
+          git add Formula/sentrie.rb Formula/sentrie@*.rb
+          git commit -m "Update sentrie formula to ${{ github.ref_name }}"
           # always push with set-upstream - this is idempotent
           git push --set-upstream origin update-sentrie-${{ github.ref_name }} --force
 
@@ -321,6 +277,6 @@ jobs:
               --base main \
               --reviewer binaek \
               --head "$head" \
-              --title "[sentrie][brew][${{ github.ref_name }}] Update sentrie formula and cask to ${{ github.ref_name }}" \
-              --body "Updates Formula/sentrie.rb and Casks/sentrie.rb (and versioned casks) to the latest release."
+              --title "[sentrie][brew][${{ github.ref_name }}] Update sentrie formula to ${{ github.ref_name }}" \
+              --body "Updates Formula/sentrie.rb (and versioned formulas) to the latest release."
           fi

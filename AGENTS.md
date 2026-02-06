@@ -1,5 +1,7 @@
 The name of the project is "Sentrie"
 
+---
+
 Use the `sandbox.go` file to write sandboxed programs you need to run to test your code.
 
 **IMPORTANT: After testing is complete, RESET `sandbox.go` to its template state:**
@@ -17,15 +19,19 @@ Use the `sandbox.go` file to write sandboxed programs you need to run to test yo
   ```
 - Keep only the standard imports (context, fmt, os) unless they're needed for the template
 
-When you make any changes, update the `@PR_DESCRIPTION.md` file to describe all the changes in the current branch. The content of `@PR_DESCRIPTION.md` should be in markdown format. If you find existing content in the file that contradicts the changes you have made, overwrite the existing content. The file will be used to generate the pull request description.
+---
 
-The title in the `@PR_DESCRIPTION.md` file should be such that it completes the sentence: "If merged, this pull request will ...". Keep it below 60 words. You may use markdown formatting.
+When you make any changes, update the `PR_DESCRIPTION.md` file to describe all the changes in the current branch. The content of `PR_DESCRIPTION.md` should be in markdown format. If you find existing content in the file that contradicts the changes you have made, overwrite the existing content. The file will be used to generate the pull request description.
 
-You MUST put the following after the title:
+The first line in the `PR_DESCRIPTION.md` file should be such that it completes the sentence: "If merged, this pull request will ...". Keep it below 60 words. You may use markdown formatting.
+
+You MUST put the following after the first line:
 
 - A description that explained WHAT changed and WHY
-- Notes on what to focus on in a review of the PR
-- Clear answers to questions that reviewers may have
+- Notes on what to focus on in a review of the PR (if any)
+- Clear answers to questions that reviewers may have (if any)
+- Any other information that is relevant to the review of the PR
+- Any dependencies that were added/changed and why
 
 Follow the format:
 
