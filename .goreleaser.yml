@@ -58,16 +58,18 @@ archives:
       - goos: windows
         formats: ["zip"]
 
+changelog:
+  disable: true
+
 checksum:
   name_template: "checksums.txt"
   algorithm: sha256
 
-homebrew_casks:
+brews:
   - name: sentrie
-    # we skip the upload - handled in a separate job to account for versioned casks
-    # we do this because our requirement is exactly opposite of what goreleaser defaults to
-    # goreleaser does not do a release if this is a prerelease
-    # we always want to release, but only set the major/minor channels if not a prerelease
+    ids:
+      - default
+    # we skip the upload - handled in a separate job
     skip_upload: true
     repository:
       owner: sentrie-sh
@@ -75,8 +77,12 @@ homebrew_casks:
     homepage: "https://sentrie.sh"
     description: "Sentrie policy engine"
     license: "Apache-2.0"
-    url:
-      verified: "github.com/sentrie-sh/sentrie"
+    # Binary formula - installs prebuilt binary from GitHub Releases
+    # Formulas are treated as regular binaries by macOS Gatekeeper, avoiding security warnings
+    install: |
+      bin.install "sentrie"
+    test: |
+      system "#{bin}/sentrie", "version"
 
 release:
   prerelease: auto # auto-detects prerelease based on the tag

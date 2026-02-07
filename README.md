@@ -12,6 +12,14 @@ Sentrie is distributed as a single binary with no external dependencies.
 
 ### Quick Install
 
+**macOS (recommended):**
+
+```bash
+brew install sentrie-sh/tap/sentrie
+```
+
+> **Note:** We use Homebrew Formulas instead of Casks because macOS Gatekeeper flags binaries installed via Casks, requiring workarounds. Formulas are treated as regular binaries by Gatekeeper, providing a better user experience.
+
 **macOS, Linux, and WSL2:**
 
 ```bash
