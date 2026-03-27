@@ -32,7 +32,7 @@ import (
 var ErrIllegalFactInjection = fmt.Errorf("fact injection not allowed in child context")
 
 type injectedFact struct {
-	value     any
+	value     Value
 	typeRef   ast.TypeRef
 	isDefault bool
 }
@@ -53,7 +53,7 @@ type ExecutionContext struct {
 	facts map[string]injectedFact        // injected via WITH
 	lets  map[string]*ast.VarDeclaration // policy-scoped lets
 
-	locals map[string]any // evaluated local values
+	locals map[string]Value // evaluated local values
 
 	modules map[string]*ModuleBinding // alias -> module binding (for `use`)
 
@@ -74,7 +74,7 @@ func NewExecutionContext(policy *index.Policy, executor Executor) *ExecutionCont
 		policy:    policy,
 		refStack:  make([]string, 0), // reference stack
 		facts:     make(map[string]injectedFact),
-		locals:    make(map[string]any),
+		locals:    make(map[string]Value),
 		lets:      make(map[string]*ast.VarDeclaration),
 		modules:   make(map[string]*ModuleBinding),
 		executor:  executor,
@@ -101,7 +101,7 @@ func (ec *ExecutionContext) AttachedChildContext() *ExecutionContext {
 		modules:   ec.modules,                           // inherit the module bindings from the parent
 		executor:  ec.executor,                          // inherit the executor from the parent
 		facts:     nil,                                  // a child context should not have facts at all
-		locals:    make(map[string]any),                 // local values
+		locals:    make(map[string]Value),               // local values
 		lets:      make(map[string]*ast.VarDeclaration), // local let declarations
 	}
 }
@@ -115,7 +115,7 @@ func (ec *ExecutionContext) CreatedAt() time.Time {
 
 // Inject facts into the current context.
 // It is illegal to inject facts into a child context.
-func (ec *ExecutionContext) InjectFact(ctx context.Context, name string, v any, isDefault bool, typeRef ast.TypeRef) error {
+func (ec *ExecutionContext) InjectFact(ctx context.Context, name string, v Value, isDefault bool, typeRef ast.TypeRef) error {
 	ec.rwmu.Lock()
 	defer ec.rwmu.Unlock()
 
@@ -153,7 +153,7 @@ func (ec *ExecutionContext) InjectLet(name string, v *ast.VarDeclaration) error 
 
 // SetLocal sets a local value in the current context if and only if the current context supplied an identifier
 // with that name.
-func (ec *ExecutionContext) SetLocal(name string, value any, force bool) {
+func (ec *ExecutionContext) SetLocal(name string, value Value, force bool) {
 	if force {
 		ec.rwmu.Lock()
 		defer ec.rwmu.Unlock()
@@ -185,7 +185,7 @@ func (ec *ExecutionContext) SetLocal(name string, value any, force bool) {
 }
 
 // GetLocal gets a local value from the current context if present - otherwise the parent context is checked.
-func (ec *ExecutionContext) GetLocal(name string) (any, bool) {
+func (ec *ExecutionContext) GetLocal(name string) (Value, bool) {
 	ec.rwmu.RLock()
 	defer ec.rwmu.RUnlock()
 	v, ok := ec.locals[name]
@@ -196,7 +196,7 @@ func (ec *ExecutionContext) GetLocal(name string) (any, bool) {
 	return v, ok
 }
 
-func (ec *ExecutionContext) GetFact(name string) (any, bool) {
+func (ec *ExecutionContext) GetFact(name string) (Value, bool) {
 	ec.rwmu.RLock()
 	defer ec.rwmu.RUnlock()
 	if ec.parent != nil {
@@ -205,7 +205,7 @@ func (ec *ExecutionContext) GetFact(name string) (any, bool) {
 	}
 	v, ok := ec.facts[name]
 	if !ok {
-		return Undefined, false
+		return Undefined(), false
 	}
 	return v.value, ok
 }

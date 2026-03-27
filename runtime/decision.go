@@ -16,40 +16,47 @@
 
 package runtime
 
-import "github.com/sentrie-sh/sentrie/trinary"
+import (
+	"encoding/json"
+
+	"github.com/sentrie-sh/sentrie/trinary"
+)
 
 type Decision struct {
 	State trinary.Value `json:"state"`
-	Value any           `json:"value"`
+	Value Value         `json:"-"`
 }
 
 func (d Decision) ToTrinary() trinary.Value {
 	return d.State
 }
 
-type DecisionAttachments map[string]any
+type DecisionAttachments map[string]Value
 
 // Behaviour:
 // - nil           → Unknown
 // - *Decision     → as-is
 // - trinary.Value  → Decision with the same state
 // - anything else → trinary.From(val)
-func DecisionOf(val any) *Decision {
-	if val == nil {
-		return &Decision{State: trinary.Unknown, Value: nil}
+func DecisionOf(val Value) *Decision {
+	if val.IsUndefined() || val.IsNull() {
+		return &Decision{State: trinary.Unknown, Value: val}
 	}
 
-	if d, ok := val.(*Decision); ok {
-		return d
+	if d, ok := val.TrinaryValue(); ok {
+		return &Decision{State: d, Value: val}
 	}
 
-	if d, ok := val.(Decision); ok {
-		return &Decision{State: d.State, Value: d.Value}
-	}
+	return &Decision{State: trinary.From(val.Any()), Value: val}
+}
 
-	if d, ok := val.(trinary.HasTrinary); ok {
-		return &Decision{State: d.ToTrinary(), Value: val}
+func (d Decision) MarshalJSON() ([]byte, error) {
+	type dto struct {
+		State trinary.Value `json:"state"`
+		Value any           `json:"value"`
 	}
-
-	return &Decision{State: trinary.From(val), Value: val}
+	return json.Marshal(dto{
+		State: d.State,
+		Value: d.Value.Any(),
+	})
 }
