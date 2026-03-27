@@ -107,32 +107,32 @@ func (i Info) String() string {
 	// App details
 	if i.Name != "" {
 		if i.GitVersion != "" {
-			b.WriteString(fmt.Sprintf("%s v%s\n", i.Name, i.GitVersion))
+			_, _ = fmt.Fprintf(&b, "%s v%s\n", i.Name, i.GitVersion)
 		} else {
-			b.WriteString(fmt.Sprintf("%s\n", i.Name))
+			_, _ = fmt.Fprintf(&b, "%s\n", i.Name)
 		}
 	}
 	if i.Description != "" {
-		b.WriteString(fmt.Sprintf("\n%s\n", i.Description))
+		_, _ = fmt.Fprintf(&b, "\n%s\n", i.Description)
 	}
 	if i.Website != "" {
-		b.WriteString(fmt.Sprintf("\n%s\n", i.Website))
+		_, _ = fmt.Fprintf(&b, "\n%s\n", i.Website)
 	}
 	b.WriteString("\n")
 
 	// Build info using tabwriter for aligned output
 	w := tabwriter.NewWriter(&b, 0, 0, 1, ' ', 0)
 	if i.GitCommit != "" {
-		w.Write([]byte(fmt.Sprintf("Git Commit:\t%s\n", i.GitCommit)))
+		_, _ = fmt.Fprintf(w, "Git Commit:\t%s\n", i.GitCommit)
 	}
 	if i.GitTreeState != "" {
-		w.Write([]byte(fmt.Sprintf("Git Tree:\t%s\n", i.GitTreeState)))
+		_, _ = fmt.Fprintf(w, "Git Tree:\t%s\n", i.GitTreeState)
 	}
 	if i.BuildDate != "" {
-		w.Write([]byte(fmt.Sprintf("Build Date:\t%s\n", i.BuildDate)))
+		_, _ = fmt.Fprintf(w, "Build Date:\t%s\n", i.BuildDate)
 	}
 	if i.BuiltBy != "" {
-		w.Write([]byte(fmt.Sprintf("Built By:\t%s\n", i.BuiltBy)))
+		_, _ = fmt.Fprintf(w, "Built By:\t%s\n", i.BuiltBy)
 	}
 	w.Flush()
 
