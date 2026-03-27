@@ -26,6 +26,18 @@ import (
 
 type Builtin func(ctx context.Context, args []any) (any, error)
 
+func isUndefinedAny(v any) bool {
+	return FromBoundaryAny(v).IsUndefined()
+}
+
+func toIntAny(v any) (int64, bool) {
+	n, ok := FromAny(v).NumberValue()
+	if !ok {
+		return 0, false
+	}
+	return int64(n), true
+}
+
 // builtin merge - merge two maps into a new map recursively
 func BuiltinMerge(ctx context.Context, args []any) (any, error) {
 	if len(args) != 2 {
@@ -128,8 +140,8 @@ func BuiltinFlatten(ctx context.Context, args []any) (any, error) {
 	}
 
 	// Check for unknown (undefined) input
-	if IsUndefined(args[0]) {
-		return Undefined, nil
+	if isUndefinedAny(args[0]) {
+		return Undefined(), nil
 	}
 
 	x, ok := args[0].([]any)
@@ -139,10 +151,10 @@ func BuiltinFlatten(ctx context.Context, args []any) (any, error) {
 
 	var depth int64 = 1 // default depth
 	if len(args) == 2 {
-		if IsUndefined(args[1]) {
-			return Undefined, nil
+		if isUndefinedAny(args[1]) {
+			return Undefined(), nil
 		}
-		n, ok := toInt(args[1])
+		n, ok := toIntAny(args[1])
 		if !ok {
 			return nil, fmt.Errorf("flatten: second argument must be a non-negative integer")
 		}
@@ -168,16 +180,16 @@ func flattenList(x []any, depth int64) (any, error) {
 	result := make([]any, 0)
 	for _, elem := range x {
 		// Check for unknown (undefined) - propagate unknown
-		if IsUndefined(elem) {
-			return Undefined, nil
+		if isUndefinedAny(elem) {
+			return Undefined(), nil
 		}
 
 		// If element is a list, flatten it
 		if nestedList, ok := elem.([]any); ok {
 			// Check if nested list contains unknown
 			for _, nestedElem := range nestedList {
-				if IsUndefined(nestedElem) {
-					return Undefined, nil
+				if isUndefinedAny(nestedElem) {
+					return Undefined(), nil
 				}
 			}
 			// Recursively flatten with depth-1
@@ -185,8 +197,8 @@ func flattenList(x []any, depth int64) (any, error) {
 			if err != nil {
 				return nil, err
 			}
-			if IsUndefined(flattened) {
-				return Undefined, nil
+			if isUndefinedAny(flattened) {
+				return Undefined(), nil
 			}
 			flattenedList, ok := flattened.([]any)
 			if !ok {
@@ -209,8 +221,8 @@ func BuiltinFlattenDeep(ctx context.Context, args []any) (any, error) {
 	}
 
 	// Check for unknown (undefined) input
-	if IsUndefined(args[0]) {
-		return Undefined, nil
+	if isUndefinedAny(args[0]) {
+		return Undefined(), nil
 	}
 
 	x, ok := args[0].([]any)
@@ -226,8 +238,8 @@ func flattenDeep(x []any) (any, error) {
 	result := make([]any, 0)
 	for _, elem := range x {
 		// Check for unknown (undefined) - propagate unknown
-		if IsUndefined(elem) {
-			return Undefined, nil
+		if isUndefinedAny(elem) {
+			return Undefined(), nil
 		}
 
 		// If element is a list, recursively flatten it
@@ -236,8 +248,8 @@ func flattenDeep(x []any) (any, error) {
 			if err != nil {
 				return nil, err
 			}
-			if IsUndefined(flattened) {
-				return Undefined, nil
+			if isUndefinedAny(flattened) {
+				return Undefined(), nil
 			}
 			flattenedList, ok := flattened.([]any)
 			if !ok {
@@ -260,8 +272,8 @@ func BuiltinAsList(ctx context.Context, args []any) (any, error) {
 	}
 
 	// Check for unknown (undefined) input
-	if IsUndefined(args[0]) {
-		return Undefined, nil
+	if isUndefinedAny(args[0]) {
+		return Undefined(), nil
 	}
 
 	v := args[0]
@@ -270,8 +282,8 @@ func BuiltinAsList(ctx context.Context, args []any) (any, error) {
 	if list, ok := v.([]any); ok {
 		// Check for unknown elements in the list
 		for _, elem := range list {
-			if IsUndefined(elem) {
-				return Undefined, nil
+			if isUndefinedAny(elem) {
+				return Undefined(), nil
 			}
 		}
 		return list, nil
@@ -288,8 +300,8 @@ func BuiltinNormaliseList(ctx context.Context, args []any) (any, error) {
 	}
 
 	// Check for unknown (undefined) input
-	if IsUndefined(args[0]) {
-		return Undefined, nil
+	if isUndefinedAny(args[0]) {
+		return Undefined(), nil
 	}
 
 	v := args[0]
@@ -303,8 +315,8 @@ func BuiltinNormaliseList(ctx context.Context, args []any) (any, error) {
 	}
 
 	// Check for unknown elements
-	if slices.ContainsFunc(list, IsUndefined) {
-		return Undefined, nil
+	if slices.ContainsFunc(list, isUndefinedAny) {
+		return Undefined(), nil
 	}
 
 	// Check for deeper than one level of nesting before flattening
@@ -312,8 +324,8 @@ func BuiltinNormaliseList(ctx context.Context, args []any) (any, error) {
 	for _, elem := range list {
 		if nestedList, ok := elem.([]any); ok {
 			for _, nestedElem := range nestedList {
-				if IsUndefined(nestedElem) {
-					return Undefined, nil
+				if isUndefinedAny(nestedElem) {
+					return Undefined(), nil
 				}
 				// Check for deeper nesting (error case)
 				if _, ok := nestedElem.([]any); ok {

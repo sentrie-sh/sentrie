@@ -40,6 +40,28 @@ type ModuleBinding struct {
 	instancePool *puddle.Pool[*JSInstance]
 }
 
+func normalizeBoundaryForJS(v any) any {
+	if _, ok := v.(undefinedBoundaryToken); ok {
+		return goja.Undefined()
+	}
+	switch t := v.(type) {
+	case []any:
+		out := make([]any, 0, len(t))
+		for _, item := range t {
+			out = append(out, normalizeBoundaryForJS(item))
+		}
+		return out
+	case map[string]any:
+		out := make(map[string]any, len(t))
+		for k, item := range t {
+			out[k] = normalizeBoundaryForJS(item)
+		}
+		return out
+	default:
+		return v
+	}
+}
+
 func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string, args ...any) (any, error) {
 	if m.instancePool == nil {
 		return nil, fmt.Errorf("module has no JS binding")
@@ -82,7 +104,7 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 
 	ga := make([]goja.Value, 0, len(args))
 	for _, a := range args {
-		ga = append(ga, vm.rt.ToValue(a))
+		ga = append(ga, vm.rt.ToValue(normalizeBoundaryForJS(a)))
 	}
 	out, err := fnc(goja.Undefined(), ga...)
 	if err != nil {

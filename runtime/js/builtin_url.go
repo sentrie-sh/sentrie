@@ -145,4 +145,3 @@ var BuiltinUrlGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	return ex, nil
 }
-

@@ -290,4 +290,3 @@ func netipPrefixMerge(prefixes []netip.Prefix) []netip.Prefix {
 	// This is complex and can be enhanced later
 	return unique
 }
-

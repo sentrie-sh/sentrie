@@ -73,7 +73,7 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctIntegersWithEquality() {
 	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
 
 	r.NoError(err)
-	r.Equal([]any{float64(1), float64(2), float64(3)}, result)
+	r.Equal([]any{float64(1), float64(2), float64(3)}, result.Any())
 }
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctStringsWithEquality() {
@@ -104,7 +104,7 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctStringsWithEquality() {
 	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
 
 	r.NoError(err)
-	r.Equal([]any{"apple", "banana", "cherry"}, result)
+	r.Equal([]any{"apple", "banana", "cherry"}, result.Any())
 }
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctMixedTypes() {
@@ -135,7 +135,7 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctMixedTypes() {
 	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
 
 	r.NoError(err)
-	r.Equal([]any{float64(1), "hello", "world"}, result)
+	r.Equal([]any{float64(1), "hello", "world"}, result.Any())
 }
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctEmptyCollection() {
@@ -160,7 +160,7 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctEmptyCollection() {
 	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
 
 	r.NoError(err)
-	r.Equal([]any{}, result)
+	r.Equal([]any{}, result.Any())
 }
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctSingleItemCollection() {
@@ -187,7 +187,7 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctSingleItemCollection() {
 	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
 
 	r.NoError(err)
-	r.Equal([]any{float64(42)}, result)
+	r.Equal([]any{float64(42)}, result.Any())
 }
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctAllIdenticalItems() {
@@ -217,7 +217,7 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctAllIdenticalItems() {
 	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
 
 	r.NoError(err)
-	r.Equal([]any{float64(5)}, result)
+	r.Equal([]any{float64(5)}, result.Any())
 }
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctAlreadyDistinctItems() {
@@ -247,7 +247,7 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctAlreadyDistinctItems() {
 	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
 
 	r.NoError(err)
-	r.Equal([]any{float64(1), float64(2), float64(3), float64(4)}, result)
+	r.Equal([]any{float64(1), float64(2), float64(3), float64(4)}, result.Any())
 }
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctNonListInput() {
@@ -268,7 +268,7 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctNonListInput() {
 	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
 
 	r.Error(err)
-	r.Nil(result)
+	r.False(result.IsValid())
 	r.Contains(err.Error(), "distinct expects list source")
 }
 
@@ -310,7 +310,7 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctByAbsoluteValue() {
 	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
 
 	r.NoError(err)
-	r.Equal([]any{float64(-1), float64(-2)}, result) // Should keep first occurrence of each absolute value
+	r.Equal([]any{float64(-1), float64(-2)}, result.Any()) // Should keep first occurrence of each absolute value
 }
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctByModulo3() {
@@ -351,7 +351,7 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctByModulo3() {
 	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
 
 	r.NoError(err)
-	r.Equal([]any{float64(1), float64(2)}, result) // Should keep first occurrence of each modulo 3 result
+	r.Equal([]any{float64(1), float64(2)}, result.Any()) // Should keep first occurrence of each modulo 3 result
 }
 
 func (r *EvalDistinctTestSuite) TestEvalDistinctPredicateEvaluationError() {
@@ -383,7 +383,7 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctPredicateEvaluationError() {
 	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
 
 	r.Error(err)
-	r.Nil(result)
+	r.False(result.IsValid())
 	r.Contains(err.Error(), "unable to resolve import")
 }
 
@@ -440,7 +440,9 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctWithMaps() {
 	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
 
 	r.NoError(err)
-	r.Len(result, 2) // Should have 2 distinct maps based on id field
+	list, ok := result.ListValue()
+	r.True(ok)
+	r.Len(list, 2) // Should have 2 distinct maps based on id field
 }
 
 func TestEvalDistinctTestSuite(t *testing.T) {

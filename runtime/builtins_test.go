@@ -96,17 +96,17 @@ func (s *BuiltinsTestSuite) TestFlatten_EmptyList() {
 
 func (s *BuiltinsTestSuite) TestFlatten_UnknownInput() {
 	// Unknown (undefined) input should propagate unknown
-	result, err := BuiltinFlatten(s.ctx, []any{Undefined})
+	result, err := BuiltinFlatten(s.ctx, []any{Undefined()})
 	s.NoError(err)
-	s.Equal(Undefined, result) // Undefined represents unknown
+	s.Equal(Undefined(), result) // Undefined represents unknown
 }
 
 func (s *BuiltinsTestSuite) TestFlatten_UnknownInNestedList() {
 	// Unknown in nested list should propagate unknown
-	input := []any{[]any{1, Undefined, 2}}
+	input := []any{[]any{1, Undefined(), 2}}
 	result, err := BuiltinFlatten(s.ctx, []any{input})
 	s.NoError(err)
-	s.Equal(Undefined, result) // Undefined represents unknown
+	s.Equal(Undefined(), result) // Undefined represents unknown
 }
 
 func (s *BuiltinsTestSuite) TestFlatten_ErrorNonList() {
@@ -146,9 +146,9 @@ func (s *BuiltinsTestSuite) TestFlatten_ErrorWrongArgCount() {
 func (s *BuiltinsTestSuite) TestFlatten_UnknownDepth() {
 	// Unknown depth should propagate unknown
 	input := []any{[]any{1, 2}}
-	result, err := BuiltinFlatten(s.ctx, []any{input, Undefined})
+	result, err := BuiltinFlatten(s.ctx, []any{input, Undefined()})
 	s.NoError(err)
-	s.Equal(Undefined, result) // Undefined represents unknown
+	s.Equal(Undefined(), result) // Undefined represents unknown
 }
 
 // Test BuiltinFlattenDeep
@@ -195,17 +195,17 @@ func (s *BuiltinsTestSuite) TestFlattenDeep_EmptyList() {
 
 func (s *BuiltinsTestSuite) TestFlattenDeep_UnknownInput() {
 	// Unknown (undefined) input should propagate unknown
-	result, err := BuiltinFlattenDeep(s.ctx, []any{Undefined})
+	result, err := BuiltinFlattenDeep(s.ctx, []any{Undefined()})
 	s.NoError(err)
-	s.Equal(Undefined, result) // Undefined represents unknown
+	s.Equal(Undefined(), result) // Undefined represents unknown
 }
 
 func (s *BuiltinsTestSuite) TestFlattenDeep_UnknownInNestedList() {
 	// Unknown in nested list should propagate unknown
-	input := []any{[]any{[]any{1, Undefined, 2}}}
+	input := []any{[]any{[]any{1, Undefined(), 2}}}
 	result, err := BuiltinFlattenDeep(s.ctx, []any{input})
 	s.NoError(err)
-	s.Equal(Undefined, result) // Undefined represents unknown
+	s.Equal(Undefined(), result) // Undefined represents unknown
 }
 
 func (s *BuiltinsTestSuite) TestFlattenDeep_ErrorNonList() {
@@ -268,17 +268,17 @@ func (s *BuiltinsTestSuite) TestAsList_EmptyList() {
 
 func (s *BuiltinsTestSuite) TestAsList_UnknownInput() {
 	// Unknown (undefined) input should propagate unknown
-	result, err := BuiltinAsList(s.ctx, []any{Undefined})
+	result, err := BuiltinAsList(s.ctx, []any{Undefined()})
 	s.NoError(err)
-	s.Equal(Undefined, result) // Undefined represents unknown
+	s.Equal(Undefined(), result) // Undefined represents unknown
 }
 
 func (s *BuiltinsTestSuite) TestAsList_UnknownInList() {
 	// Unknown element in list should propagate unknown
-	input := []any{1, Undefined, 2}
+	input := []any{1, Undefined(), 2}
 	result, err := BuiltinAsList(s.ctx, []any{input})
 	s.NoError(err)
-	s.Equal(Undefined, result) // Undefined represents unknown
+	s.Equal(Undefined(), result) // Undefined represents unknown
 }
 
 func (s *BuiltinsTestSuite) TestAsList_ErrorWrongArgCount() {
@@ -350,17 +350,17 @@ func (s *BuiltinsTestSuite) TestNormaliseList_ErrorDeeperNestingMixed() {
 
 func (s *BuiltinsTestSuite) TestNormaliseList_UnknownInput() {
 	// Unknown (undefined) input should propagate unknown
-	result, err := BuiltinNormaliseList(s.ctx, []any{Undefined})
+	result, err := BuiltinNormaliseList(s.ctx, []any{Undefined()})
 	s.NoError(err)
-	s.Equal(Undefined, result) // Undefined represents unknown
+	s.Equal(Undefined(), result) // Undefined represents unknown
 }
 
 func (s *BuiltinsTestSuite) TestNormaliseList_UnknownInNestedList() {
 	// Unknown in nested list should propagate unknown
-	input := []any{[]any{1, Undefined, 2}}
+	input := []any{[]any{1, Undefined(), 2}}
 	result, err := BuiltinNormaliseList(s.ctx, []any{input})
 	s.NoError(err)
-	s.Equal(Undefined, result) // Undefined represents unknown
+	s.Equal(Undefined(), result) // Undefined represents unknown
 }
 
 func (s *BuiltinsTestSuite) TestNormaliseList_ErrorWrongArgCount() {

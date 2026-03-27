@@ -177,11 +177,12 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 		}
 
 		if ok {
+			decodedFactValue := FromBoundaryAny(factValue)
 			// Facts are always non-nullable - validate value is not null
-			if factValue == nil {
+			if decodedFactValue.IsNull() {
 				return nil, errors.Wrapf(xerr.ErrInvalidInvocation(""), "fact '%s' cannot be null", factName)
 			}
-			err := ec.InjectFact(ctx, factName, factValue, false, factStatement.Type)
+			err := ec.InjectFact(ctx, factName, decodedFactValue, false, factStatement.Type)
 			if err != nil {
 				return nil, err
 			}
@@ -197,7 +198,7 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 			}
 
 			// Facts are always non-nullable - validate default value is not null
-			if val == nil {
+			if val.IsNull() {
 				return nil, errors.Wrapf(xerr.ErrInvalidInvocation(""), "fact '%s' cannot have null default value", factName)
 			}
 
@@ -222,7 +223,7 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 
 	decision, attachments, ruleNode, err := e.execRule(ctx, ec, namespace, policy, rule)
 	if err != nil && decision == nil {
-		decision = DecisionOf(trinary.Unknown)
+		decision = DecisionOf(Trinary(trinary.Unknown))
 	}
 	return &ExecutorOutput{
 		PolicyName:  policy,
@@ -267,7 +268,7 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 		}
 		stmt := thePolicy.Facts[name]
 		// validate the value against the type
-		if err := validateValueAgainstTypeRef(ctx, ec, e, thePolicy, value.value, value.typeRef, stmt.Span()); err != nil {
+		if err := validateValueAgainstTypeRef(ctx, ec, e, thePolicy, value.value.Any(), value.typeRef, stmt.Span()); err != nil {
 			return nil, nil, nil, err
 		}
 	}
@@ -281,7 +282,7 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 	}
 
 	// Compute attachment values if exported
-	attachments := map[string]any{}
+	attachments := map[string]Value{}
 	if ex, ok := thePolicy.RuleExports[rule]; ok {
 		for _, attachment := range ex.Attachments {
 			ctx, attachmentNode, done := trace.New(ctx, attachment.Value, "attachment", map[string]any{
@@ -296,7 +297,7 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 				return d, attachments, ruleNode, err
 			}
 			attachments[attachment.Name] = v
-			attachmentNode.SetResult(v)
+			attachmentNode.SetResult(v.Any())
 			ruleNode.Attach(attachmentNode)
 			continue
 		}
@@ -418,13 +419,13 @@ func evaluateRuleOutcome(ctx context.Context, ec *ExecutionContext, e *executorI
 			wn.SetErr(err)
 			return nil, rn, err
 		}
-		whenVal = trinary.From(cond)
+		whenVal = trinary.From(cond.Any())
 		rn.Attach(wn)
 	}
 
 	if !whenVal.IsTrue() {
 		// the default response is NA
-		theDefault := DecisionOf(trinary.Unknown)
+		theDefault := DecisionOf(Trinary(trinary.Unknown))
 
 		// we have a default expression
 		if r.Default != nil {
@@ -433,7 +434,7 @@ func evaluateRuleOutcome(ctx context.Context, ec *ExecutionContext, e *executorI
 
 			// evaluate the default expression
 			val, defNode, err := eval(ctx, ec, e, p, r.Default)
-			dn.Attach(defNode).SetResult(val).SetErr(err)
+			dn.Attach(defNode).SetResult(val.Any()).SetErr(err)
 
 			theDefault = DecisionOf(val)
 			rn.Attach(dn)
@@ -445,7 +446,7 @@ func evaluateRuleOutcome(ctx context.Context, ec *ExecutionContext, e *executorI
 	defer done()
 
 	val, bodyNode, err := eval(ctx, ec, e, p, r.Body)
-	rb.Attach(bodyNode).SetResult(val).SetErr(err)
+	rb.Attach(bodyNode).SetResult(val.Any()).SetErr(err)
 	rn.Attach(rb)
 
 	// Coerce to a *Decision using tristate.From(val)

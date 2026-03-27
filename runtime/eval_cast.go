@@ -27,7 +27,7 @@ import (
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
-func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *index.Policy, cast *ast.CastExpression) (any, *trace.Node, error) {
+func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *index.Policy, cast *ast.CastExpression) (Value, *trace.Node, error) {
 	ctx, node, done := trace.New(ctx, cast, "cast", map[string]any{
 		"target": cast.TargetType.String(),
 	})
@@ -36,10 +36,9 @@ func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *ind
 	val, child, err := eval(ctx, ec, e, p, cast.Expr)
 	node.Attach(child)
 	if err != nil {
-		return nil, node.SetErr(err), err
+		return Value{}, node.SetErr(err), err
 	}
-
-	var result any
+	result := val
 	target := cast.TargetType
 
 	defer func() {
@@ -51,103 +50,63 @@ func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *ind
 			return
 		}
 
-		if result != nil {
+		if result.IsValid() {
 			// validate the result before returning
-			if validateErr := validateValueAgainstTypeRef(ctx, ec, e, p, result, target, cast.Span()); validateErr != nil {
+			if validateErr := validateValueAgainstTypeRef(ctx, ec, e, p, result.Any(), target, cast.Span()); validateErr != nil {
 				node.SetErr(validateErr)
 				err = validateErr
-				result = nil
+				result = Value{}
 			}
 		}
 
 	}()
 	switch target.(type) {
 	case *ast.StringTypeRef:
-		result = fmt.Sprintf("%v", val)
+		result = String(val.String())
 
 	case *ast.NumberTypeRef:
-		switch v := val.(type) {
-		case float32:
-			result = float64(v)
-		case float64:
-			result = float64(v)
-		case int:
-			result = float64(v)
-		case int64:
-			result = float64(v)
-		case string:
-			atof, parseErr := strconv.ParseFloat(v, 64)
+		if n, ok := val.NumberValue(); ok {
+			result = Number(n)
+		} else if s, ok := val.StringValue(); ok {
+			atof, parseErr := strconv.ParseFloat(s, 64)
 			if parseErr != nil {
-				return nil, node.SetErr(parseErr), parseErr
+				return Value{}, node.SetErr(parseErr), parseErr
 			}
-			result = atof
-		default:
-			err = fmt.Errorf("cannot cast %T to float", val)
-			return nil, node.SetErr(err), err
+			result = Number(atof)
+		} else if b, ok := val.BoolValue(); ok {
+			if b {
+				result = Number(1)
+			} else {
+				result = Number(0)
+			}
+		} else {
+			err = fmt.Errorf("cannot cast %s to number", val.Kind())
+			return Value{}, node.SetErr(err), err
 		}
 
 	case *ast.TrinaryTypeRef:
-		switch v := val.(type) {
-		case bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
-			result = trinary.From(v)
-		case string:
-			parsed := trinary.Parse(v)
-			result = parsed
-		default:
-			err = fmt.Errorf("cannot cast %T to trinary value", val)
-			return nil, node.SetErr(err), err
-		}
+		result = Trinary(trinary.From(val.Any()))
 
 	case *ast.ListTypeRef:
-		switch v := val.(type) {
-		case []any:
-			// Already an array, return as-is
-			result = v
-		case []string:
-			// Convert []string to []any
-			arr := make([]any, len(v))
-			for i, s := range v {
-				arr[i] = s
-			}
-			result = arr
-		case []int:
-			// Convert []int to []any
-			arr := make([]any, len(v))
-			for i, n := range v {
-				arr[i] = n
-			}
-			result = arr
-		case []float64:
-			// Convert []float64 to []any
-			arr := make([]any, len(v))
-			for i, f := range v {
-				arr[i] = f
-			}
-			result = arr
-		default:
-			err = fmt.Errorf("cannot cast %T to array", val)
-			return nil, node.SetErr(err), err
+		if val.Kind() != ValueList {
+			err = fmt.Errorf("cannot cast %s to list", val.Kind())
+			return Value{}, node.SetErr(err), err
 		}
+		result = val
 
 	case *ast.MapTypeRef:
-		switch v := val.(type) {
-		case map[string]any:
-			// Already a map, return as-is
-			result = v
-		default:
-			err = fmt.Errorf("cannot cast %T to map", val)
-			return nil, node.SetErr(err), err
+		if val.Kind() != ValueMap {
+			err = fmt.Errorf("cannot cast %s to map", val.Kind())
+			return Value{}, node.SetErr(err), err
 		}
+		result = val
 
 	case *ast.ShapeTypeRef:
-		// For shape types, we just return the value as-is
-		// Shape validation would typically happen elsewhere
 		result = val
 
 	default:
-		// Unknown type, return value as-is
 		result = val
 	}
 
-	return result, node.SetResult(result).SetErr(err), err
+	return result, node.SetResult(result.Any()).SetErr(err), err
 }

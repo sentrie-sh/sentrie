@@ -20,4 +20,3 @@ import _ "embed"
 
 //go:embed ts_src/_sentrie_js.ts
 var BuiltinJSTS []byte
-

@@ -26,7 +26,7 @@ import (
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
-func evalUnary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, u *ast.UnaryExpression) (any, *trace.Node, error) {
+func evalUnary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, u *ast.UnaryExpression) (Value, *trace.Node, error) {
 	ctx, node, done := trace.New(ctx, u, "unary", map[string]any{
 		"operator": u.Operator,
 	})
@@ -35,34 +35,38 @@ func evalUnary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 	v, child, err := eval(ctx, ec, exec, p, u.Right)
 	node.Attach(child)
 	if err != nil {
-		return nil, node.SetErr(err), err
+		return Value{}, node.SetErr(err), err
 	}
 
-	if IsUndefined(v) {
-		return Undefined, node, nil
+	if v.IsUndefined() {
+		return Undefined(), node, nil
 	}
 
 	switch u.Operator {
-	case "not", "!":
-		out := trinary.From(v).Not()
-		return out, node.SetResult(out), nil
-	case "-":
-		switch x := v.(type) {
-		case int64:
-			out := -x
-			return out, node.SetResult(out), nil
-		case int:
-			out := -int(x)
-			return out, node.SetResult(out), nil
-		case float64:
-			out := -x
-			return out, node.SetResult(out), nil
-		default:
-			err := fmt.Errorf("bad operand for unary -: %T", v)
-			return nil, node.SetErr(err), err
+	case "!":
+		out := Bool(!trinary.From(v.Any()).IsTrue())
+		return out, node.SetResult(out.Any()), nil
+	case "not":
+		out := Trinary(trinary.From(v.Any()).Not())
+		return out, node.SetResult(out.Any()), nil
+	case "+":
+		num, ok := v.NumberValue()
+		if !ok {
+			err := fmt.Errorf("unary + requires number")
+			return Value{}, node.SetErr(err), err
 		}
+		out := Number(num)
+		return out, node.SetResult(out.Any()), nil
+	case "-":
+		num, ok := v.NumberValue()
+		if !ok {
+			err := fmt.Errorf("unary - requires number")
+			return Value{}, node.SetErr(err), err
+		}
+		out := Number(-num)
+		return out, node.SetResult(out.Any()), nil
 	default:
 		err := fmt.Errorf("unsupported unary op: %s", u.Operator)
-		return nil, node.SetErr(err), err
+		return Value{}, node.SetErr(err), err
 	}
 }

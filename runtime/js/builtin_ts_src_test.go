@@ -26,7 +26,7 @@ func TestBuiltinJSTS_Embedded(t *testing.T) {
 	// Verify that the embedded TypeScript source is not empty
 	assert.NotEmpty(t, BuiltinJSTS, "BuiltinJSTS should not be empty")
 	assert.Greater(t, len(BuiltinJSTS), 100, "BuiltinJSTS should contain substantial content")
-	
+
 	// Verify it contains expected exports
 	source := string(BuiltinJSTS)
 	assert.Contains(t, source, "export const round", "Should export Math.round")
@@ -34,4 +34,3 @@ func TestBuiltinJSTS_Embedded(t *testing.T) {
 	assert.Contains(t, source, "export const parse", "Should export JSON.parse")
 	assert.Contains(t, source, "export const stringify", "Should export JSON.stringify")
 }
-

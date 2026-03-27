@@ -25,9 +25,9 @@ import (
 	"github.com/sentrie-sh/sentrie/xerr"
 )
 
-func evalTransform(ctx context.Context, _ *ExecutionContext, _ *executorImpl, _ *index.Policy, t *ast.TransformExpression) (any, *trace.Node, error) {
+func evalTransform(ctx context.Context, _ *ExecutionContext, _ *executorImpl, _ *index.Policy, t *ast.TransformExpression) (Value, *trace.Node, error) {
 	_, node, done := trace.New(ctx, t, "transform", map[string]any{"ident": t.Argument})
 	defer done()
 
-	return nil, node, xerr.ErrNotImplemented
+	return Value{}, node, xerr.ErrNotImplemented
 }

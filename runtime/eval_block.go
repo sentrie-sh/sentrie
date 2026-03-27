@@ -24,7 +24,7 @@ import (
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 )
 
-func evalBlock(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, block *ast.BlockExpression) (any, *trace.Node, error) {
+func evalBlock(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, block *ast.BlockExpression) (Value, *trace.Node, error) {
 	ctx, n, done := trace.New(ctx, block, "", map[string]any{})
 	defer done()
 
@@ -35,7 +35,7 @@ func evalBlock(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		switch st := s.(type) {
 		case *ast.VarDeclaration:
 			if err := ec.InjectLet(st.Name, st); err != nil {
-				return nil, n.SetErr(err), err
+				return Value{}, n.SetErr(err), err
 			}
 		case *ast.CommentStatement:
 			_ = "noop"
@@ -46,8 +46,8 @@ func evalBlock(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 
 	val, child, err := eval(ctx, ec, exec, p, block.Yield)
 	if err != nil {
-		return nil, n.SetErr(err), err
+		return Value{}, n.SetErr(err), err
 	}
-	n.Attach(child).SetResult(val).SetErr(err)
+	n.Attach(child).SetResult(val.Any()).SetErr(err)
 	return val, n, err
 }

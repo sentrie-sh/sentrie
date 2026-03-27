@@ -27,7 +27,7 @@ import (
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
-func evalDistinct(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, d *ast.DistinctExpression) (any, *trace.Node, error) {
+func evalDistinct(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, d *ast.DistinctExpression) (Value, *trace.Node, error) {
 	ctx, node, done := trace.New(ctx, d, "distinct", map[string]any{
 		"collection": d.Collection.String(),
 		"left_iter":  d.Iterator1,
@@ -38,23 +38,23 @@ func evalDistinct(ctx context.Context, ec *ExecutionContext, exec *executorImpl,
 	col, colNode, err := eval(ctx, ec, exec, p, d.Collection)
 	node.Attach(colNode)
 	if err != nil {
-		return nil, node.SetErr(err), err
+		return Value{}, node.SetErr(err), err
 	}
 
-	list, ok := col.([]any)
+	list, ok := col.ListValue()
 	if !ok {
-		return nil, node.SetErr(fmt.Errorf("distinct expects list source")), fmt.Errorf("distinct expects list source")
+		return Value{}, node.SetErr(fmt.Errorf("distinct expects list source")), fmt.Errorf("distinct expects list source")
 	}
 
 	if len(list) < 2 {
 		// nothing to do here
-		return list, node, nil
+		return List(list), node, nil
 	}
 
 	// clone the list
 	list = slices.Clone(list)
 
-	theDistinct := make([]any, 0, len(list))
+	theDistinct := make([]Value, 0, len(list))
 	theDistinct = append(theDistinct, list[0]) // start with the first item
 	list = list[1:]
 
@@ -82,9 +82,9 @@ func evalDistinct(ctx context.Context, ec *ExecutionContext, exec *executorImpl,
 			node.Attach(resNode)
 			childContext.Dispose()
 			if err != nil {
-				return nil, node.SetErr(err), err
+				return Value{}, node.SetErr(err), err
 			}
-			if trinary.From(res).IsTrue() {
+			if trinary.From(res.Any()).IsTrue() {
 				foundMatch = true
 				break
 			}
@@ -98,5 +98,5 @@ func evalDistinct(ctx context.Context, ec *ExecutionContext, exec *executorImpl,
 
 	theDistinct = slices.Clip(theDistinct)
 
-	return theDistinct, node, nil
+	return List(theDistinct), node, nil
 }

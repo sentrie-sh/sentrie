@@ -26,25 +26,25 @@ import (
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 )
 
-func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, i *ast.Identifier) (any, *trace.Node, error) {
+func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, i *ast.Identifier) (Value, *trace.Node, error) {
 	ctx, n, done := trace.New(ctx, i, "identifier", map[string]any{"name": i.Value})
 	defer done()
 
 	// check in the local scope
 	if v, ok := ec.GetLocal(i.Value); ok {
-		return v, n.SetResult(v), nil
+		return v, n.SetResult(v.Any()), nil
 	}
 
 	// check whether this has been passed in as a FACT
 	if v, ok := ec.GetFact(i.Value); ok {
-		return v, n.SetResult(v), nil
+		return v, n.SetResult(v.Any()), nil
 	}
 
 	// we couldn't find anything yet - look for a let declaration in the ExecutionContext
 	if v, ok := ec.GetLet(i.Value); ok {
 		// Check for infinite recursion before evaluating the let declaration
 		if err := ec.PushRefStack(i.Value); err != nil {
-			return nil, n.SetErr(err), err
+			return Value{}, n.SetErr(err), err
 		}
 		defer ec.PopRefStack()
 
@@ -52,30 +52,30 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		val, letEvalNode, err := eval(ctx, ec, exec, p, v.Value)
 		n.Attach(letEvalNode)
 		if err != nil {
-			return nil, n.SetErr(err), err
+			return Value{}, n.SetErr(err), err
 		}
 
 		// check the type of the let declaration
 		if v.Type != nil {
 			if err := validateValueAgainstTypeRef(ctx, ec, exec, p, val, v.Type, v.Value.Span()); err != nil {
-				return nil, n.SetErr(errors.Wrapf(err, "invalid value for let declaration %s", i)), err
+				return Value{}, n.SetErr(errors.Wrapf(err, "invalid value for let declaration %s", i)), err
 			}
 		}
 
 		ec.SetLocal(i.Value, val, false)
-		return val, n.SetResult(val), nil
+		return val, n.SetResult(val.Any()), nil
 	}
 
 	if r, found := p.Rules[i.Value]; found {
 		decision, _, node, err := exec.execRule(ctx, ec, p.Namespace.FQN.String(), p.Name, r.Name)
 		n.Attach(node)
 		if err != nil {
-			return nil, n.SetErr(err), err
+			return Value{}, n.SetErr(err), err
 		}
-		ec.SetLocal(i.Value, decision, false)
-		return decision, n.SetResult(decision), nil
+		ec.SetLocal(i.Value, decision.Value, false)
+		return decision.Value, n.SetResult(decision.Value.Any()), nil
 	}
 
 	err := fmt.Errorf("identifier not found: %s", i.Value)
-	return nil, n.SetErr(err), err
+	return Value{}, n.SetErr(err), err
 }
