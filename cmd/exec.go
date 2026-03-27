@@ -293,6 +293,28 @@ func formatTrinaryState(state any) string {
 // formatAttachment formats attachment values with proper indentation
 func formatAttachment(name string, value any, indent int) {
 	indentStr := strings.Repeat(" ", indent)
+	if boxed, ok := value.(runtime.Value); ok {
+		if boxed.IsUndefined() {
+			fmt.Printf("%s     %s: undefined\n", indentStr, name)
+			return
+		}
+		if list, lok := boxed.ListValue(); lok {
+			fmt.Printf("%s     %s:\n", indentStr, name)
+			for _, item := range list {
+				fmt.Printf("%s      - %v\n", indentStr, item)
+			}
+			return
+		}
+		if m, mok := boxed.MapValue(); mok {
+			fmt.Printf("%s     %s:\n", indentStr, name)
+			for key, val := range m {
+				formatAttachment(key, val, indent+1)
+			}
+			return
+		}
+		fmt.Printf("%s     %s: %v\n", indentStr, name, boxed)
+		return
+	}
 	if list, ok := value.([]any); ok {
 		fmt.Printf("%s     %s:\n", indentStr, name)
 		for _, item := range list {
