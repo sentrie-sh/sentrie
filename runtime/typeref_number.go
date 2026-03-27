@@ -38,10 +38,11 @@ func validateAgainstNumberTypeRef(ctx context.Context, ec *ExecutionContext, exe
 			if err != nil {
 				return err
 			}
-			if i64, ok := csArg.(int64); ok {
-				csArg = float64(i64)
+			csArgAny := csArg.Any()
+			if i64, ok := csArgAny.(int64); ok {
+				csArgAny = float64(i64)
 			}
-			args[i] = csArg
+			args[i] = csArgAny
 		}
 		checker, ok := constraints.NumberContraintCheckers[constraint.Name]
 		if !ok {

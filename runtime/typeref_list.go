@@ -44,7 +44,7 @@ func validateAgainstListTypeRef(ctx context.Context, ec *ExecutionContext, exec 
 			if err != nil {
 				return err
 			}
-			args[i] = csArg
+			args[i] = csArg.Any()
 		}
 		checker, ok := constraints.ListContraintCheckers[constraint.Name]
 		if !ok {

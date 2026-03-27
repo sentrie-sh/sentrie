@@ -38,7 +38,7 @@ func validateAgainstMapTypeRef(ctx context.Context, ec *ExecutionContext, exec E
 			if err != nil {
 				return err
 			}
-			args[i] = csArg
+			args[i] = csArg.Any()
 		}
 		checker, ok := constraints.MapContraintCheckers[constraint.Name]
 		if !ok {

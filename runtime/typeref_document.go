@@ -39,7 +39,7 @@ func validateAgainstDocumentTypeRef(ctx context.Context, ec *ExecutionContext, e
 			if err != nil {
 				return err
 			}
-			args[i] = csArg
+			args[i] = csArg.Any()
 		}
 		checker, ok := constraints.DocumentContraintCheckers[constraint.Name]
 		if !ok {

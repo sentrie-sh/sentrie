@@ -44,7 +44,7 @@ func validateAgainstTrinaryTypeRef(ctx context.Context, ec *ExecutionContext, ex
 			if err != nil {
 				return err
 			}
-			args[i] = csArg
+			args[i] = csArg.Any()
 		}
 		checker, ok := constraints.TrinaryConstraintCheckers[constraint.Name]
 		if !ok {

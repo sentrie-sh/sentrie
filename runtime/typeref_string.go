@@ -38,7 +38,7 @@ func validateAgainstStringTypeRef(ctx context.Context, ec *ExecutionContext, exe
 			if err != nil {
 				return err
 			}
-			args[i] = csArg
+			args[i] = csArg.Any()
 		}
 		checker, ok := constraints.StringContraintCheckers[constraint.Name]
 		if !ok {

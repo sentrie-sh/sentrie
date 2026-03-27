@@ -51,7 +51,7 @@ func validateAgainstRecordTypeRef(ctx context.Context, ec *ExecutionContext, exe
 			if err != nil {
 				return err
 			}
-			args[i] = csArg
+			args[i] = csArg.Any()
 		}
 		checker, ok := constraints.RecordContraintCheckers[constraint.Name]
 		if !ok {
