@@ -134,7 +134,7 @@ func (i Info) String() string {
 	if i.BuiltBy != "" {
 		_, _ = fmt.Fprintf(w, "Built By:\t%s\n", i.BuiltBy)
 	}
-	w.Flush()
+	_ = w.Flush()
 
 	b.WriteString("\n")
 

@@ -56,8 +56,7 @@ func quantifierParserFactory(type_ tokens.Kind) prefixParser {
 		}
 
 		// Check if we have a grouped expression (parentheses) or block expression (curly braces)
-		var expression ast.Expression
-		expression = parseGroupedOrBlockExpression(ctx, parser)
+		expression := parseGroupedOrBlockExpression(ctx, parser)
 		if expression == nil {
 			return nil
 		}
