@@ -30,7 +30,7 @@ func captureStdout(t *testing.T, fn func()) string {
 	oldStdout := os.Stdout
 	r, w, err := os.Pipe()
 	require.NoError(t, err)
-	defer r.Close()
+	defer func() { require.NoError(t, r.Close()) }()
 	os.Stdout = w
 	defer func() { os.Stdout = oldStdout }()
 

@@ -140,12 +140,12 @@ func TestEvalInfixArithmeticComparisonAndTrinaryMatrix(t *testing.T) {
 	ec := NewExecutionContext(p, &executorImpl{})
 
 	tests := []struct {
-		name       string
-		operator   string
-		left       ast.Expression
-		right      ast.Expression
-		want       any
-		wantErr    string
+		name        string
+		operator    string
+		left        ast.Expression
+		right       ast.Expression
+		want        any
+		wantErr     string
 		wantIsUndef bool
 	}{
 		{

@@ -218,12 +218,12 @@ func TestImportDecisionSuccessWithWithInjection(t *testing.T) {
 	idx.Namespaces[nsFQN.String()] = ns
 
 	targetPolicy := &index.Policy{
-		Name:       "target",
-		FQN:        ast.CreateFQN(nsFQN, "target"),
-		Namespace:  ns,
-		Lets:       map[string]*ast.VarDeclaration{},
-		Facts:      map[string]*ast.FactStatement{},
-		Rules:      map[string]*index.Rule{},
+		Name:      "target",
+		FQN:       ast.CreateFQN(nsFQN, "target"),
+		Namespace: ns,
+		Lets:      map[string]*ast.VarDeclaration{},
+		Facts:     map[string]*ast.FactStatement{},
+		Rules:     map[string]*index.Rule{},
 		RuleExports: map[string]*index.ExportedRule{
 			"allow": {RuleName: "allow"},
 		},

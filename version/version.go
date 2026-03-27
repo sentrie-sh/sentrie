@@ -123,16 +123,16 @@ func (i Info) String() string {
 	// Build info using tabwriter for aligned output
 	w := tabwriter.NewWriter(&b, 0, 0, 1, ' ', 0)
 	if i.GitCommit != "" {
-		fmt.Fprintf(w, "Git Commit:\t%s\n", i.GitCommit)
+		w.Write([]byte(fmt.Sprintf("Git Commit:\t%s\n", i.GitCommit)))
 	}
 	if i.GitTreeState != "" {
-		fmt.Fprintf(w, "Git Tree:\t%s\n", i.GitTreeState)
+		w.Write([]byte(fmt.Sprintf("Git Tree:\t%s\n", i.GitTreeState)))
 	}
 	if i.BuildDate != "" {
-		fmt.Fprintf(w, "Build Date:\t%s\n", i.BuildDate)
+		w.Write([]byte(fmt.Sprintf("Build Date:\t%s\n", i.BuildDate)))
 	}
 	if i.BuiltBy != "" {
-		fmt.Fprintf(w, "Built By:\t%s\n", i.BuiltBy)
+		w.Write([]byte(fmt.Sprintf("Built By:\t%s\n", i.BuiltBy)))
 	}
 	w.Flush()
 
