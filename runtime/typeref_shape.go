@@ -22,13 +22,14 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constraints"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/sentrie-sh/sentrie/xerr"
 )
 
-func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.ShapeTypeRef, pos tokens.Range) error {
+func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef *ast.ShapeTypeRef, pos tokens.Range) error {
 	var shape *index.Shape
 
 	shapeFqn := typeRef.Ref.String()
@@ -81,7 +82,7 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 
 	// at this point, we know it's a complex shape
 	// so we need to validate the value against the complex shape
-	vm, ok := v.(map[string]any)
+	vm, ok := v.MapValue()
 	if !ok {
 		return fmt.Errorf("value %v is not a shape at %s - expected shape", v, pos)
 	}
@@ -92,35 +93,35 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 		// if optional, the field MAY exist and MAY be null
 
 		// if required, the field MUST exist
-		if _, ok := vm[field.Name]; !ok && field.Required {
+		fieldValue, ok := vm[field.Name]
+		if !ok && field.Required {
 			return errors.Errorf("field %s is required at %s - expected field", field.Name, pos)
 		}
 
-		if field.NotNullable && vm[field.Name] == nil {
+		if field.NotNullable && (!ok || fieldValue.IsNull()) {
 			return errors.Errorf("field %s cannot be null at %s - expected field", field.Name, pos)
 		}
 
-		value := vm[field.Name]
-		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, value, field.TypeRef, pos); err != nil {
+		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, fieldValue, field.TypeRef, pos); err != nil {
 			return errors.Wrapf(err, "field '%s' is not valid", field.Name)
 		}
 	}
 
 	for _, constraint := range typeRef.GetConstraints() {
-		args := make([]any, len(constraint.Args))
+		args := make([]box.Value, len(constraint.Args))
 		for i, argExpr := range constraint.Args {
 			csArg, _, err := eval(ctx, ec, exec.(*executorImpl), p, argExpr)
 			if err != nil {
 				return err
 			}
-			args[i] = csArg.Any()
+			args[i] = csArg
 		}
 		checker, ok := constraints.ShapeContraintCheckers[constraint.Name]
 		if !ok {
 			return ErrUnknownConstraint(constraint)
 		}
 
-		if err := checker.Checker(ctx, p, v.(map[string]any), args); err != nil {
+		if err := checker.Checker(ctx, p, v, args); err != nil {
 			return ErrConstraintFailed(pos, constraint, err)
 		}
 	}

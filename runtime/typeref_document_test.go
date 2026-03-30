@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
@@ -35,7 +36,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 
 		// Create a mock expression for the test
 		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, "not a document", typeRef, mockExpr.Span())
+		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny("not a document"), typeRef, mockExpr.Span())
 
 		r.Error(err)
 		r.Contains(err.Error(), "value not a document is not a document")
@@ -49,7 +50,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 
 		// Create a mock expression for the test
 		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, int64(123), typeRef, mockExpr.Span())
+		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(int64(123)), typeRef, mockExpr.Span())
 
 		r.Error(err)
 		r.Contains(err.Error(), "value 123 is not a document")
@@ -63,7 +64,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 
 		// Create a mock expression for the test
 		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, float64(123.45), typeRef, mockExpr.Span())
+		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(float64(123.45)), typeRef, mockExpr.Span())
 
 		r.Error(err)
 		r.Contains(err.Error(), "value 123.45 is not a document")
@@ -77,7 +78,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 
 		// Create a mock expression for the test
 		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, true, typeRef, mockExpr.Span())
+		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(true), typeRef, mockExpr.Span())
 
 		r.Error(err)
 		r.Contains(err.Error(), "value true is not a document")
@@ -91,7 +92,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 
 		// Create a mock expression for the test
 		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, []interface{}{"item1", "item2"}, typeRef, mockExpr.Span())
+		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny([]interface{}{"item1", "item2"}), typeRef, mockExpr.Span())
 
 		r.Error(err)
 		r.Contains(err.Error(), "value [item1 item2] is not a document")
@@ -105,10 +106,10 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 
 		// Create a mock expression for the test
 		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, nil, typeRef, mockExpr.Span())
+		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(nil), typeRef, mockExpr.Span())
 
 		r.Error(err)
-		r.Contains(err.Error(), "value <nil> is not a document")
+		r.Contains(err.Error(), "value null is not a document")
 	})
 
 	r.Run("should not return an error if the value is an empty document", func() {
@@ -119,7 +120,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 
 		// Create a mock expression for the test
 		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, map[string]interface{}{}, typeRef, mockExpr.Span())
+		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(map[string]interface{}{}), typeRef, mockExpr.Span())
 
 		r.NoError(err)
 	})
@@ -132,12 +133,12 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 
 		// Create a mock expression for the test
 		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-		value := map[string]interface{}{
+		doc := map[string]interface{}{
 			"name":  "John Doe",
 			"email": "john@example.com",
 			"age":   "30",
 		}
-		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, value, typeRef, mockExpr.Span())
+		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(doc), typeRef, mockExpr.Span())
 
 		r.NoError(err)
 	})
@@ -150,7 +151,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 
 		// Create a mock expression for the test
 		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-		value := map[string]interface{}{
+		doc := map[string]interface{}{
 			"name":    "John Doe",
 			"age":     int64(30),
 			"active":  true,
@@ -158,7 +159,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 			"tags":    []interface{}{"admin", "user"},
 			"profile": map[string]interface{}{"bio": "Software engineer"},
 		}
-		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, value, typeRef, mockExpr.Span())
+		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(doc), typeRef, mockExpr.Span())
 
 		r.NoError(err)
 	})
@@ -171,7 +172,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 
 		// Create a mock expression for the test
 		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-		value := map[string]interface{}{
+		doc := map[string]interface{}{
 			"user": map[string]interface{}{
 				"name": "John Doe",
 				"address": map[string]interface{}{
@@ -184,7 +185,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 				"updated_at": "2023-12-31",
 			},
 		}
-		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, value, typeRef, mockExpr.Span())
+		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(doc), typeRef, mockExpr.Span())
 
 		r.NoError(err)
 	})
@@ -197,12 +198,12 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 
 		// Create a mock expression for the test
 		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-		value := map[string]interface{}{
+		doc := map[string]interface{}{
 			"items":   []interface{}{"item1", "item2", "item3"},
 			"numbers": []interface{}{int64(1), int64(2), int64(3)},
 			"mixed":   []interface{}{"string", int64(42), true},
 		}
-		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, value, typeRef, mockExpr.Span())
+		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(doc), typeRef, mockExpr.Span())
 
 		r.NoError(err)
 	})
@@ -219,7 +220,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefEdgeCases() {
 
 		// Create a mock expression for the test
 		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, map[int]interface{}{1: "value"}, typeRef, mockExpr.Span())
+		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(map[int]interface{}{1: "value"}), typeRef, mockExpr.Span())
 
 		r.Error(err)
 		r.Contains(err.Error(), "value map[1:value] is not a document")
@@ -233,12 +234,12 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefEdgeCases() {
 
 		// Create a mock expression for the test
 		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-		value := map[string]interface{}{
+		doc := map[string]interface{}{
 			"":        "empty key",
 			"normal":  "normal key",
 			"another": "another key",
 		}
-		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, value, typeRef, mockExpr.Span())
+		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(doc), typeRef, mockExpr.Span())
 
 		r.NoError(err)
 	})
@@ -251,13 +252,13 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefEdgeCases() {
 
 		// Create a mock expression for the test
 		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-		value := map[string]interface{}{
+		doc := map[string]interface{}{
 			"key-with-dash":       "value1",
 			"key_with_underscore": "value2",
 			"key.with.dots":       "value3",
 			"key with spaces":     "value4",
 		}
-		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, value, typeRef, mockExpr.Span())
+		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(doc), typeRef, mockExpr.Span())
 
 		r.NoError(err)
 	})
@@ -270,13 +271,13 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefEdgeCases() {
 
 		// Create a mock expression for the test
 		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-		value := map[string]interface{}{
+		doc := map[string]interface{}{
 			"姓名":    "张三",
 			"email": "zhang@example.com",
 			"café":  "français",
 			"emoji": "🚀",
 		}
-		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, value, typeRef, mockExpr.Span())
+		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(doc), typeRef, mockExpr.Span())
 
 		r.NoError(err)
 	})
@@ -289,14 +290,14 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefEdgeCases() {
 
 		// Create a mock expression for the test
 		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
-		value := func() map[string]interface{} {
+		doc := func() map[string]interface{} {
 			doc := make(map[string]interface{})
 			for i := 0; i < 1000; i++ {
 				doc[fmt.Sprintf("key_%d", i)] = fmt.Sprintf("value_%d", i)
 			}
 			return doc
 		}()
-		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, value, typeRef, mockExpr.Span())
+		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(doc), typeRef, mockExpr.Span())
 
 		r.NoError(err)
 	})

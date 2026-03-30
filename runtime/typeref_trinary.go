@@ -21,37 +21,38 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constraints"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
-func validateAgainstTrinaryTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.TrinaryTypeRef, valueRange tokens.Range) error {
-	if b, ok := v.(bool); ok {
-		v = trinary.From(b)
-	}
-	if _, ok := v.(trinary.Value); !ok {
+func validateAgainstTrinaryTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef *ast.TrinaryTypeRef, valueRange tokens.Range) error {
+	var tv trinary.Value
+	if b, ok := v.BoolValue(); ok {
+		tv = trinary.From(b)
+	} else if t, ok := v.TrinaryValue(); ok {
+		tv = t
+	} else {
 		return errors.Errorf("value '%v' is not a bool at %s - expected bool", v, valueRange)
 	}
 
-	tv := v.(trinary.Value)
-
 	for _, constraint := range typeRef.GetConstraints() {
-		args := make([]any, len(constraint.Args))
+		args := make([]box.Value, len(constraint.Args))
 		for i, argExpr := range constraint.Args {
 			csArg, _, err := eval(ctx, ec, exec.(*executorImpl), p, argExpr)
 			if err != nil {
 				return err
 			}
-			args[i] = csArg.Any()
+			args[i] = csArg
 		}
 		checker, ok := constraints.TrinaryConstraintCheckers[constraint.Name]
 		if !ok {
 			return ErrUnknownConstraint(constraint)
 		}
 
-		if err := checker.Checker(ctx, p, tv, args); err != nil {
+		if err := checker.Checker(ctx, p, box.Trinary(tv), args); err != nil {
 			return ErrConstraintFailed(valueRange, constraint, err)
 		}
 	}

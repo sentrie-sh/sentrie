@@ -93,8 +93,8 @@ func main() {
 	}
 }
 
-// toAnyMap converts a typed map[name]ConstraintDefinition[T] to a generic map[name]any with NumArgs extracted.
-func toAnyMap[T any](src map[string]constraints.ConstraintDefinition[T]) map[string]any {
+// toAnyMap converts a map[name]ConstraintDefinition to map[name]any with NumArgs extracted.
+func toAnyMap(src map[string]constraints.ConstraintDefinition) map[string]any {
 	res := make(map[string]any, len(src))
 	for name, def := range src {
 		res[name] = def.NumArgs

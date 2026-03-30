@@ -21,31 +21,32 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constraints"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func validateAgainstStringTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.StringTypeRef, valueRange tokens.Range) error {
-	if _, ok := v.(string); !ok {
+func validateAgainstStringTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef *ast.StringTypeRef, valueRange tokens.Range) error {
+	if _, ok := v.StringValue(); !ok {
 		return errors.Errorf("value %v is not a string", v)
 	}
 
 	for _, constraint := range typeRef.GetConstraints() {
-		args := make([]any, len(constraint.Args))
+		args := make([]box.Value, len(constraint.Args))
 		for i, argExpr := range constraint.Args {
 			csArg, _, err := eval(ctx, ec, exec.(*executorImpl), p, argExpr)
 			if err != nil {
 				return err
 			}
-			args[i] = csArg.Any()
+			args[i] = csArg
 		}
 		checker, ok := constraints.StringContraintCheckers[constraint.Name]
 		if !ok {
 			return ErrUnknownConstraint(constraint)
 		}
 
-		if err := checker.Checker(ctx, p, v.(string), args); err != nil {
+		if err := checker.Checker(ctx, p, v, args); err != nil {
 			return ErrConstraintFailed(valueRange, constraint, err)
 		}
 	}

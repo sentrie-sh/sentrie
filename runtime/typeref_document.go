@@ -21,32 +21,33 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constraints"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func validateAgainstDocumentTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.DocumentTypeRef, pos tokens.Range) error {
+func validateAgainstDocumentTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef *ast.DocumentTypeRef, pos tokens.Range) error {
 	// just validate that it's a map
-	if _, ok := v.(map[string]any); !ok {
+	if _, ok := v.MapValue(); !ok {
 		return errors.Errorf("value %v is not a document at %s - expected document", v, pos)
 	}
 
 	for _, constraint := range typeRef.GetConstraints() {
-		args := make([]any, len(constraint.Args))
+		args := make([]box.Value, len(constraint.Args))
 		for i, argExpr := range constraint.Args {
 			csArg, _, err := eval(ctx, ec, exec.(*executorImpl), p, argExpr)
 			if err != nil {
 				return err
 			}
-			args[i] = csArg.Any()
+			args[i] = csArg
 		}
 		checker, ok := constraints.DocumentContraintCheckers[constraint.Name]
 		if !ok {
 			return ErrUnknownConstraint(constraint)
 		}
 
-		if err := checker.Checker(ctx, p, v.(map[string]any), args); err != nil {
+		if err := checker.Checker(ctx, p, v, args); err != nil {
 			return ErrConstraintFailed(pos, constraint, err)
 		}
 	}

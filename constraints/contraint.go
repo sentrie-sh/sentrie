@@ -19,13 +19,14 @@ package constraints
 import (
 	"context"
 
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 )
 
-type ConstraintChecker[T any] func(ctx context.Context, p *index.Policy, val T, args []any) error
+type ConstraintChecker func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error
 
-type ConstraintDefinition[T any] struct {
+type ConstraintDefinition struct {
 	Name    string
 	NumArgs int
-	Checker ConstraintChecker[T]
+	Checker ConstraintChecker
 }

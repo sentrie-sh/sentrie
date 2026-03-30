@@ -18,6 +18,7 @@ package runtime
 
 import (
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 )
 
@@ -25,19 +26,19 @@ func (r *RuntimeTestSuite) TestValidateAgainstListTypeRef() {
 	typeRef := ast.NewListTypeRef(ast.NewStringTypeRef(stubRange()), stubRange())
 
 	r.Run("rejects non-array inputs", func() {
-		err := validateAgainstListTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, "not-an-array", typeRef, stubRange())
+		err := validateAgainstListTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.String("not-an-array"), typeRef, stubRange())
 		r.Error(err)
 		r.Contains(err.Error(), "is not an array")
 	})
 
 	r.Run("rejects array item with invalid type", func() {
-		err := validateAgainstListTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, []any{"ok", 2.0}, typeRef, stubRange())
+		err := validateAgainstListTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny([]any{"ok", 2.0}), typeRef, stubRange())
 		r.Error(err)
 		r.Contains(err.Error(), "item is not valid")
 	})
 
 	r.Run("accepts valid list item types", func() {
-		err := validateAgainstListTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, []any{"a", "b"}, typeRef, stubRange())
+		err := validateAgainstListTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny([]any{"a", "b"}), typeRef, stubRange())
 		r.NoError(err)
 	})
 }
@@ -46,13 +47,13 @@ func (r *RuntimeTestSuite) TestValidateAgainstMapTypeRef() {
 	typeRef := ast.NewMapTypeRef(ast.NewNumberTypeRef(stubRange()), stubRange())
 
 	r.Run("rejects non-map values", func() {
-		err := validateAgainstMapTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, []any{"x"}, typeRef, stubRange())
+		err := validateAgainstMapTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny([]any{"x"}), typeRef, stubRange())
 		r.Error(err)
 		r.Contains(err.Error(), "is not a map")
 	})
 
 	r.Run("accepts map values without constraints", func() {
-		err := validateAgainstMapTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, map[string]any{"x": "any-value", "y": 2.0}, typeRef, stubRange())
+		err := validateAgainstMapTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny(map[string]any{"x": "any-value", "y": 2.0}), typeRef, stubRange())
 		r.NoError(err)
 	})
 }
@@ -64,25 +65,25 @@ func (r *RuntimeTestSuite) TestValidateAgainstRecordTypeRef() {
 	}, stubRange())
 
 	r.Run("rejects non-array value", func() {
-		err := validateAgainstRecordTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, map[string]any{"x": "y"}, typeRef, stubRange())
+		err := validateAgainstRecordTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny(map[string]any{"x": "y"}), typeRef, stubRange())
 		r.Error(err)
 		r.Contains(err.Error(), "is not a record")
 	})
 
 	r.Run("rejects field length mismatch", func() {
-		err := validateAgainstRecordTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, []any{"name"}, typeRef, stubRange())
+		err := validateAgainstRecordTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny([]any{"name"}), typeRef, stubRange())
 		r.Error(err)
 		r.Contains(err.Error(), "fields length mismatch")
 	})
 
 	r.Run("rejects invalid field type", func() {
-		err := validateAgainstRecordTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, []any{"name", "bad"}, typeRef, stubRange())
+		err := validateAgainstRecordTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny([]any{"name", "bad"}), typeRef, stubRange())
 		r.Error(err)
 		r.Contains(err.Error(), "not a valid record field")
 	})
 
 	r.Run("accepts valid record values", func() {
-		err := validateAgainstRecordTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, []any{"name", 7.0}, typeRef, stubRange())
+		err := validateAgainstRecordTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny([]any{"name", 7.0}), typeRef, stubRange())
 		r.NoError(err)
 	})
 }
@@ -101,7 +102,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstShapeTypeRef() {
 	}
 
 	r.Run("returns shape not found when shape is missing", func() {
-		err := validateAgainstShapeTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, newPolicy(), map[string]any{}, typeRef, stubRange())
+		err := validateAgainstShapeTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, newPolicy(), box.FromAny(map[string]any{}), typeRef, stubRange())
 		r.Error(err)
 		r.Contains(err.Error(), "shape 'app/UserShape' not found")
 	})
@@ -111,7 +112,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstShapeTypeRef() {
 		p.Shapes["app/UserShape"] = &index.Shape{
 			AliasOf: ast.NewStringTypeRef(stubRange()),
 		}
-		r.NoError(validateAgainstShapeTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, p, "alice", typeRef, stubRange()))
+		r.NoError(validateAgainstShapeTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, p, box.String("alice"), typeRef, stubRange()))
 	})
 
 	r.Run("rejects non-map for complex shapes", func() {
@@ -123,7 +124,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstShapeTypeRef() {
 				},
 			},
 		}
-		err := validateAgainstShapeTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, p, "bad", typeRef, stubRange())
+		err := validateAgainstShapeTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, p, box.String("bad"), typeRef, stubRange())
 		r.Error(err)
 		r.Contains(err.Error(), "is not a shape")
 	})

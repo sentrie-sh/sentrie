@@ -14,28 +14,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package constraints
+package constraints_test
 
 import (
-	"context"
-	"fmt"
+	"testing"
 
 	"github.com/sentrie-sh/sentrie/box"
-	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/constraints"
 )
 
-var ListContraintCheckers map[string]ConstraintDefinition = map[string]ConstraintDefinition{
-	"not_empty": {
-		Name:    "not_empty",
-		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
-			if val.Kind() != box.ValueList {
-				return fmt.Errorf("expected list, got %s", val.Kind())
-			}
-			if lst, ok := val.ListValue(); ok && len(lst) == 0 {
-				return fmt.Errorf("list is empty - expected non-empty list")
-			}
-			return nil
-		},
-	},
+func TestListNotEmpty(t *testing.T) {
+	c := constraints.ListContraintCheckers["not_empty"]
+	runChecker(t, c, box.String("x"), nil, true)
+	runChecker(t, c, box.List(nil), nil, true)
+	runChecker(t, c, box.List([]box.Value{}), nil, true)
+	runChecker(t, c, box.List([]box.Value{box.Number(1)}), nil, false)
 }

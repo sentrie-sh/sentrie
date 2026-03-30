@@ -21,35 +21,32 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constraints"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func validateAgainstNumberTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.NumberTypeRef, pos tokens.Range) error {
-	if _, ok := v.(float64); !ok {
+func validateAgainstNumberTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef *ast.NumberTypeRef, pos tokens.Range) error {
+	if _, ok := v.NumberValue(); !ok {
 		return errors.Errorf("value %v is not a number", v)
 	}
 
 	for _, constraint := range typeRef.GetConstraints() {
-		args := make([]any, len(constraint.Args))
+		args := make([]box.Value, len(constraint.Args))
 		for i, argExpr := range constraint.Args {
 			csArg, _, err := eval(ctx, ec, exec.(*executorImpl), p, argExpr)
 			if err != nil {
 				return err
 			}
-			csArgAny := csArg.Any()
-			if i64, ok := csArgAny.(int64); ok {
-				csArgAny = float64(i64)
-			}
-			args[i] = csArgAny
+			args[i] = csArg
 		}
 		checker, ok := constraints.NumberContraintCheckers[constraint.Name]
 		if !ok {
 			return ErrUnknownConstraint(constraint)
 		}
 
-		if err := checker.Checker(ctx, p, v.(float64), args); err != nil {
+		if err := checker.Checker(ctx, p, v, args); err != nil {
 			return ErrConstraintFailed(pos, constraint, err)
 		}
 	}

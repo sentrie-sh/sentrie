@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/trinary"
 )
@@ -27,12 +28,16 @@ import (
 // TrinaryConstraintCheckers contains supported boolean constraint validators.
 // For trinaries, common constraints include eq/neq (compare to true/false/unknown),
 // and truthiness helpers like is_true/is_false.
-var TrinaryConstraintCheckers map[string]ConstraintDefinition[trinary.Value] = map[string]ConstraintDefinition[trinary.Value]{
+var TrinaryConstraintCheckers map[string]ConstraintDefinition = map[string]ConstraintDefinition{
 	"not_unknown": {
 		Name:    "not_unknown",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val trinary.Value, args []any) error {
-			if val == trinary.Unknown {
+		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+			tv, ok := val.TrinaryValue()
+			if !ok {
+				return fmt.Errorf("expected trinary, got %s", val.Kind())
+			}
+			if tv == trinary.Unknown {
 				return fmt.Errorf("value is unknown")
 			}
 			return nil
@@ -41,16 +46,20 @@ var TrinaryConstraintCheckers map[string]ConstraintDefinition[trinary.Value] = m
 	"eq": {
 		Name:    "eq",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val trinary.Value, args []any) error {
+		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+			tv, ok := val.TrinaryValue()
+			if !ok {
+				return fmt.Errorf("expected trinary, got %s", val.Kind())
+			}
 			if len(args) != 1 {
 				return fmt.Errorf("eq constraint requires 1 argument")
 			}
-			expected, ok := args[0].(trinary.Value)
-			if !ok {
+			expected, oka := args[0].TrinaryValue()
+			if !oka {
 				return fmt.Errorf("eq constraint expects a boolean argument")
 			}
-			if val != expected {
-				return fmt.Errorf("value %v is not equal to %v", val, expected)
+			if tv != expected {
+				return fmt.Errorf("value %v is not equal to %v", tv, expected)
 			}
 			return nil
 		},
@@ -58,16 +67,20 @@ var TrinaryConstraintCheckers map[string]ConstraintDefinition[trinary.Value] = m
 	"neq": {
 		Name:    "neq",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val trinary.Value, args []any) error {
+		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+			tv, ok := val.TrinaryValue()
+			if !ok {
+				return fmt.Errorf("expected trinary, got %s", val.Kind())
+			}
 			if len(args) != 1 {
 				return fmt.Errorf("neq constraint requires 1 argument")
 			}
-			expected, ok := args[0].(trinary.Value)
-			if !ok {
+			expected, oka := args[0].TrinaryValue()
+			if !oka {
 				return fmt.Errorf("neq constraint expects a boolean argument")
 			}
-			if val == expected {
-				return fmt.Errorf("value %v is equal to %v - expected not equal", val, expected)
+			if tv == expected {
+				return fmt.Errorf("value %v is equal to %v - expected not equal", tv, expected)
 			}
 			return nil
 		},
@@ -75,9 +88,13 @@ var TrinaryConstraintCheckers map[string]ConstraintDefinition[trinary.Value] = m
 	"is_true": {
 		Name:    "is_true",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val trinary.Value, args []any) error {
-			if val != trinary.True {
-				return fmt.Errorf("value %v is not true", val)
+		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+			tv, ok := val.TrinaryValue()
+			if !ok {
+				return fmt.Errorf("expected trinary, got %s", val.Kind())
+			}
+			if tv != trinary.True {
+				return fmt.Errorf("value %v is not true", tv)
 			}
 			return nil
 		},
@@ -85,9 +102,13 @@ var TrinaryConstraintCheckers map[string]ConstraintDefinition[trinary.Value] = m
 	"is_false": {
 		Name:    "is_false",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val trinary.Value, args []any) error {
-			if val != trinary.False {
-				return fmt.Errorf("value %v is not false", val)
+		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+			tv, ok := val.TrinaryValue()
+			if !ok {
+				return fmt.Errorf("expected trinary, got %s", val.Kind())
+			}
+			if tv != trinary.False {
+				return fmt.Errorf("value %v is not false", tv)
 			}
 			return nil
 		},

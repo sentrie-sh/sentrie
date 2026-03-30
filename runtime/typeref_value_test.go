@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/stretchr/testify/require"
@@ -32,7 +33,7 @@ func TestValidateValueAgainstTypeRefNormalizesBoxedValue(t *testing.T) {
 		&ExecutionContext{},
 		&executorImpl{},
 		&index.Policy{},
-		String("hello"),
+		box.String("hello"),
 		typeRef,
 		tokens.Range{File: "test.sentra"},
 	)

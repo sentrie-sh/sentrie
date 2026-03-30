@@ -20,25 +20,12 @@ import (
 	"context"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func normalizeTypeRefValue(v any) any {
-	switch t := v.(type) {
-	case Value:
-		return t.Any()
-	case []Value:
-		return List(t).Any()
-	case map[string]Value:
-		return Map(t).Any()
-	default:
-		return v
-	}
-}
-
-func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef ast.TypeRef, valueRange tokens.Range) error {
-	v = normalizeTypeRefValue(v)
+func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef ast.TypeRef, valueRange tokens.Range) error {
 	switch t := typeRef.(type) {
 	case *ast.StringTypeRef:
 		return validateAgainstStringTypeRef(ctx, ec, exec, p, v, t, valueRange)
