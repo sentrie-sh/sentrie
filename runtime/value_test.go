@@ -62,7 +62,7 @@ func TestValueKindString(t *testing.T) {
 	require.Equal(t, "trinary", ValueTrinary.String())
 	require.Equal(t, "list", ValueList.String())
 	require.Equal(t, "map", ValueMap.String())
-	require.Equal(t, "object", ValueObject.String())
+	require.Equal(t, "document", ValueObject.String())
 	require.Equal(t, "invalid", ValueKind(255).String())
 }
 
