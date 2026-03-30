@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/stretchr/testify/require"
@@ -33,8 +34,8 @@ func stubRange() tokens.Range {
 
 func TestCalculateHashKeyDistinguishesUndefinedAndNull(t *testing.T) {
 	node := &ast.CallExpression{}
-	undefinedHash := calculateHashKey(node, []Value{Undefined()})
-	nullHash := calculateHashKey(node, []Value{Null()})
+	undefinedHash := calculateHashKey(node, []box.Value{box.Undefined()})
+	nullHash := calculateHashKey(node, []box.Value{box.Null()})
 
 	require.NotEmpty(t, undefinedHash)
 	require.NotEmpty(t, nullHash)
@@ -54,7 +55,7 @@ func TestGetTargetBuiltinPreservesUndefined(t *testing.T) {
 	target, err := getTarget(context.Background(), ec, &index.Policy{}, call)
 	require.NoError(t, err)
 
-	out, err := target(context.Background(), Undefined())
+	out, err := target(context.Background(), box.Undefined())
 	require.NoError(t, err)
 	require.True(t, out.IsUndefined())
 }
@@ -72,10 +73,10 @@ func TestGetTargetBuiltinPreservesNestedUndefined(t *testing.T) {
 	target, err := getTarget(context.Background(), ec, &index.Policy{}, call)
 	require.NoError(t, err)
 
-	arg := List([]Value{
-		List([]Value{
-			Number(1),
-			Undefined(),
+	arg := box.List([]box.Value{
+		box.List([]box.Value{
+			box.Number(1),
+			box.Undefined(),
 		}),
 	})
 	out, err := target(context.Background(), arg)
@@ -85,28 +86,28 @@ func TestGetTargetBuiltinPreservesNestedUndefined(t *testing.T) {
 
 func TestCalculateHashKeyMapKeyOrderStable(t *testing.T) {
 	node := &ast.CallExpression{}
-	arg1 := Map(map[string]Value{"a": Number(1), "b": Number(2)})
-	arg2 := Map(map[string]Value{"b": Number(2), "a": Number(1)})
-	hash1 := calculateHashKey(node, []Value{arg1})
-	hash2 := calculateHashKey(node, []Value{arg2})
+	arg1 := box.Map(map[string]box.Value{"a": box.Number(1), "b": box.Number(2)})
+	arg2 := box.Map(map[string]box.Value{"b": box.Number(2), "a": box.Number(1)})
+	hash1 := calculateHashKey(node, []box.Value{arg1})
+	hash2 := calculateHashKey(node, []box.Value{arg2})
 	require.Equal(t, hash1, hash2)
 }
 
 func TestCalculateHashKeyNestedStructureStable(t *testing.T) {
 	node := &ast.CallExpression{}
-	arg := List([]Value{
-		Map(map[string]Value{"k": List([]Value{Number(1), String("x")})}),
+	arg := box.List([]box.Value{
+		box.Map(map[string]box.Value{"k": box.List([]box.Value{box.Number(1), box.String("x")})}),
 	})
-	hash := calculateHashKey(node, []Value{arg})
+	hash := calculateHashKey(node, []box.Value{arg})
 	require.NotEmpty(t, hash)
 }
 
 func TestCalculateHashKeyNumericEdges(t *testing.T) {
 	node := &ast.CallExpression{}
-	hashNegZero := calculateHashKey(node, []Value{Number(math.Copysign(0, -1))})
-	hashPosZero := calculateHashKey(node, []Value{Number(0)})
-	hashNaN := calculateHashKey(node, []Value{Number(math.NaN())})
-	hashInf := calculateHashKey(node, []Value{Number(math.Inf(1))})
+	hashNegZero := calculateHashKey(node, []box.Value{box.Number(math.Copysign(0, -1))})
+	hashPosZero := calculateHashKey(node, []box.Value{box.Number(0)})
+	hashNaN := calculateHashKey(node, []box.Value{box.Number(math.NaN())})
+	hashInf := calculateHashKey(node, []box.Value{box.Number(math.Inf(1))})
 
 	require.NotEmpty(t, hashNaN)
 	require.NotEmpty(t, hashInf)

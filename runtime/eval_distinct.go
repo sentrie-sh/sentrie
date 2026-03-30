@@ -22,12 +22,12 @@ import (
 	"slices"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
-	"github.com/sentrie-sh/sentrie/trinary"
 )
 
-func evalDistinct(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, d *ast.DistinctExpression) (Value, *trace.Node, error) {
+func evalDistinct(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, d *ast.DistinctExpression) (box.Value, *trace.Node, error) {
 	ctx, node, done := trace.New(ctx, d, "distinct", map[string]any{
 		"collection": d.Collection.String(),
 		"left_iter":  d.Iterator1,
@@ -38,23 +38,23 @@ func evalDistinct(ctx context.Context, ec *ExecutionContext, exec *executorImpl,
 	col, colNode, err := eval(ctx, ec, exec, p, d.Collection)
 	node.Attach(colNode)
 	if err != nil {
-		return Value{}, node.SetErr(err), err
+		return box.Value{}, node.SetErr(err), err
 	}
 
 	list, ok := col.ListValue()
 	if !ok {
-		return Value{}, node.SetErr(fmt.Errorf("distinct expects list source")), fmt.Errorf("distinct expects list source")
+		return box.Value{}, node.SetErr(fmt.Errorf("distinct expects list source")), fmt.Errorf("distinct expects list source")
 	}
 
 	if len(list) < 2 {
 		// nothing to do here
-		return List(list), node, nil
+		return box.List(list), node, nil
 	}
 
 	// clone the list
 	list = slices.Clone(list)
 
-	theDistinct := make([]Value, 0, len(list))
+	theDistinct := make([]box.Value, 0, len(list))
 	theDistinct = append(theDistinct, list[0]) // start with the first item
 	list = list[1:]
 
@@ -82,9 +82,9 @@ func evalDistinct(ctx context.Context, ec *ExecutionContext, exec *executorImpl,
 			node.Attach(resNode)
 			childContext.Dispose()
 			if err != nil {
-				return Value{}, node.SetErr(err), err
+				return box.Value{}, node.SetErr(err), err
 			}
-			if trinary.From(res.Any()).IsTrue() {
+			if box.TrinaryFrom(res).IsTrue() {
 				foundMatch = true
 				break
 			}
@@ -98,5 +98,5 @@ func evalDistinct(ctx context.Context, ec *ExecutionContext, exec *executorImpl,
 
 	theDistinct = slices.Clip(theDistinct)
 
-	return List(theDistinct), node, nil
+	return box.List(theDistinct), node, nil
 }

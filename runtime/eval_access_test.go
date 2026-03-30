@@ -20,12 +20,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAccessFieldPreservesBoxedUndefined(t *testing.T) {
-	obj := Map(map[string]Value{
-		"nested": Undefined(),
+	obj := box.Map(map[string]box.Value{
+		"nested": box.Undefined(),
 	})
 	out, err := accessField(context.Background(), obj, "nested")
 	require.NoError(t, err)
@@ -33,17 +34,17 @@ func TestAccessFieldPreservesBoxedUndefined(t *testing.T) {
 }
 
 func TestAccessIndexPreservesBoxedUndefined(t *testing.T) {
-	col := List([]Value{Undefined()})
-	out, err := accessIndex(context.Background(), col, Number(0))
+	col := box.List([]box.Value{box.Undefined()})
+	out, err := accessIndex(context.Background(), col, box.Number(0))
 	require.NoError(t, err)
 	require.True(t, out.IsUndefined())
 }
 
 func TestAccessIndexMapAnyMissingKeyReturnsUndefined(t *testing.T) {
-	col := Object(map[string]any{
+	col := box.Object(map[string]any{
 		"present": 1,
 	})
-	out, err := accessIndex(context.Background(), col, String("missing"))
+	out, err := accessIndex(context.Background(), col, box.String("missing"))
 	require.NoError(t, err)
 	require.True(t, out.IsUndefined())
 }

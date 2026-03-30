@@ -20,8 +20,36 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/stretchr/testify/require"
+)
+
+type Value = box.Value
+type ValueKind = box.ValueKind
+
+const (
+	ValueInvalid   = box.ValueInvalid
+	ValueUndefined = box.ValueUndefined
+	ValueNull      = box.ValueNull
+	ValueBool      = box.ValueBool
+	ValueNumber    = box.ValueNumber
+	ValueString    = box.ValueString
+	ValueTrinary   = box.ValueTrinary
+	ValueList      = box.ValueList
+	ValueMap       = box.ValueMap
+	ValueObject    = box.ValueObject
+)
+
+var (
+	Undefined       = box.Undefined
+	Null            = box.Null
+	Trinary         = box.Trinary
+	List            = box.List
+	Map             = box.Map
+	FromAny         = box.FromAny
+	ToBoundaryAny   = box.ToBoundaryAny
+	FromBoundaryAny = box.FromBoundaryAny
 )
 
 func TestValueKindString(t *testing.T) {
@@ -51,25 +79,25 @@ func TestValueConstructorsAndAccessors(t *testing.T) {
 	require.True(t, nl.IsValid())
 	require.Equal(t, "null", nl.String())
 
-	bt := Bool(true)
+	bt := box.Bool(true)
 	bv, ok := bt.BoolValue()
 	require.True(t, ok)
 	require.True(t, bv)
 	require.Equal(t, "true", bt.String())
 
-	bf := Bool(false)
+	bf := box.Bool(false)
 	bv, ok = bf.BoolValue()
 	require.True(t, ok)
 	require.False(t, bv)
 	require.Equal(t, "false", bf.String())
 
-	n := Number(42)
+	n := box.Number(42)
 	nv, ok := n.NumberValue()
 	require.True(t, ok)
 	require.Equal(t, 42.0, nv)
 	require.Equal(t, "42", n.String())
 
-	s := String("hello")
+	s := box.String("hello")
 	sv, ok := s.StringValue()
 	require.True(t, ok)
 	require.Equal(t, "hello", sv)
@@ -83,20 +111,20 @@ func TestValueConstructorsAndAccessors(t *testing.T) {
 }
 
 func TestValueContainers(t *testing.T) {
-	list := List([]Value{Number(1), String("x")})
+	list := List([]Value{box.Number(1), box.String("x")})
 	xs, ok := list.ListValue()
 	require.True(t, ok)
 	require.Len(t, xs, 2)
 	require.Equal(t, 1.0, xs[0].Any())
 	require.Equal(t, "x", xs[1].Any())
 
-	m := Map(map[string]Value{"a": Number(1), "b": Bool(true)})
+	m := Map(map[string]Value{"a": box.Number(1), "b": box.Bool(true)})
 	mv, ok := m.MapValue()
 	require.True(t, ok)
 	require.Equal(t, 1.0, mv["a"].Any())
 	require.Equal(t, true, mv["b"].Any())
 
-	obj := Object(struct{ Name string }{Name: "demo"})
+	obj := box.Object(struct{ Name string }{Name: "demo"})
 	require.Equal(t, ValueObject, obj.Kind())
 	require.Equal(t, struct{ Name string }{Name: "demo"}, obj.Any())
 	require.Equal(t, "{demo}", obj.String())
@@ -106,9 +134,9 @@ func TestValueAnyUndefinedAndNull(t *testing.T) {
 	require.Nil(t, Undefined().Any())
 	require.Nil(t, Null().Any())
 	require.Equal(t, trinary.False, Trinary(trinary.False).Any())
-	require.Equal(t, false, Bool(false).Any())
-	require.Equal(t, 3.0, Number(3).Any())
-	require.Equal(t, "s", String("s").Any())
+	require.Equal(t, false, box.Bool(false).Any())
+	require.Equal(t, 3.0, box.Number(3).Any())
+	require.Equal(t, "s", box.String("s").Any())
 }
 
 func TestValueAnyAndFromAnyRoundTrip(t *testing.T) {
@@ -135,8 +163,8 @@ func TestValueAnyAndFromAnyRoundTrip(t *testing.T) {
 
 func TestValueMarshalJSON(t *testing.T) {
 	v := Map(map[string]Value{
-		"ok":   Bool(true),
-		"num":  Number(3.14),
+		"ok":   box.Bool(true),
+		"num":  box.Number(3.14),
 		"null": Null(),
 	})
 	b, err := json.Marshal(v)
@@ -155,15 +183,15 @@ func TestValueDefaultBranchesAndMismatches(t *testing.T) {
 	require.Equal(t, "invalid", invalid.String())
 	require.Nil(t, invalid.Any())
 
-	_, ok := String("x").NumberValue()
+	_, ok := box.String("x").NumberValue()
 	require.False(t, ok)
-	_, ok = Number(1).StringValue()
+	_, ok = box.Number(1).StringValue()
 	require.False(t, ok)
-	_, ok = Bool(true).ListValue()
+	_, ok = box.Bool(true).ListValue()
 	require.False(t, ok)
-	_, ok = Bool(true).MapValue()
+	_, ok = box.Bool(true).MapValue()
 	require.False(t, ok)
-	_, ok = Number(1).TrinaryValue()
+	_, ok = box.Number(1).TrinaryValue()
 	require.False(t, ok)
 
 	type custom struct{ X int }
@@ -191,8 +219,8 @@ func TestFromAnyNumericAndCollectionCases(t *testing.T) {
 		{true, ValueBool},
 		{"x", ValueString},
 		{trinary.True, ValueTrinary},
-		{[]Value{Number(1)}, ValueList},
-		{map[string]Value{"a": Number(1)}, ValueMap},
+		{[]Value{box.Number(1)}, ValueList},
+		{map[string]Value{"a": box.Number(1)}, ValueMap},
 		{[]any{1, 2, 3}, ValueList},
 		{map[string]any{"a": 1}, ValueMap},
 	}
@@ -207,10 +235,10 @@ func TestBoundaryAnyRoundTripNestedContainers(t *testing.T) {
 	in := Map(map[string]Value{
 		"a": Undefined(),
 		"b": List([]Value{
-			Number(1),
+			box.Number(1),
 			Map(map[string]Value{
 				"nested": Undefined(),
-				"ok":     String("x"),
+				"ok":     box.String("x"),
 			}),
 		}),
 	})
@@ -229,12 +257,12 @@ func TestBoundaryAnyRoundTripNestedContainers(t *testing.T) {
 }
 
 func TestToBoundaryAnyPassthroughScalars(t *testing.T) {
-	require.Equal(t, 1.0, ToBoundaryAny(Number(1)))
-	require.Equal(t, "x", ToBoundaryAny(String("x")))
-	require.Equal(t, true, ToBoundaryAny(Bool(true)))
+	require.Equal(t, 1.0, ToBoundaryAny(box.Number(1)))
+	require.Equal(t, "x", ToBoundaryAny(box.String("x")))
+	require.Equal(t, true, ToBoundaryAny(box.Bool(true)))
 }
 
 func TestFromBoundaryAnyHandlesUndefinedToken(t *testing.T) {
-	v := FromBoundaryAny(boundaryUndefined)
+	v := FromBoundaryAny(ToBoundaryAny(Undefined()))
 	require.True(t, v.IsUndefined())
 }

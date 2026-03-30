@@ -21,7 +21,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/sentrie-sh/sentrie/runtime"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,8 +44,8 @@ func captureStdout(t *testing.T, fn func()) string {
 }
 
 func TestFormatAttachmentRecursesBoxedContainers(t *testing.T) {
-	value := runtime.Map(map[string]runtime.Value{
-		"items": runtime.List([]runtime.Value{runtime.Number(1), runtime.Number(2)}),
+	value := box.Map(map[string]box.Value{
+		"items": box.List([]box.Value{box.Number(1), box.Number(2)}),
 	})
 	out := captureStdout(t, func() {
 		formatAttachment("root", value, 0)

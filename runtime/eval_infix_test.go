@@ -21,117 +21,118 @@ import (
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMatchesValueTypeErrorsAndRegexBranches(t *testing.T) {
-	_, err := matchesValue(Number(1), String("a+"))
+	_, err := box.MatchesValue(box.Number(1), box.String("a+"))
 	require.ErrorContains(t, err, "haystack must be a string")
 
-	_, err = matchesValue(String("abc"), Number(1))
+	_, err = box.MatchesValue(box.String("abc"), box.Number(1))
 	require.ErrorContains(t, err, "pattern must be a string")
 
-	ok, err := matchesValue(String("abc123"), String("^[a-z]+\\d+$"))
+	ok, err := box.MatchesValue(box.String("abc123"), box.String("^[a-z]+\\d+$"))
 	require.NoError(t, err)
 	require.True(t, ok)
 
-	ok, err = matchesValue(String("abc"), String("^\\d+$"))
+	ok, err = box.MatchesValue(box.String("abc"), box.String("^\\d+$"))
 	require.NoError(t, err)
 	require.False(t, ok)
 
-	_, err = matchesValue(String("abc"), String("["))
+	_, err = box.MatchesValue(box.String("abc"), box.String("["))
 	require.Error(t, err)
 }
 
 func TestContainsValueStringListAndMapBranches(t *testing.T) {
-	require.True(t, containsValue(String("sentrie runtime"), String("runtime")))
-	require.False(t, containsValue(String("sentrie"), String("missing")))
-	require.False(t, containsValue(String("sentrie"), String("")))
-	require.False(t, containsValue(String("sentrie"), Number(1)))
+	require.True(t, box.ContainsValue(box.String("sentrie runtime"), box.String("runtime")))
+	require.False(t, box.ContainsValue(box.String("sentrie"), box.String("missing")))
+	require.False(t, box.ContainsValue(box.String("sentrie"), box.String("")))
+	require.False(t, box.ContainsValue(box.String("sentrie"), box.Number(1)))
 
-	require.True(t, containsValue(List([]Value{Number(1), String("x")}), String("x")))
-	require.False(t, containsValue(List([]Value{Number(1), String("x")}), String("y")))
+	require.True(t, box.ContainsValue(box.List([]box.Value{box.Number(1), box.String("x")}), box.String("x")))
+	require.False(t, box.ContainsValue(box.List([]box.Value{box.Number(1), box.String("x")}), box.String("y")))
 
-	haystack := Map(map[string]Value{
-		"id":   Number(7),
-		"name": String("alice"),
-		"meta": Map(map[string]Value{"active": Bool(true)}),
+	haystack := box.Map(map[string]box.Value{
+		"id":   box.Number(7),
+		"name": box.String("alice"),
+		"meta": box.Map(map[string]box.Value{"active": box.Bool(true)}),
 	})
 
-	require.True(t, containsValue(haystack, String("name")))
-	require.False(t, containsValue(haystack, String("missing")))
+	require.True(t, box.ContainsValue(haystack, box.String("name")))
+	require.False(t, box.ContainsValue(haystack, box.String("missing")))
 
-	require.True(t, containsValue(haystack, Map(map[string]Value{
-		"id": Number(7),
+	require.True(t, box.ContainsValue(haystack, box.Map(map[string]box.Value{
+		"id": box.Number(7),
 	})))
-	require.False(t, containsValue(haystack, Map(map[string]Value{
-		"id": Number(8),
+	require.False(t, box.ContainsValue(haystack, box.Map(map[string]box.Value{
+		"id": box.Number(8),
 	})))
-	require.False(t, containsValue(haystack, Map(map[string]Value{
-		"id":      Number(7),
-		"missing": Number(1),
+	require.False(t, box.ContainsValue(haystack, box.Map(map[string]box.Value{
+		"id":      box.Number(7),
+		"missing": box.Number(1),
 	})))
 
-	require.False(t, containsValue(haystack, String("alice")))
-	require.False(t, containsValue(haystack, String("bob")))
-	require.True(t, containsValue(haystack, Number(7)))
-	require.False(t, containsValue(haystack, Number(99)))
-	require.False(t, containsValue(Number(1), Number(1)))
+	require.False(t, box.ContainsValue(haystack, box.String("alice")))
+	require.False(t, box.ContainsValue(haystack, box.String("bob")))
+	require.True(t, box.ContainsValue(haystack, box.Number(7)))
+	require.False(t, box.ContainsValue(haystack, box.Number(99)))
+	require.False(t, box.ContainsValue(box.Number(1), box.Number(1)))
 }
 
 func TestEqualValuesDeepAndKindSensitiveBranches(t *testing.T) {
-	require.True(t, equalValues(Undefined(), Undefined()))
-	require.True(t, equalValues(Null(), Null()))
-	require.False(t, equalValues(Undefined(), Null()))
+	require.True(t, box.EqualValues(box.Undefined(), box.Undefined()))
+	require.True(t, box.EqualValues(box.Null(), box.Null()))
+	require.False(t, box.EqualValues(box.Undefined(), box.Null()))
 
-	require.True(t, equalValues(Bool(true), Bool(true)))
-	require.False(t, equalValues(Bool(true), Bool(false)))
-	require.True(t, equalValues(Number(1.5), Number(1.5)))
-	require.False(t, equalValues(Number(1.5), Number(2)))
-	require.True(t, equalValues(String("x"), String("x")))
-	require.False(t, equalValues(String("x"), String("y")))
-	require.True(t, equalValues(Trinary(trinary.Unknown), Trinary(trinary.Unknown)))
-	require.False(t, equalValues(Trinary(trinary.True), Trinary(trinary.False)))
+	require.True(t, box.EqualValues(box.Bool(true), box.Bool(true)))
+	require.False(t, box.EqualValues(box.Bool(true), box.Bool(false)))
+	require.True(t, box.EqualValues(box.Number(1.5), box.Number(1.5)))
+	require.False(t, box.EqualValues(box.Number(1.5), box.Number(2)))
+	require.True(t, box.EqualValues(box.String("x"), box.String("x")))
+	require.False(t, box.EqualValues(box.String("x"), box.String("y")))
+	require.True(t, box.EqualValues(box.Trinary(trinary.Unknown), box.Trinary(trinary.Unknown)))
+	require.False(t, box.EqualValues(box.Trinary(trinary.True), box.Trinary(trinary.False)))
 
-	require.True(t, equalValues(
-		List([]Value{Number(1), Map(map[string]Value{"k": String("v")})}),
-		List([]Value{Number(1), Map(map[string]Value{"k": String("v")})}),
+	require.True(t, box.EqualValues(
+		box.List([]box.Value{box.Number(1), box.Map(map[string]box.Value{"k": box.String("v")})}),
+		box.List([]box.Value{box.Number(1), box.Map(map[string]box.Value{"k": box.String("v")})}),
 	))
-	require.False(t, equalValues(
-		List([]Value{Number(1)}),
-		List([]Value{Number(1), Number(2)}),
+	require.False(t, box.EqualValues(
+		box.List([]box.Value{box.Number(1)}),
+		box.List([]box.Value{box.Number(1), box.Number(2)}),
 	))
-	require.False(t, equalValues(
-		List([]Value{Number(1), Number(2)}),
-		List([]Value{Number(1), Number(3)}),
+	require.False(t, box.EqualValues(
+		box.List([]box.Value{box.Number(1), box.Number(2)}),
+		box.List([]box.Value{box.Number(1), box.Number(3)}),
 	))
 
-	require.True(t, equalValues(
-		Map(map[string]Value{"a": Number(1), "b": String("x")}),
-		Map(map[string]Value{"b": String("x"), "a": Number(1)}),
+	require.True(t, box.EqualValues(
+		box.Map(map[string]box.Value{"a": box.Number(1), "b": box.String("x")}),
+		box.Map(map[string]box.Value{"b": box.String("x"), "a": box.Number(1)}),
 	))
-	require.False(t, equalValues(
-		Map(map[string]Value{"a": Number(1)}),
-		Map(map[string]Value{"a": Number(1), "b": Number(2)}),
+	require.False(t, box.EqualValues(
+		box.Map(map[string]box.Value{"a": box.Number(1)}),
+		box.Map(map[string]box.Value{"a": box.Number(1), "b": box.Number(2)}),
 	))
-	require.False(t, equalValues(
-		Map(map[string]Value{"a": Number(1)}),
-		Map(map[string]Value{"a": Number(2)}),
+	require.False(t, box.EqualValues(
+		box.Map(map[string]box.Value{"a": box.Number(1)}),
+		box.Map(map[string]box.Value{"a": box.Number(2)}),
 	))
-	require.False(t, equalValues(
-		Map(map[string]Value{"a": Number(1)}),
-		Map(map[string]Value{"b": Number(1)}),
+	require.False(t, box.EqualValues(
+		box.Map(map[string]box.Value{"a": box.Number(1)}),
+		box.Map(map[string]box.Value{"b": box.Number(1)}),
 	))
 
 	shared := &struct{ Name string }{Name: "same"}
-	require.True(t, equalValues(Object(shared), Object(shared)))
-	require.False(t, equalValues(
-		Object(&struct{ Name string }{Name: "same"}),
-		Object(&struct{ Name string }{Name: "same"}),
+	require.True(t, box.EqualValues(box.Object(shared), box.Object(shared)))
+	require.False(t, box.EqualValues(
+		box.Object(&struct{ Name string }{Name: "same"}),
+		box.Object(&struct{ Name string }{Name: "same"}),
 	))
 
-	require.False(t, equalValues(List([]Value{}), Map(map[string]Value{})))
+	require.False(t, box.EqualValues(box.List([]box.Value{}), box.Map(map[string]box.Value{})))
 }
 
 func TestEvalInfixArithmeticComparisonAndTrinaryMatrix(t *testing.T) {

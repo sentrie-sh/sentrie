@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/binaek/cling"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/loader"
 	"github.com/sentrie-sh/sentrie/runtime"
@@ -291,9 +292,9 @@ func formatTrinaryState(state any) string {
 }
 
 // formatAttachment formats attachment values with proper indentation
-func formatAttachment(name string, value any, indent int) {
+func formatAttachment(name string, attachment any, indent int) {
 	indentStr := strings.Repeat(" ", indent)
-	if boxed, ok := value.(runtime.Value); ok {
+	if boxed, ok := attachment.(box.Value); ok {
 		if boxed.IsUndefined() {
 			fmt.Printf("%s     %s: undefined\n", indentStr, name)
 			return
@@ -315,7 +316,7 @@ func formatAttachment(name string, value any, indent int) {
 		fmt.Printf("%s     %s: %v\n", indentStr, name, boxed)
 		return
 	}
-	if list, ok := value.([]any); ok {
+	if list, ok := attachment.([]any); ok {
 		fmt.Printf("%s     %s:\n", indentStr, name)
 		for _, item := range list {
 			fmt.Printf("%s      - %v\n", indentStr, item)
@@ -323,7 +324,7 @@ func formatAttachment(name string, value any, indent int) {
 		return
 	}
 
-	if m, ok := value.(map[string]any); ok {
+	if m, ok := attachment.(map[string]any); ok {
 		fmt.Printf("%s     %s:\n", indentStr, name)
 		for key, val := range m {
 			formatAttachment(key, val, indent+1)
@@ -331,5 +332,5 @@ func formatAttachment(name string, value any, indent int) {
 		return
 	}
 
-	fmt.Printf("%s     %s: %v\n", indentStr, name, value)
+	fmt.Printf("%s     %s: %v\n", indentStr, name, attachment)
 }

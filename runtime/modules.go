@@ -25,6 +25,7 @@ import (
 	"github.com/dop251/goja"
 	"github.com/fatih/structs"
 	"github.com/jackc/puddle/v2"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constants"
 )
 
@@ -41,7 +42,7 @@ type ModuleBinding struct {
 }
 
 func normalizeBoundaryForJS(v any) any {
-	if _, ok := v.(undefinedBoundaryToken); ok {
+	if box.IsBoundaryUndefined(v) {
 		return goja.Undefined()
 	}
 	switch t := v.(type) {

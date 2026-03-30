@@ -19,26 +19,27 @@ package runtime
 import (
 	"encoding/json"
 
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 type Decision struct {
 	State trinary.Value `json:"state"`
-	Value Value         `json:"-"`
+	Value box.Value     `json:"-"`
 }
 
 func (d Decision) ToTrinary() trinary.Value {
 	return d.State
 }
 
-type DecisionAttachments map[string]Value
+type DecisionAttachments map[string]box.Value
 
 // Behaviour:
 // - nil           → Unknown
 // - *Decision     → as-is
 // - trinary.Value  → Decision with the same state
 // - anything else → trinary.From(val)
-func DecisionOf(val Value) *Decision {
+func DecisionOf(val box.Value) *Decision {
 	if val.IsUndefined() || val.IsNull() {
 		return &Decision{State: trinary.Unknown, Value: val}
 	}
@@ -47,7 +48,7 @@ func DecisionOf(val Value) *Decision {
 		return &Decision{State: d, Value: val}
 	}
 
-	return &Decision{State: trinary.From(val.Any()), Value: val}
+	return &Decision{State: box.TrinaryFrom(val), Value: val}
 }
 
 func (d Decision) MarshalJSON() ([]byte, error) {

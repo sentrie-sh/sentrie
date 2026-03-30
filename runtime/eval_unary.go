@@ -21,12 +21,12 @@ import (
 	"fmt"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
-	"github.com/sentrie-sh/sentrie/trinary"
 )
 
-func evalUnary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, u *ast.UnaryExpression) (Value, *trace.Node, error) {
+func evalUnary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, u *ast.UnaryExpression) (box.Value, *trace.Node, error) {
 	ctx, node, done := trace.New(ctx, u, "unary", map[string]any{
 		"operator": u.Operator,
 	})
@@ -35,38 +35,38 @@ func evalUnary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 	v, child, err := eval(ctx, ec, exec, p, u.Right)
 	node.Attach(child)
 	if err != nil {
-		return Value{}, node.SetErr(err), err
+		return box.Value{}, node.SetErr(err), err
 	}
 
 	if v.IsUndefined() {
-		return Undefined(), node, nil
+		return box.Undefined(), node, nil
 	}
 
 	switch u.Operator {
 	case "!":
-		out := Bool(!trinary.From(v.Any()).IsTrue())
-		return out, node.SetResult(out.Any()), nil
+		out := box.Bool(!box.TrinaryFrom(v).IsTrue())
+		return out, node.SetResult(out), nil
 	case "not":
-		out := Trinary(trinary.From(v.Any()).Not())
-		return out, node.SetResult(out.Any()), nil
+		out := box.Trinary(box.TrinaryFrom(v).Not())
+		return out, node.SetResult(out), nil
 	case "+":
 		num, ok := v.NumberValue()
 		if !ok {
 			err := fmt.Errorf("unary + requires number")
-			return Value{}, node.SetErr(err), err
+			return box.Value{}, node.SetErr(err), err
 		}
-		out := Number(num)
-		return out, node.SetResult(out.Any()), nil
+		out := box.Number(num)
+		return out, node.SetResult(out), nil
 	case "-":
 		num, ok := v.NumberValue()
 		if !ok {
 			err := fmt.Errorf("unary - requires number")
-			return Value{}, node.SetErr(err), err
+			return box.Value{}, node.SetErr(err), err
 		}
-		out := Number(-num)
-		return out, node.SetResult(out.Any()), nil
+		out := box.Number(-num)
+		return out, node.SetResult(out), nil
 	default:
 		err := fmt.Errorf("unsupported unary op: %s", u.Operator)
-		return Value{}, node.SetErr(err), err
+		return box.Value{}, node.SetErr(err), err
 	}
 }

@@ -21,13 +21,14 @@ import (
 	"fmt"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 )
 
 // ImportDecision resolves an ImportClause with `with` facts for sandboxed execution,
 // and returns (value+attachments-map, node, error).
-func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContext, p *index.Policy, t *ast.ImportClause) (Value, *trace.Node, error) {
+func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContext, p *index.Policy, t *ast.ImportClause) (box.Value, *trace.Node, error) {
 	ctx, n, done := trace.New(ctx, t, "import", map[string]any{
 		"what":  t.RuleToImport,
 		"from":  t.FromPolicyFQN,
@@ -37,7 +38,7 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 
 	if len(t.FromPolicyFQN.Parts) < 2 {
 		err := fmt.Errorf("import from must specify namespace/policy: got %v", t.FromPolicyFQN)
-		return Null(), n.SetErr(err), err
+		return box.Null(), n.SetErr(err), err
 	}
 
 	rule := t.RuleToImport
@@ -51,16 +52,16 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 		ns = t.FromPolicyFQN.Parent().String()
 	}
 	pol = t.FromPolicyFQN.LastSegment()
-	facts := make(map[string]Value)
+	facts := make(map[string]box.Value)
 
 	{ // resolve the policy and verify the rule is exported
 		p, err := exec.index.ResolvePolicy(ns, pol)
 		if err != nil {
-			return Null(), n.SetErr(err), err
+			return box.Null(), n.SetErr(err), err
 		}
 
 		if err := p.VerifyRuleExported(rule); err != nil {
-			return Null(), n.SetErr(err), err
+			return box.Null(), n.SetErr(err), err
 		}
 
 		for _, with := range t.Withs {
@@ -73,7 +74,7 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 			// evaluate the with expression in the context of this execution context
 			val, trace, err := eval(ctx, ec, exec, ec.policy, with.Expr)
 			if err != nil {
-				return Null(), n.SetErr(err), err
+				return box.Null(), n.SetErr(err), err
 			}
 			n.Attach(trace)
 
@@ -82,18 +83,18 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 	}
 
 	injectedFacts := make(map[string]any, len(facts))
-	for name, value := range facts {
-		injectedFacts[name] = ToBoundaryAny(value)
+	for name, factValue := range facts {
+		injectedFacts[name] = box.ToBoundaryAny(factValue)
 	}
 
 	output, err := exec.ExecRule(ctx, ns, pol, rule, injectedFacts)
 	n = n.Attach(output.RuleNode)
 	if err != nil {
 		n.SetErr(err)
-		return Null(), n, err
+		return box.Null(), n, err
 	}
 
-	n.SetResult(output.Decision.Value.Any())
+	n.SetResult(output.Decision.Value)
 
 	return output.Decision.Value, n, nil
 }

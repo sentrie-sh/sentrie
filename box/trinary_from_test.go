@@ -14,10 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package box_test
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/box"
@@ -25,27 +24,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDecisionOfUnknownInputs(t *testing.T) {
-	for _, v := range []box.Value{box.Undefined(), box.Null()} {
-		d := DecisionOf(v)
-		require.Equal(t, trinary.Unknown, d.State)
-		require.Equal(t, v, d.Value)
+func TestTrinaryFrom_matchesFromAny(t *testing.T) {
+	cases := []box.Value{
+		box.Undefined(),
+		box.Null(),
+		box.Bool(true),
+		box.Bool(false),
+		box.Number(0),
+		box.Number(3.14),
+		box.String(""),
+		box.String("hello"),
+		box.String("true"),
+		box.Trinary(trinary.True),
+		box.Trinary(trinary.False),
+		box.Trinary(trinary.Unknown),
+		box.List(nil),
+		box.List([]box.Value{}),
+		box.List([]box.Value{box.Number(0)}),
+		box.Map(nil),
+		box.Map(map[string]box.Value{}),
+		box.Map(map[string]box.Value{"a": box.Number(1)}),
+		box.Object(struct{ X int }{1}),
+		box.Object(map[string]any{"k": 1}),
 	}
-}
-
-func TestDecisionOfUsesTrinaryAndFallbackConversion(t *testing.T) {
-	td := DecisionOf(box.Trinary(trinary.True))
-	require.Equal(t, trinary.True, td.State)
-
-	fd := DecisionOf(box.Bool(false))
-	require.Equal(t, trinary.False, fd.State)
-}
-
-func TestDecisionMarshalJSONIncludesStateAndAnyValue(t *testing.T) {
-	raw, err := json.Marshal(Decision{
-		State: trinary.True,
-		Value: box.String("ok"),
-	})
-	require.NoError(t, err)
-	require.JSONEq(t, `{"state":"true","value":"ok"}`, string(raw))
+	for _, b := range cases {
+		t.Run(b.String(), func(t *testing.T) {
+			require.Equal(t, trinary.From(b.Any()), box.TrinaryFrom(b))
+		})
+	}
 }

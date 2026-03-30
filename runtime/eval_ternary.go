@@ -20,28 +20,28 @@ import (
 	"context"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
-	"github.com/sentrie-sh/sentrie/trinary"
 )
 
-func evalTernary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, t *ast.TernaryExpression) (Value, *trace.Node, error) {
+func evalTernary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, t *ast.TernaryExpression) (box.Value, *trace.Node, error) {
 	ctx, n, done := trace.New(ctx, t, "ternary", map[string]any{})
 	defer done()
 
 	c, cn, err := eval(ctx, ec, exec, p, t.Condition)
 	n.Attach(cn)
 	if err != nil {
-		return Value{}, n.SetErr(err), err
+		return box.Value{}, n.SetErr(err), err
 	}
-	if trinary.From(c.Any()).IsTrue() {
+	if box.TrinaryFrom(c).IsTrue() {
 		v, tn, err := eval(ctx, ec, exec, p, t.ThenBranch)
 		n.Attach(tn)
-		n.SetResult(v.Any())
+		n.SetResult(v)
 		return v, n, err
 	}
 	v, en, err := eval(ctx, ec, exec, p, t.ElseBranch)
 	n.Attach(en)
-	n.SetResult(v.Any())
+	n.SetResult(v)
 	return v, n, err
 }

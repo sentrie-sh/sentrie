@@ -22,12 +22,12 @@ import (
 	"strconv"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
-	"github.com/sentrie-sh/sentrie/trinary"
 )
 
-func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *index.Policy, cast *ast.CastExpression) (Value, *trace.Node, error) {
+func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *index.Policy, cast *ast.CastExpression) (box.Value, *trace.Node, error) {
 	ctx, node, done := trace.New(ctx, cast, "cast", map[string]any{
 		"target": cast.TargetType.String(),
 	})
@@ -36,7 +36,7 @@ func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *ind
 	val, child, err := eval(ctx, ec, e, p, cast.Expr)
 	node.Attach(child)
 	if err != nil {
-		return Value{}, node.SetErr(err), err
+		return box.Value{}, node.SetErr(err), err
 	}
 	result := val
 	target := cast.TargetType
@@ -52,52 +52,52 @@ func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *ind
 
 		if result.IsValid() {
 			// validate the result before returning
-			if validateErr := validateValueAgainstTypeRef(ctx, ec, e, p, result.Any(), target, cast.Span()); validateErr != nil {
+			if validateErr := validateValueAgainstTypeRef(ctx, ec, e, p, result, target, cast.Span()); validateErr != nil {
 				node.SetErr(validateErr)
 				err = validateErr
-				result = Value{}
+				result = box.Value{}
 			}
 		}
 
 	}()
 	switch target.(type) {
 	case *ast.StringTypeRef:
-		result = String(val.String())
+		result = box.String(val.String())
 
 	case *ast.NumberTypeRef:
 		if n, ok := val.NumberValue(); ok {
-			result = Number(n)
+			result = box.Number(n)
 		} else if s, ok := val.StringValue(); ok {
 			atof, parseErr := strconv.ParseFloat(s, 64)
 			if parseErr != nil {
-				return Value{}, node.SetErr(parseErr), parseErr
+				return box.Value{}, node.SetErr(parseErr), parseErr
 			}
-			result = Number(atof)
+			result = box.Number(atof)
 		} else if b, ok := val.BoolValue(); ok {
 			if b {
-				result = Number(1)
+				result = box.Number(1)
 			} else {
-				result = Number(0)
+				result = box.Number(0)
 			}
 		} else {
 			err = fmt.Errorf("cannot cast %s to number", val.Kind())
-			return Value{}, node.SetErr(err), err
+			return box.Value{}, node.SetErr(err), err
 		}
 
 	case *ast.TrinaryTypeRef:
-		result = Trinary(trinary.From(val.Any()))
+		result = box.Trinary(box.TrinaryFrom(val))
 
 	case *ast.ListTypeRef:
-		if val.Kind() != ValueList {
+		if val.Kind() != box.ValueList {
 			err = fmt.Errorf("cannot cast %s to list", val.Kind())
-			return Value{}, node.SetErr(err), err
+			return box.Value{}, node.SetErr(err), err
 		}
 		result = val
 
 	case *ast.MapTypeRef:
-		if val.Kind() != ValueMap {
+		if val.Kind() != box.ValueMap {
 			err = fmt.Errorf("cannot cast %s to map", val.Kind())
-			return Value{}, node.SetErr(err), err
+			return box.Value{}, node.SetErr(err), err
 		}
 		result = val
 
@@ -108,5 +108,5 @@ func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *ind
 		result = val
 	}
 
-	return result, node.SetResult(result.Any()).SetErr(err), err
+	return result, node.SetResult(result).SetErr(err), err
 }

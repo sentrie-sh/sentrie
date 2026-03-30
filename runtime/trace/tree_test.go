@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/stretchr/testify/require"
 )
@@ -60,8 +61,8 @@ func TestAttachSetResultSetErr(t *testing.T) {
 	require.Same(t, parent, parent.Attach(left, right))
 	require.Len(t, parent.Children, 2)
 
-	require.Same(t, parent, parent.SetResult("ok"))
-	require.Equal(t, "ok", parent.Result)
+	require.Same(t, parent, parent.SetResult(box.String("ok")))
+	require.Equal(t, box.String("ok"), parent.Result)
 
 	require.Same(t, parent, parent.SetErr(nil))
 	require.Empty(t, parent.Err)

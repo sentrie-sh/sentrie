@@ -20,14 +20,15 @@ import (
 	"context"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 	"github.com/sentrie-sh/sentrie/xerr"
 )
 
-func evalTransform(ctx context.Context, _ *ExecutionContext, _ *executorImpl, _ *index.Policy, t *ast.TransformExpression) (Value, *trace.Node, error) {
+func evalTransform(ctx context.Context, _ *ExecutionContext, _ *executorImpl, _ *index.Policy, t *ast.TransformExpression) (box.Value, *trace.Node, error) {
 	_, node, done := trace.New(ctx, t, "transform", map[string]any{"ident": t.Argument})
 	defer done()
 
-	return Value{}, node, xerr.ErrNotImplemented
+	return box.Undefined(), node, xerr.ErrNotImplemented
 }

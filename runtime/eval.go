@@ -22,13 +22,14 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 // eval walks an ast.Expression and returns (value, decision node, error).
-func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, e ast.Expression) (Value, *trace.Node, error) {
+func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, e ast.Expression) (box.Value, *trace.Node, error) {
 	switch t := e.(type) {
 
 	case *ast.PrecedingCommentExpression:
@@ -42,81 +43,81 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 	case *ast.NullLiteral:
 		_, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "null"})
 		defer done()
-		v := Null()
-		n.SetResult(v.Any())
+		v := box.Null()
+		n.SetResult(v)
 		return v, n, nil
 
 	case *ast.TrinaryLiteral:
 		_, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "trinary"})
 		defer done()
-		v := Trinary(t.Value)
-		n.SetResult(v.Any())
+		v := box.Trinary(t.Value)
+		n.SetResult(v)
 		return v, n, nil
 
 	case *ast.IntegerLiteral:
 		_, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "number"})
 		defer done()
-		v := Number(t.Value)
-		n.SetResult(v.Any())
+		v := box.Number(t.Value)
+		n.SetResult(v)
 		return v, n, nil
 
 	case *ast.FloatLiteral:
 		_, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "number"})
 		defer done()
-		v := Number(t.Value)
-		n.SetResult(v.Any())
+		v := box.Number(t.Value)
+		n.SetResult(v)
 		return v, n, nil
 
 	case *ast.StringLiteral:
 		_, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "string"})
 		defer done()
 
-		v := String(t.Value)
-		n.SetResult(v.Any())
+		v := box.String(t.Value)
+		n.SetResult(v)
 		return v, n, nil
 
 	case *ast.ListLiteral:
 		ctx, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "list"})
 		defer done()
 
-		arr := make([]Value, 0, len(t.Values))
+		arr := make([]box.Value, 0, len(t.Values))
 		for _, it := range t.Values {
 			v, child, err := eval(ctx, ec, exec, p, it)
 			n.Attach(child)
 			if err != nil {
-				return Value{}, n.SetErr(err), err
+				return box.Undefined(), n.SetErr(err), err
 			}
 			arr = append(arr, v)
 		}
-		out := List(arr)
-		return out, n.SetResult(out.Any()), nil
+		out := box.List(arr)
+		return out, n.SetResult(out), nil
 
 	case *ast.MapLiteral:
 		ctx, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "map"})
 		defer done()
 
-		m := map[string]Value{}
+		m := map[string]box.Value{}
 		for _, kv := range t.Entries {
 			key, child, err := eval(ctx, ec, exec, p, kv.Key)
 			n.Attach(child)
 			if err != nil {
-				return Value{}, n.SetErr(err), err
+				return box.Undefined(), n.SetErr(err), err
 			}
 			keyValue, ok := key.StringValue()
 			if !ok {
 				err := errors.Wrapf(xerr.ErrInvalidType(fmt.Sprintf("%T", key), "string"), "map key is not a string at %s", kv.Key.Span())
-				return Value{}, n.SetErr(err), err
+				return box.Undefined(), n.SetErr(err), err
 			}
 
 			v, child, err := eval(ctx, ec, exec, p, kv.Value)
 			n.Attach(child)
 			if err != nil {
-				return Value{}, n.SetErr(err), err
+				return box.Undefined(), n.SetErr(err), err
 			}
 			m[keyValue] = v
 		}
-		out := Map(m)
-		return out, n.SetResult(out.Any()), nil
+		out := box.Map(m)
+		return out, n.SetResult(out), nil
 
 	case *ast.Identifier:
 		return evalIdent(ctx, ec, exec, p, t)
@@ -174,6 +175,6 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 
 	default:
 		err := fmt.Errorf("unsupported expression node: %T", t)
-		return Value{}, trace.UnsupportedExpression(t).SetErr(err), err
+		return box.Undefined(), trace.UnsupportedExpression(t).SetErr(err), err
 	}
 }

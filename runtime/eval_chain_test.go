@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/sentrie-sh/sentrie/xerr"
@@ -38,7 +39,7 @@ func TestEvalDispatchByExpressionKind(t *testing.T) {
 		setup      func(*ExecutionContext)
 		wantAny    any
 		wantErr    string
-		checkValue func(*testing.T, Value)
+		checkValue func(*testing.T, box.Value)
 	}{
 		{
 			name:    "preceding comment routes to wrapped literal",
@@ -53,7 +54,7 @@ func TestEvalDispatchByExpressionKind(t *testing.T) {
 		{
 			name:    "identifier dispatch",
 			expr:    ast.NewIdentifier("x", stubRange()),
-			setup:   func(ec *ExecutionContext) { require.NoError(t, ec.InjectFact(ctx, "x", Number(11), false, nil)) },
+			setup:   func(ec *ExecutionContext) { require.NoError(t, ec.InjectFact(ctx, "x", box.Number(11), false, nil)) },
 			wantAny: 11.0,
 		},
 		{

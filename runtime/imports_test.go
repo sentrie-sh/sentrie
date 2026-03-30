@@ -20,28 +20,29 @@ import (
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/pack"
 	"github.com/stretchr/testify/require"
 )
 
 func TestImportWithFactBoundaryPreservesUndefined(t *testing.T) {
-	withFactValue := Undefined()
-	boundary := ToBoundaryAny(withFactValue)
-	decoded := FromBoundaryAny(boundary)
+	withFactValue := box.Undefined()
+	boundary := box.ToBoundaryAny(withFactValue)
+	decoded := box.FromBoundaryAny(boundary)
 	require.True(t, decoded.IsUndefined())
 }
 
 func TestImportWithFactBoundaryPreservesNestedUndefined(t *testing.T) {
-	withFactValue := Map(map[string]Value{
-		"payload": List([]Value{
-			Number(1),
-			Undefined(),
+	withFactValue := box.Map(map[string]box.Value{
+		"payload": box.List([]box.Value{
+			box.Number(1),
+			box.Undefined(),
 		}),
 	})
 
-	boundary := ToBoundaryAny(withFactValue)
-	decoded := FromBoundaryAny(boundary)
+	boundary := box.ToBoundaryAny(withFactValue)
+	decoded := box.FromBoundaryAny(boundary)
 	decodedMap, ok := decoded.MapValue()
 	require.True(t, ok)
 	list, ok := decodedMap["payload"].ListValue()

@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package box
 
 import (
 	"encoding/json"
@@ -40,7 +40,9 @@ const (
 	ValueTrinary
 	ValueList
 	ValueMap
-	ValueObject
+	ValueDocument
+	// ValueObject is a backward-compatible alias for ValueDocument.
+	ValueObject = ValueDocument
 )
 
 func (k ValueKind) String() string {
@@ -61,8 +63,8 @@ func (k ValueKind) String() string {
 		return "list"
 	case ValueMap:
 		return "map"
-	case ValueObject:
-		return "object"
+	case ValueDocument:
+		return "document"
 	default:
 		return "invalid"
 	}
@@ -109,14 +111,30 @@ func Map(m map[string]Value) Value {
 	return Value{kind: ValueMap, ref: m}
 }
 
+func Document[T any](x T) Value {
+	return Value{kind: ValueDocument, ref: x}
+}
+
+// Object is a backward-compatible alias for Document.
 func Object[T any](x T) Value {
-	return Value{kind: ValueObject, ref: x}
+	return Document(x)
 }
 
 func (v Value) Kind() ValueKind   { return v.kind }
 func (v Value) IsValid() bool     { return v.kind != ValueInvalid }
 func (v Value) IsUndefined() bool { return v.kind == ValueUndefined }
 func (v Value) IsNull() bool      { return v.kind == ValueNull }
+func (v Value) SameDocumentRef(other Value) bool {
+	if v.kind != ValueDocument || other.kind != ValueDocument {
+		return false
+	}
+	return v.ref == other.ref
+}
+
+// SameObjectRef is a backward-compatible alias for SameDocumentRef.
+func (v Value) SameObjectRef(other Value) bool {
+	return v.SameDocumentRef(other)
+}
 
 func (v Value) BoolValue() (bool, bool) {
 	if v.kind != ValueBool {
@@ -163,6 +181,55 @@ func (v Value) MapValue() (map[string]Value, bool) {
 	return m, ok
 }
 
+// DocumentRef returns the wrapped host document for ValueDocument. For other kinds it returns (nil, false).
+func (v Value) DocumentRef() (any, bool) {
+	if v.kind != ValueDocument {
+		return nil, false
+	}
+	return v.ref, true
+}
+
+// ObjectRef is a backward-compatible alias for DocumentRef.
+func (v Value) ObjectRef() (any, bool) {
+	return v.DocumentRef()
+}
+
+// TrinaryFrom returns the Kleene trinary outcome for b, matching trinary.From(b.Any()) without
+// materializing an intermediate any slice or map for Box values.
+func TrinaryFrom(b Value) trinary.Value {
+	switch b.kind {
+	case ValueUndefined, ValueNull:
+		return trinary.Unknown
+	case ValueBool:
+		return trinary.From(b.u64 != 0)
+	case ValueNumber:
+		return trinary.From(math.Float64frombits(b.u64))
+	case ValueString:
+		s, _ := b.ref.(string)
+		return trinary.From(s)
+	case ValueTrinary:
+		return trinary.Value(b.u64)
+	case ValueList:
+		xs, _ := b.ref.([]Value)
+		if len(xs) == 0 {
+			return trinary.False
+		}
+		return trinary.True
+	case ValueMap:
+		m, _ := b.ref.(map[string]Value)
+		if len(m) == 0 {
+			return trinary.False
+		}
+		return trinary.True
+	case ValueDocument:
+		return trinary.From(b.ref)
+	case ValueInvalid:
+		return trinary.Unknown
+	default:
+		return trinary.Unknown
+	}
+}
+
 func (v Value) Any() any {
 	switch v.kind {
 	case ValueUndefined:
@@ -192,7 +259,7 @@ func (v Value) Any() any {
 			out[k] = x.Any()
 		}
 		return out
-	case ValueObject:
+	case ValueDocument:
 		return v.ref
 	default:
 		return nil
@@ -286,7 +353,7 @@ func FromAny(x any) Value {
 		}
 		return Map(out)
 	default:
-		return Object(x)
+		return Document(x)
 	}
 }
 
@@ -337,4 +404,9 @@ func FromBoundaryAny(x any) Value {
 	default:
 		return FromAny(x)
 	}
+}
+
+func IsBoundaryUndefined(x any) bool {
+	_, ok := x.(undefinedBoundaryToken)
+	return ok
 }

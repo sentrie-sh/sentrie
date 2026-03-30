@@ -22,6 +22,7 @@ import (
 
 	"github.com/binaek/perch"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/xerr"
 	"github.com/stretchr/testify/require"
@@ -70,14 +71,14 @@ func TestEvalIdentLetLocalAndMissingPaths(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, 7.0, cached.Any())
 
-	require.NoError(t, ec.InjectFact(ctx, "x", Number(1), false, nil))
+	require.NoError(t, ec.InjectFact(ctx, "x", box.Number(1), false, nil))
 	require.NoError(t, ec.InjectLet("x", ast.NewVarDeclaration(
 		"x",
 		nil,
 		ast.NewIntegerLiteral(2, stubRange()),
 		stubRange(),
 	)))
-	ec.SetLocal("x", Number(99), true)
+	ec.SetLocal("x", box.Number(99), true)
 	localFirst, _, err := evalIdent(ctx, ec, &executorImpl{}, p, ast.NewIdentifier("x", stubRange()))
 	require.NoError(t, err)
 	require.Equal(t, 99.0, localFirst.Any())
@@ -111,7 +112,7 @@ func TestEvalCallMemoizedHitAndMiss(t *testing.T) {
 	}
 
 	ec := NewExecutionContext(p, exec)
-	require.NoError(t, ec.InjectFact(ctx, "memo_arg", Number(1), false, nil))
+	require.NoError(t, ec.InjectFact(ctx, "memo_arg", box.Number(1), false, nil))
 	memoizedCall := ast.NewCallExpression(
 		ast.NewIdentifier(builtinName, stubRange()),
 		[]ast.Expression{ast.NewIdentifier("memo_arg", stubRange())},
@@ -130,7 +131,7 @@ func TestEvalCallMemoizedHitAndMiss(t *testing.T) {
 	require.Equal(t, 1.0, second.Any())
 	require.Equal(t, 1, callCount)
 
-	require.NoError(t, ec.InjectFact(ctx, "memo_arg", Number(2), false, nil))
+	require.NoError(t, ec.InjectFact(ctx, "memo_arg", box.Number(2), false, nil))
 	third, _, err := evalCall(ctx, ec, exec, p, memoizedCall)
 	require.NoError(t, err)
 	require.Equal(t, 2.0, third.Any())

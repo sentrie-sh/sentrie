@@ -25,35 +25,36 @@ import (
 	"github.com/mitchellh/hashstructure/v2"
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 	"github.com/sentrie-sh/sentrie/xerr"
 )
 
-func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, t *ast.CallExpression) (response Value, traceNode *trace.Node, err error) {
+func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, t *ast.CallExpression) (response box.Value, traceNode *trace.Node, err error) {
 	ctx, n, done := trace.New(ctx, t, "call", map[string]any{
 		"target": t.Callee.String(),
 		"args":   t.Arguments,
 	})
 	defer done()
 
-	args := make([]Value, 0, len(t.Arguments))
+	args := make([]box.Value, 0, len(t.Arguments))
 	for _, a := range t.Arguments {
 		v, child, err := eval(ctx, ec, exec, p, a)
 		n.Attach(child)
 		if err != nil {
-			return Value{}, n.SetErr(err), err
+			return box.Undefined(), n.SetErr(err), err
 		}
 		args = append(args, v)
 	}
 
 	target, err := getTarget(ctx, ec, p, t)
 	if err != nil {
-		return Value{}, n.SetErr(err), err
+		return box.Undefined(), n.SetErr(err), err
 	}
 
 	// use a thin wrapper around the target to handle the caching
-	wrappedTarget := func(ctx context.Context, args ...Value) (Value, error) {
+	wrappedTarget := func(ctx context.Context, args ...box.Value) (box.Value, error) {
 		if !t.Memoized {
 			return target(ctx, args...)
 		}
@@ -69,13 +70,13 @@ func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *
 		}
 		out, _, err := exec.callMemoizePerch.Get(ctx, hashKey, ttl, loader)
 		if err != nil {
-			return Value{}, err
+			return box.Undefined(), err
 		}
-		v, ok := out.(Value)
+		v, ok := out.(box.Value)
 		if ok {
 			return v, nil
 		}
-		return FromAny(out), nil
+		return box.FromAny(out), nil
 	}
 
 	// call the target
@@ -83,12 +84,12 @@ func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *
 	if err != nil {
 		if errors.Is(err, xerr.InjectedError{}) {
 			// if this error is injected from code, we revert to the error message
-			return Value{}, n.SetErr(err), err
+			return box.Undefined(), n.SetErr(err), err
 		}
 		err = errors.Wrapf(err, "failed to call function '%s'", t.Callee.String())
-		return Value{}, n.SetErr(err), err
+		return box.Undefined(), n.SetErr(err), err
 	}
-	return out, n.SetResult(out.Any()), nil
+	return out, n.SetResult(out), nil
 }
 
 // Helper to split "alias.fn" if ever needed
@@ -100,10 +101,10 @@ func splitAliasFn(s string) (string, string) {
 	return parts[0], parts[1]
 }
 
-func calculateHashKey(node *ast.CallExpression, args []Value) string {
+func calculateHashKey(node *ast.CallExpression, args []box.Value) string {
 	hashArgs := make([]any, 0, len(args))
 	for _, a := range args {
-		hashArgs = append(hashArgs, ToBoundaryAny(a))
+		hashArgs = append(hashArgs, box.ToBoundaryAny(a))
 	}
 	arghash, err := hashstructure.Hash(hashArgs, hashstructure.FormatV2, nil)
 	if err != nil {
@@ -112,18 +113,18 @@ func calculateHashKey(node *ast.CallExpression, args []Value) string {
 	return fmt.Sprintf("%p:%d", node, arghash)
 }
 
-func getTarget(_ context.Context, ec *ExecutionContext, p *index.Policy, c *ast.CallExpression) (func(context.Context, ...Value) (Value, error), error) {
+func getTarget(_ context.Context, ec *ExecutionContext, p *index.Policy, c *ast.CallExpression) (func(context.Context, ...box.Value) (box.Value, error), error) {
 	callee := c.Callee.String()
 
 	// check if we have a builtin function
 	if builtin, ok := Builtins[callee]; ok {
-		return func(ctx context.Context, args ...Value) (Value, error) {
+		return func(ctx context.Context, args ...box.Value) (box.Value, error) {
 			anyArgs := make([]any, 0, len(args))
 			for _, a := range args {
-				anyArgs = append(anyArgs, ToBoundaryAny(a))
+				anyArgs = append(anyArgs, box.ToBoundaryAny(a))
 			}
 			out, err := builtin(ctx, anyArgs)
-			return FromBoundaryAny(out), err
+			return box.FromBoundaryAny(out), err
 		}, nil
 	}
 
@@ -142,12 +143,12 @@ func getTarget(_ context.Context, ec *ExecutionContext, p *index.Policy, c *ast.
 		return nil, e
 	}
 
-	return func(ctx context.Context, args ...Value) (Value, error) {
+	return func(ctx context.Context, args ...box.Value) (box.Value, error) {
 		anyArgs := make([]any, 0, len(args))
 		for _, a := range args {
-			anyArgs = append(anyArgs, ToBoundaryAny(a))
+			anyArgs = append(anyArgs, box.ToBoundaryAny(a))
 		}
 		out, err := modulebinding.Call(ctx, ec, fn, anyArgs...)
-		return FromBoundaryAny(out), err
+		return box.FromBoundaryAny(out), err
 	}, nil
 }

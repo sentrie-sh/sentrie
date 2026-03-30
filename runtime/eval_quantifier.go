@@ -21,12 +21,12 @@ import (
 	"fmt"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
-	"github.com/sentrie-sh/sentrie/trinary"
 )
 
-func evalAny(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, q *ast.AnyExpression) (Value, *trace.Node, error) {
+func evalAny(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, q *ast.AnyExpression) (box.Value, *trace.Node, error) {
 	ctx, node, done := trace.New(ctx, q, "any", map[string]any{
 		"collection": q.Collection.String(),
 		"value_iter": q.Iterator1,
@@ -38,42 +38,42 @@ func evalAny(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 	col, colNode, err := eval(ctx, ec, exec, p, q.Collection)
 	node.Attach(colNode)
 	if err != nil {
-		return Value{}, node.SetErr(err), err
+		return box.Value{}, node.SetErr(err), err
 	}
 
 	if col.IsUndefined() {
-		return Bool(false), node, nil
+		return box.Bool(false), node, nil
 	}
 
 	list, ok := col.ListValue()
 	if !ok {
-		return Value{}, node.SetErr(fmt.Errorf("any expects list source")), fmt.Errorf("any expects list source")
+		return box.Value{}, node.SetErr(fmt.Errorf("any expects list source")), fmt.Errorf("any expects list source")
 	}
 
 	for idx, item := range list {
 		childContext := ec.AttachedChildContext()
 		if q.Iterator2 != "" {
-			childContext.SetLocal(q.Iterator2, Number(idx), true)
+			childContext.SetLocal(q.Iterator2, box.Number(idx), true)
 		}
 		childContext.SetLocal(q.Iterator1, item, true)
 		res, resNode, err := eval(ctx, childContext, exec, p, q.Quantifier)
 		if err != nil {
-			return Value{}, node.SetErr(err), err
+			return box.Value{}, node.SetErr(err), err
 		}
 		node.Attach(resNode)
 		childContext.Dispose()
-		if trinary.From(res.Any()).IsTrue() {
-			return Bool(true), node, nil
+		if box.TrinaryFrom(res).IsTrue() {
+			return box.Bool(true), node, nil
 		}
 	}
 
 	// by this time, we have iterated through the entire collection and found no truthy values
-	return Bool(false), node, nil
+	return box.Bool(false), node, nil
 }
 
 // evalAll evaluates an all expression
 // it returns true if all items in the collection satisfy the predicate
-func evalAll(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, q *ast.AllExpression) (Value, *trace.Node, error) {
+func evalAll(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, q *ast.AllExpression) (box.Value, *trace.Node, error) {
 	ctx, node, done := trace.New(ctx, q, "all", map[string]any{
 		"collection": q.Collection.String(),
 		"value_iter": q.Iterator1,
@@ -85,42 +85,42 @@ func evalAll(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 	col, colNode, err := eval(ctx, ec, exec, p, q.Collection)
 	node.Attach(colNode)
 	if err != nil {
-		return Value{}, node.SetErr(err), err
+		return box.Value{}, node.SetErr(err), err
 	}
 
 	if col.IsUndefined() {
-		return Bool(false), node, nil
+		return box.Bool(false), node, nil
 	}
 
 	list, ok := col.ListValue()
 	if !ok {
-		return Value{}, node.SetErr(fmt.Errorf("all expects list source")), fmt.Errorf("all expects list source")
+		return box.Value{}, node.SetErr(fmt.Errorf("all expects list source")), fmt.Errorf("all expects list source")
 	}
 
 	for idx, item := range list {
 		childContext := ec.AttachedChildContext()
 		if q.Iterator2 != "" {
-			childContext.SetLocal(q.Iterator2, Number(idx), true)
+			childContext.SetLocal(q.Iterator2, box.Number(idx), true)
 		}
 		childContext.SetLocal(q.Iterator1, item, true)
 		res, resNode, err := eval(ctx, childContext, exec, p, q.Quantifier)
 		if err != nil {
-			return Value{}, node.SetErr(err), err
+			return box.Value{}, node.SetErr(err), err
 		}
 		node.Attach(resNode)
 		childContext.Dispose()
-		if !trinary.From(res.Any()).IsTrue() {
-			return Bool(false), node, nil
+		if !box.TrinaryFrom(res).IsTrue() {
+			return box.Bool(false), node, nil
 		}
 	}
 
-	return Bool(true), node, nil
+	return box.Bool(true), node, nil
 }
 
 // evalFirst evaluates a first expression
 // it returns the first item in the collection that satisfies the predicate
 // if no item satisfies the predicate, it returns undefined
-func evalFirst(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, q *ast.FirstExpression) (Value, *trace.Node, error) {
+func evalFirst(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, q *ast.FirstExpression) (box.Value, *trace.Node, error) {
 	ctx, node, done := trace.New(ctx, q, "first", map[string]any{
 		"collection": q.Collection.String(),
 		"value_iter": q.Iterator1,
@@ -132,44 +132,44 @@ func evalFirst(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 	col, colNode, err := eval(ctx, ec, exec, p, q.Collection)
 	node.Attach(colNode)
 	if err != nil {
-		return Value{}, node.SetErr(err), err
+		return box.Value{}, node.SetErr(err), err
 	}
 
 	if col.IsUndefined() {
-		return Undefined(), node.SetResult(Undefined()), nil
+		return box.Undefined(), node.SetResult(box.Undefined()), nil
 	}
 
 	list, ok := col.ListValue()
 	if !ok {
-		return Value{}, node.SetErr(fmt.Errorf("first expects list source")), fmt.Errorf("first expects list source")
+		return box.Value{}, node.SetErr(fmt.Errorf("first expects list source")), fmt.Errorf("first expects list source")
 	}
 
 	for idx, item := range list {
 		childContext := ec.AttachedChildContext()
 		if q.Iterator2 != "" {
-			childContext.SetLocal(q.Iterator2, Number(idx), true)
+			childContext.SetLocal(q.Iterator2, box.Number(idx), true)
 		}
 		childContext.SetLocal(q.Iterator1, item, true)
 		res, resNode, err := eval(ctx, childContext, exec, p, q.Quantifier)
 		if err != nil {
-			return Value{}, node.SetErr(err), err
+			return box.Value{}, node.SetErr(err), err
 		}
 		node.Attach(resNode)
 		childContext.Dispose()
-		if trinary.From(res.Any()).IsTrue() {
+		if box.TrinaryFrom(res).IsTrue() {
 			return item, node, nil
 		}
 	}
 
 	// by this time, we have iterated through the entire collection and found no truthy values
 	// return undefined
-	return Undefined(), node.SetResult(Undefined()), nil
+	return box.Undefined(), node.SetResult(box.Undefined()), nil
 }
 
 // evalFilter evaluates a filter expression
 // it returns a list of items that satisfy the predicate
 // if the predicate is not satisfied, the item is not included in the list
-func evalFilter(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, q *ast.FilterExpression) (Value, *trace.Node, error) {
+func evalFilter(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, q *ast.FilterExpression) (box.Value, *trace.Node, error) {
 	ctx, node, done := trace.New(ctx, q, "filter", map[string]any{
 		"collection": q.Collection.String(),
 		"value_iter": q.Iterator1,
@@ -181,41 +181,41 @@ func evalFilter(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p
 	col, colNode, err := eval(ctx, ec, exec, p, q.Collection)
 	node.Attach(colNode)
 	if err != nil {
-		return Value{}, node.SetErr(err), err
+		return box.Value{}, node.SetErr(err), err
 	}
 
 	if col.IsUndefined() {
-		return List([]Value{}), node, nil
+		return box.List([]box.Value{}), node, nil
 	}
 
 	list, ok := col.ListValue()
 	if !ok {
-		return Value{}, node.SetErr(fmt.Errorf("filter expects list source")), fmt.Errorf("filter expects list source")
+		return box.Value{}, node.SetErr(fmt.Errorf("filter expects list source")), fmt.Errorf("filter expects list source")
 	}
-	filtered := make([]Value, 0, len(list))
+	filtered := make([]box.Value, 0, len(list))
 
 	for idx, item := range list {
 		childContext := ec.AttachedChildContext()
 		if q.Iterator2 != "" {
-			childContext.SetLocal(q.Iterator2, Number(idx), true)
+			childContext.SetLocal(q.Iterator2, box.Number(idx), true)
 		}
 		childContext.SetLocal(q.Iterator1, item, true)
 		res, resNode, err := eval(ctx, childContext, exec, p, q.Quantifier)
 		if err != nil {
-			return Value{}, node.SetErr(err), err
+			return box.Value{}, node.SetErr(err), err
 		}
 		node.Attach(resNode)
 		childContext.Dispose()
 
-		if trinary.From(res.Any()).IsTrue() {
+		if box.TrinaryFrom(res).IsTrue() {
 			filtered = append(filtered, item)
 		}
 	}
 
-	return List(filtered), node, nil
+	return box.List(filtered), node, nil
 }
 
-func evalMap(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, m *ast.MapExpression) (Value, *trace.Node, error) {
+func evalMap(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, m *ast.MapExpression) (box.Value, *trace.Node, error) {
 	ctx, node, done := trace.New(ctx, m, "map", map[string]any{
 		"collection": m.Collection.String(),
 		"value_iter": m.Iterator1,
@@ -227,27 +227,27 @@ func evalMap(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 	col, colNode, err := eval(ctx, ec, exec, p, m.Collection)
 	node.Attach(colNode)
 	if err != nil {
-		return Value{}, node.SetErr(err), err
+		return box.Value{}, node.SetErr(err), err
 	}
 
 	list, ok := col.ListValue()
 	if !ok {
-		return Value{}, node.SetErr(fmt.Errorf("map expects list source")), fmt.Errorf("map expects list source")
+		return box.Value{}, node.SetErr(fmt.Errorf("map expects list source")), fmt.Errorf("map expects list source")
 	}
 
-	transformed := make([]Value, 0, len(list))
+	transformed := make([]box.Value, 0, len(list))
 	for idx, item := range list {
 		childContext := ec.AttachedChildContext()
-		childContext.SetLocal(m.Iterator2, Number(idx), true)
+		childContext.SetLocal(m.Iterator2, box.Number(idx), true)
 		childContext.SetLocal(m.Iterator1, item, true)
 		res, resNode, err := eval(ctx, childContext, exec, p, m.Quantifier)
 		node.Attach(resNode)
 		if err != nil {
-			return Value{}, node.SetErr(err), err
+			return box.Value{}, node.SetErr(err), err
 		}
 		childContext.Dispose()
 		transformed = append(transformed, res)
 	}
 
-	return List(transformed), node, nil
+	return box.List(transformed), node, nil
 }

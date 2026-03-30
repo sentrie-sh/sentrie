@@ -21,17 +21,18 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 type Builtin func(ctx context.Context, args []any) (any, error)
 
 func isUndefinedAny(v any) bool {
-	return FromBoundaryAny(v).IsUndefined()
+	return box.FromBoundaryAny(v).IsUndefined()
 }
 
 func toIntAny(v any) (int64, bool) {
-	n, ok := FromAny(v).NumberValue()
+	n, ok := box.FromBoundaryAny(v).NumberValue()
 	if !ok {
 		return 0, false
 	}
@@ -141,7 +142,7 @@ func BuiltinFlatten(ctx context.Context, args []any) (any, error) {
 
 	// Check for unknown (undefined) input
 	if isUndefinedAny(args[0]) {
-		return Undefined(), nil
+		return box.Undefined(), nil
 	}
 
 	x, ok := args[0].([]any)
@@ -152,7 +153,7 @@ func BuiltinFlatten(ctx context.Context, args []any) (any, error) {
 	var depth int64 = 1 // default depth
 	if len(args) == 2 {
 		if isUndefinedAny(args[1]) {
-			return Undefined(), nil
+			return box.Undefined(), nil
 		}
 		n, ok := toIntAny(args[1])
 		if !ok {
@@ -181,7 +182,7 @@ func flattenList(x []any, depth int64) (any, error) {
 	for _, elem := range x {
 		// Check for unknown (undefined) - propagate unknown
 		if isUndefinedAny(elem) {
-			return Undefined(), nil
+			return box.Undefined(), nil
 		}
 
 		// If element is a list, flatten it
@@ -189,7 +190,7 @@ func flattenList(x []any, depth int64) (any, error) {
 			// Check if nested list contains unknown
 			for _, nestedElem := range nestedList {
 				if isUndefinedAny(nestedElem) {
-					return Undefined(), nil
+					return box.Undefined(), nil
 				}
 			}
 			// Recursively flatten with depth-1
@@ -198,7 +199,7 @@ func flattenList(x []any, depth int64) (any, error) {
 				return nil, err
 			}
 			if isUndefinedAny(flattened) {
-				return Undefined(), nil
+				return box.Undefined(), nil
 			}
 			flattenedList, ok := flattened.([]any)
 			if !ok {
@@ -222,7 +223,7 @@ func BuiltinFlattenDeep(ctx context.Context, args []any) (any, error) {
 
 	// Check for unknown (undefined) input
 	if isUndefinedAny(args[0]) {
-		return Undefined(), nil
+		return box.Undefined(), nil
 	}
 
 	x, ok := args[0].([]any)
@@ -239,7 +240,7 @@ func flattenDeep(x []any) (any, error) {
 	for _, elem := range x {
 		// Check for unknown (undefined) - propagate unknown
 		if isUndefinedAny(elem) {
-			return Undefined(), nil
+			return box.Undefined(), nil
 		}
 
 		// If element is a list, recursively flatten it
@@ -249,7 +250,7 @@ func flattenDeep(x []any) (any, error) {
 				return nil, err
 			}
 			if isUndefinedAny(flattened) {
-				return Undefined(), nil
+				return box.Undefined(), nil
 			}
 			flattenedList, ok := flattened.([]any)
 			if !ok {
@@ -273,7 +274,7 @@ func BuiltinAsList(ctx context.Context, args []any) (any, error) {
 
 	// Check for unknown (undefined) input
 	if isUndefinedAny(args[0]) {
-		return Undefined(), nil
+		return box.Undefined(), nil
 	}
 
 	v := args[0]
@@ -283,7 +284,7 @@ func BuiltinAsList(ctx context.Context, args []any) (any, error) {
 		// Check for unknown elements in the list
 		for _, elem := range list {
 			if isUndefinedAny(elem) {
-				return Undefined(), nil
+				return box.Undefined(), nil
 			}
 		}
 		return list, nil
@@ -301,7 +302,7 @@ func BuiltinNormaliseList(ctx context.Context, args []any) (any, error) {
 
 	// Check for unknown (undefined) input
 	if isUndefinedAny(args[0]) {
-		return Undefined(), nil
+		return box.Undefined(), nil
 	}
 
 	v := args[0]
@@ -316,7 +317,7 @@ func BuiltinNormaliseList(ctx context.Context, args []any) (any, error) {
 
 	// Check for unknown elements
 	if slices.ContainsFunc(list, isUndefinedAny) {
-		return Undefined(), nil
+		return box.Undefined(), nil
 	}
 
 	// Check for deeper than one level of nesting before flattening
@@ -325,7 +326,7 @@ func BuiltinNormaliseList(ctx context.Context, args []any) (any, error) {
 		if nestedList, ok := elem.([]any); ok {
 			for _, nestedElem := range nestedList {
 				if isUndefinedAny(nestedElem) {
-					return Undefined(), nil
+					return box.Undefined(), nil
 				}
 				// Check for deeper nesting (error case)
 				if _, ok := nestedElem.([]any); ok {

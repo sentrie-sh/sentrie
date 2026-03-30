@@ -21,11 +21,12 @@ import (
 	"fmt"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 )
 
-func evalReduce(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, r *ast.ReduceExpression) (Value, *trace.Node, error) {
+func evalReduce(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, r *ast.ReduceExpression) (box.Value, *trace.Node, error) {
 	ctx, node, done := trace.New(ctx, r, "reduce", map[string]any{
 		"collection":  r.Collection,
 		"from":        r.From,
@@ -39,21 +40,21 @@ func evalReduce(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p
 	col, colNode, err := eval(ctx, ec, exec, p, r.Collection)
 	node.Attach(colNode)
 	if err != nil {
-		return Value{}, node.SetErr(err), err
+		return box.Undefined(), node.SetErr(err), err
 	}
 
 	if col.IsUndefined() {
-		return Undefined(), node, nil
+		return box.Undefined(), node, nil
 	}
 
 	list, ok := col.ListValue()
 	if !ok {
-		return Value{}, node.SetErr(fmt.Errorf("filter expects list source")), fmt.Errorf("filter expects list source")
+		return box.Undefined(), node.SetErr(fmt.Errorf("filter expects list source")), fmt.Errorf("filter expects list source")
 	}
 
 	accumulator, accumulatorNode, err := eval(ctx, ec, exec, p, r.From)
 	if err != nil {
-		return Value{}, node.SetErr(err), err
+		return box.Undefined(), node.SetErr(err), err
 	}
 	node.Attach(accumulatorNode)
 
@@ -62,12 +63,12 @@ func evalReduce(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p
 		childContext.SetLocal(r.ValueIterator, item, true)
 		childContext.SetLocal(r.Accumulator, accumulator, true)
 		if r.IndexIterator != "" {
-			childContext.SetLocal(r.IndexIterator, Number(idx), true)
+			childContext.SetLocal(r.IndexIterator, box.Number(idx), true)
 		}
 		next, itNode, err := eval(ctx, childContext, exec, p, r.Reducer)
 		node.Attach(itNode)
 		if err != nil {
-			return Value{}, itNode.SetErr(err), err
+			return box.Undefined(), itNode.SetErr(err), err
 		}
 		accumulator = next
 	}

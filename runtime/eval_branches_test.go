@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/sentrie-sh/sentrie/xerr"
@@ -47,18 +48,18 @@ func TestExecutionContextBranchCoverage(t *testing.T) {
 	ec := NewExecutionContext(p, &executorImpl{})
 	child := ec.AttachedChildContext()
 
-	require.ErrorIs(t, child.InjectFact(context.Background(), "f", Number(1), false, nil), ErrIllegalFactInjection)
+	require.ErrorIs(t, child.InjectFact(context.Background(), "f", box.Number(1), false, nil), ErrIllegalFactInjection)
 
-	require.NoError(t, ec.InjectFact(context.Background(), "factA", Number(10), false, nil))
+	require.NoError(t, ec.InjectFact(context.Background(), "factA", box.Number(10), false, nil))
 	require.NoError(t, ec.InjectLet("letA", ast.NewVarDeclaration("letA", nil, ast.NewIntegerLiteral(1, stubRange()), stubRange())))
 	require.Error(t, ec.InjectLet("letA", ast.NewVarDeclaration("letA", nil, ast.NewIntegerLiteral(2, stubRange()), stubRange())))
 
-	child.SetLocal("factA", Number(99), false)
+	child.SetLocal("factA", box.Number(99), false)
 	local, ok := child.GetLocal("factA")
 	require.True(t, ok)
 	require.Equal(t, 99.0, local.Any())
 
-	child.SetLocal("forced", String("x"), true)
+	child.SetLocal("forced", box.String("x"), true)
 	forced, ok := child.GetLocal("forced")
 	require.True(t, ok)
 	require.Equal(t, "x", forced.Any())
