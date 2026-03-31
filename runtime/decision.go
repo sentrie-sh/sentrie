@@ -54,10 +54,10 @@ func DecisionOf(val box.Value) *Decision {
 func (d Decision) MarshalJSON() ([]byte, error) {
 	type dto struct {
 		State trinary.Value `json:"state"`
-		Value any           `json:"value"`
+		Value box.Value     `json:"value"`
 	}
 	return json.Marshal(dto{
 		State: d.State,
-		Value: d.Value.Any(),
+		Value: d.Value,
 	})
 }

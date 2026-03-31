@@ -41,7 +41,7 @@ func TestDecisionOfUsesTrinaryAndFallbackConversion(t *testing.T) {
 	require.Equal(t, trinary.False, fd.State)
 }
 
-func TestDecisionMarshalJSONIncludesStateAndAnyValue(t *testing.T) {
+func TestDecisionMarshalJSONIncludesStateAndValue(t *testing.T) {
 	raw, err := json.Marshal(Decision{
 		State: trinary.True,
 		Value: box.String("ok"),
