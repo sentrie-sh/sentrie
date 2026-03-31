@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ func main() {
 	var buf bytes.Buffer
 
 	var content = []string{
-		"// Copyright 2025 Binaek Sarkar",
+		"// Copyright 2026 Binaek Sarkar",
 		"//",
 		"// Licensed under the Apache License, Version 2.0 (the \"License\");",
 		"// you may not use this file except in compliance with the License.",
