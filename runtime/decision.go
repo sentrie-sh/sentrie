@@ -17,15 +17,13 @@
 package runtime
 
 import (
-	"encoding/json"
-
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 type Decision struct {
 	State trinary.Value `json:"state"`
-	Value box.Value     `json:"-"`
+	Value box.Value     `json:"value"`
 }
 
 func (d Decision) ToTrinary() trinary.Value {
@@ -49,15 +47,4 @@ func DecisionOf(val box.Value) *Decision {
 	}
 
 	return &Decision{State: box.TrinaryFrom(val), Value: val}
-}
-
-func (d Decision) MarshalJSON() ([]byte, error) {
-	type dto struct {
-		State trinary.Value `json:"state"`
-		Value box.Value     `json:"value"`
-	}
-	return json.Marshal(dto{
-		State: d.State,
-		Value: d.Value,
-	})
 }
