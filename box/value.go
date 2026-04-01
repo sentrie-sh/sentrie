@@ -76,8 +76,13 @@ type Value struct {
 	ref  any
 }
 
-func Undefined() Value { return Value{kind: ValueUndefined} }
-func Null() Value      { return Value{kind: ValueNull} }
+var (
+	undefinedValue = Value{kind: ValueUndefined}
+	nullValue      = Value{kind: ValueNull}
+)
+
+func Undefined() Value { return undefinedValue }
+func Null() Value      { return nullValue }
 
 func Bool[T ~bool](x T) Value {
 	if x {
