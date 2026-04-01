@@ -173,9 +173,8 @@ func TestEvalReduceTransformTernaryUnaryBlockCastBranches(t *testing.T) {
 	require.Error(t, err)
 
 	castBoolExpr := ast.NewCastExpression(ast.NewUnaryExpression("!", ast.NewTrinaryLiteral(trinary.False, stubRange()), stubRange()), ast.NewNumberTypeRef(stubRange()), stubRange())
-	castBool, _, err := evalCast(ctx, ec, &executorImpl{}, p, castBoolExpr)
-	require.NoError(t, err)
-	require.Equal(t, 1.0, castBool.Any())
+	_, _, err = evalCast(ctx, ec, &executorImpl{}, p, castBoolExpr)
+	require.ErrorContains(t, err, "cannot cast trinary to number")
 
 	castParseErr := ast.NewCastExpression(ast.NewStringLiteral("abc", stubRange()), ast.NewNumberTypeRef(stubRange()), stubRange())
 	_, _, err = evalCast(ctx, ec, &executorImpl{}, p, castParseErr)

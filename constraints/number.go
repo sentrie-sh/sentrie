@@ -160,16 +160,16 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			if len(args) != 1 {
 				return fmt.Errorf("in constraint requires 1 argument")
 			}
-			// default to the argument as a set
-			set := args
-			// if the argument is a list, use it as a set
-			if argList, ok := args[0].ListValue(); ok {
-				set = argList
+			valNum, ok := val.NumberValue()
+			if !ok {
+				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
-			comparator := func(x box.Value) bool {
-				return box.EqualValues(val, x)
+			set, err := numberConstraintSet(args[0])
+			if err != nil {
+				return err
 			}
-			if !slices.ContainsFunc(set, comparator) {
+
+			if !slices.Contains(set, valNum) {
 				return fmt.Errorf("value %v is not in the set", val)
 			}
 			return nil
@@ -186,7 +186,10 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
-			set := numberConstraintSet(args[0])
+			set, err := numberConstraintSet(args[0])
+			if err != nil {
+				return err
+			}
 
 			if slices.Contains(set, valNum) {
 				return fmt.Errorf("value %v is in the set", val)
@@ -374,16 +377,22 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 	},
 }
 
-func numberConstraintSet(arg box.Value) []float64 {
+func numberConstraintSet(arg box.Value) ([]float64, error) {
 	if argList, ok := arg.ListValue(); ok {
 		set := make([]float64, 0, len(argList))
 		for _, item := range argList {
-			n, _ := item.NumberValue()
+			n, ok := item.NumberValue()
+			if !ok {
+				return nil, fmt.Errorf("expected number, got %s", item.Kind())
+			}
 			set = append(set, n)
 		}
-		return set
+		return set, nil
 	}
 
-	n, _ := arg.NumberValue()
-	return []float64{n}
+	n, ok := arg.NumberValue()
+	if !ok {
+		return nil, fmt.Errorf("expected number, got %s", arg.Kind())
+	}
+	return []float64{n}, nil
 }

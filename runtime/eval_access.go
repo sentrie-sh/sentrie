@@ -81,18 +81,6 @@ func accessField(_ context.Context, obj box.Value, field string) (box.Value, err
 				return box.FromBoundaryAny(v), nil
 			}
 			return box.Undefined(), nil
-		case *ExecutorOutput:
-			switch field {
-			case "state":
-				return box.Trinary(o.Decision.State), nil
-			case "value":
-				return o.Decision.Value, nil
-			default:
-				if v, ok := o.Attachments[field]; ok {
-					return v, nil
-				}
-				return box.Undefined(), nil
-			}
 		default:
 			return box.Value{}, fmt.Errorf("cannot access field '%s' on %T", field, obj)
 		}

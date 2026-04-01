@@ -23,6 +23,7 @@ import (
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/pack"
+	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/stretchr/testify/require"
 )
 
@@ -88,4 +89,23 @@ func TestImportDecisionResolvePolicyFailure(t *testing.T) {
 	val, _, err := ImportDecision(t.Context(), exec, ec, newEvalTestPolicy(), imp)
 	require.Error(t, err)
 	require.True(t, val.IsNull())
+}
+
+func TestExecutorOutputEnvelopeIncludesDecisionAndAttachments(t *testing.T) {
+	output := &ExecutorOutput{
+		Decision: &Decision{
+			State: trinary.False,
+			Value: box.Number(42),
+		},
+		Attachments: DecisionAttachments{
+			"reason": box.String("policy denied"),
+		},
+	}
+
+	envelope := executorOutputEnvelope(output)
+	m, ok := envelope.MapValue()
+	require.True(t, ok)
+	require.Equal(t, trinary.False, m["state"].Any())
+	require.Equal(t, 42.0, m["value"].Any())
+	require.Equal(t, "policy denied", m["reason"].Any())
 }

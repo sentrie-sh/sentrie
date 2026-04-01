@@ -94,7 +94,7 @@ func TestEvalDispatchByExpressionKind(t *testing.T) {
 				ast.NewTrinaryLiteral(trinary.False, stubRange()),
 				stubRange(),
 			),
-			wantAny: true,
+			wantAny: trinary.True,
 		},
 		{
 			name: "ternary dispatch",

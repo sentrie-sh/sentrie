@@ -19,15 +19,17 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 // ImportDecision resolves an ImportClause with `with` facts for sandboxed execution,
-// and returns (value+attachments-map, node, error).
+// and returns (decision-envelope, node, error).
 func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContext, p *index.Policy, t *ast.ImportClause) (box.Value, *trace.Node, error) {
 	ctx, n, done := trace.New(ctx, t, "import", map[string]any{
 		"what":  t.RuleToImport,
@@ -94,7 +96,32 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 		return box.Null(), n, err
 	}
 
-	n.SetResult(output.Decision.Value)
+	envelope := executorOutputEnvelope(output)
+	n.SetResult(envelope)
+	return envelope, n, nil
+}
 
-	return output.Decision.Value, n, nil
+// executorOutputEnvelope builds the boxed value returned from import expressions:
+// a map with "state" (trinary), "value" (decision payload), and one entry per rule attachment.
+// "state" and "value" are applied after attachments so they cannot be shadowed by attachment names.
+func executorOutputEnvelope(output *ExecutorOutput) box.Value {
+	if output == nil {
+		return box.Map(map[string]box.Value{
+			"state": box.Trinary(trinary.Unknown),
+			"value": box.Undefined(),
+		})
+	}
+
+	state := trinary.Unknown
+	value := box.Undefined()
+	if output.Decision != nil {
+		state = output.Decision.State
+		value = output.Decision.Value
+	}
+
+	m := make(map[string]box.Value, len(output.Attachments)+2)
+	maps.Copy(m, map[string]box.Value(output.Attachments))
+	m["state"] = box.Trinary(state)
+	m["value"] = value
+	return box.Map(m)
 }

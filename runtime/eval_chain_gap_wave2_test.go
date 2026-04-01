@@ -24,6 +24,7 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/sentrie-sh/sentrie/xerr"
 	"github.com/stretchr/testify/require"
 )
@@ -268,5 +269,8 @@ func TestImportDecisionSuccessWithWithInjection(t *testing.T) {
 	out, node, err := ImportDecision(ctx, exec, ec, callerPolicy, imp)
 	require.NoError(t, err)
 	require.NotNil(t, node)
-	require.Equal(t, 9.0, out.Any())
+	outMap, ok := out.MapValue()
+	require.True(t, ok)
+	require.Equal(t, trinary.True, outMap["state"].Any())
+	require.Equal(t, 9.0, outMap["value"].Any())
 }

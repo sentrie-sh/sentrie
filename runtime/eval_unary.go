@@ -43,10 +43,7 @@ func evalUnary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 	}
 
 	switch u.Operator {
-	case "!":
-		out := box.Bool(!box.TrinaryFrom(v).IsTrue())
-		return out, node.SetResult(out), nil
-	case "not":
+	case "!", "not":
 		out := box.Trinary(box.TrinaryFrom(v).Not())
 		return out, node.SetResult(out), nil
 	case "+":

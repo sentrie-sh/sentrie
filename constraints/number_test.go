@@ -97,10 +97,15 @@ func TestNumberInAndNotIn(t *testing.T) {
 		runChecker(t, c, box.Number(2), []box.Value{set}, true)
 	})
 
-	t.Run("not_in list coerces non-numbers to zero", func(t *testing.T) {
+	t.Run("not_in list rejects non-number entries", func(t *testing.T) {
 		c := constraints.NumberContraintCheckers["not_in"]
 		set := box.List([]box.Value{box.String("bad")})
-		runChecker(t, c, box.Number(0), []box.Value{set}, true)
+		runChecker(t, c, box.Number(7), []box.Value{set}, true)
+	})
+
+	t.Run("not_in rejects non-number scalar set", func(t *testing.T) {
+		c := constraints.NumberContraintCheckers["not_in"]
+		runChecker(t, c, box.Number(7), []box.Value{box.String("bad")}, true)
 	})
 }
 
