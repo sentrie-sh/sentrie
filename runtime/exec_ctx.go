@@ -155,33 +155,35 @@ func (ec *ExecutionContext) InjectLet(name string, v *ast.VarDeclaration) error 
 // SetLocal sets a local value in the current context if and only if the current context supplied an identifier
 // with that name.
 func (ec *ExecutionContext) SetLocal(name string, value box.Value, force bool) {
+	// Take a read lock first to check if we need to actually write
+	ec.rwmu.RLock()
+
+	// Force always upgrades to write lock and writes
 	if force {
+		ec.rwmu.RUnlock()
 		ec.rwmu.Lock()
 		defer ec.rwmu.Unlock()
 		ec.locals[name] = value
 		return
 	}
 
-	// Only set if we have a fact, let, or rule with this name in the current context
-	if _, ok := ec.GetFact(name); ok {
+	// Check presence for fact, let, and rule
+	_, hasFact := ec.facts[name]
+	_, hasLet := ec.lets[name]
+	_, hasRule := ec.policy.Rules[name]
+	parent := ec.parent
+	ec.rwmu.RUnlock()
+
+	if hasFact || hasLet || hasRule {
+		ec.rwmu.Lock()
+		defer ec.rwmu.Unlock()
 		ec.locals[name] = value
 		return
 	}
 
-	if _, ok := ec.GetLet(name); ok {
-		ec.locals[name] = value
-		return
-	}
-
-	if _, ok := ec.policy.Rules[name]; ok {
-		ec.rwmu.RLock()
-		defer ec.rwmu.RUnlock()
-		ec.locals[name] = value
-		return
-	}
-
-	if ec.parent != nil {
-		ec.parent.SetLocal(name, value, false)
+	// Otherwise, forward to parent if one exists
+	if parent != nil {
+		parent.SetLocal(name, value, false)
 	}
 }
 

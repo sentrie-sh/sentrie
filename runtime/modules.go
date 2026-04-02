@@ -67,18 +67,18 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 	if m.instancePool == nil {
 		return nil, fmt.Errorf("module has no JS binding")
 	}
-	binding, err := m.instancePool.Acquire(ctx)
+	poolInstance, err := m.instancePool.Acquire(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer binding.Release()
+	defer poolInstance.Release()
 
-	vm := binding.Value()
-	if err := vm.rt.Set(constants.ExecutionStartTimeUnixKey, ec.CreatedAt().UTC().Unix()); err != nil {
+	instance := poolInstance.Value()
+	if err := instance.rt.Set(constants.ExecutionStartTimeUnixKey, ec.CreatedAt().UTC().Unix()); err != nil {
 		return nil, err
 	}
 
-	val, ok := vm.exports[fn]
+	val, ok := instance.exports[fn]
 	if !ok {
 		return nil, fmt.Errorf("function '%q' not found in module %q", fn, m.Alias)
 	}
@@ -90,14 +90,14 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 	// Install an interrupt to honor context cancel
 	done := make(chan struct{})
 	if ctx != nil {
-		vm.rt.ClearInterrupt()
+		instance.rt.ClearInterrupt()
 		go func() {
 			select {
 			case <-ctx.Done():
-				vm.rt.Interrupt(ctx.Err())
+				instance.rt.Interrupt(ctx.Err())
 			case <-done:
 				// clear the interrupt
-				vm.rt.ClearInterrupt()
+				instance.rt.ClearInterrupt()
 			}
 		}()
 		defer close(done)
@@ -105,7 +105,7 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 
 	ga := make([]goja.Value, 0, len(args))
 	for _, a := range args {
-		ga = append(ga, vm.rt.ToValue(normalizeBoundaryForJS(a)))
+		ga = append(ga, instance.rt.ToValue(normalizeBoundaryForJS(a)))
 	}
 	out, err := fnc(goja.Undefined(), ga...)
 	if err != nil {
