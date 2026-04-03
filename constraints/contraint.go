@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,13 +19,14 @@ package constraints
 import (
 	"context"
 
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 )
 
-type ConstraintChecker[T any] func(ctx context.Context, p *index.Policy, val T, args []any) error
+type ConstraintChecker func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error
 
-type ConstraintDefinition[T any] struct {
+type ConstraintDefinition struct {
 	Name    string
 	NumArgs int
-	Checker ConstraintChecker[T]
+	Checker ConstraintChecker
 }

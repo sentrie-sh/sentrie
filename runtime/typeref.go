@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,11 +20,12 @@ import (
 	"context"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef ast.TypeRef, valueRange tokens.Range) error {
+func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef ast.TypeRef, valueRange tokens.Range) error {
 	switch t := typeRef.(type) {
 	case *ast.StringTypeRef:
 		return validateAgainstStringTypeRef(ctx, ec, exec, p, v, t, valueRange)

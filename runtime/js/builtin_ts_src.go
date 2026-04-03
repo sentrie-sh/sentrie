@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,4 +20,3 @@ import _ "embed"
 
 //go:embed ts_src/_sentrie_js.ts
 var BuiltinJSTS []byte
-

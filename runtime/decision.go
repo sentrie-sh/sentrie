@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,40 +16,35 @@
 
 package runtime
 
-import "github.com/sentrie-sh/sentrie/trinary"
+import (
+	"github.com/sentrie-sh/sentrie/box"
+	"github.com/sentrie-sh/sentrie/trinary"
+)
 
 type Decision struct {
 	State trinary.Value `json:"state"`
-	Value any           `json:"value"`
+	Value box.Value     `json:"value"`
 }
 
 func (d Decision) ToTrinary() trinary.Value {
 	return d.State
 }
 
-type DecisionAttachments map[string]any
+type DecisionAttachments map[string]box.Value
 
 // Behaviour:
 // - nil           → Unknown
 // - *Decision     → as-is
 // - trinary.Value  → Decision with the same state
 // - anything else → trinary.From(val)
-func DecisionOf(val any) *Decision {
-	if val == nil {
-		return &Decision{State: trinary.Unknown, Value: nil}
+func DecisionOf(val box.Value) *Decision {
+	if val.IsUndefined() || val.IsNull() {
+		return &Decision{State: trinary.Unknown, Value: val}
 	}
 
-	if d, ok := val.(*Decision); ok {
-		return d
+	if d, ok := val.TrinaryValue(); ok {
+		return &Decision{State: d, Value: val}
 	}
 
-	if d, ok := val.(Decision); ok {
-		return &Decision{State: d.State, Value: d.Value}
-	}
-
-	if d, ok := val.(trinary.HasTrinary); ok {
-		return &Decision{State: d.ToTrinary(), Value: val}
-	}
-
-	return &Decision{State: trinary.From(val), Value: val}
+	return &Decision{State: box.TrinaryFrom(val), Value: val}
 }

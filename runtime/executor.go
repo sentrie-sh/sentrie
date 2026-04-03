@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import (
 	"github.com/jackc/puddle/v2"
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/js"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
@@ -177,11 +178,12 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 		}
 
 		if ok {
+			decodedFactValue := box.FromBoundaryAny(factValue)
 			// Facts are always non-nullable - validate value is not null
-			if factValue == nil {
+			if decodedFactValue.IsNull() {
 				return nil, errors.Wrapf(xerr.ErrInvalidInvocation(""), "fact '%s' cannot be null", factName)
 			}
-			err := ec.InjectFact(ctx, factName, factValue, false, factStatement.Type)
+			err := ec.InjectFact(ctx, factName, decodedFactValue, false, factStatement.Type)
 			if err != nil {
 				return nil, err
 			}
@@ -197,7 +199,7 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 			}
 
 			// Facts are always non-nullable - validate default value is not null
-			if val == nil {
+			if val.IsNull() {
 				return nil, errors.Wrapf(xerr.ErrInvalidInvocation(""), "fact '%s' cannot have null default value", factName)
 			}
 
@@ -222,7 +224,7 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 
 	decision, attachments, ruleNode, err := e.execRule(ctx, ec, namespace, policy, rule)
 	if err != nil && decision == nil {
-		decision = DecisionOf(trinary.Unknown)
+		decision = DecisionOf(box.Trinary(trinary.Unknown))
 	}
 	return &ExecutorOutput{
 		PolicyName:  policy,
@@ -260,28 +262,28 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 	defer done()
 
 	// validate the facts against the type
-	for name, value := range ec.facts {
-		if value.typeRef == nil {
+	for name, fact := range ec.facts {
+		if fact.typeRef == nil {
 			// if there's no shape indication, we skip validation
 			continue
 		}
 		stmt := thePolicy.Facts[name]
 		// validate the value against the type
-		if err := validateValueAgainstTypeRef(ctx, ec, e, thePolicy, value.value, value.typeRef, stmt.Span()); err != nil {
+		if err := validateValueAgainstTypeRef(ctx, ec, e, thePolicy, fact.value, fact.typeRef, stmt.Span()); err != nil {
 			return nil, nil, nil, err
 		}
 	}
 
 	d, node, err := evaluateRuleOutcome(ctx, ec, e, thePolicy, theRule)
 	ruleNode.Attach(node)
-	ruleNode.SetResult(d)
+	ruleNode.SetResult(box.Object(d))
 	ruleNode.SetErr(err)
 	if err != nil {
 		return d, nil, ruleNode, err
 	}
 
 	// Compute attachment values if exported
-	attachments := map[string]any{}
+	attachments := map[string]box.Value{}
 	if ex, ok := thePolicy.RuleExports[rule]; ok {
 		for _, attachment := range ex.Attachments {
 			ctx, attachmentNode, done := trace.New(ctx, attachment.Value, "attachment", map[string]any{
@@ -418,13 +420,13 @@ func evaluateRuleOutcome(ctx context.Context, ec *ExecutionContext, e *executorI
 			wn.SetErr(err)
 			return nil, rn, err
 		}
-		whenVal = trinary.From(cond)
+		whenVal = box.TrinaryFrom(cond)
 		rn.Attach(wn)
 	}
 
 	if !whenVal.IsTrue() {
 		// the default response is NA
-		theDefault := DecisionOf(trinary.Unknown)
+		theDefault := DecisionOf(box.Trinary(trinary.Unknown))
 
 		// we have a default expression
 		if r.Default != nil {

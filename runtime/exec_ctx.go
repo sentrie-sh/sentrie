@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/xerr"
 )
@@ -32,7 +33,7 @@ import (
 var ErrIllegalFactInjection = fmt.Errorf("fact injection not allowed in child context")
 
 type injectedFact struct {
-	value     any
+	value     box.Value
 	typeRef   ast.TypeRef
 	isDefault bool
 }
@@ -53,7 +54,7 @@ type ExecutionContext struct {
 	facts map[string]injectedFact        // injected via WITH
 	lets  map[string]*ast.VarDeclaration // policy-scoped lets
 
-	locals map[string]any // evaluated local values
+	locals map[string]box.Value // evaluated local values
 
 	modules map[string]*ModuleBinding // alias -> module binding (for `use`)
 
@@ -74,7 +75,7 @@ func NewExecutionContext(policy *index.Policy, executor Executor) *ExecutionCont
 		policy:    policy,
 		refStack:  make([]string, 0), // reference stack
 		facts:     make(map[string]injectedFact),
-		locals:    make(map[string]any),
+		locals:    make(map[string]box.Value),
 		lets:      make(map[string]*ast.VarDeclaration),
 		modules:   make(map[string]*ModuleBinding),
 		executor:  executor,
@@ -101,7 +102,7 @@ func (ec *ExecutionContext) AttachedChildContext() *ExecutionContext {
 		modules:   ec.modules,                           // inherit the module bindings from the parent
 		executor:  ec.executor,                          // inherit the executor from the parent
 		facts:     nil,                                  // a child context should not have facts at all
-		locals:    make(map[string]any),                 // local values
+		locals:    make(map[string]box.Value),           // local values
 		lets:      make(map[string]*ast.VarDeclaration), // local let declarations
 	}
 }
@@ -115,7 +116,7 @@ func (ec *ExecutionContext) CreatedAt() time.Time {
 
 // Inject facts into the current context.
 // It is illegal to inject facts into a child context.
-func (ec *ExecutionContext) InjectFact(ctx context.Context, name string, v any, isDefault bool, typeRef ast.TypeRef) error {
+func (ec *ExecutionContext) InjectFact(ctx context.Context, name string, v box.Value, isDefault bool, typeRef ast.TypeRef) error {
 	ec.rwmu.Lock()
 	defer ec.rwmu.Unlock()
 
@@ -153,39 +154,41 @@ func (ec *ExecutionContext) InjectLet(name string, v *ast.VarDeclaration) error 
 
 // SetLocal sets a local value in the current context if and only if the current context supplied an identifier
 // with that name.
-func (ec *ExecutionContext) SetLocal(name string, value any, force bool) {
+func (ec *ExecutionContext) SetLocal(name string, value box.Value, force bool) {
+	// Take a read lock first to check if we need to actually write
+	ec.rwmu.RLock()
+
+	// Force always upgrades to write lock and writes
 	if force {
+		ec.rwmu.RUnlock()
 		ec.rwmu.Lock()
 		defer ec.rwmu.Unlock()
 		ec.locals[name] = value
 		return
 	}
 
-	// Only set if we have a fact, let, or rule with this name in the current context
-	if _, ok := ec.GetFact(name); ok {
+	// Check presence for fact, let, and rule
+	_, hasFact := ec.facts[name]
+	_, hasLet := ec.lets[name]
+	_, hasRule := ec.policy.Rules[name]
+	parent := ec.parent
+	ec.rwmu.RUnlock()
+
+	if hasFact || hasLet || hasRule {
+		ec.rwmu.Lock()
+		defer ec.rwmu.Unlock()
 		ec.locals[name] = value
 		return
 	}
 
-	if _, ok := ec.GetLet(name); ok {
-		ec.locals[name] = value
-		return
-	}
-
-	if _, ok := ec.policy.Rules[name]; ok {
-		ec.rwmu.RLock()
-		defer ec.rwmu.RUnlock()
-		ec.locals[name] = value
-		return
-	}
-
-	if ec.parent != nil {
-		ec.parent.SetLocal(name, value, false)
+	// Otherwise, forward to parent if one exists
+	if parent != nil {
+		parent.SetLocal(name, value, false)
 	}
 }
 
 // GetLocal gets a local value from the current context if present - otherwise the parent context is checked.
-func (ec *ExecutionContext) GetLocal(name string) (any, bool) {
+func (ec *ExecutionContext) GetLocal(name string) (box.Value, bool) {
 	ec.rwmu.RLock()
 	defer ec.rwmu.RUnlock()
 	v, ok := ec.locals[name]
@@ -196,7 +199,7 @@ func (ec *ExecutionContext) GetLocal(name string) (any, bool) {
 	return v, ok
 }
 
-func (ec *ExecutionContext) GetFact(name string) (any, bool) {
+func (ec *ExecutionContext) GetFact(name string) (box.Value, bool) {
 	ec.rwmu.RLock()
 	defer ec.rwmu.RUnlock()
 	if ec.parent != nil {
@@ -205,7 +208,7 @@ func (ec *ExecutionContext) GetFact(name string) (any, bool) {
 	}
 	v, ok := ec.facts[name]
 	if !ok {
-		return Undefined, false
+		return box.Undefined(), false
 	}
 	return v.value, ok
 }

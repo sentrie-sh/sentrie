@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 )
 
 // Node captures a single evaluation step in the decision tree.
@@ -47,8 +48,8 @@ type Node struct {
 	// Children are the nested steps under this node.
 	Children []*Node `json:"children,omitempty"`
 
-	// Result is the exported Go value resulting from this node's evaluation.
-	Result any `json:"result,omitempty"`
+	// Result is the boxed value resulting from this node's evaluation.
+	Result box.Value `json:"result,omitempty"`
 
 	// Err (if set) is the error message produced during evaluation of this node.
 	Err string `json:"err,omitempty"`
@@ -83,8 +84,8 @@ func (n *Node) Attach(children ...*Node) *Node {
 	return n
 }
 
-// SetResult sets the node’s result and returns self.
-func (n *Node) SetResult(v any) *Node {
+// SetResult sets the node's result and returns self.
+func (n *Node) SetResult(v box.Value) *Node {
 	n.Result = v
 	return n
 }

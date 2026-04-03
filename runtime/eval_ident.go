@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,11 +22,12 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 )
 
-func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, i *ast.Identifier) (any, *trace.Node, error) {
+func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, i *ast.Identifier) (box.Value, *trace.Node, error) {
 	ctx, n, done := trace.New(ctx, i, "identifier", map[string]any{"name": i.Value})
 	defer done()
 
@@ -44,7 +45,7 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 	if v, ok := ec.GetLet(i.Value); ok {
 		// Check for infinite recursion before evaluating the let declaration
 		if err := ec.PushRefStack(i.Value); err != nil {
-			return nil, n.SetErr(err), err
+			return box.Undefined(), n.SetErr(err), err
 		}
 		defer ec.PopRefStack()
 
@@ -52,13 +53,13 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		val, letEvalNode, err := eval(ctx, ec, exec, p, v.Value)
 		n.Attach(letEvalNode)
 		if err != nil {
-			return nil, n.SetErr(err), err
+			return box.Undefined(), n.SetErr(err), err
 		}
 
 		// check the type of the let declaration
 		if v.Type != nil {
 			if err := validateValueAgainstTypeRef(ctx, ec, exec, p, val, v.Type, v.Value.Span()); err != nil {
-				return nil, n.SetErr(errors.Wrapf(err, "invalid value for let declaration %s", i)), err
+				return box.Undefined(), n.SetErr(errors.Wrapf(err, "invalid value for let declaration %s", i)), err
 			}
 		}
 
@@ -70,12 +71,12 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		decision, _, node, err := exec.execRule(ctx, ec, p.Namespace.FQN.String(), p.Name, r.Name)
 		n.Attach(node)
 		if err != nil {
-			return nil, n.SetErr(err), err
+			return box.Undefined(), n.SetErr(err), err
 		}
-		ec.SetLocal(i.Value, decision, false)
-		return decision, n.SetResult(decision), nil
+		ec.SetLocal(i.Value, decision.Value, false)
+		return decision.Value, n.SetResult(decision.Value), nil
 	}
 
 	err := fmt.Errorf("identifier not found: %s", i.Value)
-	return nil, n.SetErr(err), err
+	return box.Undefined(), n.SetErr(err), err
 }

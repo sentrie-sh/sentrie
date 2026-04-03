@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,25 +19,15 @@ package runtime
 import (
 	"context"
 	"fmt"
-	"regexp"
-	"strings"
+	"math"
 
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
-	"github.com/sentrie-sh/sentrie/trinary"
 )
 
-func isString(v any) bool {
-	switch v.(type) {
-	case string:
-		return true
-	}
-	return false
-}
-
-func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, in *ast.InfixExpression) (any, *trace.Node, error) {
+func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, in *ast.InfixExpression) (box.Value, *trace.Node, error) {
 	ctx, node, done := trace.New(ctx, in, "infix", map[string]any{
 		"operator": in.Operator,
 	})
@@ -46,178 +36,138 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 	l, ln, err := eval(ctx, ec, exec, p, in.Left)
 	node.Attach(ln)
 	if err != nil {
-		return nil, node.SetErr(err), err
+		return box.Undefined(), node.SetErr(err), err
 	}
 	r, rn, err := eval(ctx, ec, exec, p, in.Right)
 	node.Attach(rn)
 	if err != nil {
-		return nil, node.SetErr(err), err
+		return box.Undefined(), node.SetErr(err), err
 	}
 
-	// If any of the operands is undefined, return undefined
-	if IsUndefined(l) || IsUndefined(r) {
-		return Undefined, node.SetResult(Undefined), nil
+	if l.IsUndefined() || r.IsUndefined() {
+		return box.Undefined(), node.SetResult(box.Undefined()), nil
 	}
 
 	switch in.Operator {
 	case "+":
-		// If any of the operands is a string, we coerce the other operand to a string and concatenate
-		if isString(l) || isString(r) {
-			out := fmt.Sprintf("%v%v", l, r)
+		if ls, ok := l.StringValue(); ok {
+			out := box.String(ls + r.String())
 			return out, node.SetResult(out), nil
 		}
-		out := num(l) + num(r)
+		if rs, ok := r.StringValue(); ok {
+			out := box.String(l.String() + rs)
+			return out, node.SetResult(out), nil
+		}
+		ln, rn, err := box.MustNumbers(l, r)
+		if err != nil {
+			return box.Undefined(), node.SetErr(err), err
+		}
+		out := box.Number(ln + rn)
 		return out, node.SetResult(out), nil
 	case "-":
-		out := num(l) - num(r)
+		ln, rn, err := box.MustNumbers(l, r)
+		if err != nil {
+			return box.Undefined(), node.SetErr(err), err
+		}
+		out := box.Number(ln - rn)
 		return out, node.SetResult(out), nil
 	case "*":
-		out := num(l) * num(r)
+		ln, rn, err := box.MustNumbers(l, r)
+		if err != nil {
+			return box.Undefined(), node.SetErr(err), err
+		}
+		out := box.Number(ln * rn)
 		return out, node.SetResult(out), nil
 	case "/":
-		lnum := num(l)
-		rnum := num(r)
-		if rnum == 0 {
-			return 0, node.SetErr(fmt.Errorf("divide by zero")), nil
+		ln, rn, err := box.MustNumbers(l, r)
+		if err != nil {
+			return box.Undefined(), node.SetErr(err), err
 		}
-		out := lnum / rnum
+		if rn == 0 {
+			err := fmt.Errorf("divide by zero")
+			return box.Undefined(), node.SetErr(err), err
+		}
+		out := box.Number(ln / rn)
 		return out, node.SetResult(out), nil
 	case "%":
-		lnum := num(l)
-		rnum := num(r)
-		if rnum == 0 {
-			return 0, node.SetErr(fmt.Errorf("divide by zero")), nil
+		ln, rn, err := box.MustNumbers(l, r)
+		if err != nil {
+			return box.Undefined(), node.SetErr(err), err
 		}
-		out := float64(int64(lnum) % int64(rnum))
+		if rn == 0 {
+			err := fmt.Errorf("divide by zero")
+			return box.Undefined(), node.SetErr(err), err
+		}
+		out := box.Number(math.Mod(ln, rn))
 		return out, node.SetResult(out), nil
 
 	case "==", "is":
-		out := equals(l, r)
+		out := box.Bool(box.EqualValues(l, r))
 		return out, node.SetResult(out), nil
 	case "!=":
-		out := !equals(l, r)
+		out := box.Bool(!box.EqualValues(l, r))
 		return out, node.SetResult(out), nil
 	case "<":
-		out := num(l) < num(r)
+		ln, rn, err := box.MustNumbers(l, r)
+		if err != nil {
+			return box.Undefined(), node.SetErr(err), err
+		}
+		out := box.Bool(ln < rn)
 		return out, node.SetResult(out), nil
 	case "<=":
-		out := num(l) <= num(r)
+		ln, rn, err := box.MustNumbers(l, r)
+		if err != nil {
+			return box.Undefined(), node.SetErr(err), err
+		}
+		out := box.Bool(ln <= rn)
 		return out, node.SetResult(out), nil
 	case ">":
-		out := num(l) > num(r)
+		ln, rn, err := box.MustNumbers(l, r)
+		if err != nil {
+			return box.Undefined(), node.SetErr(err), err
+		}
+		out := box.Bool(ln > rn)
 		return out, node.SetResult(out), nil
 	case ">=":
-		out := num(l) >= num(r)
+		ln, rn, err := box.MustNumbers(l, r)
+		if err != nil {
+			return box.Undefined(), node.SetErr(err), err
+		}
+		out := box.Bool(ln >= rn)
 		return out, node.SetResult(out), nil
 
 	case "and":
-		out := and(l, r)
+		out := box.Trinary(box.TrinaryFrom(l).And(box.TrinaryFrom(r)))
 		return out, node.SetResult(out), nil
 
 	case "or":
-		out := or(l, r)
+		out := box.Trinary(box.TrinaryFrom(l).Or(box.TrinaryFrom(r)))
 		return out, node.SetResult(out), nil
 
 	case "xor":
-		out := xor(l, r)
+		left := box.TrinaryFrom(l)
+		right := box.TrinaryFrom(r)
+		out := box.Trinary(left.Or(right).And(left.And(right).Not()))
 		return out, node.SetResult(out), nil
 
 	case "in":
-		out := contains(r, l)
+		out := box.Bool(box.ContainsValue(r, l))
 		return out, node.SetResult(out), nil
 
 	case "contains":
-		out := contains(l, r)
+		out := box.Bool(box.ContainsValue(l, r))
 		return out, node.SetResult(out), nil
 
 	case "matches":
-		out, err := matches(l, r)
+		out, err := box.MatchesValue(l, r)
 		if err != nil {
-			return nil, node.SetErr(err), err
+			return box.Undefined(), node.SetErr(err), err
 		}
-		return out, node.SetResult(out), nil
+		b := box.Bool(out)
+		return b, node.SetResult(b), nil
 
 	default:
 		err := fmt.Errorf("unsupported infix op: %s", in.Operator)
-		return nil, node.SetErr(err), err
-	}
-}
-
-func xor(l, r any) trinary.Value {
-	left := trinary.From(l)
-	right := trinary.From(r)
-	// XOR = (A OR B) AND NOT (A AND B)
-	return left.Or(right).And(left.And(right).Not())
-}
-
-func and(l, r any) trinary.Value {
-	left := trinary.From(l)
-	right := trinary.From(r)
-	return left.And(right)
-}
-
-func or(l, r any) trinary.Value {
-	left := trinary.From(l)
-	right := trinary.From(r)
-	return left.Or(right)
-}
-
-func equals(a, b any) bool {
-	switch av := a.(type) {
-	case string:
-		bv, ok := b.(string)
-		return ok && av == bv
-	case bool:
-		bv, ok := b.(bool)
-		return ok && av == bv
-	case int64, float64:
-		return num(a) == num(b)
-	}
-	return a == b
-}
-
-func matches(haystack, pattern any) (bool, error) {
-	if h, ok := haystack.(string); ok {
-		if p, ok := pattern.(string); ok {
-			return regexp.MatchString(p, h)
-		}
-	}
-	return false, errors.New("haystack and pattern must be strings")
-}
-
-func contains(haystack, needle any) bool {
-	switch h := haystack.(type) {
-	case string:
-		if s, ok := needle.(string); ok {
-			return s != "" && strings.Contains(h, s)
-		}
-		return false
-	case []any:
-		for _, v := range h {
-			if equals(v, needle) {
-				return true
-			}
-		}
-		return false
-	case map[string]any:
-		if s, ok := needle.(string); ok {
-			_, ok2 := h[s]
-			return ok2
-		}
-		if s, ok := needle.(map[string]any); ok {
-			for k, v := range s {
-				_, ok2 := h[k]
-				if !ok2 {
-					return false
-				}
-				if !equals(v, h[k]) {
-					return false
-				}
-			}
-			return true
-		}
-		return false
-	default:
-		return false
+		return box.Undefined(), node.SetErr(err), err
 	}
 }

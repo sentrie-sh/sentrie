@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,11 +20,12 @@ import (
 	"context"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 )
 
-func evalBlock(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, block *ast.BlockExpression) (any, *trace.Node, error) {
+func evalBlock(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, block *ast.BlockExpression) (box.Value, *trace.Node, error) {
 	ctx, n, done := trace.New(ctx, block, "", map[string]any{})
 	defer done()
 
@@ -35,7 +36,7 @@ func evalBlock(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		switch st := s.(type) {
 		case *ast.VarDeclaration:
 			if err := ec.InjectLet(st.Name, st); err != nil {
-				return nil, n.SetErr(err), err
+				return box.Undefined(), n.SetErr(err), err
 			}
 		case *ast.CommentStatement:
 			_ = "noop"
@@ -46,7 +47,7 @@ func evalBlock(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 
 	val, child, err := eval(ctx, ec, exec, p, block.Yield)
 	if err != nil {
-		return nil, n.SetErr(err), err
+		return box.Undefined(), n.SetErr(err), err
 	}
 	n.Attach(child).SetResult(val).SetErr(err)
 	return val, n, err

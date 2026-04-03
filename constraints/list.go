@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,15 +20,19 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 )
 
-var ListContraintCheckers map[string]ConstraintDefinition[[]any] = map[string]ConstraintDefinition[[]any]{
+var ListContraintCheckers map[string]ConstraintDefinition = map[string]ConstraintDefinition{
 	"not_empty": {
 		Name:    "not_empty",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val []any, args []any) error {
-			if len(val) == 0 {
+		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+			if val.Kind() != box.ValueList {
+				return fmt.Errorf("expected list, got %s", val.Kind())
+			}
+			if lst, ok := val.ListValue(); ok && len(lst) == 0 {
 				return fmt.Errorf("list is empty - expected non-empty list")
 			}
 			return nil

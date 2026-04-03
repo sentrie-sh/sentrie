@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ func TestBuiltinJSTS_Embedded(t *testing.T) {
 	// Verify that the embedded TypeScript source is not empty
 	assert.NotEmpty(t, BuiltinJSTS, "BuiltinJSTS should not be empty")
 	assert.Greater(t, len(BuiltinJSTS), 100, "BuiltinJSTS should contain substantial content")
-	
+
 	// Verify it contains expected exports
 	source := string(BuiltinJSTS)
 	assert.Contains(t, source, "export const round", "Should export Math.round")
@@ -34,4 +34,3 @@ func TestBuiltinJSTS_Embedded(t *testing.T) {
 	assert.Contains(t, source, "export const parse", "Should export JSON.parse")
 	assert.Contains(t, source, "export const stringify", "Should export JSON.stringify")
 }
-

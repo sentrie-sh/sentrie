@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,18 +21,19 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constraints"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func validateAgainstMapTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v any, typeRef *ast.MapTypeRef, pos tokens.Range) error {
-	if _, ok := v.(map[string]any); !ok {
+func validateAgainstMapTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef *ast.MapTypeRef, pos tokens.Range) error {
+	if _, ok := v.MapValue(); !ok {
 		return errors.Errorf("value %v is not a map", v)
 	}
 
 	for _, constraint := range typeRef.GetConstraints() {
-		args := make([]any, len(constraint.Args))
+		args := make([]box.Value, len(constraint.Args))
 		for i, argExpr := range constraint.Args {
 			csArg, _, err := eval(ctx, ec, exec.(*executorImpl), p, argExpr)
 			if err != nil {
@@ -45,7 +46,7 @@ func validateAgainstMapTypeRef(ctx context.Context, ec *ExecutionContext, exec E
 			return ErrUnknownConstraint(constraint)
 		}
 
-		if err := checker.Checker(ctx, p, v.(map[string]any), args); err != nil {
+		if err := checker.Checker(ctx, p, v, args); err != nil {
 			return ErrConstraintFailed(pos, constraint, err)
 		}
 	}

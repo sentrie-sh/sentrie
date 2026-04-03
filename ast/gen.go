@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ func main() {
 	var buf bytes.Buffer
 
 	var content = []string{
-		"// Copyright 2025 Binaek Sarkar",
+		"// Copyright 2026 Binaek Sarkar",
 		"//",
 		"// Licensed under the Apache License, Version 2.0 (the \"License\");",
 		"// you may not use this file except in compliance with the License.",
@@ -93,8 +93,8 @@ func main() {
 	}
 }
 
-// toAnyMap converts a typed map[name]ConstraintDefinition[T] to a generic map[name]any with NumArgs extracted.
-func toAnyMap[T any](src map[string]constraints.ConstraintDefinition[T]) map[string]any {
+// toAnyMap converts a map[name]ConstraintDefinition to map[name]any with NumArgs extracted.
+func toAnyMap(src map[string]constraints.ConstraintDefinition) map[string]any {
 	res := make(map[string]any, len(src))
 	for name, def := range src {
 		res[name] = def.NumArgs
