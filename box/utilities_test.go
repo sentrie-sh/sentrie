@@ -197,14 +197,17 @@ func TestContainsValue(t *testing.T) {
 		})))
 	})
 
-	t.Run("map falls back to value membership for non string non map needles", func(t *testing.T) {
+	t.Run("map rejects non string and non map needles", func(t *testing.T) {
 		haystack := box.Map(map[string]box.Value{
 			"a": box.Number(1),
 			"b": box.List([]box.Value{box.String("x")}),
 		})
-		require.True(t, box.ContainsValue(haystack, box.Number(1.0)))
-		require.True(t, box.ContainsValue(haystack, box.List([]box.Value{box.String("x")})))
+		require.False(t, box.ContainsValue(haystack, box.Number(1.0)))
+		require.False(t, box.ContainsValue(haystack, box.List([]box.Value{box.String("x")})))
 		require.False(t, box.ContainsValue(haystack, box.Number(2)))
+
+		reviewerExample := box.Map(map[string]box.Value{"a": box.Number(42)})
+		require.False(t, box.ContainsValue(reviewerExample, box.Number(42)))
 	})
 
 	t.Run("returns false for unsupported haystack kinds", func(t *testing.T) {

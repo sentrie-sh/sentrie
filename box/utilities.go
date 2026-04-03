@@ -108,6 +108,7 @@ func MatchesValue(haystack, pattern Value) (bool, error) {
 }
 
 // ContainsValue implements infix `contains` / `in` semantics for string, list, and map haystacks.
+// For map haystacks, only string-key lookup and map-subset containment are supported.
 func ContainsValue(haystack, needle Value) bool {
 	switch haystack.Kind() {
 	case ValueString:
@@ -139,11 +140,6 @@ func ContainsValue(haystack, needle Value) bool {
 				}
 			}
 			return true
-		}
-		for _, v := range m {
-			if EqualValues(v, needle) {
-				return true
-			}
 		}
 		return false
 	default:

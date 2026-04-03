@@ -76,7 +76,7 @@ func TestContainsValueStringListAndMapBranches(t *testing.T) {
 
 	require.False(t, box.ContainsValue(haystack, box.String("alice")))
 	require.False(t, box.ContainsValue(haystack, box.String("bob")))
-	require.True(t, box.ContainsValue(haystack, box.Number(7)))
+	require.False(t, box.ContainsValue(haystack, box.Number(7)))
 	require.False(t, box.ContainsValue(haystack, box.Number(99)))
 	require.False(t, box.ContainsValue(box.Number(1), box.Number(1)))
 }
