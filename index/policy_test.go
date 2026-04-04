@@ -17,37 +17,12 @@
 package index
 
 import (
-	"testing"
-
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/sentrie-sh/sentrie/trinary"
-	"github.com/stretchr/testify/suite"
 )
 
-type PolicyTestSuite struct {
-	suite.Suite
-	namespace *Namespace
-}
-
-func (suite *PolicyTestSuite) SetupTest() {
-	// Create namespace
-	nsStmt := ast.NewNamespaceStatement(
-		ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
-		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
-	)
-	suite.namespace = createNamespace(nsStmt)
-}
-
-func (suite *PolicyTestSuite) TearDownTest() {
-	suite.namespace = nil
-}
-
-func TestPolicyTestSuite(t *testing.T) {
-	suite.Run(t, new(PolicyTestSuite))
-}
-
-func (suite *PolicyTestSuite) TestCreatePolicy() {
+func (suite *IndexTestSuite) TestCreatePolicy() {
 	policyStmt := ast.NewPolicyStatement(
 		"testPolicy",
 		[]ast.Statement{
@@ -89,12 +64,12 @@ func (suite *PolicyTestSuite) TestCreatePolicy() {
 		},
 	}
 
-	policy, err := createPolicy(suite.namespace, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program)
 
 	suite.NoError(err)
 	suite.NotNil(policy)
 	suite.Equal(policyStmt, policy.Statement)
-	suite.Equal(suite.namespace, policy.Namespace)
+	suite.Equal(suite.policyNs, policy.Namespace)
 	suite.Equal("testPolicy", policy.Name)
 	suite.Equal("com/example/testPolicy", policy.FQN.String())
 	suite.Equal("test.sentra", policy.FilePath)
@@ -118,7 +93,7 @@ func (suite *PolicyTestSuite) TestCreatePolicy() {
 	suite.Contains(policy.RuleExports, "allow")
 }
 
-func (suite *PolicyTestSuite) TestCreatePolicyWithoutExports() {
+func (suite *IndexTestSuite) TestCreatePolicyWithoutExports() {
 	policyStmt := ast.NewPolicyStatement(
 		"testPolicy",
 		[]ast.Statement{
@@ -150,14 +125,14 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithoutExports() {
 		},
 	}
 
-	policy, err := createPolicy(suite.namespace, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program)
 
 	suite.Error(err)
 	suite.Nil(policy)
 	suite.Contains(err.Error(), "does not export any rules")
 }
 
-func (suite *PolicyTestSuite) TestCreatePolicyWithInvalidFactPosition() {
+func (suite *IndexTestSuite) TestCreatePolicyWithInvalidFactPosition() {
 	policyStmt := ast.NewPolicyStatement(
 		"testPolicy",
 		[]ast.Statement{
@@ -176,14 +151,14 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithInvalidFactPosition() {
 		},
 	}
 
-	policy, err := createPolicy(suite.namespace, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program)
 
 	suite.Error(err)
 	suite.Nil(policy)
 	suite.Contains(err.Error(), "fact statement must be the first statement in a policy")
 }
 
-func (suite *PolicyTestSuite) TestCreatePolicyWithInvalidUsePosition() {
+func (suite *IndexTestSuite) TestCreatePolicyWithInvalidUsePosition() {
 	policyStmt := ast.NewPolicyStatement(
 		"testPolicy",
 		[]ast.Statement{
@@ -203,14 +178,14 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithInvalidUsePosition() {
 		},
 	}
 
-	policy, err := createPolicy(suite.namespace, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program)
 
 	suite.Error(err)
 	suite.Nil(policy)
 	suite.Contains(err.Error(), "'use' statement must be declared immediately after facts")
 }
 
-func (suite *PolicyTestSuite) TestCreatePolicyWithUnknownRuleExport() {
+func (suite *IndexTestSuite) TestCreatePolicyWithUnknownRuleExport() {
 	policyStmt := ast.NewPolicyStatement(
 		"testPolicy",
 		[]ast.Statement{
@@ -229,14 +204,14 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithUnknownRuleExport() {
 		},
 	}
 
-	policy, err := createPolicy(suite.namespace, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program)
 
 	suite.Error(err)
 	suite.Nil(policy)
 	suite.Contains(err.Error(), "cannot export unknown rule")
 }
 
-func (suite *PolicyTestSuite) TestCreatePolicyWithDuplicateRuleExport() {
+func (suite *IndexTestSuite) TestCreatePolicyWithDuplicateRuleExport() {
 	policyStmt := ast.NewPolicyStatement(
 		"testPolicy",
 		[]ast.Statement{
@@ -256,17 +231,17 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithDuplicateRuleExport() {
 		},
 	}
 
-	policy, err := createPolicy(suite.namespace, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program)
 
 	suite.Error(err)
 	suite.Nil(policy)
 	suite.Contains(err.Error(), "conflict: rule export")
 }
 
-func (suite *PolicyTestSuite) TestAddLet() {
+func (suite *IndexTestSuite) TestAddLet() {
 	policy := &Policy{
 		Statement:       &ast.PolicyStatement{},
-		Namespace:       suite.namespace,
+		Namespace:       suite.policyNs,
 		Name:            "testPolicy",
 		FQN:             ast.NewFQN([]string{"com", "example", "testPolicy"}, tokens.Range{}),
 		FilePath:        "test.sentra",
@@ -297,10 +272,10 @@ func (suite *PolicyTestSuite) TestAddLet() {
 	suite.Equal(letStmt, policy.seenIdentifiers["testVar"])
 }
 
-func (suite *PolicyTestSuite) TestAddLetWithNameConflict() {
+func (suite *IndexTestSuite) TestAddLetWithNameConflict() {
 	policy := &Policy{
 		Statement:       &ast.PolicyStatement{},
-		Namespace:       suite.namespace,
+		Namespace:       suite.policyNs,
 		Name:            "testPolicy",
 		FQN:             ast.NewFQN([]string{"com", "example", "testPolicy"}, tokens.Range{}),
 		FilePath:        "test.sentra",
@@ -339,10 +314,10 @@ func (suite *PolicyTestSuite) TestAddLetWithNameConflict() {
 	suite.Contains(err.Error(), "conflict: let declaration")
 }
 
-func (suite *PolicyTestSuite) TestAddRule() {
+func (suite *IndexTestSuite) TestAddRule() {
 	policy := &Policy{
 		Statement:       &ast.PolicyStatement{},
-		Namespace:       suite.namespace,
+		Namespace:       suite.policyNs,
 		Name:            "testPolicy",
 		FQN:             ast.NewFQN([]string{"com", "example", "testPolicy"}, tokens.Range{}),
 		FilePath:        "test.sentra",
@@ -378,10 +353,10 @@ func (suite *PolicyTestSuite) TestAddRule() {
 	suite.Equal(policy, rule.Policy)
 }
 
-func (suite *PolicyTestSuite) TestAddRuleWithNameConflict() {
+func (suite *IndexTestSuite) TestAddRuleWithNameConflict() {
 	policy := &Policy{
 		Statement:       &ast.PolicyStatement{},
-		Namespace:       suite.namespace,
+		Namespace:       suite.policyNs,
 		Name:            "testPolicy",
 		FQN:             ast.NewFQN([]string{"com", "example", "testPolicy"}, tokens.Range{}),
 		FilePath:        "test.sentra",
@@ -422,10 +397,10 @@ func (suite *PolicyTestSuite) TestAddRuleWithNameConflict() {
 	suite.Contains(err.Error(), "conflict: rule declaration")
 }
 
-func (suite *PolicyTestSuite) TestAddShape() {
+func (suite *IndexTestSuite) TestPolicyAddShape() {
 	policy := &Policy{
 		Statement:       &ast.PolicyStatement{},
-		Namespace:       suite.namespace,
+		Namespace:       suite.policyNs,
 		Name:            "testPolicy",
 		FQN:             ast.NewFQN([]string{"com", "example", "testPolicy"}, tokens.Range{}),
 		FilePath:        "test.sentra",
@@ -456,14 +431,14 @@ func (suite *PolicyTestSuite) TestAddShape() {
 	suite.Equal("testShape", shape.Name)
 	suite.Equal("com/example/testPolicy/testShape", shape.FQN.String())
 	suite.Equal(shapeStmt, shape.Statement)
-	suite.Equal(suite.namespace, shape.Namespace)
+	suite.Equal(suite.policyNs, shape.Namespace)
 	suite.Equal(policy, shape.Policy)
 }
 
-func (suite *PolicyTestSuite) TestAddShapeWithNameConflict() {
+func (suite *IndexTestSuite) TestPolicyAddShapeWithNameConflict() {
 	policy := &Policy{
 		Statement:       &ast.PolicyStatement{},
-		Namespace:       suite.namespace,
+		Namespace:       suite.policyNs,
 		Name:            "testPolicy",
 		FQN:             ast.NewFQN([]string{"com", "example", "testPolicy"}, tokens.Range{}),
 		FilePath:        "test.sentra",
@@ -502,10 +477,10 @@ func (suite *PolicyTestSuite) TestAddShapeWithNameConflict() {
 	suite.Contains(err.Error(), "conflict: shape declaration")
 }
 
-func (suite *PolicyTestSuite) TestAddFact() {
+func (suite *IndexTestSuite) TestAddFact() {
 	policy := &Policy{
 		Statement:       &ast.PolicyStatement{},
-		Namespace:       suite.namespace,
+		Namespace:       suite.policyNs,
 		Name:            "testPolicy",
 		FQN:             ast.NewFQN([]string{"com", "example", "testPolicy"}, tokens.Range{}),
 		FilePath:        "test.sentra",
@@ -538,10 +513,10 @@ func (suite *PolicyTestSuite) TestAddFact() {
 	suite.Equal(factStmt, policy.seenIdentifiers["user"])
 }
 
-func (suite *PolicyTestSuite) TestAddFactRequiredCannotHaveDefault() {
+func (suite *IndexTestSuite) TestAddFactRequiredCannotHaveDefault() {
 	policy := &Policy{
 		Statement:       &ast.PolicyStatement{},
-		Namespace:       suite.namespace,
+		Namespace:       suite.policyNs,
 		Name:            "testPolicy",
 		FQN:             ast.NewFQN([]string{"com", "example", "testPolicy"}, tokens.Range{}),
 		FilePath:        "test.sentra",
@@ -572,10 +547,10 @@ func (suite *PolicyTestSuite) TestAddFactRequiredCannotHaveDefault() {
 	suite.Contains(err.Error(), "cannot have a default value")
 }
 
-func (suite *PolicyTestSuite) TestAddFactOptionalCanHaveDefault() {
+func (suite *IndexTestSuite) TestAddFactOptionalCanHaveDefault() {
 	policy := &Policy{
 		Statement:       &ast.PolicyStatement{},
-		Namespace:       suite.namespace,
+		Namespace:       suite.policyNs,
 		Name:            "testPolicy",
 		FQN:             ast.NewFQN([]string{"com", "example", "testPolicy"}, tokens.Range{}),
 		FilePath:        "test.sentra",
@@ -607,10 +582,10 @@ func (suite *PolicyTestSuite) TestAddFactOptionalCanHaveDefault() {
 	suite.True(policy.Facts["user"].Optional, "Fact should be optional")
 }
 
-func (suite *PolicyTestSuite) TestAddFactRequiredWithoutDefault() {
+func (suite *IndexTestSuite) TestAddFactRequiredWithoutDefault() {
 	policy := &Policy{
 		Statement:       &ast.PolicyStatement{},
-		Namespace:       suite.namespace,
+		Namespace:       suite.policyNs,
 		Name:            "testPolicy",
 		FQN:             ast.NewFQN([]string{"com", "example", "testPolicy"}, tokens.Range{}),
 		FilePath:        "test.sentra",
@@ -643,10 +618,10 @@ func (suite *PolicyTestSuite) TestAddFactRequiredWithoutDefault() {
 	suite.Nil(policy.Facts["user"].Default, "Required fact should not have default")
 }
 
-func (suite *PolicyTestSuite) TestAddFactWithNameConflict() {
+func (suite *IndexTestSuite) TestAddFactWithNameConflict() {
 	policy := &Policy{
 		Statement:       &ast.PolicyStatement{},
-		Namespace:       suite.namespace,
+		Namespace:       suite.policyNs,
 		Name:            "testPolicy",
 		FQN:             ast.NewFQN([]string{"com", "example", "testPolicy"}, tokens.Range{}),
 		FilePath:        "test.sentra",
@@ -689,10 +664,10 @@ func (suite *PolicyTestSuite) TestAddFactWithNameConflict() {
 	suite.Contains(err.Error(), "conflict: fact declaration")
 }
 
-func (suite *PolicyTestSuite) TestPolicyString() {
+func (suite *IndexTestSuite) TestPolicyString() {
 	policy := &Policy{
 		Statement:       &ast.PolicyStatement{},
-		Namespace:       suite.namespace,
+		Namespace:       suite.policyNs,
 		Name:            "testPolicy",
 		FQN:             ast.NewFQN([]string{"com", "example", "testPolicy"}, tokens.Range{}),
 		FilePath:        "test.sentra",
@@ -709,7 +684,7 @@ func (suite *PolicyTestSuite) TestPolicyString() {
 	suite.Equal("com/example/testPolicy", policy.String())
 }
 
-func (suite *PolicyTestSuite) TestCreatePolicyWithComments() {
+func (suite *IndexTestSuite) TestCreatePolicyWithComments() {
 	policyStmt := ast.NewPolicyStatement(
 		"testPolicy",
 		[]ast.Statement{
@@ -730,7 +705,7 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithComments() {
 		},
 	}
 
-	policy, err := createPolicy(suite.namespace, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program)
 
 	suite.NoError(err)
 	suite.NotNil(policy)
@@ -740,7 +715,7 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithComments() {
 	// Comments should be ignored
 }
 
-func (suite *PolicyTestSuite) TestCreatePolicyWithValidUseStatement() {
+func (suite *IndexTestSuite) TestCreatePolicyWithValidUseStatement() {
 	policyStmt := ast.NewPolicyStatement(
 		"testPolicy",
 		[]ast.Statement{
@@ -760,7 +735,7 @@ func (suite *PolicyTestSuite) TestCreatePolicyWithValidUseStatement() {
 		},
 	}
 
-	policy, err := createPolicy(suite.namespace, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program)
 
 	suite.NoError(err)
 	suite.NotNil(policy)

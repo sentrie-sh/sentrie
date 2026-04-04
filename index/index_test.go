@@ -18,36 +18,12 @@ package index
 
 import (
 	"context"
-	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/pack"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/sentrie-sh/sentrie/trinary"
-	"github.com/stretchr/testify/suite"
 )
-
-type IndexTestSuite struct {
-	suite.Suite
-	ctx context.Context
-	idx *Index
-}
-
-func (suite *IndexTestSuite) SetupSuite() {
-	suite.ctx = context.Background()
-}
-
-func (suite *IndexTestSuite) SetupTest() {
-	suite.idx = CreateIndex()
-}
-
-func (suite *IndexTestSuite) TearDownTest() {
-	suite.idx = nil
-}
-
-func TestIndexTestSuite(t *testing.T) {
-	suite.Run(t, new(IndexTestSuite))
-}
 
 func (suite *IndexTestSuite) TestCreateIndex() {
 	idx := CreateIndex()

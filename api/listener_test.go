@@ -16,127 +16,38 @@
 
 package api
 
-import (
-	"fmt"
-	"strings"
-	"testing"
-)
-
-func TestListenerConfiguration(t *testing.T) {
-	// nil listen uses port only
-	t.Run("nil listen uses port only", func(t *testing.T) {
-		addr := resolveAddress(8080, nil)
-		if addr != ":8080" {
-			t.Errorf("Expected %s, got %s", ":8080", addr)
-		}
+func (s *APITestSuite) TestListenerConfiguration() {
+	s.Run("nil listen uses port only", func() {
+		s.Equal(":8080", resolveAddress(8080, nil))
 	})
-
-	// empty listen uses port only
-	t.Run("empty listen uses port only", func(t *testing.T) {
-		addr := resolveAddress(8080, []string{})
-		if addr != ":8080" {
-			t.Errorf("Expected %s, got %s", ":8080", addr)
-		}
+	s.Run("empty listen uses port only", func() {
+		s.Equal(":8080", resolveAddress(8080, []string{}))
 	})
-
-	// local maps to localhost
-	t.Run("local maps to localhost", func(t *testing.T) {
-		addr := resolveAddress(8080, []string{"local"})
-		if addr != "localhost:8080" {
-			t.Errorf("Expected %s, got %s", "localhost:8080", addr)
-		}
+	s.Run("local maps to localhost", func() {
+		s.Equal("localhost:8080", resolveAddress(8080, []string{"local"}))
 	})
-
-	// local4 maps to 127.0.0.1
-	t.Run("local4 maps to 127.0.0.1", func(t *testing.T) {
-		addr := resolveAddress(8080, []string{"local4"})
-		if addr != "127.0.0.1:8080" {
-			t.Errorf("Expected %s, got %s", "127.0.0.1:8080", addr)
-		}
+	s.Run("local4 maps to 127.0.0.1", func() {
+		s.Equal("127.0.0.1:8080", resolveAddress(8080, []string{"local4"}))
 	})
-
-	// local6 maps to ::1
-	t.Run("local6 maps to ::1", func(t *testing.T) {
-		addr := resolveAddress(8080, []string{"local6"})
-		if addr != "[::1]:8080" {
-			t.Errorf("Expected %s, got %s", "[::1]:8080", addr)
-		}
+	s.Run("local6 maps to ::1", func() {
+		s.Equal("[::1]:8080", resolveAddress(8080, []string{"local6"}))
 	})
-
-	// network maps to all interfaces
-	t.Run("network maps to all interfaces", func(t *testing.T) {
-		addr := resolveAddress(8080, []string{"network"})
-		if addr != ":8080" {
-			t.Errorf("Expected %s, got %s", ":8080", addr)
-		}
+	s.Run("network maps to all interfaces", func() {
+		s.Equal(":8080", resolveAddress(8080, []string{"network"}))
 	})
-
-	// network4 maps to 0.0.0.0
-	t.Run("network4 maps to 0.0.0.0", func(t *testing.T) {
-		addr := resolveAddress(8080, []string{"network4"})
-		if addr != "0.0.0.0:8080" {
-			t.Errorf("Expected %s, got %s", "0.0.0.0:8080", addr)
-		}
+	s.Run("network4 maps to 0.0.0.0", func() {
+		s.Equal("0.0.0.0:8080", resolveAddress(8080, []string{"network4"}))
 	})
-
-	// network6 maps to ::
-	t.Run("network6 maps to ::", func(t *testing.T) {
-		addr := resolveAddress(8080, []string{"network6"})
-		if addr != "[::]:8080" {
-			t.Errorf("Expected %s, got %s", "[::]:8080", addr)
-		}
+	s.Run("network6 maps to ::", func() {
+		s.Equal("[::]:8080", resolveAddress(8080, []string{"network6"}))
 	})
-
-	// custom address used as-is
-	t.Run("custom address used as-is", func(t *testing.T) {
-		addr := resolveAddress(8080, []string{"192.168.1.100:3000"})
-		if addr != "192.168.1.100:3000" {
-			t.Errorf("Expected %s, got %s", "192.168.1.100:3000", addr)
-		}
+	s.Run("custom address used as-is", func() {
+		s.Equal("192.168.1.100:3000", resolveAddress(8080, []string{"192.168.1.100:3000"}))
 	})
-
-	// custom address with different port
-	t.Run("custom address with different port", func(t *testing.T) {
-		addr := resolveAddress(8080, []string{"10.0.0.1:9090"})
-		if addr != "10.0.0.1:9090" {
-			t.Errorf("Expected %s, got %s", "10.0.0.1:9090", addr)
-		}
+	s.Run("custom address with different port", func() {
+		s.Equal("10.0.0.1:9090", resolveAddress(8080, []string{"10.0.0.1:9090"}))
 	})
-
-	// multiple addresses returns all
-	t.Run("multiple addresses returns all", func(t *testing.T) {
-		addr := resolveAddress(8080, []string{"local", "network4"})
-		if addr != "localhost:8080,0.0.0.0:8080" {
-			t.Errorf("Expected %s, got %s", "localhost:8080,0.0.0.0:8080", addr)
-		}
+	s.Run("multiple addresses returns all", func() {
+		s.Equal("localhost:8080,0.0.0.0:8080", resolveAddress(8080, []string{"local", "network4"}))
 	})
-}
-
-// Helper function to test the address resolution logic
-func resolveAddress(port int, listen []string) string {
-	if len(listen) > 0 {
-		var addresses []string
-		for _, listenAddr := range listen {
-			var addr string
-			switch listenAddr {
-			case "local":
-				addr = fmt.Sprintf("localhost:%d", port)
-			case "local4":
-				addr = fmt.Sprintf("127.0.0.1:%d", port)
-			case "local6":
-				addr = fmt.Sprintf("[::1]:%d", port)
-			case "network":
-				addr = fmt.Sprintf(":%d", port)
-			case "network4":
-				addr = fmt.Sprintf("0.0.0.0:%d", port)
-			case "network6":
-				addr = fmt.Sprintf("[::]:%d", port)
-			default:
-				addr = listenAddr
-			}
-			addresses = append(addresses, addr)
-		}
-		return strings.Join(addresses, ",")
-	}
-	return fmt.Sprintf(":%d", port)
 }

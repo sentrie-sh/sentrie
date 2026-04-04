@@ -18,15 +18,13 @@ package runtime
 
 import (
 	"context"
-	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/trinary"
-	"github.com/stretchr/testify/require"
 )
 
-func TestEvaluateRuleOutcomeWhenFalseDefaultBranches(t *testing.T) {
+func (s *RuntimeTestSuite) TestEvaluateRuleOutcomeWhenFalseDefaultBranches() {
 	p := newEvalTestPolicy()
 	ruleStmt := ast.NewRuleStatement("r", nil, ast.NewTrinaryLiteral(trinary.False, stubRange()), ast.NewTrinaryLiteral(trinary.True, stubRange()), stubRange())
 	rule := &index.Rule{
@@ -40,11 +38,11 @@ func TestEvaluateRuleOutcomeWhenFalseDefaultBranches(t *testing.T) {
 	}
 	ec := NewExecutionContext(p, &executorImpl{})
 	decision, _, err := evaluateRuleOutcome(context.Background(), ec, &executorImpl{}, p, rule)
-	require.NoError(t, err)
-	require.Equal(t, trinary.Unknown, decision.State)
+	s.Require().NoError(err)
+	s.Require().Equal(trinary.Unknown, decision.State)
 
 	rule.Default = ast.NewTrinaryLiteral(trinary.True, stubRange())
 	decision, _, err = evaluateRuleOutcome(context.Background(), ec, &executorImpl{}, p, rule)
-	require.NoError(t, err)
-	require.Equal(t, trinary.True, decision.State)
+	s.Require().NoError(err)
+	s.Require().Equal(trinary.True, decision.State)
 }

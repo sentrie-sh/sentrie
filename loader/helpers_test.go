@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2026 Binaek Sarkar
+// Copyright 2025 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,18 +14,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package constraints_test
+package loader
 
-import "github.com/sentrie-sh/sentrie/constraints"
+import (
+	"os"
+	"path/filepath"
+)
 
-func (s *ConstraintsTestSuite) TestEmptyCheckerMapsAreInitialized() {
-	for name, m := range map[string]map[string]constraints.ConstraintDefinition{
-		"map":      constraints.MapContraintCheckers,
-		"record":   constraints.RecordContraintCheckers,
-		"shape":    constraints.ShapeContraintCheckers,
-		"document": constraints.DocumentContraintCheckers,
-	} {
-		s.NotNil(m, "%s: map is nil", name)
-		s.Empty(m, "%s: expected empty map", name)
-	}
+func (s *LoaderTestSuite) writePackDir(content string) string {
+	dir := s.T().TempDir()
+	packFile := filepath.Join(dir, PackFileName)
+	s.Require().NoError(os.WriteFile(packFile, []byte(content), 0o644))
+	return dir
 }

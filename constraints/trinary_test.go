@@ -17,47 +17,45 @@
 package constraints_test
 
 import (
-	"testing"
-
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constraints"
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
-func TestTrinaryNotUnknown(t *testing.T) {
+func (s *ConstraintsTestSuite) TestTrinaryNotUnknown() {
 	c := constraints.TrinaryConstraintCheckers["not_unknown"]
-	runChecker(t, c, box.Trinary(trinary.True), nil, false)
-	runChecker(t, c, box.Trinary(trinary.Unknown), nil, true)
-	runChecker(t, c, box.String("x"), nil, true)
+	s.runChecker(c, box.Trinary(trinary.True), nil, false)
+	s.runChecker(c, box.Trinary(trinary.Unknown), nil, true)
+	s.runChecker(c, box.String("x"), nil, true)
 }
 
-func TestTrinaryEqNeq(t *testing.T) {
-	t.Run("eq", func(t *testing.T) {
+func (s *ConstraintsTestSuite) TestTrinaryEqNeq() {
+	s.Run("eq", func() {
 		c := constraints.TrinaryConstraintCheckers["eq"]
-		runChecker(t, c, box.Trinary(trinary.True), []box.Value{box.Trinary(trinary.True)}, false)
-		runChecker(t, c, box.Trinary(trinary.True), []box.Value{box.Trinary(trinary.False)}, true)
-		runChecker(t, c, box.Trinary(trinary.True), []box.Value{box.Trinary(trinary.True), box.Trinary(trinary.False)}, true)
-		runChecker(t, c, box.Trinary(trinary.True), []box.Value{box.String("x")}, true)
-		runChecker(t, c, box.String("x"), []box.Value{box.Trinary(trinary.True)}, true)
+		s.runChecker(c, box.Trinary(trinary.True), []box.Value{box.Trinary(trinary.True)}, false)
+		s.runChecker(c, box.Trinary(trinary.True), []box.Value{box.Trinary(trinary.False)}, true)
+		s.runChecker(c, box.Trinary(trinary.True), []box.Value{box.Trinary(trinary.True), box.Trinary(trinary.False)}, true)
+		s.runChecker(c, box.Trinary(trinary.True), []box.Value{box.String("x")}, true)
+		s.runChecker(c, box.String("x"), []box.Value{box.Trinary(trinary.True)}, true)
 	})
-	t.Run("neq", func(t *testing.T) {
+	s.Run("neq", func() {
 		c := constraints.TrinaryConstraintCheckers["neq"]
-		runChecker(t, c, box.Trinary(trinary.True), []box.Value{box.Trinary(trinary.False)}, false)
-		runChecker(t, c, box.Trinary(trinary.True), []box.Value{box.Trinary(trinary.True)}, true)
-		runChecker(t, c, box.Trinary(trinary.True), []box.Value{box.String("x")}, true)
+		s.runChecker(c, box.Trinary(trinary.True), []box.Value{box.Trinary(trinary.False)}, false)
+		s.runChecker(c, box.Trinary(trinary.True), []box.Value{box.Trinary(trinary.True)}, true)
+		s.runChecker(c, box.Trinary(trinary.True), []box.Value{box.String("x")}, true)
 	})
 }
 
-func TestTrinaryIsTrueIsFalse(t *testing.T) {
-	t.Run("is_true", func(t *testing.T) {
+func (s *ConstraintsTestSuite) TestTrinaryIsTrueIsFalse() {
+	s.Run("is_true", func() {
 		c := constraints.TrinaryConstraintCheckers["is_true"]
-		runChecker(t, c, box.Trinary(trinary.True), nil, false)
-		runChecker(t, c, box.Trinary(trinary.False), nil, true)
-		runChecker(t, c, box.Trinary(trinary.Unknown), nil, true)
+		s.runChecker(c, box.Trinary(trinary.True), nil, false)
+		s.runChecker(c, box.Trinary(trinary.False), nil, true)
+		s.runChecker(c, box.Trinary(trinary.Unknown), nil, true)
 	})
-	t.Run("is_false", func(t *testing.T) {
+	s.Run("is_false", func() {
 		c := constraints.TrinaryConstraintCheckers["is_false"]
-		runChecker(t, c, box.Trinary(trinary.False), nil, false)
-		runChecker(t, c, box.Trinary(trinary.True), nil, true)
+		s.runChecker(c, box.Trinary(trinary.False), nil, false)
+		s.runChecker(c, box.Trinary(trinary.True), nil, true)
 	})
 }

@@ -14,18 +14,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package constraints_test
+package cmd
 
-import "github.com/sentrie-sh/sentrie/constraints"
+import (
+	"bytes"
+	"os"
+)
 
-func (s *ConstraintsTestSuite) TestEmptyCheckerMapsAreInitialized() {
-	for name, m := range map[string]map[string]constraints.ConstraintDefinition{
-		"map":      constraints.MapContraintCheckers,
-		"record":   constraints.RecordContraintCheckers,
-		"shape":    constraints.ShapeContraintCheckers,
-		"document": constraints.DocumentContraintCheckers,
-	} {
-		s.NotNil(m, "%s: map is nil", name)
-		s.Empty(m, "%s: expected empty map", name)
-	}
+func (s *CmdTestSuite) captureStdout(fn func()) string {
+	s.T().Helper()
+	oldStdout := os.Stdout
+	r, w, err := os.Pipe()
+	s.Require().NoError(err)
+	defer func() { s.Require().NoError(r.Close()) }()
+	os.Stdout = w
+	defer func() { os.Stdout = oldStdout }()
+	fn()
+	s.Require().NoError(w.Close())
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(r)
+	s.Require().NoError(err)
+	return buf.String()
 }

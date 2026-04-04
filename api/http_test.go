@@ -18,97 +18,52 @@ package api
 
 import (
 	"strings"
-	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
 )
 
-func TestPathParsing(t *testing.T) {
-	// "/decision/sh/sentra/auth/v1/user/allow"
-	t.Run("valid deep path", func(t *testing.T) {
+func (s *APITestSuite) TestPathParsing() {
+	s.Run("valid deep path", func() {
 		path := "/decision/sh/sentra/auth/v1/user/allow"
 		pathParts := strings.Split(strings.TrimPrefix(path, "/decision/"), ast.FQNSeparator)
-
-		if len(pathParts) < 3 {
-			t.Fatalf("Expected valid parsing for %s", path)
-		}
-
+		s.Require().GreaterOrEqual(len(pathParts), 3, "expected valid parsing for %s", path)
 		rule := pathParts[len(pathParts)-1]
 		policy := pathParts[len(pathParts)-2]
 		namespace := strings.Join(pathParts[:len(pathParts)-2], ast.FQNSeparator)
-
-		if namespace != "sh/sentra/auth/v1" {
-			t.Errorf("Expected namespace %s, got %s", "sh/sentra/auth/v1", namespace)
-		}
-		if policy != "user" {
-			t.Errorf("Expected policy %s, got %s", "user", policy)
-		}
-		if rule != "allow" {
-			t.Errorf("Expected rule %s, got %s", "allow", rule)
-		}
+		s.Equal("sh/sentra/auth/v1", namespace)
+		s.Equal("user", policy)
+		s.Equal("allow", rule)
 	})
-
-	// "/decision/org/department/team/policy/rule"
-	t.Run("valid org/department/team path", func(t *testing.T) {
+	s.Run("valid org/department/team path", func() {
 		path := "/decision/org/department/team/policy/rule"
 		pathParts := strings.Split(strings.TrimPrefix(path, "/decision/"), ast.FQNSeparator)
-
-		if len(pathParts) < 3 {
-			t.Fatalf("Expected valid parsing for %s", path)
-		}
-
+		s.Require().GreaterOrEqual(len(pathParts), 3, "expected valid parsing for %s", path)
 		rule := pathParts[len(pathParts)-1]
 		policy := pathParts[len(pathParts)-2]
 		namespace := strings.Join(pathParts[:len(pathParts)-2], ast.FQNSeparator)
-
-		if namespace != "org/department/team" {
-			t.Errorf("Expected namespace %s, got %s", "org/department/team", namespace)
-		}
-		if policy != "policy" {
-			t.Errorf("Expected policy %s, got %s", "policy", policy)
-		}
-		if rule != "rule" {
-			t.Errorf("Expected rule %s, got %s", "rule", rule)
-		}
+		s.Equal("org/department/team", namespace)
+		s.Equal("policy", policy)
+		s.Equal("rule", rule)
 	})
-
-	// "/decision/simple/policy/rule"
-	t.Run("valid simple path", func(t *testing.T) {
+	s.Run("valid simple path", func() {
 		path := "/decision/simple/policy/rule"
 		pathParts := strings.Split(strings.TrimPrefix(path, "/decision/"), ast.FQNSeparator)
-
-		if len(pathParts) < 3 {
-			t.Fatalf("Expected valid parsing for %s", path)
-		}
-
+		s.Require().GreaterOrEqual(len(pathParts), 3, "expected valid parsing for %s", path)
 		rule := pathParts[len(pathParts)-1]
 		policy := pathParts[len(pathParts)-2]
 		namespace := strings.Join(pathParts[:len(pathParts)-2], ast.FQNSeparator)
-
-		if namespace != "simple" {
-			t.Errorf("Expected namespace %s, got %s", "simple", namespace)
-		}
-		if policy != "policy" {
-			t.Errorf("Expected policy %s, got %s", "policy", policy)
-		}
-		if rule != "rule" {
-			t.Errorf("Expected rule %s, got %s", "rule", rule)
-		}
+		s.Equal("simple", namespace)
+		s.Equal("policy", policy)
+		s.Equal("rule", rule)
 	})
-
-	t.Run("error - not enough segments (policy/rule)", func(t *testing.T) {
+	s.Run("error - not enough segments (policy/rule)", func() {
 		path := "/decision/policy/rule"
 		pathParts := strings.Split(strings.TrimPrefix(path, "/decision/"), ast.FQNSeparator)
-		if len(pathParts) >= 3 {
-			t.Fatalf("Expected error for path %s, but got valid parsing", path)
-		}
+		s.Require().Less(len(pathParts), 3, "expected error for path %s", path)
 	})
-
-	t.Run("error - not enough segments (rule)", func(t *testing.T) {
+	s.Run("error - not enough segments (rule)", func() {
 		path := "/decision/rule"
 		pathParts := strings.Split(strings.TrimPrefix(path, "/decision/"), ast.FQNSeparator)
-		if len(pathParts) >= 3 {
-			t.Fatalf("Expected error for path %s, but got valid parsing", path)
-		}
+		s.Require().Less(len(pathParts), 3, "expected error for path %s", path)
 	})
 }

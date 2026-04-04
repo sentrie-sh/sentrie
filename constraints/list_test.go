@@ -17,16 +17,14 @@
 package constraints_test
 
 import (
-	"testing"
-
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constraints"
 )
 
-func TestListNotEmpty(t *testing.T) {
+func (s *ConstraintsTestSuite) TestListNotEmpty() {
 	c := constraints.ListContraintCheckers["not_empty"]
-	runChecker(t, c, box.String("x"), nil, true)
-	runChecker(t, c, box.List(nil), nil, true)
-	runChecker(t, c, box.List([]box.Value{}), nil, true)
-	runChecker(t, c, box.List([]box.Value{box.Number(1)}), nil, false)
+	s.runChecker(c, box.String("x"), nil, true)
+	s.runChecker(c, box.List(nil), nil, true)
+	s.runChecker(c, box.List([]box.Value{}), nil, true)
+	s.runChecker(c, box.List([]box.Value{box.Number(1)}), nil, false)
 }

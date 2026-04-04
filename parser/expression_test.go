@@ -17,42 +17,12 @@
 package parser
 
 import (
-	"log/slog"
-	"testing"
-
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/trinary"
-	"github.com/stretchr/testify/suite"
 )
 
-// ExpressionTestSuite provides tests for expression parsing
-type ExpressionTestSuite struct {
-	suite.Suite
-}
-
-// SetupSuite initializes the test suite
-func (s *ExpressionTestSuite) SetupSuite() {
-	slog.Info("ExpressionTestSuite SetupSuite start")
-}
-
-// BeforeTest runs before each test
-func (s *ExpressionTestSuite) BeforeTest(suiteName, testName string) {
-	slog.Info("BeforeTest start", "TestSuite", "ExpressionTestSuite", "TestName", testName)
-}
-
-// AfterTest runs after each test
-func (s *ExpressionTestSuite) AfterTest(suiteName, testName string) {
-	slog.Info("AfterTest start", "TestSuite", "ExpressionTestSuite", "TestName", testName)
-}
-
-// TearDownSuite cleans up after all tests
-func (s *ExpressionTestSuite) TearDownSuite() {
-	slog.Info("TearDownSuite")
-	slog.Info("TearDownSuite end")
-}
-
 // TestParseExpressionIdentifier tests parsing identifier expressions
-func (s *ExpressionTestSuite) TestParseExpressionIdentifier() {
+func (s *ParserTestSuite) TestParseExpressionIdentifier() {
 	input := `x`
 	parser := NewParserFromString(input, "test.sentra")
 
@@ -65,7 +35,7 @@ func (s *ExpressionTestSuite) TestParseExpressionIdentifier() {
 }
 
 // TestParseExpressionStringLiteral tests parsing string literal expressions
-func (s *ExpressionTestSuite) TestParseExpressionStringLiteral() {
+func (s *ParserTestSuite) TestParseExpressionStringLiteral() {
 	input := `"hello world"`
 	parser := NewParserFromString(input, "test.sentra")
 
@@ -78,7 +48,7 @@ func (s *ExpressionTestSuite) TestParseExpressionStringLiteral() {
 }
 
 // TestParseExpressionIntegerLiteral tests parsing integer literal expressions
-func (s *ExpressionTestSuite) TestParseExpressionIntegerLiteral() {
+func (s *ParserTestSuite) TestParseExpressionIntegerLiteral() {
 	input := `42`
 	parser := NewParserFromString(input, "test.sentra")
 
@@ -91,7 +61,7 @@ func (s *ExpressionTestSuite) TestParseExpressionIntegerLiteral() {
 }
 
 // TestParseExpressionFloatLiteral tests parsing float literal expressions
-func (s *ExpressionTestSuite) TestParseExpressionFloatLiteral() {
+func (s *ParserTestSuite) TestParseExpressionFloatLiteral() {
 	input := `3.14`
 	parser := NewParserFromString(input, "test.sentra")
 
@@ -104,7 +74,7 @@ func (s *ExpressionTestSuite) TestParseExpressionFloatLiteral() {
 }
 
 // TestParseExpressionBooleanLiteral tests parsing boolean literal expressions
-func (s *ExpressionTestSuite) TestParseExpressionBooleanLiteral() {
+func (s *ParserTestSuite) TestParseExpressionBooleanLiteral() {
 	testCases := []struct {
 		input    string
 		expected bool
@@ -137,7 +107,7 @@ func (s *ExpressionTestSuite) TestParseExpressionBooleanLiteral() {
 }
 
 // TestParseExpressionTrinaryLiteral tests parsing trinary literal expressions
-func (s *ExpressionTestSuite) TestParseExpressionTrinaryLiteral() {
+func (s *ParserTestSuite) TestParseExpressionTrinaryLiteral() {
 	testCases := []string{"true", "false", "unknown"}
 
 	for _, tc := range testCases {
@@ -159,7 +129,7 @@ func (s *ExpressionTestSuite) TestParseExpressionTrinaryLiteral() {
 }
 
 // TestParseExpressionNullLiteral tests parsing null literal expressions
-func (s *ExpressionTestSuite) TestParseExpressionNullLiteral() {
+func (s *ParserTestSuite) TestParseExpressionNullLiteral() {
 	input := `null`
 	parser := NewParserFromString(input, "test.sentra")
 
@@ -172,7 +142,7 @@ func (s *ExpressionTestSuite) TestParseExpressionNullLiteral() {
 }
 
 // TestParseExpressionInfixExpression tests parsing infix expressions
-func (s *ExpressionTestSuite) TestParseExpressionInfixExpression() {
+func (s *ParserTestSuite) TestParseExpressionInfixExpression() {
 	testCases := []struct {
 		input    string
 		operator string
@@ -207,7 +177,7 @@ func (s *ExpressionTestSuite) TestParseExpressionInfixExpression() {
 }
 
 // TestParseExpressionUnaryExpression tests parsing unary expressions
-func (s *ExpressionTestSuite) TestParseExpressionUnaryExpression() {
+func (s *ParserTestSuite) TestParseExpressionUnaryExpression() {
 	testCases := []struct {
 		input    string
 		operator string
@@ -230,7 +200,7 @@ func (s *ExpressionTestSuite) TestParseExpressionUnaryExpression() {
 }
 
 // TestParseExpressionGroupedExpression tests parsing grouped expressions
-func (s *ExpressionTestSuite) TestParseExpressionGroupedExpression() {
+func (s *ParserTestSuite) TestParseExpressionGroupedExpression() {
 	input := `(1 + 2) * 3`
 	parser := NewParserFromString(input, "test.sentra")
 
@@ -248,7 +218,7 @@ func (s *ExpressionTestSuite) TestParseExpressionGroupedExpression() {
 }
 
 // TestParseExpressionTernaryExpression tests parsing ternary expressions
-func (s *ExpressionTestSuite) TestParseExpressionTernaryExpression() {
+func (s *ParserTestSuite) TestParseExpressionTernaryExpression() {
 	input := `true ? "yes" : "no"`
 	parser := NewParserFromString(input, "test.sentra")
 
@@ -263,7 +233,7 @@ func (s *ExpressionTestSuite) TestParseExpressionTernaryExpression() {
 }
 
 // TestParseExpressionListLiteral tests parsing list literal expressions
-func (s *ExpressionTestSuite) TestParseExpressionListLiteral() {
+func (s *ParserTestSuite) TestParseExpressionListLiteral() {
 	testCases := []struct {
 		input    string
 		expected int
@@ -286,7 +256,7 @@ func (s *ExpressionTestSuite) TestParseExpressionListLiteral() {
 }
 
 // TestParseExpressionMapLiteral tests parsing map literal expressions
-func (s *ExpressionTestSuite) TestParseExpressionMapLiteral() {
+func (s *ParserTestSuite) TestParseExpressionMapLiteral() {
 	testCases := []struct {
 		input    string
 		expected int
@@ -308,7 +278,7 @@ func (s *ExpressionTestSuite) TestParseExpressionMapLiteral() {
 }
 
 // TestParseExpressionCallExpression tests parsing call expressions
-func (s *ExpressionTestSuite) TestParseExpressionCallExpression() {
+func (s *ParserTestSuite) TestParseExpressionCallExpression() {
 	input := `myFunction(arg1, arg2)`
 	parser := NewParserFromString(input, "test.sentra")
 
@@ -322,7 +292,7 @@ func (s *ExpressionTestSuite) TestParseExpressionCallExpression() {
 }
 
 // TestParseExpressionIndexExpression tests parsing index expressions
-func (s *ExpressionTestSuite) TestParseExpressionIndexExpression() {
+func (s *ParserTestSuite) TestParseExpressionIndexExpression() {
 	testCases := []struct {
 		input string
 		left  string
@@ -346,7 +316,7 @@ func (s *ExpressionTestSuite) TestParseExpressionIndexExpression() {
 }
 
 // TestParseExpressionPrecedence tests operator precedence
-func (s *ExpressionTestSuite) TestParseExpressionPrecedence() {
+func (s *ParserTestSuite) TestParseExpressionPrecedence() {
 	testCases := []struct {
 		input    string
 		expected string
@@ -376,7 +346,7 @@ func (s *ExpressionTestSuite) TestParseExpressionPrecedence() {
 }
 
 // TestParseExpressionWithComments tests parsing expressions with comments
-func (s *ExpressionTestSuite) TestParseExpressionWithComments() {
+func (s *ParserTestSuite) TestParseExpressionWithComments() {
 	input := `-- comment before
 x + y -- comment after`
 	parser := NewParserFromString(input, "test.sentra")
@@ -389,7 +359,7 @@ x + y -- comment after`
 }
 
 // TestParseExpressionInvalidToken tests parsing with invalid tokens
-func (s *ExpressionTestSuite) TestParseExpressionInvalidToken() {
+func (s *ParserTestSuite) TestParseExpressionInvalidToken() {
 	input := `@#$%`
 	parser := NewParserFromString(input, "test.sentra")
 
@@ -399,7 +369,7 @@ func (s *ExpressionTestSuite) TestParseExpressionInvalidToken() {
 }
 
 // TestParseExpressionEmptyInput tests parsing empty input
-func (s *ExpressionTestSuite) TestParseExpressionEmptyInput() {
+func (s *ParserTestSuite) TestParseExpressionEmptyInput() {
 	input := ``
 	parser := NewParserFromString(input, "test.sentra")
 
@@ -409,7 +379,7 @@ func (s *ExpressionTestSuite) TestParseExpressionEmptyInput() {
 }
 
 // TestParseExpressionUnaryOperators tests parsing unary operators
-func (s *ExpressionTestSuite) TestParseExpressionUnaryOperators() {
+func (s *ParserTestSuite) TestParseExpressionUnaryOperators() {
 	testCases := []struct {
 		input    string
 		operator string
@@ -435,7 +405,7 @@ func (s *ExpressionTestSuite) TestParseExpressionUnaryOperators() {
 }
 
 // TestParseExpressionBinaryOperators tests parsing binary operators
-func (s *ExpressionTestSuite) TestParseExpressionBinaryOperators() {
+func (s *ParserTestSuite) TestParseExpressionBinaryOperators() {
 	testCases := []struct {
 		input    string
 		left     string
@@ -472,7 +442,7 @@ func (s *ExpressionTestSuite) TestParseExpressionBinaryOperators() {
 }
 
 // TestParseExpressionFieldAccess tests parsing field access expressions
-func (s *ExpressionTestSuite) TestParseExpressionFieldAccess() {
+func (s *ParserTestSuite) TestParseExpressionFieldAccess() {
 	testCases := []struct {
 		input string
 		left  string
@@ -497,7 +467,7 @@ func (s *ExpressionTestSuite) TestParseExpressionFieldAccess() {
 }
 
 // TestParseExpressionComplexNested tests parsing complex nested expressions
-func (s *ExpressionTestSuite) TestParseExpressionComplexNested() {
+func (s *ParserTestSuite) TestParseExpressionComplexNested() {
 	testCases := []struct {
 		input    string
 		expected string
@@ -521,7 +491,7 @@ func (s *ExpressionTestSuite) TestParseExpressionComplexNested() {
 }
 
 // TestParseExpressionEdgeCases tests parsing edge cases
-func (s *ExpressionTestSuite) TestParseExpressionEdgeCases() {
+func (s *ParserTestSuite) TestParseExpressionEdgeCases() {
 	testCases := []struct {
 		input       string
 		shouldParse bool
@@ -558,9 +528,4 @@ func (s *ExpressionTestSuite) TestParseExpressionEdgeCases() {
 			s.NotNil(parser.err, "Expected error for: %s (%s)", tc.input, tc.description)
 		}
 	}
-}
-
-// TestParseExpressionTestSuite runs the expression test suite
-func TestParseExpressionTestSuite(t *testing.T) {
-	suite.Run(t, new(ExpressionTestSuite))
 }

@@ -16,41 +16,11 @@
 
 package parser
 
-import (
-	"log/slog"
-	"testing"
+import "testing"
 
-	"github.com/stretchr/testify/suite"
-)
-
-// PrecedenceTestSuite provides tests for operator precedence
-type PrecedenceTestSuite struct {
-	suite.Suite
-}
-
-// SetupSuite initializes the test suite
-func (s *PrecedenceTestSuite) SetupSuite() {
-	slog.Info("PrecedenceTestSuite SetupSuite start")
-}
-
-// BeforeTest runs before each test
-func (s *PrecedenceTestSuite) BeforeTest(suiteName, testName string) {
-	slog.Info("BeforeTest start", "TestSuite", "PrecedenceTestSuite", "TestName", testName)
-}
-
-// AfterTest runs after each test
-func (s *PrecedenceTestSuite) AfterTest(suiteName, testName string) {
-	slog.Info("AfterTest start", "TestSuite", "PrecedenceTestSuite", "TestName", testName)
-}
-
-// TearDownSuite cleans up after all tests
-func (s *PrecedenceTestSuite) TearDownSuite() {
-	slog.Info("TearDownSuite")
-	slog.Info("TearDownSuite end")
-}
-
-// TestPrecedenceArithmetic tests arithmetic operator precedence
-func (s *PrecedenceTestSuite) TestPrecedenceArithmetic() {
+// TestPrecedenceArithmetic tests arithmetic operator precedence.
+// Subtest closures take *testing.T because testing.T.Run requires that signature; assertions still go through the suite (s), not raw assert/require on t. The same pattern appears in other TestPrecedence* methods in this file.
+func (s *ParserTestSuite) TestPrecedenceArithmetic() {
 	s.T().Run("AdditionMultiplication", func(t *testing.T) {
 		parser := NewParserFromString("1 + 2 * 3", "test.sentra")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
@@ -137,7 +107,7 @@ func (s *PrecedenceTestSuite) TestPrecedenceArithmetic() {
 }
 
 // TestPrecedenceComparison tests comparison operator precedence
-func (s *PrecedenceTestSuite) TestPrecedenceComparison() {
+func (s *ParserTestSuite) TestPrecedenceComparison() {
 	s.T().Run("LessThanAndGreaterThan", func(t *testing.T) {
 		parser := NewParserFromString("1 < 2 and 3 > 4", "test.sentra")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
@@ -203,7 +173,7 @@ func (s *PrecedenceTestSuite) TestPrecedenceComparison() {
 }
 
 // TestPrecedenceLogical tests logical operator precedence
-func (s *PrecedenceTestSuite) TestPrecedenceLogical() {
+func (s *ParserTestSuite) TestPrecedenceLogical() {
 	s.T().Run("AndOr", func(t *testing.T) {
 		parser := NewParserFromString("1 and 2 or 3", "test.sentra")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
@@ -269,7 +239,7 @@ func (s *PrecedenceTestSuite) TestPrecedenceLogical() {
 }
 
 // TestPrecedenceEquality tests equality operator precedence
-func (s *PrecedenceTestSuite) TestPrecedenceEquality() {
+func (s *ParserTestSuite) TestPrecedenceEquality() {
 	s.T().Run("EqualAndNotEqual", func(t *testing.T) {
 		parser := NewParserFromString("1 == 2 and 3 != 4", "test.sentra")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
@@ -328,7 +298,7 @@ func (s *PrecedenceTestSuite) TestPrecedenceEquality() {
 }
 
 // TestPrecedenceTernary tests ternary operator precedence
-func (s *PrecedenceTestSuite) TestPrecedenceTernary() {
+func (s *ParserTestSuite) TestPrecedenceTernary() {
 	s.T().Run("BasicTernary", func(t *testing.T) {
 		parser := NewParserFromString("1 ? 2 : 3", "test.sentra")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
@@ -401,7 +371,7 @@ func (s *PrecedenceTestSuite) TestPrecedenceTernary() {
 }
 
 // TestPrecedenceUnary tests unary operator precedence
-func (s *PrecedenceTestSuite) TestPrecedenceUnary() {
+func (s *ParserTestSuite) TestPrecedenceUnary() {
 	s.T().Run("NotTrue", func(t *testing.T) {
 		parser := NewParserFromString("!true", "test.sentra")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
@@ -488,7 +458,7 @@ func (s *PrecedenceTestSuite) TestPrecedenceUnary() {
 }
 
 // TestPrecedenceCall tests function call precedence
-func (s *PrecedenceTestSuite) TestPrecedenceCall() {
+func (s *ParserTestSuite) TestPrecedenceCall() {
 	s.T().Run("BasicCall", func(t *testing.T) {
 		parser := NewParserFromString("myFunction(1, 2)", "test.sentra")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
@@ -554,7 +524,7 @@ func (s *PrecedenceTestSuite) TestPrecedenceCall() {
 }
 
 // TestPrecedenceIndex tests index access precedence
-func (s *PrecedenceTestSuite) TestPrecedenceIndex() {
+func (s *ParserTestSuite) TestPrecedenceIndex() {
 	s.T().Run("ArrayIndex", func(t *testing.T) {
 		parser := NewParserFromString("array[0]", "test.sentra")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
@@ -627,7 +597,7 @@ func (s *PrecedenceTestSuite) TestPrecedenceIndex() {
 }
 
 // TestPrecedenceGrouping tests grouping with parentheses
-func (s *PrecedenceTestSuite) TestPrecedenceGrouping() {
+func (s *ParserTestSuite) TestPrecedenceGrouping() {
 	s.T().Run("GroupedAdditionMultiplication", func(t *testing.T) {
 		parser := NewParserFromString("(1 + 2) * 3", "test.sentra")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
@@ -728,7 +698,7 @@ func (s *PrecedenceTestSuite) TestPrecedenceGrouping() {
 }
 
 // TestPrecedenceComplex tests complex precedence combinations
-func (s *PrecedenceTestSuite) TestPrecedenceComplex() {
+func (s *ParserTestSuite) TestPrecedenceComplex() {
 	s.T().Run("ComplexArithmeticEquality", func(t *testing.T) {
 		parser := NewParserFromString("1 + 2 * 3 == 4 + 5 * 6", "test.sentra")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
@@ -801,7 +771,7 @@ func (s *PrecedenceTestSuite) TestPrecedenceComplex() {
 }
 
 // TestPrecedenceAssociativity tests operator associativity
-func (s *PrecedenceTestSuite) TestPrecedenceAssociativity() {
+func (s *ParserTestSuite) TestPrecedenceAssociativity() {
 	s.T().Run("AdditionChain", func(t *testing.T) {
 		parser := NewParserFromString("1 + 2 + 3", "test.sentra")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
@@ -878,9 +848,4 @@ func (s *PrecedenceTestSuite) TestPrecedenceAssociativity() {
 		s.NotNil(expr, "Failed to parse: 1 >= 2 >= 3")
 		s.Equal("((1 >= 2) >= 3)", expr.String())
 	})
-}
-
-// TestPrecedenceTestSuite runs the precedence test suite
-func TestPrecedenceTestSuite(t *testing.T) {
-	suite.Run(t, new(PrecedenceTestSuite))
 }

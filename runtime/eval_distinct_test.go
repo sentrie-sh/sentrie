@@ -17,35 +17,11 @@
 package runtime
 
 import (
-	"context"
-	"testing"
-
 	"github.com/sentrie-sh/sentrie/ast"
-	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
-	"github.com/stretchr/testify/suite"
 )
 
-type EvalDistinctTestSuite struct {
-	suite.Suite
-	ctx    context.Context
-	ec     *ExecutionContext
-	exec   *executorImpl
-	policy *index.Policy
-}
-
-func (r *EvalDistinctTestSuite) SetupSuite() {
-	r.ctx = context.Background()
-	r.ec = &ExecutionContext{}
-	r.exec = &executorImpl{}
-	r.policy = &index.Policy{
-		Namespace: &index.Namespace{
-			FQN: ast.NewFQN([]string{"test", "namespace"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}),
-		},
-	}
-}
-
-func (r *EvalDistinctTestSuite) TestEvalDistinctIntegersWithEquality() {
+func (s *RuntimeTestSuite) TestEvalDistinctIntegersWithEquality() {
 	collectionExpr := ast.NewListLiteral(
 		[]ast.Expression{
 			ast.NewIntegerLiteral(1, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}),
@@ -70,13 +46,13 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctIntegersWithEquality() {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
 
-	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
+	result, _, err := evalDistinct(s.ctx, s.ec, s.exec, s.policy, distinctExpr)
 
-	r.NoError(err)
-	r.Equal([]any{float64(1), float64(2), float64(3)}, result.Any())
+	s.NoError(err)
+	s.Equal([]any{float64(1), float64(2), float64(3)}, result.Any())
 }
 
-func (r *EvalDistinctTestSuite) TestEvalDistinctStringsWithEquality() {
+func (s *RuntimeTestSuite) TestEvalDistinctStringsWithEquality() {
 	collectionExpr := ast.NewListLiteral(
 		[]ast.Expression{
 			ast.NewStringLiteral("apple", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}),
@@ -101,13 +77,13 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctStringsWithEquality() {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
 
-	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
+	result, _, err := evalDistinct(s.ctx, s.ec, s.exec, s.policy, distinctExpr)
 
-	r.NoError(err)
-	r.Equal([]any{"apple", "banana", "cherry"}, result.Any())
+	s.NoError(err)
+	s.Equal([]any{"apple", "banana", "cherry"}, result.Any())
 }
 
-func (r *EvalDistinctTestSuite) TestEvalDistinctMixedTypes() {
+func (s *RuntimeTestSuite) TestEvalDistinctMixedTypes() {
 	collectionExpr := ast.NewListLiteral(
 		[]ast.Expression{
 			ast.NewIntegerLiteral(1, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}),
@@ -132,13 +108,13 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctMixedTypes() {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
 
-	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
+	result, _, err := evalDistinct(s.ctx, s.ec, s.exec, s.policy, distinctExpr)
 
-	r.NoError(err)
-	r.Equal([]any{float64(1), "hello", "world"}, result.Any())
+	s.NoError(err)
+	s.Equal([]any{float64(1), "hello", "world"}, result.Any())
 }
 
-func (r *EvalDistinctTestSuite) TestEvalDistinctEmptyCollection() {
+func (s *RuntimeTestSuite) TestEvalDistinctEmptyCollection() {
 	collectionExpr := ast.NewListLiteral(
 		[]ast.Expression{},
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
@@ -157,13 +133,13 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctEmptyCollection() {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
 
-	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
+	result, _, err := evalDistinct(s.ctx, s.ec, s.exec, s.policy, distinctExpr)
 
-	r.NoError(err)
-	r.Equal([]any{}, result.Any())
+	s.NoError(err)
+	s.Equal([]any{}, result.Any())
 }
 
-func (r *EvalDistinctTestSuite) TestEvalDistinctSingleItemCollection() {
+func (s *RuntimeTestSuite) TestEvalDistinctSingleItemCollection() {
 	collectionExpr := ast.NewListLiteral(
 		[]ast.Expression{
 			ast.NewIntegerLiteral(42, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}),
@@ -184,13 +160,13 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctSingleItemCollection() {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
 
-	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
+	result, _, err := evalDistinct(s.ctx, s.ec, s.exec, s.policy, distinctExpr)
 
-	r.NoError(err)
-	r.Equal([]any{float64(42)}, result.Any())
+	s.NoError(err)
+	s.Equal([]any{float64(42)}, result.Any())
 }
 
-func (r *EvalDistinctTestSuite) TestEvalDistinctAllIdenticalItems() {
+func (s *RuntimeTestSuite) TestEvalDistinctAllIdenticalItems() {
 	collectionExpr := ast.NewListLiteral(
 		[]ast.Expression{
 			ast.NewIntegerLiteral(5, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}),
@@ -214,13 +190,13 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctAllIdenticalItems() {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
 
-	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
+	result, _, err := evalDistinct(s.ctx, s.ec, s.exec, s.policy, distinctExpr)
 
-	r.NoError(err)
-	r.Equal([]any{float64(5)}, result.Any())
+	s.NoError(err)
+	s.Equal([]any{float64(5)}, result.Any())
 }
 
-func (r *EvalDistinctTestSuite) TestEvalDistinctAlreadyDistinctItems() {
+func (s *RuntimeTestSuite) TestEvalDistinctAlreadyDistinctItems() {
 	collectionExpr := ast.NewListLiteral(
 		[]ast.Expression{
 			ast.NewIntegerLiteral(1, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}),
@@ -244,13 +220,13 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctAlreadyDistinctItems() {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
 
-	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
+	result, _, err := evalDistinct(s.ctx, s.ec, s.exec, s.policy, distinctExpr)
 
-	r.NoError(err)
-	r.Equal([]any{float64(1), float64(2), float64(3), float64(4)}, result.Any())
+	s.NoError(err)
+	s.Equal([]any{float64(1), float64(2), float64(3), float64(4)}, result.Any())
 }
 
-func (r *EvalDistinctTestSuite) TestEvalDistinctNonListInput() {
+func (s *RuntimeTestSuite) TestEvalDistinctNonListInput() {
 	// Test with non-list collection (should return error)
 	distinctExpr := ast.NewDistinctExpression(
 		ast.NewStringLiteral("not a list", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}),
@@ -265,14 +241,14 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctNonListInput() {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
 
-	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
+	result, _, err := evalDistinct(s.ctx, s.ec, s.exec, s.policy, distinctExpr)
 
-	r.Error(err)
-	r.False(result.IsValid())
-	r.Contains(err.Error(), "distinct expects list source")
+	s.Error(err)
+	s.False(result.IsValid())
+	s.Contains(err.Error(), "distinct expects list source")
 }
 
-func (r *EvalDistinctTestSuite) TestEvalDistinctByAbsoluteValue() {
+func (s *RuntimeTestSuite) TestEvalDistinctByAbsoluteValue() {
 	collectionExpr := ast.NewListLiteral(
 		[]ast.Expression{
 			ast.NewIntegerLiteral(-1, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}),
@@ -307,13 +283,13 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctByAbsoluteValue() {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
 
-	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
+	result, _, err := evalDistinct(s.ctx, s.ec, s.exec, s.policy, distinctExpr)
 
-	r.NoError(err)
-	r.Equal([]any{float64(-1), float64(-2)}, result.Any()) // Should keep first occurrence of each absolute value
+	s.NoError(err)
+	s.Equal([]any{float64(-1), float64(-2)}, result.Any()) // Should keep first occurrence of each absolute value
 }
 
-func (r *EvalDistinctTestSuite) TestEvalDistinctByModulo3() {
+func (s *RuntimeTestSuite) TestEvalDistinctByModulo3() {
 	collectionExpr := ast.NewListLiteral(
 		[]ast.Expression{
 			ast.NewIntegerLiteral(1, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}),
@@ -348,13 +324,13 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctByModulo3() {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
 
-	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
+	result, _, err := evalDistinct(s.ctx, s.ec, s.exec, s.policy, distinctExpr)
 
-	r.NoError(err)
-	r.Equal([]any{float64(1), float64(2)}, result.Any()) // Should keep first occurrence of each modulo 3 result
+	s.NoError(err)
+	s.Equal([]any{float64(1), float64(2)}, result.Any()) // Should keep first occurrence of each modulo 3 result
 }
 
-func (r *EvalDistinctTestSuite) TestEvalDistinctPredicateEvaluationError() {
+func (s *RuntimeTestSuite) TestEvalDistinctPredicateEvaluationError() {
 	collectionExpr := ast.NewListLiteral(
 		[]ast.Expression{
 			ast.NewIntegerLiteral(1, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}),
@@ -380,14 +356,14 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctPredicateEvaluationError() {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
 
-	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
+	result, _, err := evalDistinct(s.ctx, s.ec, s.exec, s.policy, distinctExpr)
 
-	r.Error(err)
-	r.False(result.IsValid())
-	r.Contains(err.Error(), "unable to resolve import")
+	s.Error(err)
+	s.False(result.IsValid())
+	s.Contains(err.Error(), "unable to resolve import")
 }
 
-func (r *EvalDistinctTestSuite) TestEvalDistinctWithMaps() {
+func (s *RuntimeTestSuite) TestEvalDistinctWithMaps() {
 	// Test with map objects - compare by id field instead of direct equality
 	collectionExpr := ast.NewListLiteral(
 		[]ast.Expression{
@@ -437,14 +413,10 @@ func (r *EvalDistinctTestSuite) TestEvalDistinctWithMaps() {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}},
 	)
 
-	result, _, err := evalDistinct(r.ctx, r.ec, r.exec, r.policy, distinctExpr)
+	result, _, err := evalDistinct(s.ctx, s.ec, s.exec, s.policy, distinctExpr)
 
-	r.NoError(err)
+	s.NoError(err)
 	list, ok := result.ListValue()
-	r.True(ok)
-	r.Len(list, 2) // Should have 2 distinct maps based on id field
-}
-
-func TestEvalDistinctTestSuite(t *testing.T) {
-	suite.Run(t, new(EvalDistinctTestSuite))
+	s.True(ok)
+	s.Len(list, 2) // Should have 2 distinct maps based on id field
 }

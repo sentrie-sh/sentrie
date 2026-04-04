@@ -14,42 +14,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package box_test
+package box
 
-import (
-	"testing"
+import "github.com/sentrie-sh/sentrie/trinary"
 
-	"github.com/sentrie-sh/sentrie/box"
-	"github.com/sentrie-sh/sentrie/trinary"
-	"github.com/stretchr/testify/require"
-)
-
-func TestTrinaryFrom_matchesFromAny(t *testing.T) {
-	cases := []box.Value{
-		box.Undefined(),
-		box.Null(),
-		box.Bool(true),
-		box.Bool(false),
-		box.Number(0),
-		box.Number(3.14),
-		box.String(""),
-		box.String("hello"),
-		box.String("true"),
-		box.Trinary(trinary.True),
-		box.Trinary(trinary.False),
-		box.Trinary(trinary.Unknown),
-		box.List(nil),
-		box.List([]box.Value{}),
-		box.List([]box.Value{box.Number(0)}),
-		box.Map(nil),
-		box.Map(map[string]box.Value{}),
-		box.Map(map[string]box.Value{"a": box.Number(1)}),
-		box.Object(struct{ X int }{1}),
-		box.Object(map[string]any{"k": 1}),
+func (s *BoxTestSuite) TestTrinaryFrom_matchesFromAny() {
+	cases := []Value{
+		Undefined(),
+		Null(),
+		Bool(true),
+		Bool(false),
+		Number(0),
+		Number(3.14),
+		String(""),
+		String("hello"),
+		String("true"),
+		Trinary(trinary.True),
+		Trinary(trinary.False),
+		Trinary(trinary.Unknown),
+		List(nil),
+		List([]Value{}),
+		List([]Value{Number(0)}),
+		Map(nil),
+		Map(map[string]Value{}),
+		Map(map[string]Value{"a": Number(1)}),
+		Object(struct{ X int }{1}),
+		Object(map[string]any{"k": 1}),
 	}
 	for _, b := range cases {
-		t.Run(b.String(), func(t *testing.T) {
-			require.Equal(t, trinary.From(b.Any()), box.TrinaryFrom(b))
+		s.Run(b.String(), func() {
+			s.Equal(trinary.From(b.Any()), TrinaryFrom(b))
 		})
 	}
 }

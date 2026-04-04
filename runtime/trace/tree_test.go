@@ -19,54 +19,44 @@ package trace
 import (
 	"context"
 	"errors"
-	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/tokens"
-	"github.com/stretchr/testify/require"
 )
 
-func TestNewAndDoneSetsDuration(t *testing.T) {
+func (s *TraceTestSuite) TestNewAndDoneSetsDuration() {
 	ident := ast.NewIdentifier("x", tokens.Range{File: "test.sentra"})
 	_, node, done := New(context.Background(), ident, "ident", map[string]any{"key": "value"})
-
-	require.Equal(t, ident.Kind(), node.Kind)
-	require.Equal(t, "ident", node.Op)
-	require.Equal(t, "value", node.Meta["key"])
-	require.Zero(t, node.Duration)
-
+	s.Equal(ident.Kind(), node.Kind)
+	s.Equal("ident", node.Op)
+	s.Equal("value", node.Meta["key"])
+	s.Zero(node.Duration)
 	done()
-	require.NotZero(t, node.Duration)
+	s.NotZero(node.Duration)
 }
 
-func TestIgnoredAndUnsupportedNodeKinds(t *testing.T) {
+func (s *TraceTestSuite) TestIgnoredAndUnsupportedNodeKinds() {
 	ident := ast.NewIdentifier("x", tokens.Range{File: "test.sentra"})
-
 	ignored := IgnoredStmt(ident)
-	require.Equal(t, "stmt-ignored", ignored.Kind)
-	require.Contains(t, ignored.Meta["type"], "ast.Identifier")
-
+	s.Equal("stmt-ignored", ignored.Kind)
+	s.Contains(ignored.Meta["type"], "ast.Identifier")
 	unsupported := UnsupportedExpression(ident)
-	require.Equal(t, "unsupported", unsupported.Kind)
-	require.Contains(t, unsupported.Meta["type"], "ast.Identifier")
+	s.Equal("unsupported", unsupported.Kind)
+	s.Contains(unsupported.Meta["type"], "ast.Identifier")
 }
 
-func TestAttachSetResultSetErr(t *testing.T) {
+func (s *TraceTestSuite) TestAttachSetResultSetErr() {
 	parent := &Node{Kind: "root"}
 	left := &Node{Kind: "left"}
 	right := &Node{Kind: "right"}
-
-	require.Same(t, parent, parent.Attach())
-	require.Same(t, parent, parent.Attach(left, right))
-	require.Len(t, parent.Children, 2)
-
-	require.Same(t, parent, parent.SetResult(box.String("ok")))
-	require.Equal(t, box.String("ok"), parent.Result)
-
-	require.Same(t, parent, parent.SetErr(nil))
-	require.Empty(t, parent.Err)
-
-	require.Same(t, parent, parent.SetErr(errors.New("boom")))
-	require.Equal(t, "boom", parent.Err)
+	s.Same(parent, parent.Attach())
+	s.Same(parent, parent.Attach(left, right))
+	s.Len(parent.Children, 2)
+	s.Same(parent, parent.SetResult(box.String("ok")))
+	s.Equal(box.String("ok"), parent.Result)
+	s.Same(parent, parent.SetErr(nil))
+	s.Empty(parent.Err)
+	s.Same(parent, parent.SetErr(errors.New("boom")))
+	s.Equal("boom", parent.Err)
 }

@@ -18,7 +18,6 @@ package constraints_test
 
 import (
 	"math"
-	"testing"
 
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constraints"
@@ -28,8 +27,8 @@ import (
 // Exercises remaining branches for 100% statement coverage (wrong arg counts after
 // type checks, and wrong value kinds for zero-arg checkers).
 
-func TestNumberRemainingBranches(t *testing.T) {
-	t.Run("wrong arg count or arg type", func(t *testing.T) {
+func (s *ConstraintsTestSuite) TestNumberRemainingBranches() {
+	s.Run("wrong arg count or arg type", func() {
 		type row struct {
 			key  string
 			val  box.Value
@@ -53,55 +52,50 @@ func TestNumberRemainingBranches(t *testing.T) {
 			{"not_in", box.Number(1), []box.Value{box.Number(1), box.Number(2)}},
 		}
 		for _, r := range rows {
-			t.Run(r.key, func(t *testing.T) {
+			s.Run(r.key, func() {
 				c := constraints.NumberContraintCheckers[r.key]
-				runChecker(t, c, r.val, r.args, true)
+				s.runChecker(c, r.val, r.args, true)
 			})
 		}
 	})
-
-	t.Run("zero-arg non-number val", func(t *testing.T) {
+	s.Run("zero-arg non-number val", func() {
 		bad := box.String("x")
 		for _, key := range []string{
 			"even", "odd", "positive", "negative", "non_negative", "non_positive",
 			"finite", "infinite", "nan",
 		} {
-			t.Run(key, func(t *testing.T) {
+			s.Run(key, func() {
 				c := constraints.NumberContraintCheckers[key]
-				runChecker(t, c, bad, nil, true)
+				s.runChecker(c, bad, nil, true)
 			})
 		}
 	})
-
-	t.Run("finite with inf and nan", func(t *testing.T) {
+	s.Run("finite with inf and nan", func() {
 		c := constraints.NumberContraintCheckers["finite"]
-		runChecker(t, c, box.Number(math.Inf(1)), nil, true)
-		runChecker(t, c, box.Number(math.NaN()), nil, true)
+		s.runChecker(c, box.Number(math.Inf(1)), nil, true)
+		s.runChecker(c, box.Number(math.NaN()), nil, true)
 	})
-
-	t.Run("infinite with non-inf", func(t *testing.T) {
+	s.Run("infinite with non-inf", func() {
 		c := constraints.NumberContraintCheckers["infinite"]
-		runChecker(t, c, box.Number(math.NaN()), nil, true)
+		s.runChecker(c, box.Number(math.NaN()), nil, true)
 	})
-
-	t.Run("nan with non-nan", func(t *testing.T) {
+	s.Run("nan with non-nan", func() {
 		c := constraints.NumberContraintCheckers["nan"]
-		runChecker(t, c, box.Number(math.Inf(1)), nil, true)
+		s.runChecker(c, box.Number(math.Inf(1)), nil, true)
 	})
 }
 
-func TestStringRemainingBranches(t *testing.T) {
-	t.Run("length minlength maxlength arg type", func(t *testing.T) {
-		runChecker(t, constraints.StringContraintCheckers["minlength"],
+func (s *ConstraintsTestSuite) TestStringRemainingBranches() {
+	s.Run("length minlength maxlength arg type", func() {
+		s.runChecker(constraints.StringContraintCheckers["minlength"],
 			box.String("abc"), []box.Value{box.String("x")}, true)
-		runChecker(t, constraints.StringContraintCheckers["maxlength"],
+		s.runChecker(constraints.StringContraintCheckers["maxlength"],
 			box.Number(1), []box.Value{box.Number(3)}, true)
-		runChecker(t, constraints.StringContraintCheckers["maxlength"],
+		s.runChecker(constraints.StringContraintCheckers["maxlength"],
 			box.String("ab"), []box.Value{box.String("x")}, true)
 	})
-
-	t.Run("wrong arg count with string val", func(t *testing.T) {
-		s := box.String("ab")
+	s.Run("wrong arg count with string val", func() {
+		str := box.String("ab")
 		type row struct {
 			key  string
 			args []box.Value
@@ -116,69 +110,63 @@ func TestStringRemainingBranches(t *testing.T) {
 			{"not_has_substring", []box.Value{box.String("a"), box.String("b")}},
 		}
 		for _, r := range rows {
-			t.Run(r.key, func(t *testing.T) {
+			s.Run(r.key, func() {
 				c := constraints.StringContraintCheckers[r.key]
-				runChecker(t, c, s, r.args, true)
+				s.runChecker(c, str, r.args, true)
 			})
 		}
 	})
-
-	t.Run("prefix suffix substring arg not string or val not string", func(t *testing.T) {
-		runChecker(t, constraints.StringContraintCheckers["starts_with"],
+	s.Run("prefix suffix substring arg not string or val not string", func() {
+		s.runChecker(constraints.StringContraintCheckers["starts_with"],
 			box.String("hi"), []box.Value{box.Number(1)}, true)
-		runChecker(t, constraints.StringContraintCheckers["ends_with"],
+		s.runChecker(constraints.StringContraintCheckers["ends_with"],
 			box.Number(1), []box.Value{box.String("x")}, true)
-		runChecker(t, constraints.StringContraintCheckers["ends_with"],
+		s.runChecker(constraints.StringContraintCheckers["ends_with"],
 			box.String("hi"), []box.Value{box.Number(1)}, true)
-		runChecker(t, constraints.StringContraintCheckers["has_substring"],
+		s.runChecker(constraints.StringContraintCheckers["has_substring"],
 			box.Number(1), []box.Value{box.String("x")}, true)
-		runChecker(t, constraints.StringContraintCheckers["has_substring"],
+		s.runChecker(constraints.StringContraintCheckers["has_substring"],
 			box.String("hi"), []box.Value{box.Number(1)}, true)
-		runChecker(t, constraints.StringContraintCheckers["not_has_substring"],
+		s.runChecker(constraints.StringContraintCheckers["not_has_substring"],
 			box.Number(1), []box.Value{box.String("x")}, true)
-		runChecker(t, constraints.StringContraintCheckers["not_has_substring"],
+		s.runChecker(constraints.StringContraintCheckers["not_has_substring"],
 			box.String("hi"), []box.Value{box.Number(1)}, true)
 	})
-
-	t.Run("non-string val", func(t *testing.T) {
+	s.Run("non-string val", func() {
 		bad := box.Number(1)
 		for _, key := range []string{
 			"email", "url", "uuid", "alphanumeric", "alpha", "numeric",
 			"lowercase", "uppercase", "trimmed", "not_empty",
 		} {
-			t.Run(key, func(t *testing.T) {
+			s.Run(key, func() {
 				c := constraints.StringContraintCheckers[key]
-				runChecker(t, c, bad, nil, true)
+				s.runChecker(c, bad, nil, true)
 			})
 		}
 	})
-
-	t.Run("not_one_of non-string val", func(t *testing.T) {
+	s.Run("not_one_of non-string val", func() {
 		c := constraints.StringContraintCheckers["not_one_of"]
-		runChecker(t, c, box.Number(1), []box.Value{box.String("a")}, true)
+		s.runChecker(c, box.Number(1), []box.Value{box.String("a")}, true)
 	})
 }
 
-func TestTrinaryRemainingBranches(t *testing.T) {
-	t.Run("neq wrong arg count", func(t *testing.T) {
+func (s *ConstraintsTestSuite) TestTrinaryRemainingBranches() {
+	s.Run("neq wrong arg count", func() {
 		c := constraints.TrinaryConstraintCheckers["neq"]
-		runChecker(t, c, box.Trinary(trinary.True), []box.Value{
+		s.runChecker(c, box.Trinary(trinary.True), []box.Value{
 			box.Trinary(trinary.False), box.Trinary(trinary.True),
 		}, true)
 	})
-
-	t.Run("neq non-trinary val", func(t *testing.T) {
+	s.Run("neq non-trinary val", func() {
 		c := constraints.TrinaryConstraintCheckers["neq"]
-		runChecker(t, c, box.String("x"), []box.Value{box.Trinary(trinary.False)}, true)
+		s.runChecker(c, box.String("x"), []box.Value{box.Trinary(trinary.False)}, true)
 	})
-
-	t.Run("is_true non-trinary val", func(t *testing.T) {
+	s.Run("is_true non-trinary val", func() {
 		c := constraints.TrinaryConstraintCheckers["is_true"]
-		runChecker(t, c, box.String("x"), nil, true)
+		s.runChecker(c, box.String("x"), nil, true)
 	})
-
-	t.Run("is_false non-trinary val", func(t *testing.T) {
+	s.Run("is_false non-trinary val", func() {
 		c := constraints.TrinaryConstraintCheckers["is_false"]
-		runChecker(t, c, box.Number(1), nil, true)
+		s.runChecker(c, box.Number(1), nil, true)
 	})
 }

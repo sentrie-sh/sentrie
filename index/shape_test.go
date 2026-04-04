@@ -18,16 +18,13 @@ package index
 
 import (
 	"context"
-	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/tokens"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // Simple shape without dependencies - verify basic shape creation and validation
-func TestShapeDependency_SimpleShapeWithoutDependencies(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_SimpleShapeWithoutDependencies() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -45,33 +42,33 @@ func TestShapeDependency_SimpleShapeWithoutDependencies(t *testing.T) {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	shape, err := createShape(ns, nil, shapeStmt)
-	require.NoError(t, err)
-	require.NotNil(t, shape)
+	s.Require().NoError(err)
+	s.Require().NotNil(shape)
 
 	// Verify shape properties
-	assert.Equal(t, "User", shape.Name)
-	assert.Equal(t, "com/example/User", shape.FQN.String())
-	assert.Nil(t, shape.Model)
-	assert.NotNil(t, shape.AliasOf)
+	s.Equal("User", shape.Name)
+	s.Equal("com/example/User", shape.FQN.String())
+	s.Nil(shape.Model)
+	s.NotNil(shape.AliasOf)
 
 	// Add shape to namespace
 	err = ns.addShape(shape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Validate the index - should pass without errors
 	err = idx.Validate(ctx)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Verify shape is properly indexed
-	assert.Contains(t, ns.Shapes, "User")
-	assert.Equal(t, shape, ns.Shapes["User"])
+	s.Contains(ns.Shapes, "User")
+	s.Equal(shape, ns.Shapes["User"])
 }
 
 // Shape with missing dependency - verify proper error handling when dependency is not found
-func TestShapeDependency_ShapeWithMissingDependency(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_ShapeWithMissingDependency() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -81,7 +78,7 @@ func TestShapeDependency_ShapeWithMissingDependency(t *testing.T) {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create shape with missing dependency
 	wfMissing := ast.NewFQN([]string{"NonExistentShape"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}})
@@ -106,19 +103,19 @@ func TestShapeDependency_ShapeWithMissingDependency(t *testing.T) {
 
 	// Create and add shape
 	shape, err := createShape(ns, nil, shapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(shape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Validate the index - should fail with dependency not found error
 	err = idx.Validate(ctx)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "error resolving shape")
-	assert.Contains(t, err.Error(), "NonExistentShape")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "error resolving shape")
+	s.Contains(err.Error(), "NonExistentShape")
 }
 
 // Shape with circular dependency - verify cycle detection works
-func TestShapeDependency_ShapeWithCircularDependency(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_ShapeWithCircularDependency() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -128,7 +125,7 @@ func TestShapeDependency_ShapeWithCircularDependency(t *testing.T) {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create first shape that depends on second
 	wfA := ast.NewFQN([]string{"ShapeB"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}})
@@ -174,25 +171,25 @@ func TestShapeDependency_ShapeWithCircularDependency(t *testing.T) {
 
 	// Create and add both shapes
 	shape1, err := createShape(ns, nil, shape1Stmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(shape1)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	shape2, err := createShape(ns, nil, shape2Stmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(shape2)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Validate the index - should fail with circular dependency error
 	err = idx.Validate(ctx)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "detected cyclic dependencies in shapes")
-	assert.Contains(t, err.Error(), "ShapeA")
-	assert.Contains(t, err.Error(), "ShapeB")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "detected cyclic dependencies in shapes")
+	s.Contains(err.Error(), "ShapeA")
+	s.Contains(err.Error(), "ShapeB")
 }
 
 // Shape with complex dependency chain - verify complex dependency chains work
-func TestShapeDependency_ShapeWithComplexDependencyChain(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_ShapeWithComplexDependencyChain() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -202,7 +199,7 @@ func TestShapeDependency_ShapeWithComplexDependencyChain(t *testing.T) {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create base shape (no dependencies)
 	baseShapeStmt := ast.NewShapeStatement(
@@ -266,40 +263,40 @@ func TestShapeDependency_ShapeWithComplexDependencyChain(t *testing.T) {
 
 	// Create and add all shapes
 	baseShape, err := createShape(ns, nil, baseShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(baseShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	intermediateShape, err := createShape(ns, nil, intermediateShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(intermediateShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	finalShape, err := createShape(ns, nil, finalShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(finalShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Validate the index - should pass
 	err = idx.Validate(ctx)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Verify all shapes are properly indexed
-	assert.Contains(t, ns.Shapes, "BaseEntity")
-	assert.Contains(t, ns.Shapes, "User")
-	assert.Contains(t, ns.Shapes, "AdminUser")
+	s.Contains(ns.Shapes, "BaseEntity")
+	s.Contains(ns.Shapes, "User")
+	s.Contains(ns.Shapes, "AdminUser")
 
 	// Verify dependency chain
-	assert.Nil(t, baseShape.Model.WithFQN)
-	assert.Equal(t, "BaseEntity", intermediateShape.Model.WithFQN.String())
-	assert.Equal(t, "User", finalShape.Model.WithFQN.String())
+	s.Nil(baseShape.Model.WithFQN)
+	s.Equal("BaseEntity", intermediateShape.Model.WithFQN.String())
+	s.Equal("User", finalShape.Model.WithFQN.String())
 
 	// Verify shape DAG is created correctly
-	assert.NotNil(t, idx.shapeDag)
+	s.NotNil(idx.shapeDag)
 }
 
 // Shape with self-dependency - verify self-dependency is detected as error
-func TestShapeDependency_ShapeWithSelfDependency(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_ShapeWithSelfDependency() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -309,7 +306,7 @@ func TestShapeDependency_ShapeWithSelfDependency(t *testing.T) {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create shape that depends on itself
 	shapeStmt := ast.NewShapeStatement(
@@ -333,17 +330,17 @@ func TestShapeDependency_ShapeWithSelfDependency(t *testing.T) {
 
 	// Create and add shape
 	shape, err := createShape(ns, nil, shapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(shape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Validate the index - should fail with self-dependency error
 	err = idx.Validate(ctx)
-	require.Error(t, err)
+	s.Require().Error(err)
 }
 
 // Shape with multiple dependencies in same namespace - verify multiple shapes can depend on same base shape
-func TestShapeDependency_MultipleShapesDependingOnSameBase(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_MultipleShapesDependingOnSameBase() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -353,7 +350,7 @@ func TestShapeDependency_MultipleShapesDependingOnSameBase(t *testing.T) {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create base shape
 	baseShapeStmt := ast.NewShapeStatement(
@@ -417,39 +414,39 @@ func TestShapeDependency_MultipleShapesDependingOnSameBase(t *testing.T) {
 
 	// Create and add all shapes
 	baseShape, err := createShape(ns, nil, baseShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(baseShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	userShape, err := createShape(ns, nil, userShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(userShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	productShape, err := createShape(ns, nil, productShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(productShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Validate the index - should pass
 	err = idx.Validate(ctx)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Verify all shapes are properly indexed
-	assert.Contains(t, ns.Shapes, "BaseEntity")
-	assert.Contains(t, ns.Shapes, "User")
-	assert.Contains(t, ns.Shapes, "Product")
+	s.Contains(ns.Shapes, "BaseEntity")
+	s.Contains(ns.Shapes, "User")
+	s.Contains(ns.Shapes, "Product")
 
 	// Verify both dependent shapes reference the same base
-	assert.Equal(t, "BaseEntity", userShape.Model.WithFQN.String())
-	assert.Equal(t, "BaseEntity", productShape.Model.WithFQN.String())
+	s.Equal("BaseEntity", userShape.Model.WithFQN.String())
+	s.Equal("BaseEntity", productShape.Model.WithFQN.String())
 
 	// Verify shape DAG is created correctly
-	assert.NotNil(t, idx.shapeDag)
+	s.NotNil(idx.shapeDag)
 }
 
 // Shape with deep dependency chain - verify very long dependency chains work correctly
-func TestShapeDependency_DeepDependencyChain(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_DeepDependencyChain() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -459,7 +456,7 @@ func TestShapeDependency_DeepDependencyChain(t *testing.T) {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create a chain of 5 shapes: A -> B -> C -> D -> E
 	shapes := []struct {
@@ -504,26 +501,26 @@ func TestShapeDependency_DeepDependencyChain(t *testing.T) {
 		)
 
 		shape, err := createShape(ns, nil, shapeStmt)
-		require.NoError(t, err)
+		s.Require().NoError(err)
 		err = ns.addShape(shape)
-		require.NoError(t, err)
+		s.Require().NoError(err)
 	}
 
 	// Validate the index - should pass
 	err = idx.Validate(ctx)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Verify all shapes are properly indexed
 	for _, shapeInfo := range shapes {
-		assert.Contains(t, ns.Shapes, shapeInfo.name)
+		s.Contains(ns.Shapes, shapeInfo.name)
 	}
 
 	// Verify shape DAG is created correctly
-	assert.NotNil(t, idx.shapeDag)
+	s.NotNil(idx.shapeDag)
 }
 
 // Shape with empty WithFQN - verify shapes with empty dependencies work correctly
-func TestShapeDependency_ShapeWithEmptyWithFQN(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_ShapeWithEmptyWithFQN() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -533,7 +530,7 @@ func TestShapeDependency_ShapeWithEmptyWithFQN(t *testing.T) {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create shape with empty WithFQN
 	shapeStmt := ast.NewShapeStatement(
@@ -557,23 +554,23 @@ func TestShapeDependency_ShapeWithEmptyWithFQN(t *testing.T) {
 
 	// Create and add shape
 	shape, err := createShape(ns, nil, shapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(shape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Validate the index - should pass
 	err = idx.Validate(ctx)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Verify shape is properly indexed
-	assert.Contains(t, ns.Shapes, "EmptyDependencyShape")
+	s.Contains(ns.Shapes, "EmptyDependencyShape")
 
 	// Verify the shape has empty WithFQN
-	assert.Nil(t, shape.Model.WithFQN)
+	s.Nil(shape.Model.WithFQN)
 }
 
 // Shape with nil Complex - verify shapes without complex structure work correctly
-func TestShapeDependency_ShapeWithNilComplex(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_ShapeWithNilComplex() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -583,7 +580,7 @@ func TestShapeDependency_ShapeWithNilComplex(t *testing.T) {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create shape with nil Complex
 	shapeStmt := ast.NewShapeStatement(
@@ -595,24 +592,24 @@ func TestShapeDependency_ShapeWithNilComplex(t *testing.T) {
 
 	// Create and add shape
 	shape, err := createShape(ns, nil, shapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(shape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Validate the index - should pass
 	err = idx.Validate(ctx)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Verify shape is properly indexed
-	assert.Contains(t, ns.Shapes, "SimpleShape")
+	s.Contains(ns.Shapes, "SimpleShape")
 
 	// Verify the shape has nil Complex
-	assert.Nil(t, shape.Model)
-	assert.NotNil(t, shape.AliasOf)
+	s.Nil(shape.Model)
+	s.NotNil(shape.AliasOf)
 }
 
 // Shape with duplicate field names in composition - verify error handling for duplicate fields
-func TestShapeDependency_ShapeWithDuplicateFieldNames(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_ShapeWithDuplicateFieldNames() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -622,7 +619,7 @@ func TestShapeDependency_ShapeWithDuplicateFieldNames(t *testing.T) {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create base shape
 	baseShapeStmt := ast.NewShapeStatement(
@@ -666,30 +663,30 @@ func TestShapeDependency_ShapeWithDuplicateFieldNames(t *testing.T) {
 
 	// Create and add base shape
 	baseShape, err := createShape(ns, nil, baseShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(baseShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create and add dependent shape
 	dependentShape, err := createShape(ns, nil, dependentShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(dependentShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Validate the index - should pass (duplicate field names are handled during hydration, not validation)
 	err = idx.Validate(ctx)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Verify both shapes are properly indexed
-	assert.Contains(t, ns.Shapes, "BaseEntity")
-	assert.Contains(t, ns.Shapes, "UserWithDuplicateField")
+	s.Contains(ns.Shapes, "BaseEntity")
+	s.Contains(ns.Shapes, "UserWithDuplicateField")
 
 	// Verify dependency relationship
-	assert.Equal(t, "BaseEntity", dependentShape.Model.WithFQN.String())
+	s.Equal("BaseEntity", dependentShape.Model.WithFQN.String())
 }
 
 // Shape with very long FQN - verify shapes with long names work correctly
-func TestShapeDependency_ShapeWithVeryLongFQN(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_ShapeWithVeryLongFQN() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -699,7 +696,7 @@ func TestShapeDependency_ShapeWithVeryLongFQN(t *testing.T) {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create shape with very long name
 	shapeStmt := ast.NewShapeStatement(
@@ -711,24 +708,24 @@ func TestShapeDependency_ShapeWithVeryLongFQN(t *testing.T) {
 
 	// Create and add shape
 	shape, err := createShape(ns, nil, shapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(shape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Validate the index - should pass
 	err = idx.Validate(ctx)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Verify shape is properly indexed
-	assert.Contains(t, ns.Shapes, "VeryLongShapeNameForTestingPurposes")
+	s.Contains(ns.Shapes, "VeryLongShapeNameForTestingPurposes")
 
 	// Verify the FQN is very long
 	expectedFQN := "com/example/very/long/namespace/name/for/testing/VeryLongShapeNameForTestingPurposes"
-	assert.Equal(t, expectedFQN, shape.FQN.String())
+	s.Equal(expectedFQN, shape.FQN.String())
 }
 
 // Shape with special characters in name - verify shapes with special characters work correctly
-func TestShapeDependency_ShapeWithSpecialCharacters(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_ShapeWithSpecialCharacters() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -738,7 +735,7 @@ func TestShapeDependency_ShapeWithSpecialCharacters(t *testing.T) {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create shape with special characters in name
 	shapeStmt := ast.NewShapeStatement(
@@ -750,24 +747,24 @@ func TestShapeDependency_ShapeWithSpecialCharacters(t *testing.T) {
 
 	// Create and add shape
 	shape, err := createShape(ns, nil, shapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(shape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Validate the index - should pass
 	err = idx.Validate(ctx)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Verify shape is properly indexed
-	assert.Contains(t, ns.Shapes, "Shape_With_Underscores_And_123_Numbers")
+	s.Contains(ns.Shapes, "Shape_With_Underscores_And_123_Numbers")
 
 	// Verify the FQN includes the special characters
 	expectedFQN := "com/example/Shape_With_Underscores_And_123_Numbers"
-	assert.Equal(t, expectedFQN, shape.FQN.String())
+	s.Equal(expectedFQN, shape.FQN.String())
 }
 
 // Shape with multiple fields - verify shapes with multiple fields work correctly
-func TestShapeDependency_ShapeWithMultipleFields(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_ShapeWithMultipleFields() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -777,7 +774,7 @@ func TestShapeDependency_ShapeWithMultipleFields(t *testing.T) {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create shape with multiple fields
 	shapeStmt := ast.NewShapeStatement(
@@ -815,33 +812,33 @@ func TestShapeDependency_ShapeWithMultipleFields(t *testing.T) {
 
 	// Create and add shape
 	shape, err := createShape(ns, nil, shapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(shape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Validate the index - should pass
 	err = idx.Validate(ctx)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Verify shape is properly indexed
-	assert.Contains(t, ns.Shapes, "MultiFieldShape")
+	s.Contains(ns.Shapes, "MultiFieldShape")
 
 	// Verify all fields are present
-	assert.Contains(t, shape.Model.Fields, "id")
-	assert.Contains(t, shape.Model.Fields, "name")
-	assert.Contains(t, shape.Model.Fields, "email")
+	s.Contains(shape.Model.Fields, "id")
+	s.Contains(shape.Model.Fields, "name")
+	s.Contains(shape.Model.Fields, "email")
 
 	// Verify field properties
-	assert.True(t, shape.Model.Fields["id"].NotNullable)
-	assert.True(t, shape.Model.Fields["id"].Required)
-	assert.True(t, shape.Model.Fields["name"].NotNullable)
-	assert.True(t, shape.Model.Fields["name"].Required)
-	assert.False(t, shape.Model.Fields["email"].NotNullable)
-	assert.True(t, shape.Model.Fields["email"].Required)
+	s.True(shape.Model.Fields["id"].NotNullable)
+	s.True(shape.Model.Fields["id"].Required)
+	s.True(shape.Model.Fields["name"].NotNullable)
+	s.True(shape.Model.Fields["name"].Required)
+	s.False(shape.Model.Fields["email"].NotNullable)
+	s.True(shape.Model.Fields["email"].Required)
 }
 
 // Shape with complex nested dependency - verify complex nested dependencies work correctly
-func TestShapeDependency_ComplexNestedDependency(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_ComplexNestedDependency() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -851,7 +848,7 @@ func TestShapeDependency_ComplexNestedDependency(t *testing.T) {
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns, err := idx.ensureNamespace(ctx, nsStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create base shape
 	baseShapeStmt := ast.NewShapeStatement(
@@ -915,40 +912,40 @@ func TestShapeDependency_ComplexNestedDependency(t *testing.T) {
 
 	// Create and add all shapes
 	baseShape, err := createShape(ns, nil, baseShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(baseShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	intermediateShape, err := createShape(ns, nil, intermediateShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(intermediateShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	finalShape, err := createShape(ns, nil, finalShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns.addShape(finalShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Validate the index - should pass
 	err = idx.Validate(ctx)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Verify all shapes are properly indexed
-	assert.Contains(t, ns.Shapes, "BaseEntity")
-	assert.Contains(t, ns.Shapes, "IntermediateEntity")
-	assert.Contains(t, ns.Shapes, "FinalEntity")
+	s.Contains(ns.Shapes, "BaseEntity")
+	s.Contains(ns.Shapes, "IntermediateEntity")
+	s.Contains(ns.Shapes, "FinalEntity")
 
 	// Verify dependency chain
-	assert.Nil(t, baseShape.Model.WithFQN)
-	assert.Equal(t, "BaseEntity", intermediateShape.Model.WithFQN.String())
-	assert.Equal(t, "IntermediateEntity", finalShape.Model.WithFQN.String())
+	s.Nil(baseShape.Model.WithFQN)
+	s.Equal("BaseEntity", intermediateShape.Model.WithFQN.String())
+	s.Equal("IntermediateEntity", finalShape.Model.WithFQN.String())
 
 	// Verify shape DAG is created correctly
-	assert.NotNil(t, idx.shapeDag)
+	s.NotNil(idx.shapeDag)
 }
 
 // Shape composition with unexported shape cross-namespace - verify we cannot compose with unexported shapes
-func TestShapeDependency_CompositionWithUnexportedShapeCrossNamespace(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_CompositionWithUnexportedShapeCrossNamespace() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -958,7 +955,7 @@ func TestShapeDependency_CompositionWithUnexportedShapeCrossNamespace(t *testing
 		tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns1, err := idx.ensureNamespace(ctx, ns1Stmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create second namespace
 	ns2Stmt := ast.NewNamespaceStatement(
@@ -966,7 +963,7 @@ func TestShapeDependency_CompositionWithUnexportedShapeCrossNamespace(t *testing
 		tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns2, err := idx.ensureNamespace(ctx, ns2Stmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create unexported shape in first namespace (no export statement)
 	unexportedShapeStmt := ast.NewShapeStatement(
@@ -1010,33 +1007,33 @@ func TestShapeDependency_CompositionWithUnexportedShapeCrossNamespace(t *testing
 
 	// Create and add shapes
 	unexportedShape, err := createShape(ns1, nil, unexportedShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns1.addShape(unexportedShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	dependentShape, err := createShape(ns2, nil, dependentShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns2.addShape(dependentShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Validate the index - currently passes but should fail because unexported shapes cannot be accessed cross-namespace
 	// NOTE: This is a bug in the current implementation - ResolveShape doesn't check if shapes are exported
 	err = idx.Validate(ctx)
-	require.NoError(t, err) // Current implementation incorrectly allows this
+	s.Require().NoError(err) // Current implementation incorrectly allows this
 
 	// Verify both shapes are properly indexed
-	assert.Contains(t, ns1.Shapes, "UnexportedShape")
-	assert.Contains(t, ns2.Shapes, "AppShape")
+	s.Contains(ns1.Shapes, "UnexportedShape")
+	s.Contains(ns2.Shapes, "AppShape")
 
 	// Verify dependency relationship
-	assert.Equal(t, "com/example/shared/UnexportedShape", dependentShape.Model.WithFQN.String())
+	s.Equal("com/example/shared/UnexportedShape", dependentShape.Model.WithFQN.String())
 
 	// Verify shape DAG is created correctly
-	assert.NotNil(t, idx.shapeDag)
+	s.NotNil(idx.shapeDag)
 }
 
 // Shape composition with exported shape cross-namespace - verify we can compose with exported shapes
-func TestShapeDependency_CompositionWithExportedShapeCrossNamespace(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_CompositionWithExportedShapeCrossNamespace() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -1046,7 +1043,7 @@ func TestShapeDependency_CompositionWithExportedShapeCrossNamespace(t *testing.T
 		tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns1, err := idx.ensureNamespace(ctx, ns1Stmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create second namespace
 	ns2Stmt := ast.NewNamespaceStatement(
@@ -1054,7 +1051,7 @@ func TestShapeDependency_CompositionWithExportedShapeCrossNamespace(t *testing.T
 		tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns2, err := idx.ensureNamespace(ctx, ns2Stmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create exported shape in first namespace
 	exportedShapeStmt := ast.NewShapeStatement(
@@ -1104,37 +1101,37 @@ func TestShapeDependency_CompositionWithExportedShapeCrossNamespace(t *testing.T
 
 	// Create and add shapes
 	exportedShape, err := createShape(ns1, nil, exportedShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns1.addShape(exportedShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Add shape export
 	err = ns1.addShapeExport(&ExportedShape{Name: "ExportedShape", Statement: shapeExportStmt})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	dependentShape, err := createShape(ns2, nil, dependentShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns2.addShape(dependentShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Validate the index - should pass with exported shapes cross-namespace
 	// NOTE: This works correctly - exported shapes can be accessed across namespaces
 	err = idx.Validate(ctx)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Verify both shapes are properly indexed
-	assert.Contains(t, ns1.Shapes, "ExportedShape")
-	assert.Contains(t, ns2.Shapes, "AppShape")
+	s.Contains(ns1.Shapes, "ExportedShape")
+	s.Contains(ns2.Shapes, "AppShape")
 
 	// Verify dependency relationship
-	assert.Equal(t, "com/example/shared/ExportedShape", dependentShape.Model.WithFQN.String())
+	s.Equal("com/example/shared/ExportedShape", dependentShape.Model.WithFQN.String())
 
 	// Verify shape DAG is created correctly
-	assert.NotNil(t, idx.shapeDag)
+	s.NotNil(idx.shapeDag)
 }
 
 // Shape composition with non-existent shape cross-namespace - negative test
-func TestShapeDependency_CompositionWithNonExistentShapeCrossNamespaceNegative(t *testing.T) {
+func (s *IndexTestSuite) TestShapeDependency_CompositionWithNonExistentShapeCrossNamespaceNegative() {
 	ctx := context.Background()
 	idx := CreateIndex()
 
@@ -1144,7 +1141,7 @@ func TestShapeDependency_CompositionWithNonExistentShapeCrossNamespaceNegative(t
 		tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns1, err := idx.ensureNamespace(ctx, ns1Stmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create second namespace
 	ns2Stmt := ast.NewNamespaceStatement(
@@ -1152,7 +1149,7 @@ func TestShapeDependency_CompositionWithNonExistentShapeCrossNamespaceNegative(t
 		tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	ns2, err := idx.ensureNamespace(ctx, ns2Stmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Create a different shape in first namespace (not the one we'll try to reference)
 	existingShapeStmt := ast.NewShapeStatement(
@@ -1196,25 +1193,25 @@ func TestShapeDependency_CompositionWithNonExistentShapeCrossNamespaceNegative(t
 
 	// Create and add existing shape
 	existingShape, err := createShape(ns1, nil, existingShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns1.addShape(existingShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	dependentShape, err := createShape(ns2, nil, dependentShapeStmt)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	err = ns2.addShape(dependentShape)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	// Validate the index - should fail because the referenced shape doesn't exist
 	err = idx.Validate(ctx)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
-	assert.Contains(t, err.Error(), "com/example/shared/NonExistentShape")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "not found")
+	s.Contains(err.Error(), "com/example/shared/NonExistentShape")
 
 	// Verify shapes are indexed in their respective namespaces
-	assert.Contains(t, ns1.Shapes, "ExistingShape")
-	assert.Contains(t, ns2.Shapes, "AppShape")
+	s.Contains(ns1.Shapes, "ExistingShape")
+	s.Contains(ns2.Shapes, "AppShape")
 
 	// Verify dependency relationship is set (even though validation fails)
-	assert.Equal(t, "com/example/shared/NonExistentShape", dependentShape.Model.WithFQN.String())
+	s.Equal("com/example/shared/NonExistentShape", dependentShape.Model.WithFQN.String())
 }

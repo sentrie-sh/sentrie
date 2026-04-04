@@ -14,205 +14,163 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package box_test
+package box
 
-import (
-	"testing"
-
-	"github.com/sentrie-sh/sentrie/box"
-	"github.com/stretchr/testify/require"
-)
-
-func TestMustNumbers(t *testing.T) {
-	t.Run("returns both numbers when operands are numeric", func(t *testing.T) {
-		lhs, rhs, err := box.MustNumbers(box.Number(12), box.Number(2.5))
-		require.NoError(t, err)
-		require.Equal(t, 12.0, lhs)
-		require.Equal(t, 2.5, rhs)
+func (s *BoxTestSuite) TestMustNumbers() {
+	s.Run("returns both numbers when operands are numeric", func() {
+		lhs, rhs, err := MustNumbers(Number(12), Number(2.5))
+		s.Require().NoError(err)
+		s.Equal(12.0, lhs)
+		s.Equal(2.5, rhs)
 	})
-
-	t.Run("returns error when left operand is not a number", func(t *testing.T) {
-		lhs, rhs, err := box.MustNumbers(box.String("12"), box.Number(2))
-		require.EqualError(t, err, "left operand is not a number")
-		require.Zero(t, lhs)
-		require.Zero(t, rhs)
+	s.Run("returns error when left operand is not a number", func() {
+		lhs, rhs, err := MustNumbers(String("12"), Number(2))
+		s.EqualError(err, "left operand is not a number")
+		s.Zero(lhs)
+		s.Zero(rhs)
 	})
-
-	t.Run("returns error when right operand is not a number", func(t *testing.T) {
-		lhs, rhs, err := box.MustNumbers(box.Number(2), box.Bool(true))
-		require.EqualError(t, err, "right operand is not a number")
-		require.Zero(t, lhs)
-		require.Zero(t, rhs)
+	s.Run("returns error when right operand is not a number", func() {
+		lhs, rhs, err := MustNumbers(Number(2), Bool(true))
+		s.EqualError(err, "right operand is not a number")
+		s.Zero(lhs)
+		s.Zero(rhs)
 	})
 }
 
-func TestEqualValues(t *testing.T) {
-	t.Run("supports cross kind numeric equality only for numbers", func(t *testing.T) {
-		require.True(t, box.EqualValues(box.Number(42), box.Number(42.0)))
-		require.False(t, box.EqualValues(box.Number(42), box.String("42")))
+func (s *BoxTestSuite) TestEqualValues() {
+	s.Run("supports cross kind numeric equality only for numbers", func() {
+		s.True(EqualValues(Number(42), Number(42.0)))
+		s.False(EqualValues(Number(42), String("42")))
 	})
-
-	t.Run("treats undefined and null as equal within each kind", func(t *testing.T) {
-		require.True(t, box.EqualValues(box.Undefined(), box.Undefined()))
-		require.True(t, box.EqualValues(box.Null(), box.Null()))
-		require.False(t, box.EqualValues(box.Undefined(), box.Null()))
+	s.Run("treats undefined and null as equal within each kind", func() {
+		s.True(EqualValues(Undefined(), Undefined()))
+		s.True(EqualValues(Null(), Null()))
+		s.False(EqualValues(Undefined(), Null()))
 	})
-
-	t.Run("compares nested lists recursively", func(t *testing.T) {
-		left := box.List([]box.Value{
-			box.Number(1),
-			box.List([]box.Value{box.String("x"), box.Number(2)}),
-			box.Map(map[string]box.Value{"k": box.Bool(true)}),
+	s.Run("compares nested lists recursively", func() {
+		left := List([]Value{
+			Number(1),
+			List([]Value{String("x"), Number(2)}),
+			Map(map[string]Value{"k": Bool(true)}),
 		})
-		rightEqual := box.List([]box.Value{
-			box.Number(1.0),
-			box.List([]box.Value{box.String("x"), box.Number(2)}),
-			box.Map(map[string]box.Value{"k": box.Bool(true)}),
+		rightEqual := List([]Value{
+			Number(1.0),
+			List([]Value{String("x"), Number(2)}),
+			Map(map[string]Value{"k": Bool(true)}),
 		})
-		rightDifferent := box.List([]box.Value{
-			box.Number(1),
-			box.List([]box.Value{box.String("x"), box.Number(3)}),
-			box.Map(map[string]box.Value{"k": box.Bool(true)}),
+		rightDifferent := List([]Value{
+			Number(1),
+			List([]Value{String("x"), Number(3)}),
+			Map(map[string]Value{"k": Bool(true)}),
 		})
-
-		require.True(t, box.EqualValues(left, rightEqual))
-		require.False(t, box.EqualValues(left, rightDifferent))
+		s.True(EqualValues(left, rightEqual))
+		s.False(EqualValues(left, rightDifferent))
 	})
-
-	t.Run("compares maps recursively and checks key set", func(t *testing.T) {
-		left := box.Map(map[string]box.Value{
-			"a": box.Number(7),
-			"b": box.Map(map[string]box.Value{
-				"nested": box.String("ok"),
-			}),
+	s.Run("compares maps recursively and checks key set", func() {
+		left := Map(map[string]Value{
+			"a": Number(7),
+			"b": Map(map[string]Value{"nested": String("ok")}),
 		})
-		rightEqual := box.Map(map[string]box.Value{
-			"a": box.Number(7.0),
-			"b": box.Map(map[string]box.Value{
-				"nested": box.String("ok"),
-			}),
+		rightEqual := Map(map[string]Value{
+			"a": Number(7.0),
+			"b": Map(map[string]Value{"nested": String("ok")}),
 		})
-		rightMissingKey := box.Map(map[string]box.Value{
-			"a": box.Number(7),
+		rightMissingKey := Map(map[string]Value{"a": Number(7)})
+		rightDifferentValue := Map(map[string]Value{
+			"a": Number(7),
+			"b": Map(map[string]Value{"nested": String("nope")}),
 		})
-		rightDifferentValue := box.Map(map[string]box.Value{
-			"a": box.Number(7),
-			"b": box.Map(map[string]box.Value{
-				"nested": box.String("nope"),
-			}),
-		})
-
-		require.True(t, box.EqualValues(left, rightEqual))
-		require.False(t, box.EqualValues(left, rightMissingKey))
-		require.False(t, box.EqualValues(left, rightDifferentValue))
+		s.True(EqualValues(left, rightEqual))
+		s.False(EqualValues(left, rightMissingKey))
+		s.False(EqualValues(left, rightDifferentValue))
 	})
-
-	t.Run("uses document reference identity semantics", func(t *testing.T) {
+	s.Run("uses document reference identity semantics", func() {
 		type doc struct {
 			id string
 		}
 		shared := &doc{id: "same"}
 		equalByValue := &doc{id: "same"}
-
-		require.True(t, box.EqualValues(box.Document(shared), box.Document(shared)))
-		require.False(t, box.EqualValues(box.Document(shared), box.Document(equalByValue)))
+		s.True(EqualValues(Document(shared), Document(shared)))
+		s.False(EqualValues(Document(shared), Document(equalByValue)))
 	})
 }
 
-func TestMatchesValue(t *testing.T) {
-	t.Run("returns error when haystack is not a string", func(t *testing.T) {
-		matched, err := box.MatchesValue(box.Number(12), box.String("^12$"))
-		require.EqualError(t, err, "haystack must be a string")
-		require.False(t, matched)
+func (s *BoxTestSuite) TestMatchesValue() {
+	s.Run("returns error when haystack is not a string", func() {
+		matched, err := MatchesValue(Number(12), String("^12$"))
+		s.EqualError(err, "haystack must be a string")
+		s.False(matched)
 	})
-
-	t.Run("returns error when pattern is not a string", func(t *testing.T) {
-		matched, err := box.MatchesValue(box.String("12"), box.Number(12))
-		require.EqualError(t, err, "pattern must be a string")
-		require.False(t, matched)
+	s.Run("returns error when pattern is not a string", func() {
+		matched, err := MatchesValue(String("12"), Number(12))
+		s.EqualError(err, "pattern must be a string")
+		s.False(matched)
 	})
-
-	t.Run("returns true when regex matches", func(t *testing.T) {
-		matched, err := box.MatchesValue(box.String("abc123"), box.String("^[a-z]+\\d+$"))
-		require.NoError(t, err)
-		require.True(t, matched)
+	s.Run("returns true when regex matches", func() {
+		matched, err := MatchesValue(String("abc123"), String("^[a-z]+\\d+$"))
+		s.Require().NoError(err)
+		s.True(matched)
 	})
-
-	t.Run("returns false when regex does not match", func(t *testing.T) {
-		matched, err := box.MatchesValue(box.String("abc"), box.String("^\\d+$"))
-		require.NoError(t, err)
-		require.False(t, matched)
+	s.Run("returns false when regex does not match", func() {
+		matched, err := MatchesValue(String("abc"), String("^\\d+$"))
+		s.Require().NoError(err)
+		s.False(matched)
 	})
-
-	t.Run("returns regex compile error for invalid pattern", func(t *testing.T) {
-		matched, err := box.MatchesValue(box.String("abc"), box.String("("))
-		require.Error(t, err)
-		require.False(t, matched)
+	s.Run("returns regex compile error for invalid pattern", func() {
+		matched, err := MatchesValue(String("abc"), String("("))
+		s.Error(err)
+		s.False(matched)
 	})
 }
 
-func TestContainsValue(t *testing.T) {
-	t.Run("string contains requires non empty string needle", func(t *testing.T) {
-		haystack := box.String("hello world")
-		require.True(t, box.ContainsValue(haystack, box.String("world")))
-		require.False(t, box.ContainsValue(haystack, box.String("")))
-		require.False(t, box.ContainsValue(haystack, box.Number(1)))
+func (s *BoxTestSuite) TestContainsValue() {
+	s.Run("string contains requires non empty string needle", func() {
+		haystack := String("hello world")
+		s.True(ContainsValue(haystack, String("world")))
+		s.False(ContainsValue(haystack, String("")))
+		s.False(ContainsValue(haystack, Number(1)))
 	})
-
-	t.Run("list uses semantic equality for contains", func(t *testing.T) {
-		haystack := box.List([]box.Value{
-			box.Number(1),
-			box.Map(map[string]box.Value{"x": box.Number(2)}),
+	s.Run("list uses semantic equality for contains", func() {
+		haystack := List([]Value{
+			Number(1),
+			Map(map[string]Value{"x": Number(2)}),
 		})
-		require.True(t, box.ContainsValue(haystack, box.Number(1.0)))
-		require.True(t, box.ContainsValue(haystack, box.Map(map[string]box.Value{"x": box.Number(2.0)})))
-		require.False(t, box.ContainsValue(haystack, box.Map(map[string]box.Value{"x": box.Number(3)})))
+		s.True(ContainsValue(haystack, Number(1.0)))
+		s.True(ContainsValue(haystack, Map(map[string]Value{"x": Number(2.0)})))
+		s.False(ContainsValue(haystack, Map(map[string]Value{"x": Number(3)})))
 	})
-
-	t.Run("map string needle performs key lookup", func(t *testing.T) {
-		haystack := box.Map(map[string]box.Value{
-			"k1": box.Number(1),
-			"k2": box.String("v2"),
+	s.Run("map string needle performs key lookup", func() {
+		haystack := Map(map[string]Value{
+			"k1": Number(1),
+			"k2": String("v2"),
 		})
-		require.True(t, box.ContainsValue(haystack, box.String("k1")))
-		require.False(t, box.ContainsValue(haystack, box.String("missing")))
+		s.True(ContainsValue(haystack, String("k1")))
+		s.False(ContainsValue(haystack, String("missing")))
 	})
-
-	t.Run("map needle as map checks subset semantics", func(t *testing.T) {
-		haystack := box.Map(map[string]box.Value{
-			"a": box.Number(1),
-			"b": box.Map(map[string]box.Value{"nested": box.Bool(true)}),
+	s.Run("map needle as map checks subset semantics", func() {
+		haystack := Map(map[string]Value{
+			"a": Number(1),
+			"b": Map(map[string]Value{"nested": Bool(true)}),
 		})
-		require.True(t, box.ContainsValue(haystack, box.Map(map[string]box.Value{
-			"a": box.Number(1.0),
-		})))
-		require.True(t, box.ContainsValue(haystack, box.Map(map[string]box.Value{
-			"b": box.Map(map[string]box.Value{"nested": box.Bool(true)}),
-		})))
-		require.False(t, box.ContainsValue(haystack, box.Map(map[string]box.Value{
-			"missing": box.Number(1),
-		})))
-		require.False(t, box.ContainsValue(haystack, box.Map(map[string]box.Value{
-			"b": box.Map(map[string]box.Value{"nested": box.Bool(false)}),
-		})))
+		s.True(ContainsValue(haystack, Map(map[string]Value{"a": Number(1.0)})))
+		s.True(ContainsValue(haystack, Map(map[string]Value{"b": Map(map[string]Value{"nested": Bool(true)})})))
+		s.False(ContainsValue(haystack, Map(map[string]Value{"missing": Number(1)})))
+		s.False(ContainsValue(haystack, Map(map[string]Value{"b": Map(map[string]Value{"nested": Bool(false)})})))
 	})
-
-	t.Run("map rejects non string and non map needles", func(t *testing.T) {
-		haystack := box.Map(map[string]box.Value{
-			"a": box.Number(1),
-			"b": box.List([]box.Value{box.String("x")}),
+	s.Run("map rejects non string and non map needles", func() {
+		haystack := Map(map[string]Value{
+			"a": Number(1),
+			"b": List([]Value{String("x")}),
 		})
-		require.False(t, box.ContainsValue(haystack, box.Number(1.0)))
-		require.False(t, box.ContainsValue(haystack, box.List([]box.Value{box.String("x")})))
-		require.False(t, box.ContainsValue(haystack, box.Number(2)))
-
-		reviewerExample := box.Map(map[string]box.Value{"a": box.Number(42)})
-		require.False(t, box.ContainsValue(reviewerExample, box.Number(42)))
+		s.False(ContainsValue(haystack, Number(1.0)))
+		s.False(ContainsValue(haystack, List([]Value{String("x")})))
+		s.False(ContainsValue(haystack, Number(2)))
+		reviewerExample := Map(map[string]Value{"a": Number(42)})
+		s.False(ContainsValue(reviewerExample, Number(42)))
 	})
-
-	t.Run("returns false for unsupported haystack kinds", func(t *testing.T) {
-		require.False(t, box.ContainsValue(box.Number(123), box.Number(123)))
-		require.False(t, box.ContainsValue(box.Bool(true), box.Bool(true)))
-		require.False(t, box.ContainsValue(box.Null(), box.Null()))
+	s.Run("returns false for unsupported haystack kinds", func() {
+		s.False(ContainsValue(Number(123), Number(123)))
+		s.False(ContainsValue(Bool(true), Bool(true)))
+		s.False(ContainsValue(Null(), Null()))
 	})
 }

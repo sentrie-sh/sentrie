@@ -17,20 +17,17 @@
 package runtime
 
 import (
-	"testing"
-
 	"github.com/sentrie-sh/sentrie/ast"
-	"github.com/stretchr/testify/require"
 )
 
-func TestTypeRefConstraintErrorsAreClassified(t *testing.T) {
+func (s *RuntimeTestSuite) TestTypeRefConstraintErrorsAreClassified() {
 	c := ast.NewTypeRefConstraint("made_up", nil, stubRange())
 
 	unknownErr := ErrUnknownConstraint(c)
-	require.True(t, IsUnknownConstraint(unknownErr))
-	require.False(t, IsConstraintFailed(unknownErr))
+	s.Require().True(IsUnknownConstraint(unknownErr))
+	s.Require().False(IsConstraintFailed(unknownErr))
 
 	failedErr := ErrConstraintFailed(stubRange(), c, nil)
-	require.True(t, IsConstraintFailed(failedErr))
-	require.False(t, IsUnknownConstraint(failedErr))
+	s.Require().True(IsConstraintFailed(failedErr))
+	s.Require().False(IsUnknownConstraint(failedErr))
 }

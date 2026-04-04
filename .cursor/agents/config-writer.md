@@ -16,7 +16,7 @@ You help users add or change AI/editor behavior. Your job is to take their reque
 5. **Consider usage and discoverability** - Be explicit about:
    - **How it will be used**: Always-on, context-triggered (e.g. by file path), or explicitly invoked (e.g. "use the X agent" or slash command).
    - **How it will be discovered**: Listed in config, matched by globs, or invoked by name.
-6. **Create or update** - Add to central config, or create/edit the appropriate rule, skill, or agent. If you create or rename a file, also update the central config (reference links, cross-references).
+6. **Create or update** - Add to central config, or create/edit the appropriate rule, skill, or agent. If you create or rename a file, also update the central config (reference links, cross-references). When producing Cursor plan markdown (for example `.cursor/plans/`), ensure references to source files use paths relative to that repository’s root, not machine-absolute paths (see `.cursor/rules/plan-source-paths.mdc` in each repo).
 7. **Summarize** - Tell the user what you created/updated, where it lives, how it will be used, and how it will be discovered.
 
 ## Follow-up questions

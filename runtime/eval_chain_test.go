@@ -25,10 +25,9 @@ import (
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/sentrie-sh/sentrie/xerr"
-	"github.com/stretchr/testify/require"
 )
 
-func TestEvalDispatchByExpressionKind(t *testing.T) {
+func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
 	ctx := context.Background()
 	p := newEvalTestPolicy()
 	exec := &executorImpl{}
@@ -54,7 +53,7 @@ func TestEvalDispatchByExpressionKind(t *testing.T) {
 		{
 			name:    "identifier dispatch",
 			expr:    ast.NewIdentifier("x", stubRange()),
-			setup:   func(ec *ExecutionContext) { require.NoError(t, ec.InjectFact(ctx, "x", box.Number(11), false, nil)) },
+			setup:   func(ec *ExecutionContext) { s.Require().NoError(ec.InjectFact(ctx, "x", box.Number(11), false, nil)) },
 			wantAny: 11.0,
 		},
 		{
@@ -255,36 +254,36 @@ func TestEvalDispatchByExpressionKind(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			ec := NewExecutionContext(p, exec)
 			if tt.setup != nil {
 				tt.setup(ec)
 			}
 
 			got, node, err := eval(ctx, ec, exec, p, tt.expr)
-			require.NotNil(t, node)
+			s.Require().NotNil(node)
 
 			if tt.wantErr != "" {
-				require.ErrorContains(t, err, tt.wantErr)
+				s.Require().ErrorContains(err, tt.wantErr)
 			} else {
-				require.NoError(t, err)
+				s.Require().NoError(err)
 			}
 
 			if tt.checkValue != nil {
-				tt.checkValue(t, got)
+				tt.checkValue(s.T(), got)
 				return
 			}
-			require.Equal(t, tt.wantAny, got.Any())
+			s.Require().Equal(tt.wantAny, got.Any())
 		})
 	}
 }
 
-func TestEvalCallJSBoundaryContracts(t *testing.T) {
+func (s *RuntimeTestSuite) TestEvalCallJSBoundaryContracts() {
 	ctx := context.Background()
 	p := newEvalTestPolicy()
 	exec := &executorImpl{}
 
-	t.Run("missing module alias reports module invocation error", func(t *testing.T) {
+	s.Run("missing module alias reports module invocation error", func() {
 		ec := NewExecutionContext(p, exec)
 		expr := ast.NewCallExpression(
 			ast.NewIdentifier("missing.fn", stubRange()),
@@ -295,12 +294,12 @@ func TestEvalCallJSBoundaryContracts(t *testing.T) {
 		)
 
 		got, _, err := eval(ctx, ec, exec, p, expr)
-		require.Error(t, err)
-		require.NotNil(t, got)
-		require.ErrorContains(t, err, "invoke module function failed")
+		s.Require().Error(err)
+		s.Require().NotNil(got)
+		s.Require().ErrorContains(err, "invoke module function failed")
 	})
 
-	t.Run("module call propagates runtime-side boundary error", func(t *testing.T) {
+	s.Run("module call propagates runtime-side boundary error", func() {
 		ec := NewExecutionContext(p, exec)
 		ec.BindModule("mod", &ModuleBinding{Alias: "mod"})
 
@@ -320,14 +319,14 @@ func TestEvalCallJSBoundaryContracts(t *testing.T) {
 		)
 
 		got, _, err := eval(ctx, ec, exec, p, expr)
-		require.Error(t, err)
-		require.NotNil(t, got)
-		require.ErrorContains(t, err, "failed to call function 'mod.fn'")
-		require.ErrorContains(t, err, "module has no JS binding")
+		s.Require().Error(err)
+		s.Require().NotNil(got)
+		s.Require().ErrorContains(err, "failed to call function 'mod.fn'")
+		s.Require().ErrorContains(err, "module has no JS binding")
 	})
 }
 
-func TestEvalImportDispatchBoundaryFailure(t *testing.T) {
+func (s *RuntimeTestSuite) TestEvalImportDispatchBoundaryFailure() {
 	ctx := context.Background()
 	p := &index.Policy{}
 	exec := &executorImpl{}
@@ -341,8 +340,8 @@ func TestEvalImportDispatchBoundaryFailure(t *testing.T) {
 	)
 
 	got, node, err := eval(ctx, ec, exec, p, imp)
-	require.NotNil(t, node)
-	require.Error(t, err)
-	require.True(t, got.IsNull())
-	require.ErrorContains(t, err, "import from must specify namespace/policy")
+	s.Require().NotNil(node)
+	s.Require().Error(err)
+	s.Require().True(got.IsNull())
+	s.Require().ErrorContains(err, "import from must specify namespace/policy")
 }

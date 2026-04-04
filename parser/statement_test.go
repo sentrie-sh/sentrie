@@ -17,41 +17,11 @@
 package parser
 
 import (
-	"log/slog"
-	"testing"
-
 	"github.com/sentrie-sh/sentrie/ast"
-	"github.com/stretchr/testify/suite"
 )
 
-// StatementTestSuite provides tests for statement parsing
-type StatementTestSuite struct {
-	suite.Suite
-}
-
-// SetupSuite initializes the test suite
-func (s *StatementTestSuite) SetupSuite() {
-	slog.Info("StatementTestSuite SetupSuite start")
-}
-
-// BeforeTest runs before each test
-func (s *StatementTestSuite) BeforeTest(suiteName, testName string) {
-	slog.Info("BeforeTest start", "TestSuite", "StatementTestSuite", "TestName", testName)
-}
-
-// AfterTest runs after each test
-func (s *StatementTestSuite) AfterTest(suiteName, testName string) {
-	slog.Info("AfterTest start", "TestSuite", "StatementTestSuite", "TestName", testName)
-}
-
-// TearDownSuite cleans up after all tests
-func (s *StatementTestSuite) TearDownSuite() {
-	slog.Info("TearDownSuite")
-	slog.Info("TearDownSuite end")
-}
-
 // TestParseNamespaceStatement tests parsing namespace statements
-func (s *StatementTestSuite) TestParseNamespaceStatement() {
+func (s *ParserTestSuite) TestParseNamespaceStatement() {
 	testCases := []struct {
 		input    string
 		expected string
@@ -74,7 +44,7 @@ func (s *StatementTestSuite) TestParseNamespaceStatement() {
 }
 
 // TestParseNamespaceStatementInvalid tests parsing invalid namespace statements
-func (s *StatementTestSuite) TestParseNamespaceStatementInvalid() {
+func (s *ParserTestSuite) TestParseNamespaceStatementInvalid() {
 	testCases := []string{
 		"namespace",      // Missing identifier
 		"namespace 123;", // Invalid identifier
@@ -89,7 +59,7 @@ func (s *StatementTestSuite) TestParseNamespaceStatementInvalid() {
 }
 
 // TestParsePolicyStatement tests parsing policy statements
-func (s *StatementTestSuite) TestParsePolicyStatement() {
+func (s *ParserTestSuite) TestParsePolicyStatement() {
 	testCases := []struct {
 		input    string
 		expected string
@@ -112,7 +82,7 @@ func (s *StatementTestSuite) TestParsePolicyStatement() {
 }
 
 // TestParsePolicyStatementInvalid tests parsing invalid policy statements
-func (s *StatementTestSuite) TestParsePolicyStatementInvalid() {
+func (s *ParserTestSuite) TestParsePolicyStatementInvalid() {
 	testCases := []string{
 		"policy",         // Missing identifier
 		"policy 123 { }", // Invalid identifier
@@ -129,7 +99,7 @@ func (s *StatementTestSuite) TestParsePolicyStatementInvalid() {
 }
 
 // TestParseRuleStatement tests parsing rule statements
-func (s *StatementTestSuite) TestParseRuleStatement() {
+func (s *ParserTestSuite) TestParseRuleStatement() {
 	testCases := []struct {
 		input    string
 		expected string
@@ -154,7 +124,7 @@ func (s *StatementTestSuite) TestParseRuleStatement() {
 }
 
 // TestParseRuleStatementInvalid tests parsing invalid rule statements
-func (s *StatementTestSuite) TestParseRuleStatementInvalid() {
+func (s *ParserTestSuite) TestParseRuleStatementInvalid() {
 	testCases := []string{
 		"rule",                     // Missing identifier
 		"rule 123 { }",             // Invalid identifier
@@ -174,7 +144,7 @@ func (s *StatementTestSuite) TestParseRuleStatementInvalid() {
 }
 
 // TestParseFactStatement tests parsing fact statements
-func (s *StatementTestSuite) TestParseFactStatement() {
+func (s *ParserTestSuite) TestParseFactStatement() {
 	testCases := []struct {
 		input       string
 		expected    string
@@ -207,7 +177,7 @@ func (s *StatementTestSuite) TestParseFactStatement() {
 }
 
 // TestParseFactStatementInvalid tests parsing invalid fact statements
-func (s *StatementTestSuite) TestParseFactStatementInvalid() {
+func (s *ParserTestSuite) TestParseFactStatementInvalid() {
 	testCases := []struct {
 		input       string
 		description string
@@ -230,7 +200,7 @@ func (s *StatementTestSuite) TestParseFactStatementInvalid() {
 }
 
 // TestParseShapeStatement tests parsing shape statements
-func (s *StatementTestSuite) TestParseShapeStatement() {
+func (s *ParserTestSuite) TestParseShapeStatement() {
 	testCases := []struct {
 		input    string
 		expected string
@@ -253,7 +223,7 @@ func (s *StatementTestSuite) TestParseShapeStatement() {
 }
 
 // TestParseShapeStatementEmpty tests parsing empty shape statements
-func (s *StatementTestSuite) TestParseShapeStatementEmpty() {
+func (s *ParserTestSuite) TestParseShapeStatementEmpty() {
 	parser := NewParserFromString("shape User { }", "test.sentra")
 	stmt := parseShapeStatement(s.T().Context(), parser)
 	s.NoError(parser.err, "Expected no error for empty shape")
@@ -266,7 +236,7 @@ func (s *StatementTestSuite) TestParseShapeStatementEmpty() {
 }
 
 // TestParseShapeStatementInvalid tests parsing invalid shape statements
-func (s *StatementTestSuite) TestParseShapeStatementInvalid() {
+func (s *ParserTestSuite) TestParseShapeStatementInvalid() {
 	testCases := []string{
 		"shape",         // Missing identifier
 		"shape 123 { }", // Invalid identifier
@@ -283,7 +253,7 @@ func (s *StatementTestSuite) TestParseShapeStatementInvalid() {
 }
 
 // TestParseUseStatement tests parsing use statements
-func (s *StatementTestSuite) TestParseUseStatement() {
+func (s *ParserTestSuite) TestParseUseStatement() {
 	testCases := []struct {
 		input    string
 		expected string
@@ -307,7 +277,7 @@ func (s *StatementTestSuite) TestParseUseStatement() {
 }
 
 // TestParseUseStatementInvalid tests parsing invalid use statements
-func (s *StatementTestSuite) TestParseUseStatementInvalid() {
+func (s *ParserTestSuite) TestParseUseStatementInvalid() {
 	testCases := []string{
 		// "use", // Missing everything
 		// "use fn1 from", // Missing module
@@ -323,7 +293,7 @@ func (s *StatementTestSuite) TestParseUseStatementInvalid() {
 }
 
 // TestParseRuleExportStatement tests parsing rule export statements
-func (s *StatementTestSuite) TestParseRuleExportStatement() {
+func (s *ParserTestSuite) TestParseRuleExportStatement() {
 	testCases := []struct {
 		input    string
 		expected string
@@ -346,7 +316,7 @@ func (s *StatementTestSuite) TestParseRuleExportStatement() {
 }
 
 // TestParseRuleExportStatementInvalid tests parsing invalid rule export statements
-func (s *StatementTestSuite) TestParseRuleExportStatementInvalid() {
+func (s *ParserTestSuite) TestParseRuleExportStatementInvalid() {
 	testCases := []string{
 		"export",                 // Missing rule
 		"export decision of",     // Missing identifier
@@ -363,7 +333,7 @@ func (s *StatementTestSuite) TestParseRuleExportStatementInvalid() {
 }
 
 // TestParseShapeExportStatement tests parsing shape export statements
-func (s *StatementTestSuite) TestParseShapeExportStatement() {
+func (s *ParserTestSuite) TestParseShapeExportStatement() {
 	testCases := []struct {
 		input    string
 		expected string
@@ -386,7 +356,7 @@ func (s *StatementTestSuite) TestParseShapeExportStatement() {
 }
 
 // TestParseShapeExportStatementInvalid tests parsing invalid shape export statements
-func (s *StatementTestSuite) TestParseShapeExportStatementInvalid() {
+func (s *ParserTestSuite) TestParseShapeExportStatementInvalid() {
 	testCases := []string{
 		"export",           // Missing shape
 		"export shape",     // Missing identifier
@@ -403,7 +373,7 @@ func (s *StatementTestSuite) TestParseShapeExportStatementInvalid() {
 }
 
 // TestParseStatementComplexNested tests parsing complex nested statements
-func (s *StatementTestSuite) TestParseStatementComplexNested() {
+func (s *ParserTestSuite) TestParseStatementComplexNested() {
 	input := `
 namespace com/example;
 policy user {
@@ -428,7 +398,7 @@ policy user {
 }
 
 // TestParseStatementEdgeCases tests parsing edge cases
-func (s *StatementTestSuite) TestParseStatementEdgeCases() {
+func (s *ParserTestSuite) TestParseStatementEdgeCases() {
 	testCases := []struct {
 		input       string
 		shouldError bool
@@ -455,9 +425,4 @@ func (s *StatementTestSuite) TestParseStatementEdgeCases() {
 			s.NoError(err, "Expected no error for: %s (%s)", tc.input, tc.description)
 		}
 	}
-}
-
-// TestStatementTestSuite runs the statement test suite
-func TestStatementTestSuite(t *testing.T) {
-	suite.Run(t, new(StatementTestSuite))
 }
