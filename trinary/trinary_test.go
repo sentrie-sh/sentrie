@@ -17,45 +17,25 @@
 package trinary
 
 import (
-	"log/slog"
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/stretchr/testify/suite"
 )
 
-type TristateTestSuite struct {
+type TrinaryTestSuite struct {
 	suite.Suite
 }
 
-func (suite *TristateTestSuite) SetupSuite() {
-	slog.SetDefault(slog.New(slog.NewJSONHandler(suite.T().Output(), nil)))
-}
-
-func (suite *TristateTestSuite) BeforeTest(suiteName, testName string) {
-	slog.InfoContext(suite.T().Context(), "BeforeTest start", slog.String("TestSuite", suiteName), slog.String("TestName", testName))
-	defer slog.InfoContext(suite.T().Context(), "BeforeTest end", slog.String("TestSuite", suiteName), slog.String("TestName", testName))
-}
-
-func (suite *TristateTestSuite) AfterTest(suiteName, testName string) {
-	slog.InfoContext(suite.T().Context(), "AfterTest start", slog.String("TestSuite", suiteName), slog.String("TestName", testName))
-	defer slog.InfoContext(suite.T().Context(), "AfterTest end", slog.String("TestSuite", suiteName), slog.String("TestName", testName))
-}
-
-func (suite *TristateTestSuite) TearDownSuite() {
-	slog.InfoContext(suite.T().Context(), "TearDownSuite")
-	defer slog.InfoContext(suite.T().Context(), "TearDownSuite end")
-}
-
 // TestValueConstants tests the Value constants
-func (s *TristateTestSuite) TestValueConstants() {
+func (s *TrinaryTestSuite) TestValueConstants() {
 	s.Equal(Value(-1), False)
 	s.Equal(Value(0), Unknown)
 	s.Equal(Value(1), True)
 }
 
 // TestString tests the String() method
-func (s *TristateTestSuite) TestString() {
+func (s *TrinaryTestSuite) TestString() {
 	s.Equal("true", True.String())
 	s.Equal("false", False.String())
 	s.Equal("unknown", Unknown.String())
@@ -66,7 +46,7 @@ func (s *TristateTestSuite) TestString() {
 }
 
 // TestMarshalJSON tests JSON marshaling
-func (s *TristateTestSuite) TestMarshalJSON() {
+func (s *TrinaryTestSuite) TestMarshalJSON() {
 	trueJSON, err := True.MarshalJSON()
 	s.NoError(err)
 	s.Equal(`"true"`, string(trueJSON))
@@ -81,7 +61,7 @@ func (s *TristateTestSuite) TestMarshalJSON() {
 }
 
 // TestNot tests the Not() method
-func (s *TristateTestSuite) TestNot() {
+func (s *TrinaryTestSuite) TestNot() {
 	s.Equal(False, True.Not())
 	s.Equal(True, False.Not())
 	s.Equal(Unknown, Unknown.Not())
@@ -92,7 +72,7 @@ func (s *TristateTestSuite) TestNot() {
 }
 
 // TestAnd tests the And() method with comprehensive truth table
-func (s *TristateTestSuite) TestAnd() {
+func (s *TrinaryTestSuite) TestAnd() {
 	// True AND cases
 	s.Equal(True, True.And(True))
 	s.Equal(False, True.And(False))
@@ -119,7 +99,7 @@ func (s *TristateTestSuite) TestAnd() {
 }
 
 // TestOr tests the Or() method with comprehensive truth table
-func (s *TristateTestSuite) TestOr() {
+func (s *TrinaryTestSuite) TestOr() {
 	// True OR cases
 	s.Equal(True, True.Or(True))
 	s.Equal(True, True.Or(False))
@@ -146,7 +126,7 @@ func (s *TristateTestSuite) TestOr() {
 }
 
 // TestEquals tests the Equals() method
-func (s *TristateTestSuite) TestEquals() {
+func (s *TrinaryTestSuite) TestEquals() {
 	s.True(True.Equals(True))
 	s.False(True.Equals(False))
 	s.False(True.Equals(Unknown))
@@ -168,7 +148,7 @@ func (s *TristateTestSuite) TestEquals() {
 }
 
 // TestIsTrue tests the IsTrue() method
-func (s *TristateTestSuite) TestIsTrue() {
+func (s *TrinaryTestSuite) TestIsTrue() {
 	s.True(True.IsTrue())
 	s.False(False.IsTrue())
 	s.False(Unknown.IsTrue())
@@ -179,7 +159,7 @@ func (s *TristateTestSuite) TestIsTrue() {
 }
 
 // TestFromToken tests the FromToken() function
-func (s *TristateTestSuite) TestFromToken() {
+func (s *TrinaryTestSuite) TestFromToken() {
 	// Test with valid token kinds
 	trueToken := tokens.New(tokens.KeywordTrue, "true", tokens.Range{})
 	s.Equal(True, FromToken(trueToken))
@@ -202,7 +182,7 @@ func (s *TristateTestSuite) TestFromToken() {
 }
 
 // TestFrom tests the From() function with various Go types
-func (s *TristateTestSuite) TestFrom() {
+func (s *TrinaryTestSuite) TestFrom() {
 	// Test nil
 	s.Equal(Unknown, From(nil))
 
@@ -259,7 +239,7 @@ func (s *TristateTestSuite) TestFrom() {
 	s.Equal(True, From(testStruct{})) // Non-nil struct is truthy
 }
 
-func (s *TristateTestSuite) TestFromStringLikeTypes() {
+func (s *TrinaryTestSuite) TestFromStringLikeTypes() {
 	s.Equal(Unknown, From("unknown"))
 	s.Equal(Unknown, From("-1"))
 	s.Equal(True, From("TrUe"))
@@ -272,7 +252,7 @@ func (s *TristateTestSuite) TestFromStringLikeTypes() {
 	s.Equal(True, From(customString("something")))
 }
 
-func (s *TristateTestSuite) TestFromStructKinds() {
+func (s *TrinaryTestSuite) TestFromStructKinds() {
 	type customStruct struct {
 		A int
 	}
@@ -285,7 +265,7 @@ func (s *TristateTestSuite) TestFromStructKinds() {
 }
 
 // TestIsTruthy tests the truthiness logic now in From() function
-func (s *TristateTestSuite) TestIsTruthy() {
+func (s *TrinaryTestSuite) TestIsTruthy() {
 	// Test nil
 	s.Equal(Unknown, From(nil))
 
@@ -383,7 +363,7 @@ func (t *testTrinaryValue) ToTrinary() Value {
 }
 
 // TestEdgeCases tests various edge cases and error conditions
-func (s *TristateTestSuite) TestEdgeCases() {
+func (s *TrinaryTestSuite) TestEdgeCases() {
 	// Test very large invalid values
 	largeValue := Value(999999)
 	s.Equal("unknown", largeValue.String())
@@ -444,7 +424,7 @@ func (s *TristateTestSuite) TestEdgeCases() {
 }
 
 // TestLogicalOperatorCommutativity tests that logical operators are commutative where expected
-func (s *TristateTestSuite) TestLogicalOperatorCommutativity() {
+func (s *TrinaryTestSuite) TestLogicalOperatorCommutativity() {
 	// AND should be commutative for True and False
 	s.Equal(True.And(False), False.And(True))
 	s.Equal(True.And(True), True.And(True))
@@ -468,7 +448,7 @@ func (s *TristateTestSuite) TestLogicalOperatorCommutativity() {
 }
 
 // TestLogicalOperatorAssociativity tests associativity where applicable
-func (s *TristateTestSuite) TestLogicalOperatorAssociativity() {
+func (s *TrinaryTestSuite) TestLogicalOperatorAssociativity() {
 	// Test that (A AND B) AND C = A AND (B AND C) for various combinations
 	values := []Value{True, False, Unknown}
 
@@ -488,7 +468,7 @@ func (s *TristateTestSuite) TestLogicalOperatorAssociativity() {
 }
 
 // TestDeMorganLaws tests De Morgan's laws for trinary logic
-func (s *TristateTestSuite) TestDeMorganLaws() {
+func (s *TrinaryTestSuite) TestDeMorganLaws() {
 	// De Morgan's laws: NOT(A AND B) = NOT(A) OR NOT(B)
 	// and NOT(A OR B) = NOT(A) AND NOT(B)
 	values := []Value{True, False, Unknown}
@@ -509,7 +489,7 @@ func (s *TristateTestSuite) TestDeMorganLaws() {
 }
 
 // TestDoubleNegation tests that NOT(NOT(x)) = x
-func (s *TristateTestSuite) TestDoubleNegation() {
+func (s *TrinaryTestSuite) TestDoubleNegation() {
 	values := []Value{True, False, Unknown}
 
 	for _, v := range values {
@@ -524,7 +504,7 @@ func (s *TristateTestSuite) TestDoubleNegation() {
 }
 
 // TestTruthTableCompleteness verifies that all combinations are tested
-func (s *TristateTestSuite) TestTruthTableCompleteness() {
+func (s *TrinaryTestSuite) TestTruthTableCompleteness() {
 	values := []Value{True, False, Unknown}
 
 	// Test all AND combinations
@@ -546,7 +526,7 @@ func (s *TristateTestSuite) TestTruthTableCompleteness() {
 	}
 }
 
-// TestTristateTestSuite runs the test suite
-func TestTristateTestSuite(t *testing.T) {
-	suite.Run(t, new(TristateTestSuite))
+// TestTrinaryTestSuite runs the test suite
+func TestTrinaryTestSuite(t *testing.T) {
+	suite.Run(t, new(TrinaryTestSuite))
 }

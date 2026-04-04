@@ -18,7 +18,6 @@ package runtime
 
 import (
 	"context"
-	"testing"
 
 	"github.com/binaek/perch"
 	"github.com/sentrie-sh/sentrie/ast"
@@ -26,23 +25,22 @@ import (
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/sentrie-sh/sentrie/xerr"
-	"github.com/stretchr/testify/require"
 )
 
-func TestEvalLiteralBranchesAndMapKeyTypeError(t *testing.T) {
+func (s *RuntimeTestSuite) TestEvalLiteralBranchesAndMapKeyTypeError() {
 	ctx := context.Background()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 
 	nullExpr := ast.NewNullLiteral(stubRange())
 	nullValue, _, err := eval(ctx, ec, &executorImpl{}, p, nullExpr)
-	require.NoError(t, err)
-	require.True(t, nullValue.IsNull())
+	s.Require().NoError(err)
+	s.Require().True(nullValue.IsNull())
 
 	floatExpr := ast.NewFloatLiteral(3.25, stubRange())
 	floatValue, _, err := eval(ctx, ec, &executorImpl{}, p, floatExpr)
-	require.NoError(t, err)
-	require.Equal(t, 3.25, floatValue.Any())
+	s.Require().NoError(err)
+	s.Require().Equal(3.25, floatValue.Any())
 
 	badMap := ast.NewMapLiteral([]ast.MapEntry{
 		{
@@ -51,29 +49,29 @@ func TestEvalLiteralBranchesAndMapKeyTypeError(t *testing.T) {
 		},
 	}, stubRange())
 	_, _, err = eval(ctx, ec, &executorImpl{}, p, badMap)
-	require.ErrorContains(t, err, "map key is not a string")
+	s.Require().ErrorContains(err, "map key is not a string")
 }
 
-func TestEvalIdentLetLocalAndMissingPaths(t *testing.T) {
+func (s *RuntimeTestSuite) TestEvalIdentLetLocalAndMissingPaths() {
 	ctx := context.Background()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 
-	require.NoError(t, ec.InjectLet("from_let", ast.NewVarDeclaration(
+	s.Require().NoError(ec.InjectLet("from_let", ast.NewVarDeclaration(
 		"from_let",
 		nil,
 		ast.NewIntegerLiteral(7, stubRange()),
 		stubRange(),
 	)))
 	letValue, _, err := evalIdent(ctx, ec, &executorImpl{}, p, ast.NewIdentifier("from_let", stubRange()))
-	require.NoError(t, err)
-	require.Equal(t, 7.0, letValue.Any())
+	s.Require().NoError(err)
+	s.Require().Equal(7.0, letValue.Any())
 	cached, ok := ec.GetLocal("from_let")
-	require.True(t, ok)
-	require.Equal(t, 7.0, cached.Any())
+	s.Require().True(ok)
+	s.Require().Equal(7.0, cached.Any())
 
-	require.NoError(t, ec.InjectFact(ctx, "x", box.Number(1), false, nil))
-	require.NoError(t, ec.InjectLet("x", ast.NewVarDeclaration(
+	s.Require().NoError(ec.InjectFact(ctx, "x", box.Number(1), false, nil))
+	s.Require().NoError(ec.InjectLet("x", ast.NewVarDeclaration(
 		"x",
 		nil,
 		ast.NewIntegerLiteral(2, stubRange()),
@@ -81,14 +79,14 @@ func TestEvalIdentLetLocalAndMissingPaths(t *testing.T) {
 	)))
 	ec.SetLocal("x", box.Number(99), true)
 	localFirst, _, err := evalIdent(ctx, ec, &executorImpl{}, p, ast.NewIdentifier("x", stubRange()))
-	require.NoError(t, err)
-	require.Equal(t, 99.0, localFirst.Any())
+	s.Require().NoError(err)
+	s.Require().Equal(99.0, localFirst.Any())
 
 	_, _, err = evalIdent(ctx, ec, &executorImpl{}, p, ast.NewIdentifier("missing_symbol", stubRange()))
-	require.ErrorContains(t, err, "identifier not found: missing_symbol")
+	s.Require().ErrorContains(err, "identifier not found: missing_symbol")
 }
 
-func TestEvalCallMemoizedHitAndMiss(t *testing.T) {
+func (s *RuntimeTestSuite) TestEvalCallMemoizedHitAndMiss() {
 	ctx := context.Background()
 	p := newEvalTestPolicy()
 	exec := &executorImpl{
@@ -113,7 +111,7 @@ func TestEvalCallMemoizedHitAndMiss(t *testing.T) {
 	}
 
 	ec := NewExecutionContext(p, exec)
-	require.NoError(t, ec.InjectFact(ctx, "memo_arg", box.Number(1), false, nil))
+	s.Require().NoError(ec.InjectFact(ctx, "memo_arg", box.Number(1), false, nil))
 	memoizedCall := ast.NewCallExpression(
 		ast.NewIdentifier(builtinName, stubRange()),
 		[]ast.Expression{ast.NewIdentifier("memo_arg", stubRange())},
@@ -123,23 +121,23 @@ func TestEvalCallMemoizedHitAndMiss(t *testing.T) {
 	)
 
 	first, _, err := evalCall(ctx, ec, exec, p, memoizedCall)
-	require.NoError(t, err)
-	require.Equal(t, 1.0, first.Any())
-	require.Equal(t, 1, callCount)
+	s.Require().NoError(err)
+	s.Require().Equal(1.0, first.Any())
+	s.Require().Equal(1, callCount)
 
 	second, _, err := evalCall(ctx, ec, exec, p, memoizedCall)
-	require.NoError(t, err)
-	require.Equal(t, 1.0, second.Any())
-	require.Equal(t, 1, callCount)
+	s.Require().NoError(err)
+	s.Require().Equal(1.0, second.Any())
+	s.Require().Equal(1, callCount)
 
-	require.NoError(t, ec.InjectFact(ctx, "memo_arg", box.Number(2), false, nil))
+	s.Require().NoError(ec.InjectFact(ctx, "memo_arg", box.Number(2), false, nil))
 	third, _, err := evalCall(ctx, ec, exec, p, memoizedCall)
-	require.NoError(t, err)
-	require.Equal(t, 2.0, third.Any())
-	require.Equal(t, 2, callCount)
+	s.Require().NoError(err)
+	s.Require().Equal(2.0, third.Any())
+	s.Require().Equal(2, callCount)
 }
 
-func TestEvalCallInjectedErrorPassthrough(t *testing.T) {
+func (s *RuntimeTestSuite) TestEvalCallInjectedErrorPassthrough() {
 	ctx := context.Background()
 	p := newEvalTestPolicy()
 	exec := &executorImpl{
@@ -156,13 +154,13 @@ func TestEvalCallInjectedErrorPassthrough(t *testing.T) {
 		stubRange(),
 	)
 	_, _, err := evalCall(ctx, ec, exec, p, call)
-	require.Error(t, err)
-	require.ErrorIs(t, err, xerr.InjectedError{})
-	require.ErrorContains(t, err, "boom")
-	require.NotContains(t, err.Error(), "failed to call function")
+	s.Require().Error(err)
+	s.Require().ErrorIs(err, xerr.InjectedError{})
+	s.Require().ErrorContains(err, "boom")
+	s.Require().NotContains(err.Error(), "failed to call function")
 }
 
-func TestEvalInfixAndUnaryUnsupportedAndInvalidOperands(t *testing.T) {
+func (s *RuntimeTestSuite) TestEvalInfixAndUnaryUnsupportedAndInvalidOperands() {
 	ctx := context.Background()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
@@ -174,7 +172,7 @@ func TestEvalInfixAndUnaryUnsupportedAndInvalidOperands(t *testing.T) {
 		stubRange(),
 	)
 	_, _, err := evalInfix(ctx, ec, &executorImpl{}, p, unsupportedInfix)
-	require.ErrorContains(t, err, "unsupported infix op: ???")
+	s.Require().ErrorContains(err, "unsupported infix op: ???")
 
 	leftMismatch := ast.NewInfixExpression(
 		ast.NewStringLiteral("x", stubRange()),
@@ -183,7 +181,7 @@ func TestEvalInfixAndUnaryUnsupportedAndInvalidOperands(t *testing.T) {
 		stubRange(),
 	)
 	_, _, err = evalInfix(ctx, ec, &executorImpl{}, p, leftMismatch)
-	require.ErrorContains(t, err, "left operand is not a number")
+	s.Require().ErrorContains(err, "left operand is not a number")
 
 	rightMismatch := ast.NewInfixExpression(
 		ast.NewIntegerLiteral(2, stubRange()),
@@ -192,18 +190,18 @@ func TestEvalInfixAndUnaryUnsupportedAndInvalidOperands(t *testing.T) {
 		stubRange(),
 	)
 	_, _, err = evalInfix(ctx, ec, &executorImpl{}, p, rightMismatch)
-	require.ErrorContains(t, err, "right operand is not a number")
+	s.Require().ErrorContains(err, "right operand is not a number")
 
 	unsupportedUnary := ast.NewUnaryExpression("~", ast.NewIntegerLiteral(1, stubRange()), stubRange())
 	_, _, err = evalUnary(ctx, ec, &executorImpl{}, p, unsupportedUnary)
-	require.ErrorContains(t, err, "unsupported unary op: ~")
+	s.Require().ErrorContains(err, "unsupported unary op: ~")
 
 	invalidUnaryOperand := ast.NewUnaryExpression("-", ast.NewStringLiteral("x", stubRange()), stubRange())
 	_, _, err = evalUnary(ctx, ec, &executorImpl{}, p, invalidUnaryOperand)
-	require.ErrorContains(t, err, "unary - requires number")
+	s.Require().ErrorContains(err, "unary - requires number")
 }
 
-func TestImportDecisionSuccessWithWithInjection(t *testing.T) {
+func (s *RuntimeTestSuite) TestImportDecisionSuccessWithWithInjection() {
 	ctx := context.Background()
 	idx := index.CreateIndex()
 	exec := &executorImpl{
@@ -267,10 +265,10 @@ func TestImportDecisionSuccessWithWithInjection(t *testing.T) {
 	)
 
 	out, node, err := ImportDecision(ctx, exec, ec, callerPolicy, imp)
-	require.NoError(t, err)
-	require.NotNil(t, node)
+	s.Require().NoError(err)
+	s.Require().NotNil(node)
 	outMap, ok := out.MapValue()
-	require.True(t, ok)
-	require.Equal(t, trinary.True, outMap["state"].Any())
-	require.Equal(t, 9.0, outMap["value"].Any())
+	s.Require().True(ok)
+	s.Require().Equal(trinary.True, outMap["state"].Any())
+	s.Require().Equal(9.0, outMap["value"].Any())
 }

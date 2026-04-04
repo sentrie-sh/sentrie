@@ -18,7 +18,6 @@ package dag
 
 import (
 	"fmt"
-	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -52,25 +51,6 @@ func (s StringNode) String() string {
 
 type DagTestSuite struct {
 	suite.Suite
-}
-
-func (suite *DagTestSuite) SetupSuite() {
-	slog.SetDefault(slog.New(slog.NewJSONHandler(suite.T().Output(), nil)))
-}
-
-func (suite *DagTestSuite) BeforeTest(suiteName, testName string) {
-	slog.InfoContext(suite.T().Context(), "BeforeTest start", slog.String("TestSuite", suiteName), slog.String("TestName", testName))
-	defer slog.InfoContext(suite.T().Context(), "BeforeTest end", slog.String("TestSuite", suiteName), slog.String("TestName", testName))
-}
-
-func (suite *DagTestSuite) AfterTest(suiteName, testName string) {
-	slog.InfoContext(suite.T().Context(), "AfterTest start", slog.String("TestSuite", suiteName), slog.String("TestName", testName))
-	defer slog.InfoContext(suite.T().Context(), "AfterTest end", slog.String("TestSuite", suiteName), slog.String("TestName", testName))
-}
-
-func (suite *DagTestSuite) TearDownSuite() {
-	slog.InfoContext(suite.T().Context(), "TearDownSuite")
-	defer slog.InfoContext(suite.T().Context(), "TearDownSuite end")
 }
 
 // TestNew tests the New() function

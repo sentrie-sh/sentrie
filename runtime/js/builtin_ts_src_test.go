@@ -16,21 +16,12 @@
 
 package js
 
-import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-)
-
-func TestBuiltinJSTS_Embedded(t *testing.T) {
-	// Verify that the embedded TypeScript source is not empty
-	assert.NotEmpty(t, BuiltinJSTS, "BuiltinJSTS should not be empty")
-	assert.Greater(t, len(BuiltinJSTS), 100, "BuiltinJSTS should contain substantial content")
-
-	// Verify it contains expected exports
+func (s *JSTestSuite) TestBuiltinJSTS_Embedded() {
+	s.NotEmpty(BuiltinJSTS, "BuiltinJSTS should not be empty")
+	s.Greater(len(BuiltinJSTS), 100, "BuiltinJSTS should contain substantial content")
 	source := string(BuiltinJSTS)
-	assert.Contains(t, source, "export const round", "Should export Math.round")
-	assert.Contains(t, source, "export const length", "Should export String.length")
-	assert.Contains(t, source, "export const parse", "Should export JSON.parse")
-	assert.Contains(t, source, "export const stringify", "Should export JSON.stringify")
+	s.Contains(source, "export const round", "Should export Math.round")
+	s.Contains(source, "export const length", "Should export String.length")
+	s.Contains(source, "export const parse", "Should export JSON.parse")
+	s.Contains(source, "export const stringify", "Should export JSON.stringify")
 }

@@ -14,21 +14,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package constraints_test
 
 import (
+	"testing"
 
-	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/stretchr/testify/suite"
 )
 
-func (s *RuntimeTestSuite) TestTypeRefConstraintErrorsAreClassified() {
-	c := ast.NewTypeRefConstraint("made_up", nil, stubRange())
+type ConstraintsTestSuite struct {
+	suite.Suite
+}
 
-	unknownErr := ErrUnknownConstraint(c)
-	s.Require().True(IsUnknownConstraint(unknownErr))
-	s.Require().False(IsConstraintFailed(unknownErr))
-
-	failedErr := ErrConstraintFailed(stubRange(), c, nil)
-	s.Require().True(IsConstraintFailed(failedErr))
-	s.Require().False(IsUnknownConstraint(failedErr))
+func TestConstraintsTestSuite(t *testing.T) {
+	suite.Run(t, new(ConstraintsTestSuite))
 }

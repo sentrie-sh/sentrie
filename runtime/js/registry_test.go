@@ -16,65 +16,49 @@
 
 package js
 
-import (
-	"testing"
+import "github.com/dop251/goja"
 
-	"github.com/dop251/goja"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-)
-
-func TestRegisterTSBuiltin(t *testing.T) {
+func (s *JSTestSuite) TestRegisterTSBuiltin() {
 	reg := NewRegistry("/tmp/test")
-
 	tsSource := `export const test = () => 42;`
 	reg.RegisterTSBuiltin("test", tsSource)
-
 	key := "@sentrie/test"
-	assert.Contains(t, reg.tsBuiltins, key)
-	assert.Equal(t, tsSource, reg.tsBuiltins[key])
+	s.Contains(reg.tsBuiltins, key)
+	s.Equal(tsSource, reg.tsBuiltins[key])
 }
 
-func TestGetOrCreateModule_TSBuiltin(t *testing.T) {
+func (s *JSTestSuite) TestGetOrCreateModule_TSBuiltin() {
 	reg := NewRegistry("/tmp/test")
-
 	tsSource := `export const test = () => 42;`
 	reg.RegisterTSBuiltin("test", tsSource)
-
 	mod := reg.getOrCreateModule("@sentrie/test", "", "", true)
-	require.NotNil(t, mod)
-	assert.True(t, mod.Builtin)
-	assert.Equal(t, tsSource, mod.SourceTS)
-	assert.Nil(t, mod.BuiltInProvider) // TS builtin should not have Go provider
+	s.Require().NotNil(mod)
+	s.True(mod.Builtin)
+	s.Equal(tsSource, mod.SourceTS)
+	s.Nil(mod.BuiltInProvider)
 }
 
-func TestGetOrCreateModule_GoProviderTakesPrecedence(t *testing.T) {
+func (s *JSTestSuite) TestGetOrCreateModule_GoProviderTakesPrecedence() {
 	reg := NewRegistry("/tmp/test")
-
-	// Register both Go and TS builtin
 	goProvider := func(vm *goja.Runtime) (*goja.Object, error) {
 		return vm.NewObject(), nil
 	}
 	reg.RegisterGoBuiltin("test", goProvider)
-
 	tsSource := `export const test = () => 42;`
 	reg.RegisterTSBuiltin("test", tsSource)
-
 	mod := reg.getOrCreateModule("@sentrie/test", "", "", true)
-	require.NotNil(t, mod)
-	assert.NotNil(t, mod.BuiltInProvider) // Go provider should take precedence
-	assert.Equal(t, "", mod.SourceTS)     // TS source should not be set when Go provider exists
+	s.Require().NotNil(mod)
+	s.NotNil(mod.BuiltInProvider)
+	s.Equal("", mod.SourceTS)
 }
 
-func TestPrepareUse_TSBuiltin(t *testing.T) {
+func (s *JSTestSuite) TestPrepareUse_TSBuiltin() {
 	reg := NewRegistry("/tmp/test")
-
 	tsSource := `export const test = () => 42;`
 	reg.RegisterTSBuiltin("test", tsSource)
-
 	mod, err := reg.PrepareUse("", []string{"sentrie", "test"}, "/tmp/test")
-	require.NoError(t, err)
-	require.NotNil(t, mod)
-	assert.True(t, mod.Builtin)
-	assert.Equal(t, tsSource, mod.SourceTS)
+	s.Require().NoError(err)
+	s.Require().NotNil(mod)
+	s.True(mod.Builtin)
+	s.Equal(tsSource, mod.SourceTS)
 }

@@ -16,44 +16,27 @@
 
 package loader
 
-import (
-	"context"
-	"os"
-	"path/filepath"
-	"testing"
+import "context"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-)
-
-func TestLoadPack_ValidMinimal(t *testing.T) {
-	tmpDir := t.TempDir()
-	packFile := filepath.Join(tmpDir, PackFileName)
-
-	content := `[schema]
+func (s *LoaderTestSuite) TestLoadPack_ValidMinimal() {
+	dir := s.writePackDir(`[schema]
 version = 1
 
 [pack]
 name = "test_pack"
 version = "0.1.0"
-`
-	require.NoError(t, os.WriteFile(packFile, []byte(content), 0644))
-
+`)
 	ctx := context.Background()
-	p, err := LoadPack(ctx, tmpDir)
-
-	require.NoError(t, err)
-	assert.NotNil(t, p)
-	assert.Equal(t, uint64(1), p.SchemaVersion.Version)
-	assert.Equal(t, "test_pack", p.Pack.Name)
-	assert.Equal(t, "0.1.0", p.Pack.Version.String())
+	p, err := LoadPack(ctx, dir)
+	s.Require().NoError(err)
+	s.NotNil(p)
+	s.Equal(uint64(1), p.SchemaVersion.Version)
+	s.Equal("test_pack", p.Pack.Name)
+	s.Equal("0.1.0", p.Pack.Version.String())
 }
 
-func TestLoadPack_ValidFull(t *testing.T) {
-	tmpDir := t.TempDir()
-	packFile := filepath.Join(tmpDir, PackFileName)
-
-	content := `[schema]
+func (s *LoaderTestSuite) TestLoadPack_ValidFull() {
+	dir := s.writePackDir(`[schema]
 version = 1
 
 [pack]
@@ -78,105 +61,75 @@ env = ["AWS_REGION", "AWS_PROFILE"]
 [metadata]
 category = "cloud"
 maturity = "beta"
-`
-	require.NoError(t, os.WriteFile(packFile, []byte(content), 0644))
-
+`)
 	ctx := context.Background()
-	p, err := LoadPack(ctx, tmpDir)
-
-	require.NoError(t, err)
-	assert.NotNil(t, p)
-	assert.Equal(t, "example.pack", p.Pack.Name)
-	assert.Equal(t, "1.2.3-alpha.1", p.Pack.Version.String())
-	assert.Equal(t, "A test pack", p.Pack.Description)
-	assert.Equal(t, "MIT", p.Pack.License)
-	assert.Equal(t, "https://github.com/example/pack", p.Pack.Repository)
-	assert.Len(t, p.Pack.Authors, 2)
-	assert.NotNil(t, p.Engine)
-	assert.NotNil(t, p.Permissions)
-	assert.Len(t, p.Permissions.FSRead, 2)
-	assert.Len(t, p.Permissions.Net, 2)
-	assert.Len(t, p.Permissions.Env, 2)
+	p, err := LoadPack(ctx, dir)
+	s.Require().NoError(err)
+	s.NotNil(p)
+	s.Equal("example.pack", p.Pack.Name)
+	s.Equal("1.2.3-alpha.1", p.Pack.Version.String())
+	s.Equal("A test pack", p.Pack.Description)
+	s.Equal("MIT", p.Pack.License)
+	s.Equal("https://github.com/example/pack", p.Pack.Repository)
+	s.Len(p.Pack.Authors, 2)
+	s.NotNil(p.Engine)
+	s.NotNil(p.Permissions)
+	s.Len(p.Permissions.FSRead, 2)
+	s.Len(p.Permissions.Net, 2)
+	s.Len(p.Permissions.Env, 2)
 }
 
-func TestLoadPack_MissingSchema(t *testing.T) {
-	tmpDir := t.TempDir()
-	packFile := filepath.Join(tmpDir, PackFileName)
-
-	content := `[pack]
+func (s *LoaderTestSuite) TestLoadPack_MissingSchema() {
+	dir := s.writePackDir(`[pack]
 name = "test_pack"
 version = "0.1.0"
-`
-	require.NoError(t, os.WriteFile(packFile, []byte(content), 0644))
-
+`)
 	ctx := context.Background()
-	_, err := LoadPack(ctx, tmpDir)
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "schema version is required")
+	_, err := LoadPack(ctx, dir)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "schema version is required")
 }
 
-func TestLoadPack_MissingPack(t *testing.T) {
-	tmpDir := t.TempDir()
-	packFile := filepath.Join(tmpDir, PackFileName)
-
-	content := `[schema]
+func (s *LoaderTestSuite) TestLoadPack_MissingPack() {
+	dir := s.writePackDir(`[schema]
 version = 1
-`
-	require.NoError(t, os.WriteFile(packFile, []byte(content), 0644))
-
+`)
 	ctx := context.Background()
-	_, err := LoadPack(ctx, tmpDir)
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "name is required")
+	_, err := LoadPack(ctx, dir)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "name is required")
 }
 
-func TestLoadPack_MissingPackVersion(t *testing.T) {
-	tmpDir := t.TempDir()
-	packFile := filepath.Join(tmpDir, PackFileName)
-
-	content := `[schema]
+func (s *LoaderTestSuite) TestLoadPack_MissingPackVersion() {
+	dir := s.writePackDir(`[schema]
 version = 1
 
 [pack]
 name = "test_pack"
-`
-	require.NoError(t, os.WriteFile(packFile, []byte(content), 0644))
-
+`)
 	ctx := context.Background()
-	_, err := LoadPack(ctx, tmpDir)
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "schema validation failed")
-	assert.Contains(t, err.Error(), "version")
+	_, err := LoadPack(ctx, dir)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "schema validation failed")
+	s.Contains(err.Error(), "version")
 }
 
-func TestLoadPack_InvalidSchemaVersion(t *testing.T) {
-	tmpDir := t.TempDir()
-	packFile := filepath.Join(tmpDir, PackFileName)
-
-	content := `[schema]
+func (s *LoaderTestSuite) TestLoadPack_InvalidSchemaVersion() {
+	dir := s.writePackDir(`[schema]
 version = 2
 
 [pack]
 name = "test_pack"
 version = "0.1.0"
-`
-	require.NoError(t, os.WriteFile(packFile, []byte(content), 0644))
-
+`)
 	ctx := context.Background()
-	_, err := LoadPack(ctx, tmpDir)
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "schema validation failed")
+	_, err := LoadPack(ctx, dir)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "schema validation failed")
 }
 
-func TestLoadPack_UnknownTopLevelTable(t *testing.T) {
-	tmpDir := t.TempDir()
-	packFile := filepath.Join(tmpDir, PackFileName)
-
-	content := `[schema]
+func (s *LoaderTestSuite) TestLoadPack_UnknownTopLevelTable() {
+	dir := s.writePackDir(`[schema]
 version = 1
 
 [pack]
@@ -185,83 +138,58 @@ version = "0.1.0"
 
 [unknown_table]
 field = "value"
-`
-	require.NoError(t, os.WriteFile(packFile, []byte(content), 0644))
-
+`)
 	ctx := context.Background()
-	_, err := LoadPack(ctx, tmpDir)
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "unknown top-level table '[unknown_table]'")
+	_, err := LoadPack(ctx, dir)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "unknown top-level table '[unknown_table]'")
 }
 
-func TestLoadPack_InvalidPackName(t *testing.T) {
-	tmpDir := t.TempDir()
-	packFile := filepath.Join(tmpDir, PackFileName)
-
-	content := `[schema]
+func (s *LoaderTestSuite) TestLoadPack_InvalidPackName() {
+	dir := s.writePackDir(`[schema]
 version = 1
 
 [pack]
 name = "123invalid"
 version = "0.1.0"
-`
-	require.NoError(t, os.WriteFile(packFile, []byte(content), 0644))
-
+`)
 	ctx := context.Background()
-	_, err := LoadPack(ctx, tmpDir)
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "name must be a valid identity")
+	_, err := LoadPack(ctx, dir)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "name must be a valid identity")
 }
 
-func TestLoadPack_InvalidVersionFormat(t *testing.T) {
-	tmpDir := t.TempDir()
-	packFile := filepath.Join(tmpDir, PackFileName)
-
-	content := `[schema]
+func (s *LoaderTestSuite) TestLoadPack_InvalidVersionFormat() {
+	dir := s.writePackDir(`[schema]
 version = 1
 
 [pack]
 name = "test_pack"
 version = "not-a-version"
-`
-	require.NoError(t, os.WriteFile(packFile, []byte(content), 0644))
-
+`)
 	ctx := context.Background()
-	_, err := LoadPack(ctx, tmpDir)
-
-	require.Error(t, err)
-	// Should fail during TOML parsing or schema validation
-	assert.NotNil(t, err)
+	_, err := LoadPack(ctx, dir)
+	s.Require().Error(err)
+	s.NotNil(err)
 }
 
-func TestLoadPack_InvalidRepositoryFormat(t *testing.T) {
-	tmpDir := t.TempDir()
-	packFile := filepath.Join(tmpDir, PackFileName)
-
-	content := `[schema]
+func (s *LoaderTestSuite) TestLoadPack_InvalidRepositoryFormat() {
+	dir := s.writePackDir(`[schema]
 version = 1
 
 [pack]
 name = "test_pack"
 version = "0.1.0"
 repository = "not-a-valid-uri"
-`
-	require.NoError(t, os.WriteFile(packFile, []byte(content), 0644))
-
+`)
 	ctx := context.Background()
-	_, err := LoadPack(ctx, tmpDir)
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "schema validation failed")
+	_, err := LoadPack(ctx, dir)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "schema validation failed")
 }
 
-func TestLoadPack_InvalidEnvVarPattern(t *testing.T) {
-	tmpDir := t.TempDir()
-	packFile := filepath.Join(tmpDir, PackFileName)
-
-	content := `[schema]
+func (s *LoaderTestSuite) TestLoadPack_InvalidEnvVarPattern() {
+	dir := s.writePackDir(`[schema]
 version = 1
 
 [pack]
@@ -270,21 +198,15 @@ version = "0.1.0"
 
 [permissions]
 env = ["invalid-env-var", "also_invalid"]
-`
-	require.NoError(t, os.WriteFile(packFile, []byte(content), 0644))
-
+`)
 	ctx := context.Background()
-	_, err := LoadPack(ctx, tmpDir)
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "schema validation failed")
+	_, err := LoadPack(ctx, dir)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "schema validation failed")
 }
 
-func TestLoadPack_ValidEnvVars(t *testing.T) {
-	tmpDir := t.TempDir()
-	packFile := filepath.Join(tmpDir, PackFileName)
-
-	content := `[schema]
+func (s *LoaderTestSuite) TestLoadPack_ValidEnvVars() {
+	dir := s.writePackDir(`[schema]
 version = 1
 
 [pack]
@@ -293,23 +215,17 @@ version = "0.1.0"
 
 [permissions]
 env = ["AWS_REGION", "AWS_PROFILE", "HOME"]
-`
-	require.NoError(t, os.WriteFile(packFile, []byte(content), 0644))
-
+`)
 	ctx := context.Background()
-	p, err := LoadPack(ctx, tmpDir)
-
-	require.NoError(t, err)
-	assert.NotNil(t, p)
-	assert.NotNil(t, p.Permissions)
-	assert.Len(t, p.Permissions.Env, 3)
+	p, err := LoadPack(ctx, dir)
+	s.Require().NoError(err)
+	s.NotNil(p)
+	s.NotNil(p.Permissions)
+	s.Len(p.Permissions.Env, 3)
 }
 
-func TestLoadPack_EngineWithoutSentrie(t *testing.T) {
-	tmpDir := t.TempDir()
-	packFile := filepath.Join(tmpDir, PackFileName)
-
-	content := `[schema]
+func (s *LoaderTestSuite) TestLoadPack_EngineWithoutSentrie() {
+	dir := s.writePackDir(`[schema]
 version = 1
 
 [pack]
@@ -317,21 +233,15 @@ name = "test_pack"
 version = "0.1.0"
 
 [engine]
-`
-	require.NoError(t, os.WriteFile(packFile, []byte(content), 0644))
-
+`)
 	ctx := context.Background()
-	_, err := LoadPack(ctx, tmpDir)
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "sentrie")
+	_, err := LoadPack(ctx, dir)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "sentrie")
 }
 
-func TestLoadPack_MetadataAllowsArbitraryFields(t *testing.T) {
-	tmpDir := t.TempDir()
-	packFile := filepath.Join(tmpDir, PackFileName)
-
-	content := `[schema]
+func (s *LoaderTestSuite) TestLoadPack_MetadataAllowsArbitraryFields() {
+	dir := s.writePackDir(`[schema]
 version = 1
 
 [pack]
@@ -342,13 +252,10 @@ version = "0.1.0"
 custom_field = "value"
 nested = { key = "value" }
 array = [1, 2, 3]
-`
-	require.NoError(t, os.WriteFile(packFile, []byte(content), 0644))
-
+`)
 	ctx := context.Background()
-	p, err := LoadPack(ctx, tmpDir)
-
-	require.NoError(t, err)
-	assert.NotNil(t, p)
-	assert.NotNil(t, p.Metadata)
+	p, err := LoadPack(ctx, dir)
+	s.Require().NoError(err)
+	s.NotNil(p)
+	s.NotNil(p.Metadata)
 }

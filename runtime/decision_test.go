@@ -18,34 +18,32 @@ package runtime
 
 import (
 	"encoding/json"
-	"testing"
 
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/trinary"
-	"github.com/stretchr/testify/require"
 )
 
-func TestDecisionOfUnknownInputs(t *testing.T) {
+func (s *RuntimeTestSuite) TestDecisionOfUnknownInputs() {
 	for _, v := range []box.Value{box.Undefined(), box.Null()} {
 		d := DecisionOf(v)
-		require.Equal(t, trinary.Unknown, d.State)
-		require.Equal(t, v, d.Value)
+		s.Require().Equal(trinary.Unknown, d.State)
+		s.Require().Equal(v, d.Value)
 	}
 }
 
-func TestDecisionOfUsesTrinaryAndFallbackConversion(t *testing.T) {
+func (s *RuntimeTestSuite) TestDecisionOfUsesTrinaryAndFallbackConversion() {
 	td := DecisionOf(box.Trinary(trinary.True))
-	require.Equal(t, trinary.True, td.State)
+	s.Require().Equal(trinary.True, td.State)
 
 	fd := DecisionOf(box.Bool(false))
-	require.Equal(t, trinary.False, fd.State)
+	s.Require().Equal(trinary.False, fd.State)
 }
 
-func TestDecisionMarshalJSONIncludesStateAndValue(t *testing.T) {
+func (s *RuntimeTestSuite) TestDecisionMarshalJSONIncludesStateAndValue() {
 	raw, err := json.Marshal(Decision{
 		State: trinary.True,
 		Value: box.String("ok"),
 	})
-	require.NoError(t, err)
-	require.JSONEq(t, `{"state":"true","value":"ok"}`, string(raw))
+	s.Require().NoError(err)
+	s.Require().JSONEq(`{"state":"true","value":"ok"}`, string(raw))
 }

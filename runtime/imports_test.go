@@ -17,24 +17,22 @@
 package runtime
 
 import (
-	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/pack"
 	"github.com/sentrie-sh/sentrie/trinary"
-	"github.com/stretchr/testify/require"
 )
 
-func TestImportWithFactBoundaryPreservesUndefined(t *testing.T) {
+func (s *RuntimeTestSuite) TestImportWithFactBoundaryPreservesUndefined() {
 	withFactValue := box.Undefined()
 	boundary := box.ToBoundaryAny(withFactValue)
 	decoded := box.FromBoundaryAny(boundary)
-	require.True(t, decoded.IsUndefined())
+	s.Require().True(decoded.IsUndefined())
 }
 
-func TestImportWithFactBoundaryPreservesNestedUndefined(t *testing.T) {
+func (s *RuntimeTestSuite) TestImportWithFactBoundaryPreservesNestedUndefined() {
 	withFactValue := box.Map(map[string]box.Value{
 		"payload": box.List([]box.Value{
 			box.Number(1),
@@ -45,14 +43,14 @@ func TestImportWithFactBoundaryPreservesNestedUndefined(t *testing.T) {
 	boundary := box.ToBoundaryAny(withFactValue)
 	decoded := box.FromBoundaryAny(boundary)
 	decodedMap, ok := decoded.MapValue()
-	require.True(t, ok)
+	s.Require().True(ok)
 	list, ok := decodedMap["payload"].ListValue()
-	require.True(t, ok)
-	require.Equal(t, 1.0, list[0].Any())
-	require.True(t, list[1].IsUndefined())
+	s.Require().True(ok)
+	s.Require().Equal(1.0, list[0].Any())
+	s.Require().True(list[1].IsUndefined())
 }
 
-func TestImportDecisionRejectsInvalidFromPolicyFQN(t *testing.T) {
+func (s *RuntimeTestSuite) TestImportDecisionRejectsInvalidFromPolicyFQN() {
 	imp := ast.NewImportClause(
 		"allow",
 		ast.NewFQN([]string{"policy_only"}, stubRange()).Ptr(),
@@ -61,19 +59,19 @@ func TestImportDecisionRejectsInvalidFromPolicyFQN(t *testing.T) {
 	)
 
 	val, node, err := ImportDecision(
-		t.Context(),
+		s.T().Context(),
 		&executorImpl{},
 		&ExecutionContext{},
 		&index.Policy{},
 		imp,
 	)
-	require.Error(t, err)
-	require.True(t, val.IsNull())
-	require.NotNil(t, node)
-	require.Contains(t, node.Err, "import from must specify namespace/policy")
+	s.Require().Error(err)
+	s.Require().True(val.IsNull())
+	s.Require().NotNil(node)
+	s.Require().Contains(node.Err, "import from must specify namespace/policy")
 }
 
-func TestImportDecisionResolvePolicyFailure(t *testing.T) {
+func (s *RuntimeTestSuite) TestImportDecisionResolvePolicyFailure() {
 	imp := ast.NewImportClause(
 		"allow",
 		ast.NewFQN([]string{"other", "policy"}, stubRange()).Ptr(),
@@ -86,12 +84,12 @@ func TestImportDecisionResolvePolicyFailure(t *testing.T) {
 	exec := &executorImpl{index: idx}
 
 	ec := NewExecutionContext(newEvalTestPolicy(), exec)
-	val, _, err := ImportDecision(t.Context(), exec, ec, newEvalTestPolicy(), imp)
-	require.Error(t, err)
-	require.True(t, val.IsNull())
+	val, _, err := ImportDecision(s.T().Context(), exec, ec, newEvalTestPolicy(), imp)
+	s.Require().Error(err)
+	s.Require().True(val.IsNull())
 }
 
-func TestExecutorOutputEnvelopeIncludesDecisionAndAttachments(t *testing.T) {
+func (s *RuntimeTestSuite) TestExecutorOutputEnvelopeIncludesDecisionAndAttachments() {
 	output := &ExecutorOutput{
 		Decision: &Decision{
 			State: trinary.False,
@@ -104,8 +102,8 @@ func TestExecutorOutputEnvelopeIncludesDecisionAndAttachments(t *testing.T) {
 
 	envelope := executorOutputEnvelope(output)
 	m, ok := envelope.MapValue()
-	require.True(t, ok)
-	require.Equal(t, trinary.False, m["state"].Any())
-	require.Equal(t, 42.0, m["value"].Any())
-	require.Equal(t, "policy denied", m["reason"].Any())
+	s.Require().True(ok)
+	s.Require().Equal(trinary.False, m["state"].Any())
+	s.Require().Equal(42.0, m["value"].Any())
+	s.Require().Equal("policy denied", m["reason"].Any())
 }

@@ -19,30 +19,28 @@ package runtime
 import (
 	"context"
 	"math"
-	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
-	"github.com/stretchr/testify/require"
 )
 
 func stubRange() tokens.Range {
 	return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}
 }
 
-func TestCalculateHashKeyDistinguishesUndefinedAndNull(t *testing.T) {
+func (s *RuntimeTestSuite) TestCalculateHashKeyDistinguishesUndefinedAndNull() {
 	node := &ast.CallExpression{}
 	undefinedHash := calculateHashKey(node, []box.Value{box.Undefined()})
 	nullHash := calculateHashKey(node, []box.Value{box.Null()})
 
-	require.NotEmpty(t, undefinedHash)
-	require.NotEmpty(t, nullHash)
-	require.NotEqual(t, undefinedHash, nullHash)
+	s.Require().NotEmpty(undefinedHash)
+	s.Require().NotEmpty(nullHash)
+	s.Require().NotEqual(undefinedHash, nullHash)
 }
 
-func TestGetTargetBuiltinPreservesUndefined(t *testing.T) {
+func (s *RuntimeTestSuite) TestGetTargetBuiltinPreservesUndefined() {
 	ec := NewExecutionContext(&index.Policy{}, &executorImpl{})
 	call := ast.NewCallExpression(
 		ast.NewIdentifier("as_list", stubRange()),
@@ -53,14 +51,14 @@ func TestGetTargetBuiltinPreservesUndefined(t *testing.T) {
 	)
 
 	target, err := getTarget(context.Background(), ec, &index.Policy{}, call)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	out, err := target(context.Background(), box.Undefined())
-	require.NoError(t, err)
-	require.True(t, out.IsUndefined())
+	s.Require().NoError(err)
+	s.Require().True(out.IsUndefined())
 }
 
-func TestGetTargetBuiltinPreservesNestedUndefined(t *testing.T) {
+func (s *RuntimeTestSuite) TestGetTargetBuiltinPreservesNestedUndefined() {
 	ec := NewExecutionContext(&index.Policy{}, &executorImpl{})
 	call := ast.NewCallExpression(
 		ast.NewIdentifier("flatten_deep", stubRange()),
@@ -71,7 +69,7 @@ func TestGetTargetBuiltinPreservesNestedUndefined(t *testing.T) {
 	)
 
 	target, err := getTarget(context.Background(), ec, &index.Policy{}, call)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	arg := box.List([]box.Value{
 		box.List([]box.Value{
@@ -80,36 +78,36 @@ func TestGetTargetBuiltinPreservesNestedUndefined(t *testing.T) {
 		}),
 	})
 	out, err := target(context.Background(), arg)
-	require.NoError(t, err)
-	require.True(t, out.IsUndefined())
+	s.Require().NoError(err)
+	s.Require().True(out.IsUndefined())
 }
 
-func TestCalculateHashKeyMapKeyOrderStable(t *testing.T) {
+func (s *RuntimeTestSuite) TestCalculateHashKeyMapKeyOrderStable() {
 	node := &ast.CallExpression{}
 	arg1 := box.Map(map[string]box.Value{"a": box.Number(1), "b": box.Number(2)})
 	arg2 := box.Map(map[string]box.Value{"b": box.Number(2), "a": box.Number(1)})
 	hash1 := calculateHashKey(node, []box.Value{arg1})
 	hash2 := calculateHashKey(node, []box.Value{arg2})
-	require.Equal(t, hash1, hash2)
+	s.Require().Equal(hash1, hash2)
 }
 
-func TestCalculateHashKeyNestedStructureStable(t *testing.T) {
+func (s *RuntimeTestSuite) TestCalculateHashKeyNestedStructureStable() {
 	node := &ast.CallExpression{}
 	arg := box.List([]box.Value{
 		box.Map(map[string]box.Value{"k": box.List([]box.Value{box.Number(1), box.String("x")})}),
 	})
 	hash := calculateHashKey(node, []box.Value{arg})
-	require.NotEmpty(t, hash)
+	s.Require().NotEmpty(hash)
 }
 
-func TestCalculateHashKeyNumericEdges(t *testing.T) {
+func (s *RuntimeTestSuite) TestCalculateHashKeyNumericEdges() {
 	node := &ast.CallExpression{}
 	hashNegZero := calculateHashKey(node, []box.Value{box.Number(math.Copysign(0, -1))})
 	hashPosZero := calculateHashKey(node, []box.Value{box.Number(0)})
 	hashNaN := calculateHashKey(node, []box.Value{box.Number(math.NaN())})
 	hashInf := calculateHashKey(node, []box.Value{box.Number(math.Inf(1))})
 
-	require.NotEmpty(t, hashNaN)
-	require.NotEmpty(t, hashInf)
-	require.NotEqual(t, hashNegZero, hashPosZero)
+	s.Require().NotEmpty(hashNaN)
+	s.Require().NotEmpty(hashInf)
+	s.Require().NotEqual(hashNegZero, hashPosZero)
 }

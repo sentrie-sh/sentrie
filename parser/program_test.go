@@ -17,41 +17,11 @@
 package parser
 
 import (
-	"log/slog"
-	"testing"
-
 	"github.com/sentrie-sh/sentrie/ast"
-	"github.com/stretchr/testify/suite"
 )
 
-// ProgramTestSuite provides tests for program parsing
-type ProgramTestSuite struct {
-	suite.Suite
-}
-
-// SetupSuite initializes the test suite
-func (s *ProgramTestSuite) SetupSuite() {
-	slog.Info("ProgramTestSuite SetupSuite start")
-}
-
-// BeforeTest runs before each test
-func (s *ProgramTestSuite) BeforeTest(suiteName, testName string) {
-	slog.Info("BeforeTest start", "TestSuite", "ProgramTestSuite", "TestName", testName)
-}
-
-// AfterTest runs after each test
-func (s *ProgramTestSuite) AfterTest(suiteName, testName string) {
-	slog.Info("AfterTest start", "TestSuite", "ProgramTestSuite", "TestName", testName)
-}
-
-// TearDownSuite cleans up after all tests
-func (s *ProgramTestSuite) TearDownSuite() {
-	slog.Info("TearDownSuite")
-	slog.Info("TearDownSuite end")
-}
-
 // TestParseProgramBasic tests parsing basic programs
-func (s *ProgramTestSuite) TestParseProgramBasic() {
+func (s *ParserTestSuite) TestParseProgramBasic() {
 	testCases := []struct {
 		input    string
 		expected string
@@ -75,7 +45,7 @@ func (s *ProgramTestSuite) TestParseProgramBasic() {
 }
 
 // TestParseProgramWithPolicies tests parsing programs with policies
-func (s *ProgramTestSuite) TestParseProgramWithPolicies() {
+func (s *ParserTestSuite) TestParseProgramWithPolicies() {
 	input := `
 namespace com/example
 policy user {
@@ -102,7 +72,7 @@ policy admin {
 }
 
 // TestParseProgramWithShapes tests parsing programs with shapes
-func (s *ProgramTestSuite) TestParseProgramWithShapes() {
+func (s *ParserTestSuite) TestParseProgramWithShapes() {
 	input := `
 namespace com/example
 shape User {
@@ -127,7 +97,7 @@ shape Person string
 }
 
 // TestParseProgramWithExports tests parsing programs with exports
-func (s *ProgramTestSuite) TestParseProgramWithExports() {
+func (s *ParserTestSuite) TestParseProgramWithExports() {
 	input := `
 namespace com/example
 policy user {
@@ -152,7 +122,7 @@ export shape User
 }
 
 // TestParseProgramWithComments tests parsing programs with comments
-func (s *ProgramTestSuite) TestParseProgramWithComments() {
+func (s *ParserTestSuite) TestParseProgramWithComments() {
 	input := `
 -- This is a comment
 namespace com/example
@@ -184,7 +154,7 @@ policy user {
 }
 
 // TestParseProgramComplex tests parsing complex programs
-func (s *ProgramTestSuite) TestParseProgramComplex() {
+func (s *ParserTestSuite) TestParseProgramComplex() {
 	input := `
 -- Complex program example
 namespace com/example
@@ -231,7 +201,7 @@ export shape User
 }
 
 // TestParseProgramEmpty tests parsing empty programs
-func (s *ProgramTestSuite) TestParseProgramEmpty() {
+func (s *ParserTestSuite) TestParseProgramEmpty() {
 	parser := NewParserFromString("", "test.sentra")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Expected no error for empty program")
@@ -239,7 +209,7 @@ func (s *ProgramTestSuite) TestParseProgramEmpty() {
 }
 
 // TestParseProgramWhitespaceOnly tests parsing whitespace-only programs
-func (s *ProgramTestSuite) TestParseProgramWhitespaceOnly() {
+func (s *ParserTestSuite) TestParseProgramWhitespaceOnly() {
 	parser := NewParserFromString("   \n\t   ", "test.sentra")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Expected no error for whitespace-only program")
@@ -247,7 +217,7 @@ func (s *ProgramTestSuite) TestParseProgramWhitespaceOnly() {
 }
 
 // TestParseProgramCommentOnly tests parsing comment-only programs
-func (s *ProgramTestSuite) TestParseProgramCommentOnly() {
+func (s *ParserTestSuite) TestParseProgramCommentOnly() {
 	parser := NewParserFromString("-- This is a comment", "test.sentra")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Expected no error for comment-only program")
@@ -255,7 +225,7 @@ func (s *ProgramTestSuite) TestParseProgramCommentOnly() {
 }
 
 // TestParseProgramInvalidNamespace tests parsing programs with invalid namespace
-func (s *ProgramTestSuite) TestParseProgramInvalidNamespace() {
+func (s *ParserTestSuite) TestParseProgramInvalidNamespace() {
 	testCases := []string{
 		"policy user { }",     // Missing namespace
 		"shape User { }",      // Missing namespace
@@ -273,7 +243,7 @@ func (s *ProgramTestSuite) TestParseProgramInvalidNamespace() {
 }
 
 // TestParseProgramMultipleNamespaces tests parsing programs with multiple namespaces
-func (s *ProgramTestSuite) TestParseProgramMultipleNamespaces() {
+func (s *ParserTestSuite) TestParseProgramMultipleNamespaces() {
 	input := `
 namespace com/example
 policy user { }
@@ -285,7 +255,7 @@ namespace com/other
 }
 
 // TestParseProgramEdgeCases tests parsing edge cases
-func (s *ProgramTestSuite) TestParseProgramEdgeCases() {
+func (s *ParserTestSuite) TestParseProgramEdgeCases() {
 	testCases := []struct {
 		input       string
 		shouldError bool
@@ -309,9 +279,4 @@ func (s *ProgramTestSuite) TestParseProgramEdgeCases() {
 			s.NoError(err, "Expected no error for: %s (%s)", tc.input, tc.description)
 		}
 	}
-}
-
-// TestProgramTestSuite runs the program test suite
-func TestProgramTestSuite(t *testing.T) {
-	suite.Run(t, new(ProgramTestSuite))
 }

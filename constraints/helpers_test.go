@@ -14,21 +14,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package constraints_test
 
 import (
+	"context"
 
-	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
+	"github.com/sentrie-sh/sentrie/constraints"
+	"github.com/sentrie-sh/sentrie/index"
 )
 
-func (s *RuntimeTestSuite) TestTypeRefConstraintErrorsAreClassified() {
-	c := ast.NewTypeRefConstraint("made_up", nil, stubRange())
-
-	unknownErr := ErrUnknownConstraint(c)
-	s.Require().True(IsUnknownConstraint(unknownErr))
-	s.Require().False(IsConstraintFailed(unknownErr))
-
-	failedErr := ErrConstraintFailed(stubRange(), c, nil)
-	s.Require().True(IsConstraintFailed(failedErr))
-	s.Require().False(IsUnknownConstraint(failedErr))
+func (s *ConstraintsTestSuite) runChecker(c constraints.ConstraintDefinition, val box.Value, args []box.Value, wantErr bool) {
+	s.T().Helper()
+	err := c.Checker(context.Background(), (*index.Policy)(nil), val, args)
+	if wantErr {
+		s.Error(err, "expected error, got nil")
+	} else {
+		s.NoError(err)
+	}
 }

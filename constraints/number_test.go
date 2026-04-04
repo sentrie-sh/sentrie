@@ -18,13 +18,12 @@ package constraints_test
 
 import (
 	"math"
-	"testing"
 
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constraints"
 )
 
-func TestNumberMinMaxEqNeqGtLt(t *testing.T) {
+func (s *ConstraintsTestSuite) TestNumberMinMaxEqNeqGtLt() {
 	tests := []struct {
 		name    string
 		key     string
@@ -60,138 +59,133 @@ func TestNumberMinMaxEqNeqGtLt(t *testing.T) {
 		{"lt fail greater", "lt", box.Number(3), []box.Value{box.Number(2)}, true},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			c := constraints.NumberContraintCheckers[tt.key]
-			runChecker(t, c, tt.val, tt.args, tt.wantErr)
+			s.runChecker(c, tt.val, tt.args, tt.wantErr)
 		})
 	}
 }
 
-func TestNumberInAndNotIn(t *testing.T) {
-	t.Run("in scalar set", func(t *testing.T) {
+func (s *ConstraintsTestSuite) TestNumberInAndNotIn() {
+	s.Run("in scalar set", func() {
 		c := constraints.NumberContraintCheckers["in"]
-		runChecker(t, c, box.Number(7), []box.Value{box.Number(7)}, false)
-		runChecker(t, c, box.Number(7), []box.Value{box.Number(8)}, true)
-		runChecker(t, c, box.Number(7), nil, true)
-		runChecker(t, c, box.String("x"), []box.Value{box.Number(7)}, true)
+		s.runChecker(c, box.Number(7), []box.Value{box.Number(7)}, false)
+		s.runChecker(c, box.Number(7), []box.Value{box.Number(8)}, true)
+		s.runChecker(c, box.Number(7), nil, true)
+		s.runChecker(c, box.String("x"), []box.Value{box.Number(7)}, true)
 	})
-
-	t.Run("in list arg", func(t *testing.T) {
+	s.Run("in list arg", func() {
 		c := constraints.NumberContraintCheckers["in"]
 		set := box.List([]box.Value{box.Number(1), box.Number(2), box.Number(3)})
-		runChecker(t, c, box.Number(2), []box.Value{set}, false)
-		runChecker(t, c, box.Number(9), []box.Value{set}, true)
+		s.runChecker(c, box.Number(2), []box.Value{set}, false)
+		s.runChecker(c, box.Number(9), []box.Value{set}, true)
 	})
-
-	t.Run("not_in scalar", func(t *testing.T) {
+	s.Run("not_in scalar", func() {
 		c := constraints.NumberContraintCheckers["not_in"]
-		runChecker(t, c, box.Number(4), []box.Value{box.Number(5)}, false)
-		runChecker(t, c, box.Number(5), []box.Value{box.Number(5)}, true)
-		runChecker(t, c, box.String("x"), []box.Value{box.Number(0)}, true)
+		s.runChecker(c, box.Number(4), []box.Value{box.Number(5)}, false)
+		s.runChecker(c, box.Number(5), []box.Value{box.Number(5)}, true)
+		s.runChecker(c, box.String("x"), []box.Value{box.Number(0)}, true)
 	})
-
-	t.Run("not_in list", func(t *testing.T) {
+	s.Run("not_in list", func() {
 		c := constraints.NumberContraintCheckers["not_in"]
 		set := box.List([]box.Value{box.Number(1), box.Number(2)})
-		runChecker(t, c, box.Number(3), []box.Value{set}, false)
-		runChecker(t, c, box.Number(2), []box.Value{set}, true)
+		s.runChecker(c, box.Number(3), []box.Value{set}, false)
+		s.runChecker(c, box.Number(2), []box.Value{set}, true)
 	})
-
-	t.Run("not_in list rejects non-number entries", func(t *testing.T) {
+	s.Run("not_in list rejects non-number entries", func() {
 		c := constraints.NumberContraintCheckers["not_in"]
 		set := box.List([]box.Value{box.String("bad")})
-		runChecker(t, c, box.Number(7), []box.Value{set}, true)
+		s.runChecker(c, box.Number(7), []box.Value{set}, true)
 	})
-
-	t.Run("not_in rejects non-number scalar set", func(t *testing.T) {
+	s.Run("not_in rejects non-number scalar set", func() {
 		c := constraints.NumberContraintCheckers["not_in"]
-		runChecker(t, c, box.Number(7), []box.Value{box.String("bad")}, true)
+		s.runChecker(c, box.Number(7), []box.Value{box.String("bad")}, true)
 	})
 }
 
-func TestNumberRange(t *testing.T) {
+func (s *ConstraintsTestSuite) TestNumberRange() {
 	c := constraints.NumberContraintCheckers["range"]
-	runChecker(t, c, box.Number(5), []box.Value{box.Number(1), box.Number(10)}, false)
-	runChecker(t, c, box.Number(1), []box.Value{box.Number(1), box.Number(10)}, false)
-	runChecker(t, c, box.Number(10), []box.Value{box.Number(1), box.Number(10)}, false)
-	runChecker(t, c, box.Number(0), []box.Value{box.Number(1), box.Number(10)}, true)
-	runChecker(t, c, box.Number(11), []box.Value{box.Number(1), box.Number(10)}, true)
-	runChecker(t, c, box.Number(5), []box.Value{box.Number(1)}, true)
-	runChecker(t, c, box.String("x"), []box.Value{box.Number(1), box.Number(10)}, true)
-	runChecker(t, c, box.Number(5), []box.Value{box.String("a"), box.Number(10)}, true)
-	runChecker(t, c, box.Number(5), []box.Value{box.Number(1), box.String("b")}, true)
-	t.Run("min greater than max", func(t *testing.T) {
-		runChecker(t, c, box.Number(5), []box.Value{box.Number(10), box.Number(1)}, true)
+	s.runChecker(c, box.Number(5), []box.Value{box.Number(1), box.Number(10)}, false)
+	s.runChecker(c, box.Number(1), []box.Value{box.Number(1), box.Number(10)}, false)
+	s.runChecker(c, box.Number(10), []box.Value{box.Number(1), box.Number(10)}, false)
+	s.runChecker(c, box.Number(0), []box.Value{box.Number(1), box.Number(10)}, true)
+	s.runChecker(c, box.Number(11), []box.Value{box.Number(1), box.Number(10)}, true)
+	s.runChecker(c, box.Number(5), []box.Value{box.Number(1)}, true)
+	s.runChecker(c, box.String("x"), []box.Value{box.Number(1), box.Number(10)}, true)
+	s.runChecker(c, box.Number(5), []box.Value{box.String("a"), box.Number(10)}, true)
+	s.runChecker(c, box.Number(5), []box.Value{box.Number(1), box.String("b")}, true)
+	s.Run("min greater than max", func() {
+		s.runChecker(c, box.Number(5), []box.Value{box.Number(10), box.Number(1)}, true)
 	})
 }
 
-func TestNumberEvenOdd(t *testing.T) {
-	t.Run("even", func(t *testing.T) {
+func (s *ConstraintsTestSuite) TestNumberEvenOdd() {
+	s.Run("even", func() {
 		c := constraints.NumberContraintCheckers["even"]
-		runChecker(t, c, box.Number(4), nil, false)
-		runChecker(t, c, box.Number(3), nil, true)
-		runChecker(t, c, box.String("x"), nil, true)
+		s.runChecker(c, box.Number(4), nil, false)
+		s.runChecker(c, box.Number(3), nil, true)
+		s.runChecker(c, box.String("x"), nil, true)
 	})
-	t.Run("odd", func(t *testing.T) {
+	s.Run("odd", func() {
 		c := constraints.NumberContraintCheckers["odd"]
-		runChecker(t, c, box.Number(3), nil, false)
-		runChecker(t, c, box.Number(4), nil, true)
+		s.runChecker(c, box.Number(3), nil, false)
+		s.runChecker(c, box.Number(4), nil, true)
 	})
 }
 
-func TestNumberMultipleOf(t *testing.T) {
+func (s *ConstraintsTestSuite) TestNumberMultipleOf() {
 	c := constraints.NumberContraintCheckers["multiple_of"]
-	runChecker(t, c, box.Number(12), []box.Value{box.Number(4)}, false)
-	runChecker(t, c, box.Number(12), []box.Value{box.Number(5)}, true)
-	runChecker(t, c, box.Number(12), []box.Value{box.Number(0)}, true)
-	runChecker(t, c, box.Number(12), nil, true)
-	runChecker(t, c, box.String("x"), []box.Value{box.Number(2)}, true)
-	runChecker(t, c, box.Number(12), []box.Value{box.String("x")}, true)
-	t.Run("negative divisor", func(t *testing.T) {
-		runChecker(t, c, box.Number(-6), []box.Value{box.Number(-3)}, false)
+	s.runChecker(c, box.Number(12), []box.Value{box.Number(4)}, false)
+	s.runChecker(c, box.Number(12), []box.Value{box.Number(5)}, true)
+	s.runChecker(c, box.Number(12), []box.Value{box.Number(0)}, true)
+	s.runChecker(c, box.Number(12), nil, true)
+	s.runChecker(c, box.String("x"), []box.Value{box.Number(2)}, true)
+	s.runChecker(c, box.Number(12), []box.Value{box.String("x")}, true)
+	s.Run("negative divisor", func() {
+		s.runChecker(c, box.Number(-6), []box.Value{box.Number(-3)}, false)
 	})
 }
 
-func TestNumberSignConstraints(t *testing.T) {
-	t.Run("positive", func(t *testing.T) {
+func (s *ConstraintsTestSuite) TestNumberSignConstraints() {
+	s.Run("positive", func() {
 		c := constraints.NumberContraintCheckers["positive"]
-		runChecker(t, c, box.Number(0.1), nil, false)
-		runChecker(t, c, box.Number(0), nil, true)
-		runChecker(t, c, box.String("x"), nil, true)
+		s.runChecker(c, box.Number(0.1), nil, false)
+		s.runChecker(c, box.Number(0), nil, true)
+		s.runChecker(c, box.String("x"), nil, true)
 	})
-	t.Run("negative", func(t *testing.T) {
+	s.Run("negative", func() {
 		c := constraints.NumberContraintCheckers["negative"]
-		runChecker(t, c, box.Number(-1), nil, false)
-		runChecker(t, c, box.Number(0), nil, true)
+		s.runChecker(c, box.Number(-1), nil, false)
+		s.runChecker(c, box.Number(0), nil, true)
 	})
-	t.Run("non_negative", func(t *testing.T) {
+	s.Run("non_negative", func() {
 		c := constraints.NumberContraintCheckers["non_negative"]
-		runChecker(t, c, box.Number(0), nil, false)
-		runChecker(t, c, box.Number(-0.1), nil, true)
+		s.runChecker(c, box.Number(0), nil, false)
+		s.runChecker(c, box.Number(-0.1), nil, true)
 	})
-	t.Run("non_positive", func(t *testing.T) {
+	s.Run("non_positive", func() {
 		c := constraints.NumberContraintCheckers["non_positive"]
-		runChecker(t, c, box.Number(0), nil, false)
-		runChecker(t, c, box.Number(0.1), nil, true)
+		s.runChecker(c, box.Number(0), nil, false)
+		s.runChecker(c, box.Number(0.1), nil, true)
 	})
 }
 
-func TestNumberFiniteInfiniteNaN(t *testing.T) {
-	t.Run("finite", func(t *testing.T) {
+func (s *ConstraintsTestSuite) TestNumberFiniteInfiniteNaN() {
+	s.Run("finite", func() {
 		c := constraints.NumberContraintCheckers["finite"]
-		runChecker(t, c, box.Number(1.5), nil, false)
-		runChecker(t, c, box.Number(math.Inf(1)), nil, true)
-		runChecker(t, c, box.Number(math.NaN()), nil, true)
-		runChecker(t, c, box.String("x"), nil, true)
+		s.runChecker(c, box.Number(1.5), nil, false)
+		s.runChecker(c, box.Number(math.Inf(1)), nil, true)
+		s.runChecker(c, box.Number(math.NaN()), nil, true)
+		s.runChecker(c, box.String("x"), nil, true)
 	})
-	t.Run("infinite", func(t *testing.T) {
+	s.Run("infinite", func() {
 		c := constraints.NumberContraintCheckers["infinite"]
-		runChecker(t, c, box.Number(math.Inf(-1)), nil, false)
-		runChecker(t, c, box.Number(1), nil, true)
+		s.runChecker(c, box.Number(math.Inf(-1)), nil, false)
+		s.runChecker(c, box.Number(1), nil, true)
 	})
-	t.Run("nan", func(t *testing.T) {
+	s.Run("nan", func() {
 		c := constraints.NumberContraintCheckers["nan"]
-		runChecker(t, c, box.Number(math.NaN()), nil, false)
-		runChecker(t, c, box.Number(1), nil, true)
+		s.runChecker(c, box.Number(math.NaN()), nil, false)
+		s.runChecker(c, box.Number(1), nil, true)
 	})
 }

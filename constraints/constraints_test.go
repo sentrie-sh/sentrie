@@ -16,38 +16,16 @@
 
 package constraints_test
 
-import (
-	"context"
-	"testing"
+import "github.com/sentrie-sh/sentrie/constraints"
 
-	"github.com/sentrie-sh/sentrie/box"
-	"github.com/sentrie-sh/sentrie/constraints"
-	"github.com/sentrie-sh/sentrie/index"
-)
-
-func runChecker(t *testing.T, c constraints.ConstraintDefinition, val box.Value, args []box.Value, wantErr bool) {
-	t.Helper()
-	err := c.Checker(context.Background(), (*index.Policy)(nil), val, args)
-	if wantErr && err == nil {
-		t.Fatal("expected error, got nil")
-	}
-	if !wantErr && err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestEmptyCheckerMapsAreInitialized(t *testing.T) {
+func (s *ConstraintsTestSuite) TestEmptyCheckerMapsAreInitialized() {
 	for name, m := range map[string]map[string]constraints.ConstraintDefinition{
 		"map":      constraints.MapContraintCheckers,
 		"record":   constraints.RecordContraintCheckers,
 		"shape":    constraints.ShapeContraintCheckers,
 		"document": constraints.DocumentContraintCheckers,
 	} {
-		if m == nil {
-			t.Fatalf("%s: map is nil", name)
-		}
-		if len(m) != 0 {
-			t.Fatalf("%s: expected empty map", name)
-		}
+		s.NotNil(m, "%s: map is nil", name)
+		s.Empty(m, "%s: expected empty map", name)
 	}
 }

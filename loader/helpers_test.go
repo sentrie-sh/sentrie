@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2026 Binaek Sarkar
+// Copyright 2025 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,21 +14,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package loader
 
 import (
-
-	"github.com/sentrie-sh/sentrie/ast"
+	"os"
+	"path/filepath"
 )
 
-func (s *RuntimeTestSuite) TestTypeRefConstraintErrorsAreClassified() {
-	c := ast.NewTypeRefConstraint("made_up", nil, stubRange())
-
-	unknownErr := ErrUnknownConstraint(c)
-	s.Require().True(IsUnknownConstraint(unknownErr))
-	s.Require().False(IsConstraintFailed(unknownErr))
-
-	failedErr := ErrConstraintFailed(stubRange(), c, nil)
-	s.Require().True(IsConstraintFailed(failedErr))
-	s.Require().False(IsUnknownConstraint(failedErr))
+func (s *LoaderTestSuite) writePackDir(content string) string {
+	dir := s.T().TempDir()
+	packFile := filepath.Join(dir, PackFileName)
+	s.Require().NoError(os.WriteFile(packFile, []byte(content), 0o644))
+	return dir
 }

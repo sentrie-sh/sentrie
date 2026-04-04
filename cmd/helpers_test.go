@@ -14,21 +14,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package cmd
 
 import (
-
-	"github.com/sentrie-sh/sentrie/ast"
+	"bytes"
+	"os"
 )
 
-func (s *RuntimeTestSuite) TestTypeRefConstraintErrorsAreClassified() {
-	c := ast.NewTypeRefConstraint("made_up", nil, stubRange())
-
-	unknownErr := ErrUnknownConstraint(c)
-	s.Require().True(IsUnknownConstraint(unknownErr))
-	s.Require().False(IsConstraintFailed(unknownErr))
-
-	failedErr := ErrConstraintFailed(stubRange(), c, nil)
-	s.Require().True(IsConstraintFailed(failedErr))
-	s.Require().False(IsUnknownConstraint(failedErr))
+func (s *CmdTestSuite) captureStdout(fn func()) string {
+	s.T().Helper()
+	oldStdout := os.Stdout
+	r, w, err := os.Pipe()
+	s.Require().NoError(err)
+	defer func() { s.Require().NoError(r.Close()) }()
+	os.Stdout = w
+	defer func() { os.Stdout = oldStdout }()
+	fn()
+	s.Require().NoError(w.Close())
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(r)
+	s.Require().NoError(err)
+	return buf.String()
 }

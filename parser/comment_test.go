@@ -17,20 +17,11 @@
 package parser
 
 import (
-	"log/slog"
-	"testing"
-
 	"github.com/sentrie-sh/sentrie/ast"
-	"github.com/stretchr/testify/suite"
 )
 
-// CommentTestSuite provides tests for comment and whitespace handling
-type CommentTestSuite struct {
-	suite.Suite
-}
-
 // findNamespaceStatement finds the namespace statement in a program's statements
-func (s *CommentTestSuite) findNamespaceStatement(program *ast.Program) *ast.NamespaceStatement {
+func (s *ParserTestSuite) findNamespaceStatement(program *ast.Program) *ast.NamespaceStatement {
 	for _, stmt := range program.Statements {
 		if ns, ok := stmt.(*ast.NamespaceStatement); ok {
 			return ns
@@ -39,29 +30,8 @@ func (s *CommentTestSuite) findNamespaceStatement(program *ast.Program) *ast.Nam
 	return nil
 }
 
-// SetupSuite initializes the test suite
-func (s *CommentTestSuite) SetupSuite() {
-	slog.Info("CommentTestSuite SetupSuite start")
-}
-
-// BeforeTest runs before each test
-func (s *CommentTestSuite) BeforeTest(suiteName, testName string) {
-	slog.Info("BeforeTest start", "TestSuite", "CommentTestSuite", "TestName", testName)
-}
-
-// AfterTest runs after each test
-func (s *CommentTestSuite) AfterTest(suiteName, testName string) {
-	slog.Info("AfterTest start", "TestSuite", "CommentTestSuite", "TestName", testName)
-}
-
-// TearDownSuite cleans up after all tests
-func (s *CommentTestSuite) TearDownSuite() {
-	slog.Info("TearDownSuite")
-	slog.Info("TearDownSuite end")
-}
-
 // TestParseWithLineComments tests parsing with line comments
-func (s *CommentTestSuite) TestParseWithLineComments() {
+func (s *ParserTestSuite) TestParseWithLineComments() {
 	input := `
 -- This is a comment
 namespace com/example; -- Another comment
@@ -93,7 +63,7 @@ policy test {
 }
 
 // TestParseWithMultiLineComments tests parsing with multi-line comments
-func (s *CommentTestSuite) TestParseWithMultiLineComments() {
+func (s *ParserTestSuite) TestParseWithMultiLineComments() {
 	input := `
 -- This is a multi-line comment
 -- that spans several lines
@@ -127,7 +97,7 @@ policy test {
 }
 
 // TestParseWithMixedComments tests parsing with mixed comment types
-func (s *CommentTestSuite) TestParseWithMixedComments() {
+func (s *ParserTestSuite) TestParseWithMixedComments() {
 	input := `
 -- Line comment
 -- Another line comment
@@ -163,7 +133,7 @@ policy test {
 }
 
 // TestParseWithWhitespace tests parsing with various whitespace
-func (s *CommentTestSuite) TestParseWithWhitespace() {
+func (s *ParserTestSuite) TestParseWithWhitespace() {
 	input := `
 namespace   com/example   ;   
 policy   test   {   
@@ -193,7 +163,7 @@ policy   test   {
 }
 
 // TestParseWithTrailingComments tests parsing with trailing comments
-func (s *CommentTestSuite) TestParseWithTrailingComments() {
+func (s *ParserTestSuite) TestParseWithTrailingComments() {
 	input := `
 namespace com/example; -- Trailing comment
 policy test { -- Trailing comment
@@ -224,7 +194,7 @@ policy test { -- Trailing comment
 }
 
 // TestParseWithPrecedingComments tests parsing with preceding comments
-func (s *CommentTestSuite) TestParseWithPrecedingComments() {
+func (s *ParserTestSuite) TestParseWithPrecedingComments() {
 	input := `
 -- Preceding comment
 namespace com/example;
@@ -259,7 +229,7 @@ policy test {
 }
 
 // TestParseWithNestedComments tests parsing with nested comments
-func (s *CommentTestSuite) TestParseWithNestedComments() {
+func (s *ParserTestSuite) TestParseWithNestedComments() {
 	input := `
 -- Outer comment
 -- Inner line comment
@@ -280,7 +250,7 @@ namespace com/example;
 }
 
 // TestParseWithEmptyComments tests parsing with empty comments
-func (s *CommentTestSuite) TestParseWithEmptyComments() {
+func (s *ParserTestSuite) TestParseWithEmptyComments() {
 	input := `
 --
 namespace com/example;
@@ -315,7 +285,7 @@ policy test {
 }
 
 // TestParseWithOnlyComments tests parsing with only comments
-func (s *CommentTestSuite) TestParseWithOnlyComments() {
+func (s *ParserTestSuite) TestParseWithOnlyComments() {
 	input := `
 -- This is a comment
 -- This is another comment
@@ -329,7 +299,7 @@ func (s *CommentTestSuite) TestParseWithOnlyComments() {
 }
 
 // TestParseWithMalformedComments tests parsing with malformed comments
-func (s *CommentTestSuite) TestParseWithMalformedComments() {
+func (s *ParserTestSuite) TestParseWithMalformedComments() {
 	input := `
 /* Unclosed comment
 namespace com/example;
@@ -342,7 +312,7 @@ namespace com/example;
 }
 
 // TestParseWithCommentsInStrings tests parsing with comments in strings
-func (s *CommentTestSuite) TestParseWithCommentsInStrings() {
+func (s *ParserTestSuite) TestParseWithCommentsInStrings() {
 	input := `
 namespace com/example;
 policy test {
@@ -373,7 +343,7 @@ policy test {
 }
 
 // TestParseWithCommentsInExpressions tests parsing with comments in expressions
-func (s *CommentTestSuite) TestParseWithCommentsInExpressions() {
+func (s *ParserTestSuite) TestParseWithCommentsInExpressions() {
 	input := `
 namespace com/example;
 policy test {
@@ -405,7 +375,7 @@ policy test {
 }
 
 // TestParseWithCommentsInComplexExpressions tests parsing with comments in complex expressions
-func (s *CommentTestSuite) TestParseWithCommentsInComplexExpressions() {
+func (s *ParserTestSuite) TestParseWithCommentsInComplexExpressions() {
 	input := `
 namespace com/example;
 policy test {
@@ -437,7 +407,7 @@ policy test {
 }
 
 // TestParseWithCommentsInLists tests parsing with comments in lists
-func (s *CommentTestSuite) TestParseWithCommentsInLists() {
+func (s *ParserTestSuite) TestParseWithCommentsInLists() {
 	input := `
 namespace com/example;
 policy test {
@@ -468,7 +438,7 @@ policy test {
 }
 
 // TestParseWithCommentsInMaps tests parsing with comments in maps
-func (s *CommentTestSuite) TestParseWithCommentsInMaps() {
+func (s *ParserTestSuite) TestParseWithCommentsInMaps() {
 	input := `
 namespace com/example;
 policy test {
@@ -499,7 +469,7 @@ policy test {
 }
 
 // TestParseWithCommentsInCalls tests parsing with comments in function calls
-func (s *CommentTestSuite) TestParseWithCommentsInCalls() {
+func (s *ParserTestSuite) TestParseWithCommentsInCalls() {
 	input := `
 namespace com/example;
 policy test {
@@ -530,7 +500,7 @@ policy test {
 }
 
 // TestParseWithCommentsInIndexes tests parsing with comments in index expressions
-func (s *CommentTestSuite) TestParseWithCommentsInIndexes() {
+func (s *ParserTestSuite) TestParseWithCommentsInIndexes() {
 	input := `
 namespace com/example;
 policy test {
@@ -561,7 +531,7 @@ policy test {
 }
 
 // TestParseWithCommentsInShapes tests parsing with comments in shapes
-func (s *CommentTestSuite) TestParseWithCommentsInShapes() {
+func (s *ParserTestSuite) TestParseWithCommentsInShapes() {
 	input := `
 namespace com/example;
 -- Shape comment
@@ -593,7 +563,7 @@ shape User {
 }
 
 // TestParseWithCommentsInExports tests parsing with comments in exports
-func (s *CommentTestSuite) TestParseWithCommentsInExports() {
+func (s *ParserTestSuite) TestParseWithCommentsInExports() {
 	input := `
 namespace com/example
 shape User {
@@ -621,9 +591,4 @@ export shape User
 		}
 	}
 	s.Equal(1, shapeExportCount, "Expected 1 shape export statement")
-}
-
-// TestParseWithCommentsTestSuite runs the comment test suite
-func TestParseWithCommentsTestSuite(t *testing.T) {
-	suite.Run(t, new(CommentTestSuite))
 }

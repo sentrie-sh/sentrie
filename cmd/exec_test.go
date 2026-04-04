@@ -16,42 +16,17 @@
 
 package cmd
 
-import (
-	"bytes"
-	"os"
-	"testing"
+import "github.com/sentrie-sh/sentrie/box"
 
-	"github.com/sentrie-sh/sentrie/box"
-	"github.com/stretchr/testify/require"
-)
-
-func captureStdout(t *testing.T, fn func()) string {
-	t.Helper()
-	oldStdout := os.Stdout
-	r, w, err := os.Pipe()
-	require.NoError(t, err)
-	defer func() { require.NoError(t, r.Close()) }()
-	os.Stdout = w
-	defer func() { os.Stdout = oldStdout }()
-
-	fn()
-
-	require.NoError(t, w.Close())
-	var buf bytes.Buffer
-	_, err = buf.ReadFrom(r)
-	require.NoError(t, err)
-	return buf.String()
-}
-
-func TestFormatAttachmentRecursesBoxedContainers(t *testing.T) {
+func (s *CmdTestSuite) TestFormatAttachmentRecursesBoxedContainers() {
 	value := box.Map(map[string]box.Value{
 		"items": box.List([]box.Value{box.Number(1), box.Number(2)}),
 	})
-	out := captureStdout(t, func() {
+	out := s.captureStdout(func() {
 		formatAttachment("root", value, 0)
 	})
-	require.Contains(t, out, "root:")
-	require.Contains(t, out, "items:")
-	require.Contains(t, out, "- 1")
-	require.Contains(t, out, "- 2")
+	s.Contains(out, "root:")
+	s.Contains(out, "items:")
+	s.Contains(out, "- 1")
+	s.Contains(out, "- 2")
 }

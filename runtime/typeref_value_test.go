@@ -17,19 +17,17 @@
 package runtime
 
 import (
-	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
-	"github.com/stretchr/testify/require"
 )
 
-func TestValidateValueAgainstTypeRefNormalizesBoxedValue(t *testing.T) {
+func (s *RuntimeTestSuite) TestValidateValueAgainstTypeRefNormalizesBoxedValue() {
 	typeRef := ast.NewStringTypeRef(stubRange())
 	err := validateValueAgainstTypeRef(
-		t.Context(),
+		s.T().Context(),
 		&ExecutionContext{},
 		&executorImpl{},
 		&index.Policy{},
@@ -37,5 +35,5 @@ func TestValidateValueAgainstTypeRefNormalizesBoxedValue(t *testing.T) {
 		typeRef,
 		tokens.Range{File: "test.sentra"},
 	)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 }

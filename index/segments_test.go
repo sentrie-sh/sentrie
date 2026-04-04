@@ -18,35 +18,15 @@ package index
 
 import (
 	"context"
-	"testing"
 
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/sentrie-sh/sentrie/xerr"
-	"github.com/stretchr/testify/suite"
 )
 
-type SegmentsTestSuite struct {
-	suite.Suite
-	idx *Index
-}
-
-func (suite *SegmentsTestSuite) SetupTest() {
-	suite.idx = CreateIndex()
-	suite.setupTestData()
-}
-
-func (suite *SegmentsTestSuite) TearDownTest() {
-	suite.idx = nil
-}
-
-func TestSegmentsTestSuite(t *testing.T) {
-	suite.Run(t, new(SegmentsTestSuite))
-}
-
-func (suite *SegmentsTestSuite) setupTestData() {
+func (suite *IndexTestSuite) setupSegmentsIndexFixture() {
 	// Create namespace: com/example
 	nsStmt := ast.NewNamespaceStatement(
 		ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
@@ -117,7 +97,7 @@ func (suite *SegmentsTestSuite) setupTestData() {
 	suite.Require().NoError(err)
 }
 
-func (suite *SegmentsTestSuite) TestResolveSegmentsWithValidPath() {
+func (suite *IndexTestSuite) TestResolveSegmentsWithValidPath() {
 	suite.Run("simple namespace and policy", func() {
 		ns, policy, rule, err := suite.idx.ResolveSegments("com/example/auth")
 
@@ -137,7 +117,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithValidPath() {
 	})
 }
 
-func (suite *SegmentsTestSuite) TestResolveSegmentsWithEmptyPath() {
+func (suite *IndexTestSuite) TestResolveSegmentsWithEmptyPath() {
 	// Test with empty path - should return an error, not panic
 	ns, policy, rule, err := suite.idx.ResolveSegments("")
 
@@ -149,7 +129,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithEmptyPath() {
 	suite.Equal("", rule)
 }
 
-func (suite *SegmentsTestSuite) TestResolveSegmentsWithInvalidNamespace() {
+func (suite *IndexTestSuite) TestResolveSegmentsWithInvalidNamespace() {
 	suite.Run("non-existent namespace", func() {
 		ns, policy, rule, err := suite.idx.ResolveSegments("org/unknown/policy")
 
@@ -184,7 +164,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithInvalidNamespace() {
 	})
 }
 
-func (suite *SegmentsTestSuite) TestResolveSegmentsWithInvalidPolicy() {
+func (suite *IndexTestSuite) TestResolveSegmentsWithInvalidPolicy() {
 	suite.Run("non-existent policy", func() {
 		ns, policy, rule, err := suite.idx.ResolveSegments("com/example/unknown")
 
@@ -208,7 +188,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithInvalidPolicy() {
 	})
 }
 
-func (suite *SegmentsTestSuite) TestResolveSegmentsWithEmptySegments() {
+func (suite *IndexTestSuite) TestResolveSegmentsWithEmptySegments() {
 	suite.Run("path with empty segments", func() {
 		ns, policy, rule, err := suite.idx.ResolveSegments("com//example/auth")
 
@@ -247,7 +227,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithEmptySegments() {
 	})
 }
 
-func (suite *SegmentsTestSuite) TestResolveSegmentsWithOnlyNamespace() {
+func (suite *IndexTestSuite) TestResolveSegmentsWithOnlyNamespace() {
 	// This should fail because we need at least a policy
 	ns, policy, rule, err := suite.idx.ResolveSegments("com/example")
 
@@ -259,7 +239,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithOnlyNamespace() {
 	suite.Equal("", rule)
 }
 
-func (suite *SegmentsTestSuite) TestResolveSegmentsWithNamespaceAndPolicyOnly() {
+func (suite *IndexTestSuite) TestResolveSegmentsWithNamespaceAndPolicyOnly() {
 	// This should succeed - we have namespace and policy, no rule needed
 	ns, policy, rule, err := suite.idx.ResolveSegments("com/example/auth")
 
@@ -269,7 +249,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithNamespaceAndPolicyOnly() 
 	suite.Equal("", rule)
 }
 
-func (suite *SegmentsTestSuite) TestResolveSegmentsWithLongPath() {
+func (suite *IndexTestSuite) TestResolveSegmentsWithLongPath() {
 	// Test with a very long path that doesn't exist
 	ns, policy, rule, err := suite.idx.ResolveSegments("com/example/auth/allow/extra/segments")
 
@@ -280,7 +260,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithLongPath() {
 	// Extra segments are ignored
 }
 
-func (suite *SegmentsTestSuite) TestResolveSegmentsWithSingleCharacterSegments() {
+func (suite *IndexTestSuite) TestResolveSegmentsWithSingleCharacterSegments() {
 	// Create a namespace with single character segments
 	singleCharNsStmt := ast.NewNamespaceStatement(
 		ast.NewFQN([]string{"a", "b"}, tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
@@ -320,7 +300,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithSingleCharacterSegments()
 	suite.Equal("e", rule)
 }
 
-func (suite *SegmentsTestSuite) TestResolveSegmentsWithSpecialCharacters() {
+func (suite *IndexTestSuite) TestResolveSegmentsWithSpecialCharacters() {
 	// Test with paths that might have special characters (though FQN doesn't support them)
 	ns, policy, rule, err := suite.idx.ResolveSegments("com/example/auth/allow")
 
@@ -330,7 +310,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithSpecialCharacters() {
 	suite.Equal("allow", rule)
 }
 
-func (suite *SegmentsTestSuite) TestResolveSegmentsWithWhitespace() {
+func (suite *IndexTestSuite) TestResolveSegmentsWithWhitespace() {
 	// Test with paths that have whitespace (should be treated as empty segments)
 	ns, policy, rule, err := suite.idx.ResolveSegments(" com / example / auth ")
 
@@ -342,7 +322,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithWhitespace() {
 	suite.Equal("", rule)
 }
 
-func (suite *SegmentsTestSuite) TestResolveSegmentsWithNestedNamespaceResolution() {
+func (suite *IndexTestSuite) TestResolveSegmentsWithNestedNamespaceResolution() {
 	// Test that the method correctly resolves nested namespaces
 	// com/example/sub should resolve to the nested namespace, not the parent
 
@@ -361,7 +341,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithNestedNamespaceResolution
 	suite.Equal("check", rule)
 }
 
-func (suite *SegmentsTestSuite) TestResolveSegmentsWithPartialNamespaceMatch() {
+func (suite *IndexTestSuite) TestResolveSegmentsWithPartialNamespaceMatch() {
 	// Test that partial namespace matches don't work
 	// com/example/sub/extra should not match com/example/sub
 	ns, policy, rule, err := suite.idx.ResolveSegments("com/example/sub/extra/admin")
@@ -374,7 +354,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithPartialNamespaceMatch() {
 	suite.Equal("", rule)
 }
 
-func (suite *SegmentsTestSuite) TestResolveSegmentsWithExactNamespaceMatch() {
+func (suite *IndexTestSuite) TestResolveSegmentsWithExactNamespaceMatch() {
 	// Test that exact namespace matches work
 	ns, policy, rule, err := suite.idx.ResolveSegments("com/example/auth")
 
@@ -384,7 +364,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithExactNamespaceMatch() {
 	suite.Equal("", rule)
 }
 
-func (suite *SegmentsTestSuite) TestResolveSegmentsWithRuleInNestedNamespace() {
+func (suite *IndexTestSuite) TestResolveSegmentsWithRuleInNestedNamespace() {
 	// Test resolving a rule in a nested namespace
 
 	// Test resolving a rule in the nested namespace
@@ -395,7 +375,7 @@ func (suite *SegmentsTestSuite) TestResolveSegmentsWithRuleInNestedNamespace() {
 	suite.Equal("check", rule)
 }
 
-func (suite *SegmentsTestSuite) TestResolveSegmentsWithMultipleRules() {
+func (suite *IndexTestSuite) TestResolveSegmentsWithMultipleRules() {
 	// Test resolving different rules in the same policy
 	suite.Run("allow rule", func() {
 		ns, policy, rule, err := suite.idx.ResolveSegments("com/example/auth/allow")

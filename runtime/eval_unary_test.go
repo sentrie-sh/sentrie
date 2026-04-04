@@ -17,14 +17,12 @@
 package runtime
 
 import (
-	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/trinary"
-	"github.com/stretchr/testify/require"
 )
 
-func TestEvalUnaryNotAndBangUseTrinaryNegation(t *testing.T) {
+func (s *RuntimeTestSuite) TestEvalUnaryNotAndBangUseTrinaryNegation() {
 	tests := []struct {
 		name     string
 		operator string
@@ -40,40 +38,40 @@ func TestEvalUnaryNotAndBangUseTrinaryNegation(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			expr := ast.NewUnaryExpression(tt.operator, ast.NewTrinaryLiteral(tt.in, stubRange()), stubRange())
-			got, _, err := evalUnary(t.Context(), NewExecutionContext(newEvalTestPolicy(), &executorImpl{}), &executorImpl{}, newEvalTestPolicy(), expr)
-			require.NoError(t, err)
-			require.Equal(t, tt.want, got.Any())
+			got, _, err := evalUnary(s.T().Context(), NewExecutionContext(newEvalTestPolicy(), &executorImpl{}), &executorImpl{}, newEvalTestPolicy(), expr)
+			s.Require().NoError(err)
+			s.Require().Equal(tt.want, got.Any())
 		})
 	}
 }
 
-func TestEvalUnaryNumberOperatorsAndErrors(t *testing.T) {
+func (s *RuntimeTestSuite) TestEvalUnaryNumberOperatorsAndErrors() {
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 
-	plus, _, err := evalUnary(t.Context(), ec, &executorImpl{}, p, ast.NewUnaryExpression("+", ast.NewIntegerLiteral(7, stubRange()), stubRange()))
-	require.NoError(t, err)
-	require.Equal(t, 7.0, plus.Any())
+	plus, _, err := evalUnary(s.T().Context(), ec, &executorImpl{}, p, ast.NewUnaryExpression("+", ast.NewIntegerLiteral(7, stubRange()), stubRange()))
+	s.Require().NoError(err)
+	s.Require().Equal(7.0, plus.Any())
 
-	minus, _, err := evalUnary(t.Context(), ec, &executorImpl{}, p, ast.NewUnaryExpression("-", ast.NewIntegerLiteral(7, stubRange()), stubRange()))
-	require.NoError(t, err)
-	require.Equal(t, -7.0, minus.Any())
+	minus, _, err := evalUnary(s.T().Context(), ec, &executorImpl{}, p, ast.NewUnaryExpression("-", ast.NewIntegerLiteral(7, stubRange()), stubRange()))
+	s.Require().NoError(err)
+	s.Require().Equal(-7.0, minus.Any())
 
-	_, _, err = evalUnary(t.Context(), ec, &executorImpl{}, p, ast.NewUnaryExpression("+", ast.NewStringLiteral("x", stubRange()), stubRange()))
-	require.ErrorContains(t, err, "unary + requires number")
+	_, _, err = evalUnary(s.T().Context(), ec, &executorImpl{}, p, ast.NewUnaryExpression("+", ast.NewStringLiteral("x", stubRange()), stubRange()))
+	s.Require().ErrorContains(err, "unary + requires number")
 
-	_, _, err = evalUnary(t.Context(), ec, &executorImpl{}, p, ast.NewUnaryExpression("-", ast.NewStringLiteral("x", stubRange()), stubRange()))
-	require.ErrorContains(t, err, "unary - requires number")
+	_, _, err = evalUnary(s.T().Context(), ec, &executorImpl{}, p, ast.NewUnaryExpression("-", ast.NewStringLiteral("x", stubRange()), stubRange()))
+	s.Require().ErrorContains(err, "unary - requires number")
 }
 
-func TestEvalUnaryUndefinedPassthrough(t *testing.T) {
+func (s *RuntimeTestSuite) TestEvalUnaryUndefinedPassthrough() {
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 	missing := ast.NewFieldAccessExpression(ast.NewMapLiteral([]ast.MapEntry{}, stubRange()), "missing", stubRange())
 
-	got, _, err := evalUnary(t.Context(), ec, &executorImpl{}, p, ast.NewUnaryExpression("!", missing, stubRange()))
-	require.NoError(t, err)
-	require.True(t, got.IsUndefined())
+	got, _, err := evalUnary(s.T().Context(), ec, &executorImpl{}, p, ast.NewUnaryExpression("!", missing, stubRange()))
+	s.Require().NoError(err)
+	s.Require().True(got.IsUndefined())
 }

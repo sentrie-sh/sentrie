@@ -16,62 +16,29 @@
 
 package parser
 
-import (
-	"log/slog"
-	"testing"
-
-	"github.com/stretchr/testify/suite"
-)
-
-// ErrorTestSuite provides tests for error handling
-type ErrorTestSuite struct {
-	suite.Suite
-}
-
-// SetupSuite initializes the test suite
-func (s *ErrorTestSuite) SetupSuite() {
-	slog.Info("ErrorTestSuite SetupSuite start")
-}
-
-// BeforeTest runs before each test
-func (s *ErrorTestSuite) BeforeTest(suiteName, testName string) {
-	slog.Info("BeforeTest start", "TestSuite", "ErrorTestSuite", "TestName", testName)
-}
-
-// AfterTest runs after each test
-func (s *ErrorTestSuite) AfterTest(suiteName, testName string) {
-	slog.Info("AfterTest start", "TestSuite", "ErrorTestSuite", "TestName", testName)
-}
-
-// TearDownSuite cleans up after all tests
-func (s *ErrorTestSuite) TearDownSuite() {
-	slog.Info("TearDownSuite")
-	slog.Info("TearDownSuite end")
-}
-
 // TestParseErrorEmptyInput tests parsing empty input
-func (s *ErrorTestSuite) TestParseErrorEmptyInput() {
+func (s *ParserTestSuite) TestParseErrorEmptyInput() {
 	parser := NewParserFromString("", "test.sentra")
 	_, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Empty input should not error")
 }
 
 // TestParseErrorWhitespaceOnly tests parsing whitespace-only input
-func (s *ErrorTestSuite) TestParseErrorWhitespaceOnly() {
+func (s *ParserTestSuite) TestParseErrorWhitespaceOnly() {
 	parser := NewParserFromString("   \n\t   ", "test.sentra")
 	_, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Whitespace-only input should not error")
 }
 
 // TestParseErrorCommentOnly tests parsing comment-only input
-func (s *ErrorTestSuite) TestParseErrorCommentOnly() {
+func (s *ParserTestSuite) TestParseErrorCommentOnly() {
 	parser := NewParserFromString("-- This is a comment", "test.sentra")
 	_, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Comment-only input should not error")
 }
 
 // TestParseErrorUnexpectedTokens tests parsing with unexpected tokens
-func (s *ErrorTestSuite) TestParseErrorUnexpectedTokens() {
+func (s *ParserTestSuite) TestParseErrorUnexpectedTokens() {
 	testCases := []string{
 		"rule check { true }",       // Rule at top level
 		"fact name:string",          // Fact at top level
@@ -89,7 +56,7 @@ func (s *ErrorTestSuite) TestParseErrorUnexpectedTokens() {
 }
 
 // TestParseErrorIncompleteStatement tests parsing incomplete statements
-func (s *ErrorTestSuite) TestParseErrorIncompleteStatement() {
+func (s *ParserTestSuite) TestParseErrorIncompleteStatement() {
 	testCases := []struct {
 		input    string
 		expected string
@@ -115,7 +82,7 @@ func (s *ErrorTestSuite) TestParseErrorIncompleteStatement() {
 }
 
 // TestParseErrorMismatchedBrackets tests parsing with mismatched brackets
-func (s *ErrorTestSuite) TestParseErrorMismatchedBrackets() {
+func (s *ParserTestSuite) TestParseErrorMismatchedBrackets() {
 	testCases := []string{
 		"namespace com/example; policy user {",     // Missing closing brace
 		"namespace com/example; policy user { } }", // Extra closing brace
@@ -133,7 +100,7 @@ func (s *ErrorTestSuite) TestParseErrorMismatchedBrackets() {
 }
 
 // TestParseErrorInvalidIdentifiers tests parsing with invalid identifiers
-func (s *ErrorTestSuite) TestParseErrorInvalidIdentifiers() {
+func (s *ParserTestSuite) TestParseErrorInvalidIdentifiers() {
 	testCases := []string{
 		"namespace 123;",                         // Invalid namespace identifier
 		"namespace com/123;",                     // Invalid namespace segment
@@ -151,7 +118,7 @@ func (s *ErrorTestSuite) TestParseErrorInvalidIdentifiers() {
 }
 
 // TestParseErrorInvalidExpressions tests parsing with invalid expressions
-func (s *ErrorTestSuite) TestParseErrorInvalidExpressions() {
+func (s *ParserTestSuite) TestParseErrorInvalidExpressions() {
 	testCases := []string{
 		"namespace com/example; rule check { + }",       // Invalid unary operator
 		"namespace com/example; rule check { 1 + }",     // Incomplete binary expression
@@ -169,7 +136,7 @@ func (s *ErrorTestSuite) TestParseErrorInvalidExpressions() {
 }
 
 // TestParseErrorInvalidTypes tests parsing with invalid types
-func (s *ErrorTestSuite) TestParseErrorInvalidTypes() {
+func (s *ParserTestSuite) TestParseErrorInvalidTypes() {
 	testCases := []string{
 		"namespace com/example; fact name:123;",    // Invalid type
 		"namespace com/example; fact name:;",       // Missing type
@@ -185,7 +152,7 @@ func (s *ErrorTestSuite) TestParseErrorInvalidTypes() {
 }
 
 // TestParseErrorInvalidLiterals tests parsing with invalid literals
-func (s *ErrorTestSuite) TestParseErrorInvalidLiterals() {
+func (s *ParserTestSuite) TestParseErrorInvalidLiterals() {
 	testCases := []string{
 		"namespace com/example; fact name:string default \"unclosed;", // Unclosed string
 		"namespace com/example; fact name:string default 'unclosed;",  // Unclosed string
@@ -201,7 +168,7 @@ func (s *ErrorTestSuite) TestParseErrorInvalidLiterals() {
 }
 
 // TestParseErrorInvalidOperators tests parsing with invalid operators
-func (s *ErrorTestSuite) TestParseErrorInvalidOperators() {
+func (s *ParserTestSuite) TestParseErrorInvalidOperators() {
 	testCases := []string{
 		"namespace com/example; rule check { 1 ** 2 }",  // Invalid operator
 		"namespace com/example; rule check { 1 // 2 }",  // Invalid operator
@@ -218,7 +185,7 @@ func (s *ErrorTestSuite) TestParseErrorInvalidOperators() {
 }
 
 // TestParseErrorInvalidKeywords tests parsing with invalid keywords
-func (s *ErrorTestSuite) TestParseErrorInvalidKeywords() {
+func (s *ParserTestSuite) TestParseErrorInvalidKeywords() {
 	testCases := []string{
 		"namespace com/example; invalid { }",                       // Invalid keyword
 		"namespace com/example; policy user { invalid { } }",       // Invalid keyword in policy
@@ -234,7 +201,7 @@ func (s *ErrorTestSuite) TestParseErrorInvalidKeywords() {
 }
 
 // TestParseErrorInvalidSyntax tests parsing with invalid syntax
-func (s *ErrorTestSuite) TestParseErrorInvalidSyntax() {
+func (s *ParserTestSuite) TestParseErrorInvalidSyntax() {
 	testCases := []string{
 		"namespace com/example; policy user { rule check { true } fact name:string; }",  // Missing semicolon
 		"namespace com/example; policy user { rule check { true }; fact name:string }",  // Missing semicolon
@@ -250,7 +217,7 @@ func (s *ErrorTestSuite) TestParseErrorInvalidSyntax() {
 }
 
 // TestParseErrorEdgeCases tests parsing edge cases
-func (s *ErrorTestSuite) TestParseErrorEdgeCases() {
+func (s *ParserTestSuite) TestParseErrorEdgeCases() {
 	testCases := []struct {
 		input       string
 		shouldError bool
@@ -278,9 +245,4 @@ func (s *ErrorTestSuite) TestParseErrorEdgeCases() {
 			s.NoError(err, "Expected no error for: %s (%s)", tc.input, tc.description)
 		}
 	}
-}
-
-// TestErrorTestSuite runs the error test suite
-func TestErrorTestSuite(t *testing.T) {
-	suite.Run(t, new(ErrorTestSuite))
 }

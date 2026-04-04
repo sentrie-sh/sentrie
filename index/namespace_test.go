@@ -17,46 +17,12 @@
 package index
 
 import (
-	"testing"
-
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/sentrie-sh/sentrie/trinary"
-	"github.com/stretchr/testify/suite"
 )
 
-type NamespaceTestSuite struct {
-	suite.Suite
-	parentNs *Namespace
-	childNs  *Namespace
-}
-
-func (suite *NamespaceTestSuite) SetupTest() {
-	// Create parent namespace
-	parentStmt := ast.NewNamespaceStatement(
-		ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "parent.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
-		tokens.Range{File: "parent.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
-	)
-	suite.parentNs = createNamespace(parentStmt)
-
-	// Create child namespace
-	childStmt := ast.NewNamespaceStatement(
-		ast.NewFQN([]string{"com", "example", "sub"}, tokens.Range{File: "child.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
-		tokens.Range{File: "child.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
-	)
-	suite.childNs = createNamespace(childStmt)
-}
-
-func (suite *NamespaceTestSuite) TearDownTest() {
-	suite.parentNs = nil
-	suite.childNs = nil
-}
-
-func TestNamespaceTestSuite(t *testing.T) {
-	suite.Run(t, new(NamespaceTestSuite))
-}
-
-func (suite *NamespaceTestSuite) TestCreateNamespace() {
+func (suite *IndexTestSuite) TestCreateNamespace() {
 	stmt := ast.NewNamespaceStatement(
 		ast.NewFQN([]string{"com", "example", "test"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
@@ -78,7 +44,7 @@ func (suite *NamespaceTestSuite) TestCreateNamespace() {
 	suite.Len(ns.ShapeExports, 0)
 }
 
-func (suite *NamespaceTestSuite) TestAddChild() {
+func (suite *IndexTestSuite) TestAddChild() {
 	err := suite.parentNs.addChild(suite.childNs)
 
 	suite.NoError(err)
@@ -87,7 +53,7 @@ func (suite *NamespaceTestSuite) TestAddChild() {
 	suite.Equal(suite.parentNs, suite.childNs.Parent)
 }
 
-func (suite *NamespaceTestSuite) TestAddChildWithNameConflict() {
+func (suite *IndexTestSuite) TestAddChildWithNameConflict() {
 	// Create a policy with the same name as the child namespace
 	policyStmt := ast.NewPolicyStatement(
 		"sub", // Same as child namespace last segment
@@ -137,7 +103,7 @@ func (suite *NamespaceTestSuite) TestAddChildWithNameConflict() {
 	suite.Contains(err.Error(), "conflict: policy declaration")
 }
 
-func (suite *NamespaceTestSuite) TestCheckNameAvailable() {
+func (suite *IndexTestSuite) TestCheckNameAvailable() {
 	// Test with no conflicts
 	err := suite.parentNs.checkNameAvailable("testName")
 	suite.NoError(err)
@@ -218,7 +184,7 @@ func (suite *NamespaceTestSuite) TestCheckNameAvailable() {
 	suite.Contains(err.Error(), "conflict: namespace declaration")
 }
 
-func (suite *NamespaceTestSuite) TestAddPolicy() {
+func (suite *IndexTestSuite) TestAddPolicy() {
 	policyStmt := ast.NewPolicyStatement(
 		"testPolicy",
 		[]ast.Statement{
@@ -265,7 +231,7 @@ func (suite *NamespaceTestSuite) TestAddPolicy() {
 	suite.Equal(policy, suite.parentNs.Policies["testPolicy"])
 }
 
-func (suite *NamespaceTestSuite) TestAddPolicyWithNameConflict() {
+func (suite *IndexTestSuite) TestAddPolicyWithNameConflict() {
 	// Add first policy
 	policyStmt1 := ast.NewPolicyStatement(
 		"testPolicy",
@@ -353,7 +319,7 @@ func (suite *NamespaceTestSuite) TestAddPolicyWithNameConflict() {
 	suite.Contains(err.Error(), "conflict: policy declaration")
 }
 
-func (suite *NamespaceTestSuite) TestAddShape() {
+func (suite *IndexTestSuite) TestAddShape() {
 	shapeStmt := ast.NewShapeStatement(
 		"testShape",
 		ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 15, Offset: 15}, To: tokens.Pos{Line: 1, Column: 15, Offset: 15}}),
@@ -372,7 +338,7 @@ func (suite *NamespaceTestSuite) TestAddShape() {
 	suite.Equal(shape, suite.parentNs.Shapes["testShape"])
 }
 
-func (suite *NamespaceTestSuite) TestAddShapeWithNameConflict() {
+func (suite *IndexTestSuite) TestAddShapeWithNameConflict() {
 	// Add first shape
 	shapeStmt1 := ast.NewShapeStatement(
 		"testShape",
@@ -404,7 +370,7 @@ func (suite *NamespaceTestSuite) TestAddShapeWithNameConflict() {
 	suite.Contains(err.Error(), "conflict: shape declaration")
 }
 
-func (suite *NamespaceTestSuite) TestAddShapeExport() {
+func (suite *IndexTestSuite) TestAddShapeExport() {
 	exportStmt := ast.NewShapeExportStatement(
 		"testShape",
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
@@ -423,7 +389,7 @@ func (suite *NamespaceTestSuite) TestAddShapeExport() {
 	suite.Equal(export, suite.parentNs.ShapeExports["testShape"])
 }
 
-func (suite *NamespaceTestSuite) TestAddShapeExportWithNameConflict() {
+func (suite *IndexTestSuite) TestAddShapeExportWithNameConflict() {
 	// Add first export
 	exportStmt1 := ast.NewShapeExportStatement(
 		"testShape",
@@ -455,7 +421,7 @@ func (suite *NamespaceTestSuite) TestAddShapeExportWithNameConflict() {
 	suite.Contains(err.Error(), "conflict: shape export")
 }
 
-func (suite *NamespaceTestSuite) TestIsChildOf() {
+func (suite *IndexTestSuite) TestIsChildOf() {
 	// Test parent-child relationship
 	suite.True(suite.childNs.IsChildOf(suite.parentNs))
 	suite.False(suite.parentNs.IsChildOf(suite.childNs))
@@ -471,7 +437,7 @@ func (suite *NamespaceTestSuite) TestIsChildOf() {
 	suite.False(unrelatedNs.IsChildOf(suite.parentNs))
 }
 
-func (suite *NamespaceTestSuite) TestIsParentOf() {
+func (suite *IndexTestSuite) TestIsParentOf() {
 	// Test parent-child relationship
 	suite.True(suite.parentNs.IsParentOf(suite.childNs))
 	suite.False(suite.childNs.IsParentOf(suite.parentNs))
@@ -487,7 +453,7 @@ func (suite *NamespaceTestSuite) TestIsParentOf() {
 	suite.False(unrelatedNs.IsParentOf(suite.childNs))
 }
 
-func (suite *NamespaceTestSuite) TestComplexHierarchy() {
+func (suite *IndexTestSuite) TestComplexHierarchy() {
 	// Create a complex hierarchy: com.example -> com.example.sub -> com.example.sub.deep
 	grandchildStmt := ast.NewNamespaceStatement(
 		ast.NewFQN([]string{"com", "example", "sub", "deep"}, tokens.Range{File: "grandchild.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
@@ -519,7 +485,7 @@ func (suite *NamespaceTestSuite) TestComplexHierarchy() {
 	suite.False(grandchildNs.IsParentOf(grandchildNs))
 }
 
-func (suite *NamespaceTestSuite) TestMultipleChildren() {
+func (suite *IndexTestSuite) TestMultipleChildren() {
 	// Create multiple children
 	child2Stmt := ast.NewNamespaceStatement(
 		ast.NewFQN([]string{"com", "example", "sub2"}, tokens.Range{File: "child2.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
