@@ -17,7 +17,6 @@
 package runtime
 
 import (
-
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/trinary"
 )

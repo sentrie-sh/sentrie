@@ -34,7 +34,7 @@ type IndexTestSuite struct {
 	// policyNs is the namespace fixture for policy unit tests.
 	policyNs *Namespace
 	parentNs *Namespace
-	childNs *Namespace
+	childNs  *Namespace
 }
 
 func (suite *IndexTestSuite) SetupSuite() {
@@ -87,41 +87,41 @@ func TestIndexTestSuite(t *testing.T) {
 }
 
 var policyFixtureTests = map[string]bool{
-	"TestCreatePolicy":                         true,
-	"TestCreatePolicyWithoutExports":           true,
-	"TestCreatePolicyWithInvalidFactPosition":  true,
-	"TestCreatePolicyWithInvalidUsePosition":   true,
-	"TestCreatePolicyWithUnknownRuleExport":    true,
-	"TestCreatePolicyWithDuplicateRuleExport":  true,
-	"TestAddLet":                               true,
-	"TestAddLetWithNameConflict":               true,
-	"TestAddRule":                              true,
-	"TestAddRuleWithNameConflict":              true,
-	"TestPolicyAddShape":                       true,
-	"TestPolicyAddShapeWithNameConflict":       true,
-	"TestAddFact":                              true,
-	"TestAddFactRequiredCannotHaveDefault":     true,
-	"TestAddFactOptionalCanHaveDefault":        true,
-	"TestAddFactRequiredWithoutDefault":        true,
-	"TestAddFactWithNameConflict":              true,
-	"TestPolicyString":                         true,
-	"TestCreatePolicyWithComments":             true,
-	"TestCreatePolicyWithValidUseStatement":    true,
+	"TestCreatePolicy":                        true,
+	"TestCreatePolicyWithoutExports":          true,
+	"TestCreatePolicyWithInvalidFactPosition": true,
+	"TestCreatePolicyWithInvalidUsePosition":  true,
+	"TestCreatePolicyWithUnknownRuleExport":   true,
+	"TestCreatePolicyWithDuplicateRuleExport": true,
+	"TestAddLet":                            true,
+	"TestAddLetWithNameConflict":            true,
+	"TestAddRule":                           true,
+	"TestAddRuleWithNameConflict":           true,
+	"TestPolicyAddShape":                    true,
+	"TestPolicyAddShapeWithNameConflict":    true,
+	"TestAddFact":                           true,
+	"TestAddFactRequiredCannotHaveDefault":  true,
+	"TestAddFactOptionalCanHaveDefault":     true,
+	"TestAddFactRequiredWithoutDefault":     true,
+	"TestAddFactWithNameConflict":           true,
+	"TestPolicyString":                      true,
+	"TestCreatePolicyWithComments":          true,
+	"TestCreatePolicyWithValidUseStatement": true,
 }
 
 var namespaceFixtureTests = map[string]bool{
-	"TestCreateNamespace":                  true,
-	"TestAddChild":                         true,
-	"TestAddChildWithNameConflict":         true,
-	"TestCheckNameAvailable":               true,
-	"TestAddPolicy":                        true,
-	"TestAddPolicyWithNameConflict":        true,
-	"TestAddShape":                         true,
-	"TestAddShapeWithNameConflict":         true,
-	"TestAddShapeExport":                   true,
-	"TestAddShapeExportWithNameConflict":   true,
-	"TestIsChildOf":                        true,
-	"TestIsParentOf":                       true,
-	"TestComplexHierarchy":                 true,
-	"TestMultipleChildren":                 true,
+	"TestCreateNamespace":                true,
+	"TestAddChild":                       true,
+	"TestAddChildWithNameConflict":       true,
+	"TestCheckNameAvailable":             true,
+	"TestAddPolicy":                      true,
+	"TestAddPolicyWithNameConflict":      true,
+	"TestAddShape":                       true,
+	"TestAddShapeWithNameConflict":       true,
+	"TestAddShapeExport":                 true,
+	"TestAddShapeExportWithNameConflict": true,
+	"TestIsChildOf":                      true,
+	"TestIsParentOf":                     true,
+	"TestComplexHierarchy":               true,
+	"TestMultipleChildren":               true,
 }
