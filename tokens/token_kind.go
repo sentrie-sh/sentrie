@@ -72,6 +72,11 @@ const (
 	KeywordYield     Kind = "yield"
 	KeywordTransform Kind = "transform"
 
+	KeywordTitle       Kind = "title"
+	KeywordDescription Kind = "description"
+	KeywordVersion     Kind = "version"
+	KeywordTag         Kind = "tag"
+
 	KeywordTrue    Kind = "true"
 	KeywordFalse   Kind = "false"
 	KeywordUnknown Kind = "unknown"
@@ -163,6 +168,11 @@ var keywords = map[string]Kind{
 	"reduce":    KeywordReduce,
 	"defined":   KeywordDefined,
 	"empty":     KeywordEmpty,
+
+	"title":       KeywordTitle,
+	"description": KeywordDescription,
+	"version":     KeywordVersion,
+	"tag":         KeywordTag,
 
 	"true":    KeywordTrue,
 	"false":   KeywordFalse,
