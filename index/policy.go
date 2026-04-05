@@ -19,7 +19,9 @@ package index
 import (
 	"fmt"
 	"slices"
+	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/xerr"
@@ -36,6 +38,12 @@ type ExportedRule struct {
 	Attachments []*RuleExportAttachment // names only; values computed at runtime
 }
 
+// PolicyTagPair is one key/value from policy `tag` statements (order preserved in Policy.TagPairs).
+type PolicyTagPair struct {
+	Key   string
+	Value string
+}
+
 // Policy holds the AST statements and exports.
 type Policy struct {
 	Statement  *ast.PolicyStatement
@@ -44,6 +52,14 @@ type Policy struct {
 	FQN        ast.FQN
 	FilePath   string
 	Statements []ast.Statement
+
+	Title          *string
+	Description    *string
+	VersionLiteral string
+	Version        *semver.Version
+	TagPairs       []PolicyTagPair
+	// TagsByKey is derived from TagPairs for query ergonomics; map iteration order is not stable.
+	TagsByKey map[string][]string
 
 	Lets        map[string]*ast.VarDeclaration
 	Facts       map[string]*ast.FactStatement
@@ -59,6 +75,15 @@ func (p *Policy) String() string {
 	return p.FQN.String()
 }
 
+type policyPhase int
+
+const (
+	policyPhaseMeta policyPhase = iota
+	policyPhaseFacts
+	policyPhaseUses
+	policyPhaseBody
+)
+
 func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Program) (*Policy, error) {
 	p := &Policy{
 		Statement:       policy,
@@ -73,63 +98,132 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 		RuleExports:     make(map[string]*ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
-		seenIdentifiers: make(map[string]ast.Positionable), // a map of seen identifiers
+		seenIdentifiers: make(map[string]ast.Positionable),
 	}
 
-	for idx, stmt := range policy.Statements {
-		if _, ok := stmt.(*ast.CommentStatement); ok {
+	phase := policyPhaseMeta
+	var titleAt, descriptionAt, versionAt ast.Positionable
+
+	for _, stmt := range policy.Statements {
+		if policyStmtKindOf(stmt) == policyStmtComment {
 			continue
 		}
 
 		switch stmt := stmt.(type) {
-		case *ast.ShapeStatement:
-			if err := p.AddShape(stmt); err != nil {
-				return nil, err
-			}
-		case *ast.UseStatement:
-			// nothing should precede a use statement except comments and facts
-			if idx > 0 {
-				_, isPrecedingComment := policy.Statements[idx-1].(*ast.CommentStatement)
-				_, isPrecedingFact := policy.Statements[idx-1].(*ast.FactStatement)
-				_, isPrecedingUse := policy.Statements[idx-1].(*ast.UseStatement)
-
-				if !isPrecedingComment && !isPrecedingFact && !isPrecedingUse {
-					return nil, errors.Wrapf(ErrIndex, "'use' statement must be declared immediately after facts have been declared in a policy at %s", stmt.Span())
+		case *ast.TitleStatement:
+			if phase != policyPhaseMeta {
+				if phase == policyPhaseBody {
+					return nil, errors.Wrapf(xerr.ErrIndex, "'title' must appear before rules, exports, lets, and shapes at %s", stmt.Span())
 				}
+				return nil, errors.Wrapf(xerr.ErrPolicyMetadataContiguous, "at %s", stmt.Span())
 			}
-			if _, ok := p.Uses[stmt.As]; ok {
-				return nil, errors.Wrapf(ErrIndex, "cannot rebind to existing alias '%s' at %s", stmt.As, stmt.Span())
+			if titleAt != nil {
+				return nil, xerr.ErrConflict("policy title", stmt.Span(), titleAt.Span())
 			}
-			p.Uses[stmt.As] = stmt
+			trimmed := strings.TrimSpace(stmt.Value)
+			if trimmed == "" {
+				return nil, errors.Wrapf(xerr.ErrPolicyEmptyTitle, "at %s", stmt.Span())
+			}
+			t := trimmed
+			p.Title = &t
+			titleAt = stmt
 
-		case *ast.VarDeclaration:
-			if err := p.AddLet(stmt); err != nil {
-				return nil, err
+		case *ast.DescriptionStatement:
+			if phase != policyPhaseMeta {
+				if phase == policyPhaseBody {
+					return nil, errors.Wrapf(xerr.ErrIndex, "'description' must appear before rules, exports, lets, and shapes at %s", stmt.Span())
+				}
+				return nil, errors.Wrapf(xerr.ErrPolicyMetadataContiguous, "at %s", stmt.Span())
 			}
+			if descriptionAt != nil {
+				return nil, xerr.ErrConflict("policy description", stmt.Span(), descriptionAt.Span())
+			}
+			d := strings.TrimSpace(stmt.Value)
+			p.Description = &d
+			descriptionAt = stmt
+
+		case *ast.VersionStatement:
+			if phase != policyPhaseMeta {
+				if phase == policyPhaseBody {
+					return nil, errors.Wrapf(xerr.ErrIndex, "'version' must appear before rules, exports, lets, and shapes at %s", stmt.Span())
+				}
+				return nil, errors.Wrapf(xerr.ErrPolicyMetadataContiguous, "at %s", stmt.Span())
+			}
+			if versionAt != nil {
+				return nil, xerr.ErrConflict("policy version", stmt.Span(), versionAt.Span())
+			}
+			p.VersionLiteral = stmt.Literal
+			ver, err := semver.NewVersion(stmt.Literal)
+			if err != nil {
+				return nil, errors.Wrapf(xerr.ErrPolicyInvalidVersion, "at %s", stmt.Span())
+			}
+			p.Version = ver
+			versionAt = stmt
+
+		case *ast.TagStatement:
+			if phase != policyPhaseMeta {
+				if phase == policyPhaseBody {
+					return nil, errors.Wrapf(xerr.ErrIndex, "'tag' must appear before rules, exports, lets, and shapes at %s", stmt.Span())
+				}
+				return nil, errors.Wrapf(xerr.ErrPolicyMetadataContiguous, "at %s", stmt.Span())
+			}
+			key := strings.TrimSpace(stmt.Key)
+			if key == "" {
+				return nil, errors.Wrapf(xerr.ErrPolicyEmptyTagKey, "at %s", stmt.Span())
+			}
+			p.TagPairs = append(p.TagPairs, PolicyTagPair{Key: key, Value: stmt.Value})
 
 		case *ast.FactStatement:
-			// nothing should precede a fact statement except comments and other facts
-			if idx > 0 {
-				_, isPrecedingComment := policy.Statements[idx-1].(*ast.CommentStatement)
-				_, isPrecedingFact := policy.Statements[idx-1].(*ast.FactStatement)
-
-				if !isPrecedingComment && !isPrecedingFact {
-					return nil, errors.Wrapf(ErrIndex, "fact statement must be the first statement in a policy at %s", stmt.Span())
-				}
+			switch phase {
+			case policyPhaseMeta:
+				phase = policyPhaseFacts
+			case policyPhaseFacts:
+			case policyPhaseUses:
+				return nil, errors.Wrapf(xerr.ErrPolicyFactAfterUse, "at %s", stmt.Span())
+			case policyPhaseBody:
+				return nil, errors.Wrapf(xerr.ErrIndex, "'fact' must appear before rules, exports, lets, and shapes at %s", stmt.Span())
 			}
 			if err := p.AddFact(stmt); err != nil {
 				return nil, err
 			}
 
+		case *ast.UseStatement:
+			switch phase {
+			case policyPhaseMeta:
+				phase = policyPhaseUses
+			case policyPhaseFacts:
+				phase = policyPhaseUses
+			case policyPhaseUses:
+			case policyPhaseBody:
+				return nil, errors.Wrapf(xerr.ErrIndex, "'use' must appear before rules, exports, lets, and shapes at %s", stmt.Span())
+			}
+			if _, ok := p.Uses[stmt.As]; ok {
+				return nil, errors.Wrapf(xerr.ErrIndex, "cannot rebind to existing alias '%s' at %s", stmt.As, stmt.Span())
+			}
+			p.Uses[stmt.As] = stmt
+
+		case *ast.VarDeclaration:
+			if phase != policyPhaseBody {
+				phase = policyPhaseBody
+			}
+			if err := p.AddLet(stmt); err != nil {
+				return nil, err
+			}
+
 		case *ast.RuleStatement:
+			if phase != policyPhaseBody {
+				phase = policyPhaseBody
+			}
 			if err := p.AddRule(stmt); err != nil {
 				return nil, err
 			}
 
 		case *ast.RuleExportStatement:
-			// get the rule
+			if phase != policyPhaseBody {
+				phase = policyPhaseBody
+			}
 			if _, ok := p.Rules[stmt.Of]; !ok {
-				return nil, errors.Wrapf(ErrIndex, "cannot export unknown rule: '%s' at %s", stmt.Of, stmt.Span())
+				return nil, errors.Wrapf(xerr.ErrIndex, "cannot export unknown rule: '%s' at %s", stmt.Of, stmt.Span())
 			}
 
 			if _, ok := p.RuleExports[stmt.Of]; ok {
@@ -138,7 +232,6 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 
 			att := []*RuleExportAttachment{}
 			for _, a := range stmt.Attachments {
-				// check if this attachment is already added
 				exists := slices.IndexFunc(att, func(t *RuleExportAttachment) bool {
 					return t.Name == a.What
 				})
@@ -151,14 +244,24 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 			}
 
 			p.RuleExports[stmt.Of] = &ExportedRule{RuleName: stmt.Of, Attachments: att}
+
+		case *ast.ShapeStatement:
+			if phase != policyPhaseBody {
+				phase = policyPhaseBody
+			}
+			if err := p.AddShape(stmt); err != nil {
+				return nil, err
+			}
+
 		default:
-			// ignore other statements
-			_ = stmt
+			return nil, errors.Wrapf(xerr.ErrIndex, "unsupported statement in policy at %s", stmt.Span())
 		}
 	}
 
+	p.TagsByKey = buildTagsByKey(p.TagPairs)
+
 	if len(p.RuleExports) == 0 {
-		return nil, errors.Wrapf(ErrIndex, "policy '%s' at '%s' does not export any rules", policy.Name, policy.Span())
+		return nil, errors.Wrapf(xerr.ErrIndex, "policy '%s' at '%s' does not export any rules", policy.Name, policy.Span())
 	}
 
 	return p, nil
@@ -197,7 +300,7 @@ func (p *Policy) AddShape(shape *ast.ShapeStatement) error {
 
 	s, err := createShape(p.Namespace, p, shape)
 	if err != nil {
-		return errors.Wrapf(ErrIndex, "failed to create shape: %s at %s", shape.Name, shape.Span())
+		return errors.Wrapf(xerr.ErrIndex, "failed to create shape: %s at %s", shape.Name, shape.Span())
 	}
 
 	p.Shapes[shape.Name] = s

@@ -20,6 +20,7 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/sentrie-sh/sentrie/trinary"
+	"github.com/stretchr/testify/require"
 )
 
 func (suite *IndexTestSuite) TestCreatePolicy() {
@@ -155,7 +156,7 @@ func (suite *IndexTestSuite) TestCreatePolicyWithInvalidFactPosition() {
 
 	suite.Error(err)
 	suite.Nil(policy)
-	suite.Contains(err.Error(), "fact statement must be the first statement in a policy")
+	suite.Contains(err.Error(), "'fact' must appear before rules, exports, lets, and shapes")
 }
 
 func (suite *IndexTestSuite) TestCreatePolicyWithInvalidUsePosition() {
@@ -182,7 +183,7 @@ func (suite *IndexTestSuite) TestCreatePolicyWithInvalidUsePosition() {
 
 	suite.Error(err)
 	suite.Nil(policy)
-	suite.Contains(err.Error(), "'use' statement must be declared immediately after facts")
+	suite.Contains(err.Error(), "'use' must appear before rules, exports, lets, and shapes")
 }
 
 func (suite *IndexTestSuite) TestCreatePolicyWithUnknownRuleExport() {
@@ -741,4 +742,343 @@ func (suite *IndexTestSuite) TestCreatePolicyWithValidUseStatement() {
 	suite.NotNil(policy)
 	suite.Len(policy.Uses, 1)
 	suite.Equal("use fn, fn2 from @sentrie/std as std", policy.Uses["std"].String())
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyWithMetadataAndPhases() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewCommentStatement("-- meta", r(3)),
+			ast.NewTitleStatement("Hello", r(4)),
+			ast.NewDescriptionStatement("", r(5)),
+			ast.NewVersionStatement("1.2.3", r(6)),
+			ast.NewTagStatement("a", "1", r(7)),
+			ast.NewTagStatement("a", "2", r(8)),
+			ast.NewTagStatement("b", "  \t  ", r(9)),
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(10)), "user", nil, true, r(10)),
+			ast.NewUseStatement([]string{"x"}, "", []string{"sentrie", "std"}, "std", r(11)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(12)), nil, r(12)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(13)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.NoError(err)
+	require.NotNil(suite.T(), policy)
+	suite.Equal("Hello", *policy.Title)
+	suite.Equal("", *policy.Description)
+	suite.Equal("1.2.3", policy.VersionLiteral)
+	suite.NotNil(policy.Version)
+	suite.Len(policy.TagPairs, 3)
+	suite.Equal("a", policy.TagPairs[0].Key)
+	suite.Equal("1", policy.TagPairs[0].Value)
+	suite.Equal("2", policy.TagPairs[1].Value)
+	suite.Equal("b", policy.TagPairs[2].Key)
+	suite.Equal("  \t  ", policy.TagPairs[2].Value)
+	require.NotNil(suite.T(), policy.TagsByKey)
+	suite.Equal([]string{"1", "2"}, policy.TagsByKey["a"])
+	suite.Equal([]string{"  \t  "}, policy.TagsByKey["b"])
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyUseWithoutFacts() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewUseStatement([]string{"x"}, "", []string{"sentrie", "std"}, "std", r(3)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(4)), nil, r(4)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(5)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.NoError(err)
+	suite.Len(policy.Uses, 1)
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyMetadataThenUseWithoutFacts() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewTitleStatement("T", r(3)),
+			ast.NewUseStatement([]string{"x"}, "", []string{"sentrie", "std"}, "std", r(4)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(5)), nil, r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.NoError(err)
+	require.Equal(suite.T(), "T", *policy.Title)
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyVersionVPrefixAccepted() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewVersionStatement("v1.2.3", r(3)),
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(4)), "user", nil, true, r(4)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(5)), nil, r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.NoError(err)
+	suite.Equal("v1.2.3", policy.VersionLiteral)
+	suite.NotNil(policy.Version)
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyFactAfterUseErrors() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewUseStatement([]string{"x"}, "", []string{"sentrie", "std"}, "std", r(3)),
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(4)), "user", nil, true, r(4)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(5)), nil, r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "fact statements must appear before any use statements")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyMetadataAfterFactErrors() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(3)), "user", nil, true, r(3)),
+			ast.NewTitleStatement("Late", r(4)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(5)), nil, r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "title, description, version, and tag may only appear in one contiguous block")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyShapeBeforeFactErrors() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	shapeStmt := ast.NewShapeStatement(
+		"S",
+		ast.NewStringTypeRef(r(3)),
+		nil,
+		r(3),
+	)
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			shapeStmt,
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(4)), "user", nil, true, r(4)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(5)), nil, r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "'fact' must appear before rules, exports, lets, and shapes")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyDuplicateTitle() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewTitleStatement("A", r(3)),
+			ast.NewTitleStatement("B", r(4)),
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(5)), "user", nil, true, r(5)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(6)), nil, r(6)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(7)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "conflict: policy title")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyInvalidSemVer() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewVersionStatement("not-a-version", r(3)),
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(4)), "user", nil, true, r(4)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(5)), nil, r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), `Invalid policy version: expected SemVer string (e.g., "1.2.3")`)
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyEmptyTitle() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewTitleStatement("   ", r(3)),
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(4)), "user", nil, true, r(4)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(5)), nil, r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "policy title must not be empty or whitespace-only")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyEmptyTagKey() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewTagStatement("   ", "v", r(3)),
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(4)), "user", nil, true, r(4)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(5)), nil, r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "tag key must not be empty or whitespace-only")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyUseBeforeFactWhenBothPresent() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewUseStatement([]string{"x"}, "", []string{"sentrie", "std"}, "std", r(3)),
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(4)), "user", nil, true, r(4)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(5)), nil, r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "fact statements must appear before any use statements")
 }
