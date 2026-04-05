@@ -23,19 +23,17 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func (p *Parser) registerStatementHandler(tokenType tokens.Kind, fn statementParser) {
-	p.statementHandlers[tokenType] = fn
-}
-
-func parseStatement(ctx context.Context, p *Parser) ast.Statement {
-	switch p.head().Kind {
-	case tokens.KeywordTitle, tokens.KeywordDescription, tokens.KeywordVersion, tokens.KeywordTag:
-		p.errorf("'%s' is only allowed inside a policy", p.head().Kind)
+func parseDescriptionStatement(ctx context.Context, p *Parser) ast.Statement {
+	_ = ctx
+	head := p.head()
+	rnge := head.Range
+	if !p.expect(tokens.KeywordDescription) {
 		return nil
 	}
-	if handler, ok := p.statementHandlers[p.head().Kind]; ok {
-		return handler(ctx, p)
+	strTok, ok := p.advanceExpected(tokens.String)
+	if !ok {
+		return nil
 	}
-	p.errorf("unexpected token '%s'", p.head().Kind)
-	return nil
+	rnge.To = strTok.Range.To
+	return ast.NewDescriptionStatement(strTok.Value, rnge)
 }
