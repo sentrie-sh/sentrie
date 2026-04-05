@@ -1,0 +1,25 @@
+---
+description: When editing a licensed source file, refresh the SPDX/Apache Copyright year to the current calendar year; no drive-by updates on untouched files
+alwaysApply: true
+---
+
+# Copyright year when touching licensed sources
+
+When you **modify** a source file in this repository that carries the project’s standard license header (Apache-2.0 / SPDX-style block with a `Copyright <year>` line), **update that year to the current calendar year** in the same edit.
+
+## Which year to use
+
+- Prefer the **actual current year** for the session: use **`Today's date`** from the user or workspace context when it is provided (authoritative for the run).
+- If no date is available, use a **reasonable default** for “now” (do **not** assume a fixed past year such as 2025).
+
+## Scope of updates
+
+- **Only** change the copyright year on files you are **already editing** as part of the task. Do **not** run drive-by or mass copyright-year updates on files you did not touch, unless the user **explicitly** asks for that.
+
+## Files without a header
+
+- If a file has **no** license header but **AGENTS.md** (or other project convention) says licensed sources must have one, add or complete the header per that convention and set **`Copyright <current year>`** (same year rules as above).
+
+## Typical header shape
+
+Refresh the year in the existing `Copyright` line inside the standard comment block (SPDX `License-Identifier`, etc.); keep the rest of the header unchanged unless the edit requires it.
