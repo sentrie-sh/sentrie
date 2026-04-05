@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -868,6 +868,36 @@ func (suite *IndexTestSuite) TestCreatePolicyVersionVPrefixAccepted() {
 	suite.NotNil(policy.Version)
 }
 
+func (suite *IndexTestSuite) TestCreatePolicyVersionWhitespacePaddedLiteralAccepted() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewVersionStatement("  v1.2.3  ", r(3)),
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(4)), "user", nil, true, r(4)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(5)), nil, r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.NoError(err)
+	suite.Equal("  v1.2.3  ", policy.VersionLiteral)
+	suite.NotNil(policy.Version)
+	suite.Equal(uint64(1), policy.Version.Major())
+	suite.Equal(uint64(2), policy.Version.Minor())
+	suite.Equal(uint64(3), policy.Version.Patch())
+}
+
 func (suite *IndexTestSuite) TestCreatePolicyFactAfterUseErrors() {
 	r := func(line int) tokens.Range {
 		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
@@ -1055,30 +1085,4 @@ func (suite *IndexTestSuite) TestCreatePolicyEmptyTagKey() {
 	_, err := createPolicy(suite.policyNs, policyStmt, program)
 	suite.Error(err)
 	suite.Contains(err.Error(), "tag key must not be empty or whitespace-only")
-}
-
-func (suite *IndexTestSuite) TestCreatePolicyUseBeforeFactWhenBothPresent() {
-	r := func(line int) tokens.Range {
-		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
-	}
-	policyStmt := ast.NewPolicyStatement(
-		"p",
-		[]ast.Statement{
-			ast.NewUseStatement([]string{"x"}, "", []string{"sentrie", "std"}, "std", r(3)),
-			ast.NewFactStatement("user", ast.NewStringTypeRef(r(4)), "user", nil, true, r(4)),
-			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(5)), nil, r(5)),
-			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
-		},
-		r(2),
-	)
-	program := &ast.Program{
-		Reference: "test.sentra",
-		Statements: []ast.Statement{
-			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
-			policyStmt,
-		},
-	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
-	suite.Error(err)
-	suite.Contains(err.Error(), "fact statements must appear before any use statements")
 }

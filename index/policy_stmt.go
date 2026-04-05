@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,8 +20,9 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 )
 
-// policyStmtKind classifies policy body statements for header phase rules.
-// New statement kinds that belong in the header or body should be registered here.
+// policyStmtKind classifies policy body statements. Register new kinds here when adding
+// policy statements; createPolicy still uses a concrete type switch for phase rules—
+// policyStmtKindOf is used to skip comments, and the is* helpers are mainly for tests.
 type policyStmtKind int
 
 const (

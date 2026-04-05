@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -75,6 +75,11 @@ func (p *Policy) String() string {
 	return p.FQN.String()
 }
 
+// latePolicyHeaderErr reports metadata, fact, or use after the policy body has started.
+func latePolicyHeaderErr(keyword, at string) error {
+	return errors.Wrapf(xerr.ErrIndex, "'%s' must appear before rules, exports, lets, and shapes at %s", keyword, at)
+}
+
 type policyPhase int
 
 const (
@@ -113,7 +118,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 		case *ast.TitleStatement:
 			if phase != policyPhaseMeta {
 				if phase == policyPhaseBody {
-					return nil, errors.Wrapf(xerr.ErrIndex, "'title' must appear before rules, exports, lets, and shapes at %s", stmt.Span())
+					return nil, latePolicyHeaderErr("title", stmt.Span().String())
 				}
 				return nil, errors.Wrapf(xerr.ErrPolicyMetadataContiguous, "at %s", stmt.Span())
 			}
@@ -131,7 +136,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 		case *ast.DescriptionStatement:
 			if phase != policyPhaseMeta {
 				if phase == policyPhaseBody {
-					return nil, errors.Wrapf(xerr.ErrIndex, "'description' must appear before rules, exports, lets, and shapes at %s", stmt.Span())
+					return nil, latePolicyHeaderErr("description", stmt.Span().String())
 				}
 				return nil, errors.Wrapf(xerr.ErrPolicyMetadataContiguous, "at %s", stmt.Span())
 			}
@@ -145,7 +150,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 		case *ast.VersionStatement:
 			if phase != policyPhaseMeta {
 				if phase == policyPhaseBody {
-					return nil, errors.Wrapf(xerr.ErrIndex, "'version' must appear before rules, exports, lets, and shapes at %s", stmt.Span())
+					return nil, latePolicyHeaderErr("version", stmt.Span().String())
 				}
 				return nil, errors.Wrapf(xerr.ErrPolicyMetadataContiguous, "at %s", stmt.Span())
 			}
@@ -153,7 +158,8 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 				return nil, xerr.ErrConflict("policy version", stmt.Span(), versionAt.Span())
 			}
 			p.VersionLiteral = stmt.Literal
-			ver, err := semver.NewVersion(stmt.Literal)
+			// SemVer is validated on TrimSpace(literal); VersionLiteral stays verbatim for display/diagnostics.
+			ver, err := semver.NewVersion(strings.TrimSpace(stmt.Literal))
 			if err != nil {
 				return nil, errors.Wrapf(xerr.ErrPolicyInvalidVersion, "at %s", stmt.Span())
 			}
@@ -163,7 +169,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 		case *ast.TagStatement:
 			if phase != policyPhaseMeta {
 				if phase == policyPhaseBody {
-					return nil, errors.Wrapf(xerr.ErrIndex, "'tag' must appear before rules, exports, lets, and shapes at %s", stmt.Span())
+					return nil, latePolicyHeaderErr("tag", stmt.Span().String())
 				}
 				return nil, errors.Wrapf(xerr.ErrPolicyMetadataContiguous, "at %s", stmt.Span())
 			}
@@ -181,7 +187,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 			case policyPhaseUses:
 				return nil, errors.Wrapf(xerr.ErrPolicyFactAfterUse, "at %s", stmt.Span())
 			case policyPhaseBody:
-				return nil, errors.Wrapf(xerr.ErrIndex, "'fact' must appear before rules, exports, lets, and shapes at %s", stmt.Span())
+				return nil, latePolicyHeaderErr("fact", stmt.Span().String())
 			}
 			if err := p.AddFact(stmt); err != nil {
 				return nil, err
@@ -195,7 +201,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 				phase = policyPhaseUses
 			case policyPhaseUses:
 			case policyPhaseBody:
-				return nil, errors.Wrapf(xerr.ErrIndex, "'use' must appear before rules, exports, lets, and shapes at %s", stmt.Span())
+				return nil, latePolicyHeaderErr("use", stmt.Span().String())
 			}
 			if _, ok := p.Uses[stmt.As]; ok {
 				return nil, errors.Wrapf(xerr.ErrIndex, "cannot rebind to existing alias '%s' at %s", stmt.As, stmt.Span())
