@@ -49,7 +49,7 @@ func initCmd(ctx context.Context, args []string) error {
 	}
 
 	if !loader.IsValidPackName(input.Name) {
-		return errors.New("name needs to be a valid identity. It must start with a letter and can only contain letters, numbers, underscores and `dot`.")
+		return errors.New("name needs to be a valid identity. It must start with a letter and can only contain letters, numbers, underscores and `dot`")
 	}
 
 	packFile := pack.NewPackFile(input.Name)
