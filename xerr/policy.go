@@ -16,14 +16,12 @@
 
 package xerr
 
-import pkgerrors "github.com/pkg/errors"
-
 // Policy indexing: literal metadata and header ordering. Each value wraps ErrIndex;
-// add location at the call site with errors.Wrapf(err, "at %s", span).
+// add location at the call site with fmt.Errorf("at %s: %w", span, err).
 var (
-	ErrPolicyMetadataContiguous = pkgerrors.Wrap(ErrIndex, "title, description, version, and tag may only appear in one contiguous block at the top of the policy, before all fact and use statements.")
-	ErrPolicyFactAfterUse       = pkgerrors.Wrap(ErrIndex, "fact statements must appear before any use statements.")
-	ErrPolicyInvalidVersion     = pkgerrors.Wrap(ErrIndex, `Invalid policy version: expected SemVer string (e.g., "1.2.3").`)
-	ErrPolicyEmptyTitle         = pkgerrors.Wrap(ErrIndex, "policy title must not be empty or whitespace-only.")
-	ErrPolicyEmptyTagKey        = pkgerrors.Wrap(ErrIndex, "tag key must not be empty or whitespace-only.")
+	ErrPolicyMetadataContiguous = wrapCategory(ErrIndex, "title, description, version, and tag may only appear in one contiguous block at the top of the policy, before all fact and use statements.")
+	ErrPolicyFactAfterUse       = wrapCategory(ErrIndex, "fact statements must appear before any use statements.")
+	ErrPolicyInvalidVersion     = wrapCategory(ErrIndex, `Invalid policy version: expected SemVer string (e.g., "1.2.3").`)
+	ErrPolicyEmptyTitle         = wrapCategory(ErrIndex, "policy title must not be empty or whitespace-only.")
+	ErrPolicyEmptyTagKey        = wrapCategory(ErrIndex, "tag key must not be empty or whitespace-only.")
 )
