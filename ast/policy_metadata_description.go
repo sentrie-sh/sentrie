@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,28 +14,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package parser
+package ast
 
 import (
-	"context"
-
-	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func (p *Parser) registerStatementHandler(tokenType tokens.Kind, fn statementParser) {
-	p.statementHandlers[tokenType] = fn
+// DescriptionStatement is a policy metadata line: description "…".
+type DescriptionStatement struct {
+	*baseNode
+	Value string
 }
 
-func parseStatement(ctx context.Context, p *Parser) ast.Statement {
-	switch p.head().Kind {
-	case tokens.KeywordTitle, tokens.KeywordDescription, tokens.KeywordVersion, tokens.KeywordTag:
-		p.errorf("'%s' is only allowed inside a policy", p.head().Kind)
-		return nil
+func NewDescriptionStatement(value string, ssp tokens.Range) *DescriptionStatement {
+	return &DescriptionStatement{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "description",
+		},
+		Value: value,
 	}
-	if handler, ok := p.statementHandlers[p.head().Kind]; ok {
-		return handler(ctx, p)
-	}
-	p.errorf("unexpected token '%s'", p.head().Kind)
-	return nil
 }
+
+func (s *DescriptionStatement) String() string { return "description" }
+
+func (s *DescriptionStatement) statementNode() {}
+
+var _ Statement = (*DescriptionStatement)(nil)
+var _ Node = (*DescriptionStatement)(nil)

@@ -470,7 +470,7 @@ func (suite *IndexTestSuite) TestAddProgramWithInvalidUseStatementPosition() {
 	err := suite.idx.AddProgram(suite.ctx, program)
 
 	suite.Error(err)
-	suite.Contains(err.Error(), "'use' statement must be declared immediately after facts")
+	suite.Contains(err.Error(), "'use' must appear before rules, exports, lets, and shapes")
 }
 
 func (suite *IndexTestSuite) TestAddProgramWithInvalidFactStatementPosition() {
@@ -511,5 +511,5 @@ func (suite *IndexTestSuite) TestAddProgramWithInvalidFactStatementPosition() {
 	err := suite.idx.AddProgram(suite.ctx, program)
 
 	suite.Error(err)
-	suite.Contains(err.Error(), "fact statement must be the first statement in a policy")
+	suite.Contains(err.Error(), "'fact' must appear before rules, exports, lets, and shapes")
 }

@@ -51,7 +51,7 @@ For `## Changes By Area`, format each area as a Markdown `###` subheading (for e
 
 --
 
-**Code commits:** Do not commit unless explicitly told to do so. **NEVER** commit any `*.md` files. Whenever you commit, Do NOT add cursor signatures in the commit messages. Make commits in reasonable chunks. Group changes into a commit if and only if the changes are tightly relates.
+**Code commits:** Do not commit unless explicitly told to do so. **NEVER** commit any `*.md` files. Whenever you commit, do not add cursor signatures in the commit messages. Prefer small(ish), focused commits over large bundles; when practical, make one logical change per commit. Combine work into a single commit only when the changes are inseparable—for example the same fix, the same slice of a feature, or the same mechanical rename. If you group edits in one commit, they must be tightly coupled; do not bundle unrelated changes.
 
 **Commit messages:** Use short imperative subject lines. Do not use conventional commit prefixes (e.g. no `refactor(scope):`, `feat(scope):` etc.). Prefer plain imperative messages: "Align X with Y", "Wire policy loading with parsing". Do not add further descriptions to the message if it doesn't add value.
 

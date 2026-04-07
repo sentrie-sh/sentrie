@@ -17,7 +17,10 @@
 package parser
 
 import (
+	"context"
+
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/stretchr/testify/require"
 )
 
 // TestParseNamespaceStatement tests parsing namespace statements
@@ -425,4 +428,67 @@ func (s *ParserTestSuite) TestParseStatementEdgeCases() {
 			s.NoError(err, "Expected no error for: %s (%s)", tc.input, tc.description)
 		}
 	}
+}
+
+func (s *ParserTestSuite) TestParsePolicyMetadataKeywordOutsidePolicyBody() {
+	src := `namespace com/example
+title "x"`
+	parser := NewParserFromString(src, "test.sentra")
+	_, err := parser.ParseProgram(context.Background())
+	s.Error(err)
+	s.Contains(err.Error(), "only allowed inside a policy")
+}
+
+func (s *ParserTestSuite) TestParsePolicyWithMetadataStatements() {
+	src := `namespace com/example
+
+policy p {
+  title "Hi"
+  description ""
+  version "2.0.0"
+  tag "k" = "v"
+  tag "k" = ""
+  fact user: string
+  use { x } from @sentrie/std as std
+  rule allow = default true { yield true }
+  export decision of allow
+}`
+	parser := NewParserFromString(src, "test.sentra")
+	prg, err := parser.ParseProgram(context.Background())
+	s.NoError(err)
+	s.NotNil(prg)
+	var pol *ast.PolicyStatement
+	for _, st := range prg.Statements {
+		if p, ok := st.(*ast.PolicyStatement); ok {
+			pol = p
+			break
+		}
+	}
+	require.NotNil(s.T(), pol)
+	var titles, descs, vers, tags, facts int
+	for _, st := range pol.Statements {
+		switch st.(type) {
+		case *ast.TitleStatement:
+			titles++
+		case *ast.DescriptionStatement:
+			descs++
+		case *ast.VersionStatement:
+			vers++
+		case *ast.TagStatement:
+			tags++
+		case *ast.FactStatement:
+			facts++
+		}
+	}
+	s.Equal(1, titles)
+	s.Equal(1, descs)
+	s.Equal(1, vers)
+	s.Equal(2, tags)
+	s.Equal(1, facts)
+}
+
+func (s *ParserTestSuite) TestParseTagStatementInvalid() {
+	parser := NewParserFromString(`policy p { tag "a" "b" }`, "test.sentra")
+	_, err := parser.ParseProgram(context.Background())
+	s.Error(err)
 }

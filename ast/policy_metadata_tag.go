@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,28 +14,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package parser
+package ast
 
 import (
-	"context"
-
-	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func (p *Parser) registerStatementHandler(tokenType tokens.Kind, fn statementParser) {
-	p.statementHandlers[tokenType] = fn
+// TagStatement is a policy metadata line: tag "key" = "value".
+type TagStatement struct {
+	*baseNode
+	Key   string
+	Value string
 }
 
-func parseStatement(ctx context.Context, p *Parser) ast.Statement {
-	switch p.head().Kind {
-	case tokens.KeywordTitle, tokens.KeywordDescription, tokens.KeywordVersion, tokens.KeywordTag:
-		p.errorf("'%s' is only allowed inside a policy", p.head().Kind)
-		return nil
+func NewTagStatement(key, value string, ssp tokens.Range) *TagStatement {
+	return &TagStatement{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "tag",
+		},
+		Key:   key,
+		Value: value,
 	}
-	if handler, ok := p.statementHandlers[p.head().Kind]; ok {
-		return handler(ctx, p)
-	}
-	p.errorf("unexpected token '%s'", p.head().Kind)
-	return nil
 }
+
+func (s *TagStatement) String() string { return "tag" }
+
+func (s *TagStatement) statementNode() {}
+
+var _ Statement = (*TagStatement)(nil)
+var _ Node = (*TagStatement)(nil)

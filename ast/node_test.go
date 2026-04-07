@@ -70,6 +70,24 @@ func (s *AstTestSuite) TestStatementInterface() {
 	s.Implements((*Node)(nil), rule)
 	s.Equal("testRule", rule.String())
 	s.Equal(r, rule.Span())
+
+	// Policy metadata statements
+	title := NewTitleStatement("T", r)
+	s.Implements((*Statement)(nil), title)
+	s.Implements((*Node)(nil), title)
+	s.Equal(r, title.Span())
+
+	desc := NewDescriptionStatement("", r)
+	s.Implements((*Statement)(nil), desc)
+	s.Implements((*Node)(nil), desc)
+
+	ver := NewVersionStatement("1.0.0", r)
+	s.Implements((*Statement)(nil), ver)
+	s.Implements((*Node)(nil), ver)
+
+	tag := NewTagStatement("k", "v", r)
+	s.Implements((*Statement)(nil), tag)
+	s.Implements((*Node)(nil), tag)
 }
 
 // TestExpressionInterface tests the Expression interface implementation

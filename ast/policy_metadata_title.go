@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,8 +14,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package index
+package ast
 
-import "github.com/pkg/errors"
+import (
+	"github.com/sentrie-sh/sentrie/tokens"
+)
 
-var ErrIndex = errors.New("index error")
+// TitleStatement is a policy metadata line: title "…".
+type TitleStatement struct {
+	*baseNode
+	Value string
+}
+
+func NewTitleStatement(value string, ssp tokens.Range) *TitleStatement {
+	return &TitleStatement{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "title",
+		},
+		Value: value,
+	}
+}
+
+func (s *TitleStatement) String() string { return "title" }
+
+func (s *TitleStatement) statementNode() {}
+
+var _ Statement = (*TitleStatement)(nil)
+var _ Node = (*TitleStatement)(nil)

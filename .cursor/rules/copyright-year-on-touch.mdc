@@ -1,0 +1,43 @@
+---
+description: New licensed files use SPDX-FileCopyrightText (© + year + git user.name / optional user.email) and SPDX-License-Identifier; do not change existing headers on ordinary edits.
+alwaysApply: true
+---
+
+# SPDX file headers and copyright year
+
+## New files and first-time headers
+
+When you **create** a new source file that must carry a license header, use this **two-line SPDX shape** (with the file’s normal comment syntax), in order:
+
+```text
+SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+SPDX-License-Identifier: Apache-2.0
+```
+
+Use the **current calendar year** after `©` (the line above shows **2026** as an illustration—replace it with the real current year when it differs). **`SPDX-License-Identifier`** must stay **`Apache-2.0`** for this repository.
+
+Example in a `//` comment language:
+
+```go
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+// SPDX-License-Identifier: Apache-2.0
+```
+
+**Holder and email:** Prefer the values from **`git config user.name`** and **`git config user.email`** (local/repo override if set, else global). The example above matches this repository’s typical Git identity; if yours differs, substitute accordingly. If **`user.email`** is unset, omit the space and bracketed email after the name.
+
+If Git identity is **not** available or the repo standard differs (e.g. corporate copyright line), use the **copyright holder** style in **sibling source files** in this repository instead.
+
+## Which year is “current”
+
+- Prefer the **actual current year** for the session: use **`Today's date`** from the user or workspace context when it is provided (authoritative for the run).
+- If no date is available, use a **reasonable default** for “now” (do **not** assume a fixed past year such as 2025).
+
+## Existing files
+
+When you **modify** a file that **already** has a license header (including **`SPDX-FileCopyrightText`**, legacy **`Copyright …`** lines, or the full Apache boilerplate block), **leave the copyright year and header text unchanged** unless the user **explicitly** asks to refresh, migrate, or correct it.
+
+Do **not** run drive-by or mass copyright-year updates on files you did not touch, unless the user **explicitly** asks for that.
+
+## Legacy headers
+
+Older files may use only `SPDX-License-Identifier` plus a `Copyright …` paragraph and Apache license text. **Do not rewrite those to the two-line form** as part of unrelated edits; only new files (or explicit migration tasks) should use the **`SPDX-FileCopyrightText`** + **`SPDX-License-Identifier`** pattern above.

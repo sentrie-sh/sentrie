@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,28 +14,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package parser
+package ast
 
 import (
-	"context"
-
-	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func (p *Parser) registerStatementHandler(tokenType tokens.Kind, fn statementParser) {
-	p.statementHandlers[tokenType] = fn
+// VersionStatement is a policy metadata line: version "…" (SemVer validated at index time).
+type VersionStatement struct {
+	*baseNode
+	Literal string
 }
 
-func parseStatement(ctx context.Context, p *Parser) ast.Statement {
-	switch p.head().Kind {
-	case tokens.KeywordTitle, tokens.KeywordDescription, tokens.KeywordVersion, tokens.KeywordTag:
-		p.errorf("'%s' is only allowed inside a policy", p.head().Kind)
-		return nil
+func NewVersionStatement(literal string, ssp tokens.Range) *VersionStatement {
+	return &VersionStatement{
+		baseNode: &baseNode{
+			Rnge:  ssp,
+			Kind_: "version",
+		},
+		Literal: literal,
 	}
-	if handler, ok := p.statementHandlers[p.head().Kind]; ok {
-		return handler(ctx, p)
-	}
-	p.errorf("unexpected token '%s'", p.head().Kind)
-	return nil
 }
+
+func (s *VersionStatement) String() string { return "version" }
+
+func (s *VersionStatement) statementNode() {}
+
+var _ Statement = (*VersionStatement)(nil)
+var _ Node = (*VersionStatement)(nil)
