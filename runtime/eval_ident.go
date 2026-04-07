@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
@@ -59,7 +58,8 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		// check the type of the let declaration
 		if v.Type != nil {
 			if err := validateValueAgainstTypeRef(ctx, ec, exec, p, val, v.Type, v.Value.Span()); err != nil {
-				return box.Undefined(), n.SetErr(errors.Wrapf(err, "invalid value for let declaration %s", i)), err
+				wrappedErr := fmt.Errorf("invalid value for let declaration %s: %w", i, err)
+				return box.Undefined(), n.SetErr(wrappedErr), wrappedErr
 			}
 		}
 

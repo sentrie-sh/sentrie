@@ -18,12 +18,12 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/mitchellh/hashstructure/v2"
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
@@ -86,7 +86,7 @@ func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *
 			// if this error is injected from code, we revert to the error message
 			return box.Undefined(), n.SetErr(err), err
 		}
-		err = errors.Wrapf(err, "failed to call function '%s'", t.Callee.String())
+		err = fmt.Errorf("failed to call function '%s': %w", t.Callee.String(), err)
 		return box.Undefined(), n.SetErr(err), err
 	}
 	return out, n.SetResult(out), nil

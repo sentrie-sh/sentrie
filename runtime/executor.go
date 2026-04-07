@@ -26,7 +26,6 @@ import (
 	"github.com/binaek/perch"
 	"github.com/dop251/goja"
 	"github.com/jackc/puddle/v2"
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
@@ -181,7 +180,7 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 			decodedFactValue := box.FromBoundaryAny(factValue)
 			// Facts are always non-nullable - validate value is not null
 			if decodedFactValue.IsNull() {
-				return nil, errors.Wrapf(xerr.ErrInvalidInvocation(""), "fact '%s' cannot be null", factName)
+				return nil, fmt.Errorf("fact '%s' cannot be null: %w", factName, xerr.ErrInvalidInvocation(""))
 			}
 			err := ec.InjectFact(ctx, factName, decodedFactValue, false, factStatement.Type)
 			if err != nil {
@@ -195,12 +194,12 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 			// evaluate the default value, this will be injected into the context
 			val, _, err := eval(ctx, ec, e, p, factStatement.Default)
 			if err != nil {
-				return nil, errors.Wrap(xerr.ErrUnresolvableFact(factName), err.Error())
+				return nil, fmt.Errorf("%s: %w", err.Error(), xerr.ErrUnresolvableFact(factName))
 			}
 
 			// Facts are always non-nullable - validate default value is not null
 			if val.IsNull() {
-				return nil, errors.Wrapf(xerr.ErrInvalidInvocation(""), "fact '%s' cannot have null default value", factName)
+				return nil, fmt.Errorf("fact '%s' cannot have null default value: %w", factName, xerr.ErrInvalidInvocation(""))
 			}
 
 			// inject the default value

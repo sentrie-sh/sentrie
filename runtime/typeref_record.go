@@ -18,8 +18,8 @@ package runtime
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constraints"
@@ -32,16 +32,16 @@ func validateAgainstRecordTypeRef(ctx context.Context, ec *ExecutionContext, exe
 	if arr, ok := v.ListValue(); ok {
 		entries = arr
 	} else {
-		return errors.Errorf("value %v is not a record", v) // TODO: improve this error message
+		return fmt.Errorf("value %v is not a record", v) // TODO: improve this error message
 	}
 
 	if len(entries) != len(typeRef.Fields) {
-		return errors.Errorf("fields length mismatch: %v", v) // TODO: improve this error message
+		return fmt.Errorf("fields length mismatch: %v", v) // TODO: improve this error message
 	}
 
 	for i, field := range typeRef.Fields {
 		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, entries[i], field, pos); err != nil {
-			return errors.Wrapf(err, "%v is not a valid record field", v)
+			return fmt.Errorf("%v is not a valid record field: %w", v, err)
 		}
 	}
 

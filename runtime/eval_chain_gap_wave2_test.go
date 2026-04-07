@@ -18,6 +18,7 @@ package runtime
 
 import (
 	"context"
+	"errors"
 
 	"github.com/binaek/perch"
 	"github.com/sentrie-sh/sentrie/ast"
@@ -84,6 +85,29 @@ func (s *RuntimeTestSuite) TestEvalIdentLetLocalAndMissingPaths() {
 
 	_, _, err = evalIdent(ctx, ec, &executorImpl{}, p, ast.NewIdentifier("missing_symbol", stubRange()))
 	s.Require().ErrorContains(err, "identifier not found: missing_symbol")
+}
+
+func (s *RuntimeTestSuite) TestEvalIdentTypedLetErrorWrapsUnderlyingValidationError() {
+	ctx := context.Background()
+	p := newEvalTestPolicy()
+	ec := NewExecutionContext(p, &executorImpl{})
+
+	typedLet := ast.NewVarDeclaration(
+		"typed_let",
+		ast.NewStringTypeRef(stubRange()),
+		ast.NewIntegerLiteral(123, stubRange()),
+		stubRange(),
+	)
+	s.Require().NoError(ec.InjectLet("typed_let", typedLet))
+
+	_, _, err := evalIdent(ctx, ec, &executorImpl{}, p, ast.NewIdentifier("typed_let", stubRange()))
+	s.Require().Error(err)
+	s.Require().ErrorContains(err, "invalid value for let declaration typed_let")
+	s.Require().ErrorContains(err, "value 123 is not a string")
+
+	underlying := errors.Unwrap(err)
+	s.Require().Error(underlying)
+	s.Require().ErrorContains(underlying, "value 123 is not a string")
 }
 
 func (s *RuntimeTestSuite) TestEvalCallMemoizedHitAndMiss() {

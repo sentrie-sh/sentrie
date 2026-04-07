@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constraints"
@@ -95,15 +94,15 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 		// if required, the field MUST exist
 		fieldValue, ok := vm[field.Name]
 		if !ok && field.Required {
-			return errors.Errorf("field %s is required at %s - expected field", field.Name, pos)
+			return fmt.Errorf("field %s is required at %s - expected field", field.Name, pos)
 		}
 
 		if field.NotNullable && (!ok || fieldValue.IsNull()) {
-			return errors.Errorf("field %s cannot be null at %s - expected field", field.Name, pos)
+			return fmt.Errorf("field %s cannot be null at %s - expected field", field.Name, pos)
 		}
 
 		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, fieldValue, field.TypeRef, pos); err != nil {
-			return errors.Wrapf(err, "field '%s' is not valid", field.Name)
+			return fmt.Errorf("field '%s' is not valid: %w", field.Name, err)
 		}
 	}
 

@@ -23,7 +23,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
@@ -121,7 +120,7 @@ func (ec *ExecutionContext) InjectFact(ctx context.Context, name string, v box.V
 	defer ec.rwmu.Unlock()
 
 	if ec.parent != nil {
-		return errors.Wrap(ErrIllegalFactInjection, name)
+		return fmt.Errorf("%s: %w", name, ErrIllegalFactInjection)
 	}
 
 	ec.facts[name] = injectedFact{
@@ -244,7 +243,7 @@ func (ec *ExecutionContext) PushRefStack(uniqueID string) error {
 
 	// Check if this rule is already in the stack (cycle detection)
 	if slices.Contains(ec.refStack, uniqueID) {
-		return errors.Wrapf(xerr.ErrInfiniteRecursion(append(ec.refStack, uniqueID)), "'%s' references itself", uniqueID)
+		return fmt.Errorf("'%s' references itself: %w", uniqueID, xerr.ErrInfiniteRecursion(append(ec.refStack, uniqueID)))
 	}
 
 	ec.refStack = append(ec.refStack, uniqueID)

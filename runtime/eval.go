@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
@@ -105,7 +104,7 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 			}
 			keyValue, ok := key.StringValue()
 			if !ok {
-				err := errors.Wrapf(xerr.ErrInvalidType(fmt.Sprintf("%T", key), "string"), "map key is not a string at %s", kv.Key.Span())
+				err := fmt.Errorf("map key is not a string at %s: %w", kv.Key.Span(), xerr.ErrInvalidType(fmt.Sprintf("%T", key), "string"))
 				return box.Undefined(), n.SetErr(err), err
 			}
 
