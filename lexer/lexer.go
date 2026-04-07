@@ -19,6 +19,7 @@ package lexer
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"regexp"
 	"slices"
@@ -26,7 +27,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
@@ -453,7 +453,7 @@ func (l *Lexer) readHereDoc() (string, error) {
 	// Disallow spaces before tag to keep syntax tight.
 	// Require TAG immediately.
 	if !unicode.IsLetter(l.current) && l.current != '_' {
-		return "", errors.Wrap(InvalidHereDocSyntaxError(l.filename, l.currentPosition()), "heredoc requires identifier tag after <<<")
+		return "", fmt.Errorf("heredoc requires identifier tag after <<<: %w", InvalidHereDocSyntaxError(l.filename, l.currentPosition()))
 	}
 
 	// Read TAG (identifier)
@@ -464,14 +464,14 @@ func (l *Lexer) readHereDoc() (string, error) {
 	}
 	tag := tagBuilder.String()
 	if tag == "" || !l.identRegex.MatchString(tag) {
-		return "", errors.Wrap(InvalidHereDocSyntaxError(l.filename, l.currentPosition()), "invalid heredoc tag")
+		return "", fmt.Errorf("invalid heredoc tag: %w", InvalidHereDocSyntaxError(l.filename, l.currentPosition()))
 	}
 
 	// Read to end of the tag line
 	for l.current != '\n' && l.current != 0 {
 		// No trailing junk allowed (only whitespace)
 		if !unicode.IsSpace(l.current) && l.current != '\r' {
-			return "", errors.Wrapf(InvalidHereDocSyntaxError(l.filename, l.currentPosition()), "unexpected characters after heredoc tag %q", tag)
+			return "", fmt.Errorf("unexpected characters after heredoc tag %q: %w", tag, InvalidHereDocSyntaxError(l.filename, l.currentPosition()))
 		}
 		l.readRune()
 	}

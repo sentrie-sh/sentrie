@@ -18,12 +18,13 @@ package cmd
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/binaek/cling"
 	"github.com/pelletier/go-toml/v2"
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/loader"
 	"github.com/sentrie-sh/sentrie/pack"
 )
@@ -67,7 +68,7 @@ func initCmd(ctx context.Context, args []string) error {
 	// if the directory is not empty, we return an error
 	entries, err := os.ReadDir(input.Directory)
 	if err != nil {
-		return errors.Wrapf(err, "could not read directory")
+		return fmt.Errorf("could not read directory: %w", err)
 	}
 	if len(entries) > 0 {
 		return errors.New("directory is not empty - please choose a different directory")
@@ -75,14 +76,14 @@ func initCmd(ctx context.Context, args []string) error {
 
 	f, err := os.OpenFile(filepath.Join(input.Directory, loader.PackFileName), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
-		return errors.Wrapf(err, "could not create pack file")
+		return fmt.Errorf("could not create pack file: %w", err)
 	}
 	defer func() { _ = f.Close() }()
 
 	encoder := toml.NewEncoder(f)
 	encoder.SetTablesInline(false)
 	if err := encoder.Encode(packFile); err != nil {
-		return errors.Wrapf(err, "could not encode pack file")
+		return fmt.Errorf("could not encode pack file: %w", err)
 	}
 
 	return nil
