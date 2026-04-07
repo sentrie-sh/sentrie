@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
-	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/sentrie-sh/sentrie/tokens"
+	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/stretchr/testify/require"
 )
 

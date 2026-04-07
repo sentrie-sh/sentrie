@@ -101,8 +101,11 @@ func (s *Shape) resolveDependency(idx *Index, inPolicy *Policy) error {
 		for _, ns := range idx.Namespaces {
 			// check in exported shapes
 			s, err := idx.ResolveShape(ns.FQN.String(), withName)
-			if errors.Is(err, xerr.ErrShapeNotFound(withName)) {
-				continue
+			if err != nil {
+				if isShapeDependencyNamespaceMiss(err) {
+					continue
+				}
+				return err
 			}
 
 			if s != nil {
@@ -140,6 +143,11 @@ func (s *Shape) resolveDependency(idx *Index, inPolicy *Policy) error {
 	}
 
 	return nil
+}
+
+func isShapeDependencyNamespaceMiss(err error) bool {
+	var notFoundErr xerr.NotFoundError
+	return errors.As(err, &notFoundErr)
 }
 
 func (s *Shape) Span() tokens.Range {
