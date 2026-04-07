@@ -1086,3 +1086,535 @@ func (suite *IndexTestSuite) TestCreatePolicyEmptyTagKey() {
 	suite.Error(err)
 	suite.Contains(err.Error(), "tag key must not be empty or whitespace-only")
 }
+
+func (suite *IndexTestSuite) TestCreatePolicyUnsupportedShapeExportInBody() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(4)), "user", nil, true, r(4)),
+			ast.NewShapeExportStatement("S", r(5)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(6)), nil, r(6)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(7)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "unsupported statement in policy")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyDuplicateUseAliasRebind() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	u1 := ast.NewUseStatement([]string{"a"}, "./a.ts", nil, "lib", r(4))
+	u2 := ast.NewUseStatement([]string{"b"}, "./b.ts", nil, "lib", r(5))
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(3)), "user", nil, true, r(3)),
+			u1,
+			u2,
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(6)), nil, r(6)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(7)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "cannot rebind to existing alias")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyDuplicateRuleExportAttachmentName() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	a1 := ast.NewAttachmentClause("reason", ast.NewStringLiteral("one", r(6)), r(6))
+	a2 := ast.NewAttachmentClause("reason", ast.NewStringLiteral("two", r(7)), r(7))
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(3)), "user", nil, true, r(3)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(4)), nil, r(4)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{a1, a2}, r(5)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "conflict: rule export attachment")
+}
+
+func (suite *IndexTestSuite) TestPolicyAddShapeDuplicateInnerFieldName() {
+	policy := &Policy{
+		Statement:       &ast.PolicyStatement{},
+		Namespace:       suite.policyNs,
+		Name:            "testPolicy",
+		FQN:             ast.NewFQN([]string{"com", "example", "testPolicy"}, tokens.Range{}),
+		FilePath:        "test.sentra",
+		Statements:      []ast.Statement{},
+		Lets:            make(map[string]*ast.VarDeclaration),
+		Facts:           make(map[string]*ast.FactStatement),
+		Rules:           make(map[string]*Rule),
+		RuleExports:     make(map[string]*ExportedRule),
+		Uses:            make(map[string]*ast.UseStatement),
+		Shapes:          make(map[string]*Shape),
+		seenIdentifiers: make(map[string]ast.Positionable),
+	}
+	rng := tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 1}}
+	shapeStmt := ast.NewShapeStatement(
+		"DupFieldShape",
+		nil,
+		&ast.Cmplx{
+			Range: rng,
+			With:  nil,
+			Fields: map[string]*ast.ShapeField{
+				"k1": {Range: rng, Name: "dup", NotNullable: true, Required: true, Type: ast.NewStringTypeRef(rng)},
+				"k2": {Range: rng, Name: "dup", NotNullable: true, Required: true, Type: ast.NewNumberTypeRef(rng)},
+			},
+		},
+		rng,
+	)
+	err := policy.AddShape(shapeStmt)
+	suite.Error(err)
+	suite.Contains(err.Error(), "failed to create shape")
+	suite.Contains(err.Error(), "DupFieldShape")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyTitleAfterRuleLateHeader() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(3)), "user", nil, true, r(3)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(4)), nil, r(4)),
+			ast.NewTitleStatement("Late", r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "'title' must appear before rules, exports, lets, and shapes")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyDuplicateDescription() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewDescriptionStatement("one", r(3)),
+			ast.NewDescriptionStatement("two", r(4)),
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(5)), "user", nil, true, r(5)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(6)), nil, r(6)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(7)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "conflict: policy description")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyDuplicateVersion() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewVersionStatement("1.0.0", r(3)),
+			ast.NewVersionStatement("2.0.0", r(4)),
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(5)), "user", nil, true, r(5)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(6)), nil, r(6)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(7)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "conflict: policy version")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyTagAfterUseMetadataContiguous() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(3)), "user", nil, true, r(3)),
+			ast.NewUseStatement([]string{"x"}, "./x.ts", nil, "m", r(4)),
+			ast.NewTagStatement("k", "v", r(5)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(6)), nil, r(6)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(7)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "title, description, version, and tag may only appear in one contiguous block")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyTwoFactsSecondPhaseFactsCase() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(3)), "u", nil, true, r(3)),
+			ast.NewFactStatement("ctx", ast.NewStringTypeRef(r(4)), "c", nil, true, r(4)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(5)), nil, r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	p, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.NoError(err)
+	suite.Len(p.Facts, 2)
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyRequiredFactWithDefaultAddFactError() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement(
+				"user",
+				ast.NewStringTypeRef(r(3)),
+				"u",
+				ast.NewStringLiteral("bad", r(3)),
+				false,
+				r(3),
+			),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(4)), nil, r(4)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(5)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "cannot have a default value")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyDuplicateLetName() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(3)), "user", nil, true, r(3)),
+			ast.NewVarDeclaration("x", ast.NewStringTypeRef(r(4)), ast.NewStringLiteral("a", r(4)), r(4)),
+			ast.NewVarDeclaration("x", ast.NewStringTypeRef(r(5)), ast.NewStringLiteral("b", r(5)), r(5)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(6)), nil, r(6)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(7)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "conflict: let declaration")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyDescriptionAfterFactContiguousMetadata() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(3)), "user", nil, true, r(3)),
+			ast.NewDescriptionStatement("late meta", r(4)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(5)), nil, r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "title, description, version, and tag may only appear in one contiguous block")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyVersionAfterFactContiguousMetadata() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(3)), "user", nil, true, r(3)),
+			ast.NewVersionStatement("1.2.3", r(4)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(5)), nil, r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "title, description, version, and tag may only appear in one contiguous block")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyDescriptionAfterRuleLateHeader() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(3)), "user", nil, true, r(3)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(4)), nil, r(4)),
+			ast.NewDescriptionStatement("late", r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "'description' must appear before rules, exports, lets, and shapes")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyVersionAfterRuleLateHeader() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(3)), "user", nil, true, r(3)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(4)), nil, r(4)),
+			ast.NewVersionStatement("1.0.0", r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "'version' must appear before rules, exports, lets, and shapes")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyTagAfterRuleLateHeader() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(3)), "user", nil, true, r(3)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(4)), nil, r(4)),
+			ast.NewTagStatement("k", "v", r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "'tag' must appear before rules, exports, lets, and shapes")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyExportAfterUseBeforeRule() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(3)), "user", nil, true, r(3)),
+			ast.NewUseStatement([]string{"x"}, "./x.ts", nil, "m", r(4)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(5)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(6)), nil, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "cannot export unknown rule")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyShapeBodyDuplicateFieldErrors() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	rng := r(10)
+	dupShape := ast.NewShapeStatement(
+		"BadShape",
+		nil,
+		&ast.Cmplx{
+			Range: rng,
+			With:  nil,
+			Fields: map[string]*ast.ShapeField{
+				"k1": {Range: rng, Name: "d", NotNullable: true, Required: true, Type: ast.NewStringTypeRef(rng)},
+				"k2": {Range: rng, Name: "d", NotNullable: true, Required: true, Type: ast.NewNumberTypeRef(rng)},
+			},
+		},
+		rng,
+	)
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(3)), "user", nil, true, r(3)),
+			dupShape,
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(4)), nil, r(4)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(5)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "failed to create shape")
+}
+
+func (suite *IndexTestSuite) TestCreatePolicyDuplicateRuleName() {
+	r := func(line int) tokens.Range {
+		return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: line, Column: 0, Offset: 0}, To: tokens.Pos{Line: line, Column: 1, Offset: 1}}
+	}
+	policyStmt := ast.NewPolicyStatement(
+		"p",
+		[]ast.Statement{
+			ast.NewFactStatement("user", ast.NewStringTypeRef(r(3)), "user", nil, true, r(3)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, r(4)), nil, r(4)),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.False, r(5)), nil, r(5)),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, r(6)),
+		},
+		r(2),
+	)
+	program := &ast.Program{
+		Reference: "test.sentra",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, r(1)), r(1)),
+			policyStmt,
+		},
+	}
+	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	suite.Error(err)
+	suite.Contains(err.Error(), "conflict: rule declaration")
+}
