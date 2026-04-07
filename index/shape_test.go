@@ -18,9 +18,11 @@ package index
 
 import (
 	"context"
+	"errors"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/tokens"
+	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 // Simple shape without dependencies - verify basic shape creation and validation
@@ -65,6 +67,16 @@ func (s *IndexTestSuite) TestShapeDependency_SimpleShapeWithoutDependencies() {
 	// Verify shape is properly indexed
 	s.Contains(ns.Shapes, "User")
 	s.Equal(shape, ns.Shapes["User"])
+}
+
+func (s *IndexTestSuite) TestShapeDependency_NamespaceMissClassifier_WithNamespaceQualifiedShapeNotFound() {
+	err := xerr.ErrShapeNotFound("com/example/shared/User")
+	s.True(errors.As(err, &xerr.NotFoundError{}))
+}
+
+func (s *IndexTestSuite) TestShapeDependency_NamespaceMissClassifier_WithNonNotFoundError() {
+	err := errors.New("boom")
+	s.False(errors.As(err, &xerr.NotFoundError{}))
 }
 
 // Shape with missing dependency - verify proper error handling when dependency is not found
@@ -112,6 +124,65 @@ func (s *IndexTestSuite) TestShapeDependency_ShapeWithMissingDependency() {
 	s.Require().Error(err)
 	s.Contains(err.Error(), "error resolving shape")
 	s.Contains(err.Error(), "NonExistentShape")
+}
+
+// Shape with missing dependency across multiple namespaces - verify namespace misses continue and report final missing FQN
+func (s *IndexTestSuite) TestShapeDependency_MissingDependencyAcrossNamespaces() {
+	ctx := context.Background()
+	idx := CreateIndex()
+
+	// Namespace that owns dependent shape.
+	appNsStmt := ast.NewNamespaceStatement(
+		ast.NewFQN([]string{"com", "example", "app"}, tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
+		tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+	)
+	appNs, err := idx.ensureNamespace(ctx, appNsStmt)
+	s.Require().NoError(err)
+
+	// Additional namespaces that do not contain the target shape.
+	sharedNsStmt := ast.NewNamespaceStatement(
+		ast.NewFQN([]string{"com", "example", "shared"}, tokens.Range{File: "shared.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
+		tokens.Range{File: "shared.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+	)
+	_, err = idx.ensureNamespace(ctx, sharedNsStmt)
+	s.Require().NoError(err)
+
+	otherNsStmt := ast.NewNamespaceStatement(
+		ast.NewFQN([]string{"com", "example", "other"}, tokens.Range{File: "other.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
+		tokens.Range{File: "other.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+	)
+	_, err = idx.ensureNamespace(ctx, otherNsStmt)
+	s.Require().NoError(err)
+
+	withMissing := ast.NewFQN([]string{"com", "example", "shared", "MissingShape"}, tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}})
+	dependentShapeStmt := ast.NewShapeStatement(
+		"AppShape",
+		nil,
+		&ast.Cmplx{
+			Range: tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}},
+			With:  &withMissing,
+			Fields: map[string]*ast.ShapeField{
+				"name": {
+					Range:       tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
+					Name:        "name",
+					NotNullable: true,
+					Required:    true,
+					Type:        ast.NewStringTypeRef(tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}}),
+				},
+			},
+		},
+		tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+	)
+
+	dependentShape, err := createShape(appNs, nil, dependentShapeStmt)
+	s.Require().NoError(err)
+	err = appNs.addShape(dependentShape)
+	s.Require().NoError(err)
+
+	err = idx.Validate(ctx)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "MissingShape")
+	s.Contains(err.Error(), "com/example/shared/MissingShape")
 }
 
 // Shape with circular dependency - verify cycle detection works
