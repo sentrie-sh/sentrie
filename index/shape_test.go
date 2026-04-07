@@ -71,12 +71,77 @@ func (s *IndexTestSuite) TestShapeDependency_SimpleShapeWithoutDependencies() {
 
 func (s *IndexTestSuite) TestShapeDependency_NamespaceMissClassifier_WithNamespaceQualifiedShapeNotFound() {
 	err := xerr.ErrShapeNotFound("com/example/shared/User")
-	s.True(errors.As(err, &xerr.NotFoundError{}))
+	s.True(isShapeDependencyNamespaceMiss(err))
 }
 
 func (s *IndexTestSuite) TestShapeDependency_NamespaceMissClassifier_WithNonNotFoundError() {
 	err := errors.New("boom")
-	s.False(errors.As(err, &xerr.NotFoundError{}))
+	s.False(isShapeDependencyNamespaceMiss(err))
+}
+
+func (s *IndexTestSuite) TestShapeDependency_ResolveDependency_UsesPolicyShape() {
+	ctx := context.Background()
+	idx := CreateIndex()
+
+	nsStmt := ast.NewNamespaceStatement(
+		ast.NewFQN([]string{"com", "example", "app"}, tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
+		tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+	)
+	ns, err := idx.ensureNamespace(ctx, nsStmt)
+	s.Require().NoError(err)
+
+	baseShapeStmt := ast.NewShapeStatement(
+		"BaseShape",
+		nil,
+		&ast.Cmplx{
+			Range: tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
+			Fields: map[string]*ast.ShapeField{
+				"id": {
+					Range:       tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 3, Column: 2, Offset: 0}, To: tokens.Pos{Line: 3, Column: 2, Offset: 0}},
+					Name:        "id",
+					NotNullable: true,
+					Required:    true,
+					Type:        ast.NewStringTypeRef(tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 3, Column: 6, Offset: 0}, To: tokens.Pos{Line: 3, Column: 6, Offset: 0}}),
+				},
+			},
+		},
+		tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
+	)
+	baseShape, err := createShape(ns, nil, baseShapeStmt)
+	s.Require().NoError(err)
+
+	withBase := ast.NewFQN([]string{"BaseShape"}, tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}})
+	dependentStmt := ast.NewShapeStatement(
+		"AppShape",
+		nil,
+		&ast.Cmplx{
+			Range: tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
+			With:  &withBase,
+			Fields: map[string]*ast.ShapeField{
+				"name": {
+					Range:       tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 6, Column: 2, Offset: 0}, To: tokens.Pos{Line: 6, Column: 2, Offset: 0}},
+					Name:        "name",
+					NotNullable: true,
+					Required:    true,
+					Type:        ast.NewStringTypeRef(tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 6, Column: 8, Offset: 0}, To: tokens.Pos{Line: 6, Column: 8, Offset: 0}}),
+				},
+			},
+		},
+		tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}},
+	)
+	dependentShape, err := createShape(ns, nil, dependentStmt)
+	s.Require().NoError(err)
+
+	inPolicy := &Policy{
+		Shapes: map[string]*Shape{
+			"BaseShape": baseShape,
+		},
+	}
+
+	err = dependentShape.resolveDependency(idx, inPolicy)
+	s.Require().NoError(err)
+	s.Contains(dependentShape.Model.Fields, "id")
+	s.Contains(dependentShape.Model.Fields, "name")
 }
 
 // Shape with missing dependency - verify proper error handling when dependency is not found
