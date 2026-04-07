@@ -18,8 +18,8 @@ package index
 
 import (
 	"context"
+	"errors"
 
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/sentrie-sh/sentrie/trinary"
