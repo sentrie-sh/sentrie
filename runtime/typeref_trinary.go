@@ -18,8 +18,8 @@ package runtime
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constraints"
@@ -35,7 +35,7 @@ func validateAgainstTrinaryTypeRef(ctx context.Context, ec *ExecutionContext, ex
 	} else if t, ok := v.TrinaryValue(); ok {
 		tv = t
 	} else {
-		return errors.Errorf("value '%v' is not a bool at %s - expected bool", v, valueRange)
+		return fmt.Errorf("value '%v' is not a bool at %s - expected bool", v, valueRange)
 	}
 
 	for _, constraint := range typeRef.GetConstraints() {

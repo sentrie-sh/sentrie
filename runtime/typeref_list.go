@@ -18,8 +18,8 @@ package runtime
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constraints"
@@ -30,12 +30,12 @@ import (
 func validateAgainstListTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef *ast.ListTypeRef, pos tokens.Range) error {
 	items, ok := v.ListValue()
 	if !ok {
-		return errors.Errorf("value %v is not an array at %s - expected array", v, pos)
+		return fmt.Errorf("value %v is not an array at %s - expected array", v, pos)
 	}
 
 	for _, item := range items {
 		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, item, typeRef.ElemType, pos); err != nil {
-			return errors.Wrapf(err, "item is not valid at %s", pos) // TODO: improve this error message
+			return fmt.Errorf("item is not valid at %s: %w", pos, err) // TODO: improve this error message
 		}
 	}
 

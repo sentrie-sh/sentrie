@@ -18,6 +18,8 @@ package loader
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -25,7 +27,6 @@ import (
 	"strings"
 
 	"github.com/pelletier/go-toml/v2"
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/constants"
 	"github.com/sentrie-sh/sentrie/pack"
 )
@@ -40,6 +41,12 @@ var (
 	NameRegex    = regexp.MustCompile(`^([a-zA-Z][a-zA-Z0-9_-]*)(\.[a-zA-Z][a-zA-Z0-9_-]*)*$`)
 )
 
+// statPackFile and filepathAbs are swappable in tests.
+var (
+	statPackFile = os.Stat
+	filepathAbs  = filepath.Abs
+)
+
 func IsValidPackName(name string) bool {
 	return NameRegex.MatchString(name)
 }
@@ -51,12 +58,12 @@ func LoadPack(ctx context.Context, root string) (_ *pack.PackFile, e error) {
 
 	packPath, err := locatePackFile(ctx, root)
 	if err != nil {
-		return nil, errors.Wrap(err, "locate pack file")
+		return nil, fmt.Errorf("locate pack file: %w", err)
 	}
 
-	stat, err := os.Stat(packPath)
+	stat, err := statPackFile(packPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "stat pack file")
+		return nil, fmt.Errorf("stat pack file: %w", err)
 	}
 
 	if stat.Size() == 0 {
@@ -66,13 +73,13 @@ func LoadPack(ctx context.Context, root string) (_ *pack.PackFile, e error) {
 	// Read file content into memory
 	fileContent, err := os.ReadFile(packPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "read pack file")
+		return nil, fmt.Errorf("read pack file: %w", err)
 	}
 
 	// First decode into a map to check for unknown top-level keys
 	var rawData map[string]interface{}
 	if err := toml.Unmarshal(fileContent, &rawData); err != nil {
-		return nil, errors.Wrap(err, "failed to parse pack file")
+		return nil, fmt.Errorf("failed to parse pack file: %w", err)
 	}
 
 	// Check for unknown top-level keys
@@ -85,14 +92,28 @@ func LoadPack(ctx context.Context, root string) (_ *pack.PackFile, e error) {
 	}
 	for key := range rawData {
 		if !allowedKeys[key] {
-			return nil, errors.Errorf("unknown top-level table '[%s]'. Allowed tables are: schema, pack, engine, permissions, metadata", key)
+			return nil, fmt.Errorf("unknown top-level table '[%s]'. Allowed tables are: schema, pack, engine, permissions, metadata", key)
+		}
+	}
+
+	// Check that if engine table exists, it must have sentrie field (before struct decode so empty
+	// strings surface as this error instead of a semver/TOML decode failure).
+	if engineData, exists := rawData["engine"]; exists {
+		if engineMap, ok := engineData.(map[string]interface{}); ok {
+			if _, hasSentrie := engineMap["sentrie"]; !hasSentrie {
+				return nil, errors.New("engine table exists but 'sentrie' field is required")
+			}
+			c, ok := engineMap["sentrie"].(string)
+			if ok && len(c) == 0 {
+				return nil, errors.New("engine table exists but 'sentrie' field is required")
+			}
 		}
 	}
 
 	// Now decode into the struct
 	var p pack.PackFile
 	if err := toml.Unmarshal(fileContent, &p); err != nil {
-		return nil, errors.Wrap(err, "failed to parse pack file")
+		return nil, fmt.Errorf("failed to parse pack file: %w", err)
 	}
 
 	if p.SchemaVersion == nil {
@@ -108,22 +129,9 @@ func LoadPack(ctx context.Context, root string) (_ *pack.PackFile, e error) {
 		return nil, errors.New("name must be a valid identity")
 	}
 
-	// Check that if engine table exists, it must have sentrie field
-	if engineData, exists := rawData["engine"]; exists {
-		if engineMap, ok := engineData.(map[string]interface{}); ok {
-			if _, hasSentrie := engineMap["sentrie"]; !hasSentrie {
-				return nil, errors.New("engine table exists but 'sentrie' field is required")
-			}
-			c, ok := engineMap["sentrie"].(string)
-			if ok && len(c) == 0 {
-				return nil, errors.New("engine table exists but 'sentrie' field is required")
-			}
-		}
-	}
-
 	// Validate against JSON Schema
 	if err := ValidatePackFile(&p); err != nil {
-		return nil, errors.Wrap(err, "schema validation failed")
+		return nil, fmt.Errorf("schema validation failed: %w", err)
 	}
 
 	p.Location = filepath.Dir(packPath)
@@ -141,9 +149,9 @@ func locatePackFile(ctx context.Context, root string) (string, error) {
 	}
 
 	// get the absolute path to the root
-	root, err := filepath.Abs(root)
+	root, err := filepathAbs(root)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get absolute path to root")
+		return "", fmt.Errorf("failed to get absolute path to root: %w", err)
 	}
 
 	// locate the pack file
@@ -154,7 +162,7 @@ func locatePackFile(ctx context.Context, root string) (string, error) {
 	// till we find one - if we reach the root and don't find it, we return an error
 	info, err := os.Stat(root)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to locate pack file")
+		return "", fmt.Errorf("failed to locate pack file: %w", err)
 	}
 
 	// if the name is "sentrie.pack.toml", we use it

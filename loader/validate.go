@@ -7,7 +7,6 @@ import (
 
 	_ "embed" // for the embedded schema
 
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/pack"
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -34,14 +33,14 @@ func ValidatePackFile(packFile *pack.PackFile) error {
 	// Convert PackFile to JSON
 	jsonBytes, err := json.Marshal(packFile)
 	if err != nil {
-		return errors.Wrap(err, "failed to marshal pack file to JSON")
+		return fmt.Errorf("failed to marshal pack file to JSON: %w", err)
 	}
 
 	// Validate against schema
 	documentLoader := gojsonschema.NewBytesLoader(jsonBytes)
-	result, err := schema.Validate(documentLoader)
+	result, err := validatePackDocument(documentLoader)
 	if err != nil {
-		return errors.Wrap(err, "schema validation failed")
+		return fmt.Errorf("schema validation failed: %w", err)
 	}
 
 	if !result.Valid() {
@@ -53,8 +52,13 @@ func ValidatePackFile(packFile *pack.PackFile) error {
 			}
 			errMsgs = append(errMsgs, fmt.Sprintf("%s: %s", field, desc.Description()))
 		}
-		return errors.Errorf("schema validation failed:\n  %s", strings.Join(errMsgs, "\n  "))
+		return fmt.Errorf("schema validation failed:\n  %s", strings.Join(errMsgs, "\n  "))
 	}
 
 	return nil
+}
+
+// validatePackDocument runs JSON-schema validation. Swappable in tests.
+var validatePackDocument = func(loader gojsonschema.JSONLoader) (*gojsonschema.Result, error) {
+	return schema.Validate(loader)
 }

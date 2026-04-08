@@ -20,9 +20,32 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
+
+type wrappedCategoryError struct {
+	category error
+	message  string
+}
+
+func (e wrappedCategoryError) Error() string {
+	if e.message == "" {
+		return e.category.Error()
+	}
+	return e.message + ": " + e.category.Error()
+}
+
+func (e wrappedCategoryError) Unwrap() error {
+	return e.category
+}
+
+func wrapCategory(category error, message string) error {
+	return wrappedCategoryError{category: category, message: message}
+}
+
+func wrapCategoryf(category error, format string, args ...any) error {
+	return wrappedCategoryError{category: category, message: fmt.Sprintf(format, args...)}
+}
 
 // Error injected by calling the `error` function in sentrie code
 type InjectedError struct {
@@ -31,7 +54,7 @@ type InjectedError struct {
 func (e InjectedError) Error() string { return "runtime error" }
 
 func ErrInjected(format string, args ...any) error {
-	return errors.Wrapf(InjectedError{}, format, args...)
+	return wrapCategoryf(InjectedError{}, format, args...)
 }
 
 type InfiniteRecursionError struct{ stack []string }
@@ -74,47 +97,47 @@ func (e InvalidInvocationError) Error() string {
 }
 
 func ErrInvalidInvocation(reason string) error {
-	return errors.Wrap(InvalidInvocationError{}, reason)
+	return wrapCategory(InvalidInvocationError{}, reason)
 }
 
 func ErrUnresolvableFact(name string) error {
-	return errors.Wrapf(InvalidInvocationError{}, "unresolvable fact: %s", name)
+	return wrapCategoryf(InvalidInvocationError{}, "unresolvable fact: %s", name)
 }
 
 func ErrRequiredFact(name string) error {
-	return errors.Wrapf(InvalidInvocationError{}, "required fact not found: %s", name)
+	return wrapCategoryf(InvalidInvocationError{}, "required fact not found: %s", name)
 }
 
 func ErrRuleNotFound(fqn string) error {
-	return errors.Wrapf(NotFoundError{}, "rule: %s", fqn)
+	return wrapCategoryf(NotFoundError{}, "rule: %s", fqn)
 }
 
 func ErrPolicyNotFound(fqn string) error {
-	return errors.Wrapf(NotFoundError{}, "policy: %s", fqn)
+	return wrapCategoryf(NotFoundError{}, "policy: %s", fqn)
 }
 
 func ErrNamespaceNotFound(name string) error {
-	return errors.Wrapf(NotFoundError{}, "namespace: %s", name)
+	return wrapCategoryf(NotFoundError{}, "namespace: %s", name)
 }
 
 func ErrShapeNotFound(name string) error {
-	return errors.Wrapf(NotFoundError{}, "shape: %s", name)
+	return wrapCategoryf(NotFoundError{}, "shape: %s", name)
 }
 
 func ErrNotExported(fqn string) error {
-	return errors.Wrap(NotExportedError{}, fqn)
+	return wrapCategory(NotExportedError{}, fqn)
 }
 
 func ErrImportResolution(module, fn string) error {
-	return errors.Wrapf(ImportResolutionError{}, "module: %s, fn: %s", module, fn)
+	return wrapCategoryf(ImportResolutionError{}, "module: %s, fn: %s", module, fn)
 }
 
 func ErrShapeValidation(msg string) error {
-	return errors.Wrap(ShapeValidationError{}, msg)
+	return wrapCategory(ShapeValidationError{}, msg)
 }
 
 func ErrModuleInvocation(module, fn string) error {
-	return errors.Wrapf(ModuleInvocationError{}, "module: %s, fn: %s", module, fn)
+	return wrapCategoryf(ModuleInvocationError{}, "module: %s, fn: %s", module, fn)
 }
 
 var ErrRuntimePanic = &RuntimePanic{}

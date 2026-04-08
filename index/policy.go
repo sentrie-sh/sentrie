@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/xerr"
 )
@@ -77,7 +76,7 @@ func (p *Policy) String() string {
 
 // latePolicyHeaderErr reports metadata, fact, or use after the policy body has started.
 func latePolicyHeaderErr(keyword, at string) error {
-	return errors.Wrapf(xerr.ErrIndex, "'%s' must appear before rules, exports, lets, and shapes at %s", keyword, at)
+	return fmt.Errorf("'%s' must appear before rules, exports, lets, and shapes at %s: %w", keyword, at, xerr.ErrIndex)
 }
 
 type policyPhase int
@@ -120,14 +119,14 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 				if phase == policyPhaseBody {
 					return nil, latePolicyHeaderErr("title", stmt.Span().String())
 				}
-				return nil, errors.Wrapf(xerr.ErrPolicyMetadataContiguous, "at %s", stmt.Span())
+				return nil, fmt.Errorf("at %s: %w", stmt.Span(), xerr.ErrPolicyMetadataContiguous)
 			}
 			if titleAt != nil {
 				return nil, xerr.ErrConflict("policy title", stmt.Span(), titleAt.Span())
 			}
 			trimmed := strings.TrimSpace(stmt.Value)
 			if trimmed == "" {
-				return nil, errors.Wrapf(xerr.ErrPolicyEmptyTitle, "at %s", stmt.Span())
+				return nil, fmt.Errorf("at %s: %w", stmt.Span(), xerr.ErrPolicyEmptyTitle)
 			}
 			t := trimmed
 			p.Title = &t
@@ -138,7 +137,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 				if phase == policyPhaseBody {
 					return nil, latePolicyHeaderErr("description", stmt.Span().String())
 				}
-				return nil, errors.Wrapf(xerr.ErrPolicyMetadataContiguous, "at %s", stmt.Span())
+				return nil, fmt.Errorf("at %s: %w", stmt.Span(), xerr.ErrPolicyMetadataContiguous)
 			}
 			if descriptionAt != nil {
 				return nil, xerr.ErrConflict("policy description", stmt.Span(), descriptionAt.Span())
@@ -152,7 +151,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 				if phase == policyPhaseBody {
 					return nil, latePolicyHeaderErr("version", stmt.Span().String())
 				}
-				return nil, errors.Wrapf(xerr.ErrPolicyMetadataContiguous, "at %s", stmt.Span())
+				return nil, fmt.Errorf("at %s: %w", stmt.Span(), xerr.ErrPolicyMetadataContiguous)
 			}
 			if versionAt != nil {
 				return nil, xerr.ErrConflict("policy version", stmt.Span(), versionAt.Span())
@@ -161,7 +160,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 			// SemVer is validated on TrimSpace(literal); VersionLiteral stays verbatim for display/diagnostics.
 			ver, err := semver.NewVersion(strings.TrimSpace(stmt.Literal))
 			if err != nil {
-				return nil, errors.Wrapf(xerr.ErrPolicyInvalidVersion, "at %s", stmt.Span())
+				return nil, fmt.Errorf("at %s: %w", stmt.Span(), xerr.ErrPolicyInvalidVersion)
 			}
 			p.Version = ver
 			versionAt = stmt
@@ -171,11 +170,11 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 				if phase == policyPhaseBody {
 					return nil, latePolicyHeaderErr("tag", stmt.Span().String())
 				}
-				return nil, errors.Wrapf(xerr.ErrPolicyMetadataContiguous, "at %s", stmt.Span())
+				return nil, fmt.Errorf("at %s: %w", stmt.Span(), xerr.ErrPolicyMetadataContiguous)
 			}
 			key := strings.TrimSpace(stmt.Key)
 			if key == "" {
-				return nil, errors.Wrapf(xerr.ErrPolicyEmptyTagKey, "at %s", stmt.Span())
+				return nil, fmt.Errorf("at %s: %w", stmt.Span(), xerr.ErrPolicyEmptyTagKey)
 			}
 			p.TagPairs = append(p.TagPairs, PolicyTagPair{Key: key, Value: stmt.Value})
 
@@ -185,7 +184,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 				phase = policyPhaseFacts
 			case policyPhaseFacts:
 			case policyPhaseUses:
-				return nil, errors.Wrapf(xerr.ErrPolicyFactAfterUse, "at %s", stmt.Span())
+				return nil, fmt.Errorf("at %s: %w", stmt.Span(), xerr.ErrPolicyFactAfterUse)
 			case policyPhaseBody:
 				return nil, latePolicyHeaderErr("fact", stmt.Span().String())
 			}
@@ -204,7 +203,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 				return nil, latePolicyHeaderErr("use", stmt.Span().String())
 			}
 			if _, ok := p.Uses[stmt.As]; ok {
-				return nil, errors.Wrapf(xerr.ErrIndex, "cannot rebind to existing alias '%s' at %s", stmt.As, stmt.Span())
+				return nil, fmt.Errorf("cannot rebind to existing alias '%s' at %s: %w", stmt.As, stmt.Span(), xerr.ErrIndex)
 			}
 			p.Uses[stmt.As] = stmt
 
@@ -229,7 +228,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 				phase = policyPhaseBody
 			}
 			if _, ok := p.Rules[stmt.Of]; !ok {
-				return nil, errors.Wrapf(xerr.ErrIndex, "cannot export unknown rule: '%s' at %s", stmt.Of, stmt.Span())
+				return nil, fmt.Errorf("cannot export unknown rule: '%s' at %s: %w", stmt.Of, stmt.Span(), xerr.ErrIndex)
 			}
 
 			if _, ok := p.RuleExports[stmt.Of]; ok {
@@ -260,14 +259,14 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 			}
 
 		default:
-			return nil, errors.Wrapf(xerr.ErrIndex, "unsupported statement in policy at %s", stmt.Span())
+			return nil, fmt.Errorf("unsupported statement in policy at %s: %w", stmt.Span(), xerr.ErrIndex)
 		}
 	}
 
 	p.TagsByKey = buildTagsByKey(p.TagPairs)
 
 	if len(p.RuleExports) == 0 {
-		return nil, errors.Wrapf(xerr.ErrIndex, "policy '%s' at '%s' does not export any rules", policy.Name, policy.Span())
+		return nil, fmt.Errorf("policy '%s' at '%s' does not export any rules: %w", policy.Name, policy.Span(), xerr.ErrIndex)
 	}
 
 	return p, nil
@@ -306,7 +305,7 @@ func (p *Policy) AddShape(shape *ast.ShapeStatement) error {
 
 	s, err := createShape(p.Namespace, p, shape)
 	if err != nil {
-		return errors.Wrapf(xerr.ErrIndex, "failed to create shape: %s at %s", shape.Name, shape.Span())
+		return fmt.Errorf("failed to create shape: %s at %s: %w", shape.Name, shape.Span(), xerr.ErrIndex)
 	}
 
 	p.Shapes[shape.Name] = s

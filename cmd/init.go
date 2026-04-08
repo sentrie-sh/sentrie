@@ -18,12 +18,13 @@ package cmd
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/binaek/cling"
 	"github.com/pelletier/go-toml/v2"
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/loader"
 	"github.com/sentrie-sh/sentrie/pack"
 )
@@ -48,7 +49,7 @@ func initCmd(ctx context.Context, args []string) error {
 	}
 
 	if !loader.IsValidPackName(input.Name) {
-		return errors.New("name needs to be a valid identity. It must start with a letter and can only contain letters, numbers, underscores and `dot`.")
+		return errors.New("name needs to be a valid identity. It must start with a letter and can only contain letters, numbers, underscores and `dot`")
 	}
 
 	packFile := pack.NewPackFile(input.Name)
@@ -67,7 +68,7 @@ func initCmd(ctx context.Context, args []string) error {
 	// if the directory is not empty, we return an error
 	entries, err := os.ReadDir(input.Directory)
 	if err != nil {
-		return errors.Wrapf(err, "could not read directory")
+		return fmt.Errorf("could not read directory: %w", err)
 	}
 	if len(entries) > 0 {
 		return errors.New("directory is not empty - please choose a different directory")
@@ -75,15 +76,20 @@ func initCmd(ctx context.Context, args []string) error {
 
 	f, err := os.OpenFile(filepath.Join(input.Directory, loader.PackFileName), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
-		return errors.Wrapf(err, "could not create pack file")
+		return fmt.Errorf("could not create pack file: %w", err)
 	}
 	defer func() { _ = f.Close() }()
 
-	encoder := toml.NewEncoder(f)
-	encoder.SetTablesInline(false)
-	if err := encoder.Encode(packFile); err != nil {
-		return errors.Wrapf(err, "could not encode pack file")
+	if err := encodePackFile(f, packFile); err != nil {
+		return fmt.Errorf("could not encode pack file: %w", err)
 	}
 
 	return nil
+}
+
+// encodePackFile marshals packFile as TOML into f. Overridable in tests.
+var encodePackFile = func(f *os.File, packFile *pack.PackFile) error {
+	encoder := toml.NewEncoder(f)
+	encoder.SetTablesInline(false)
+	return encoder.Encode(packFile)
 }

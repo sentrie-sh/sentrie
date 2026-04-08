@@ -17,23 +17,27 @@
 package runtime
 
 import (
-	"github.com/pkg/errors"
+	"errors"
+	"fmt"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 var (
 	ErrTypeRef           = errors.New("typeref error")
-	errConstraintFailed  = errors.Wrapf(ErrTypeRef, "constraint failed")
-	errUnknownConstraint = errors.Wrapf(ErrTypeRef, "unknown constraint")
+	errConstraintFailed  = fmt.Errorf("constraint failed: %w", ErrTypeRef)
+	errUnknownConstraint = fmt.Errorf("unknown constraint: %w", ErrTypeRef)
 )
 
 func ErrUnknownConstraint(c *ast.TypeRefConstraint) error {
-	return errors.Wrapf(errUnknownConstraint, "unknown constraint: '%s' at %s", c.Name, c.Span())
+	return fmt.Errorf("unknown constraint: '%s' at %s: %w", c.Name, c.Span(), errUnknownConstraint)
 }
 
 func ErrConstraintFailed(pos tokens.Range, c *ast.TypeRefConstraint, err error) error {
-	return errors.Wrapf(errConstraintFailed, "constraint failed: '%s' at %s", c.Name, c.Span())
+	if err != nil {
+		return fmt.Errorf("constraint failed: '%s' at %s: %w", c.Name, c.Span(), errors.Join(errConstraintFailed, err))
+	}
+	return fmt.Errorf("constraint failed: '%s' at %s: %w", c.Name, c.Span(), errConstraintFailed)
 }
 
 func IsUnknownConstraint(err error) bool {

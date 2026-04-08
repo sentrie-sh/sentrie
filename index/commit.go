@@ -18,14 +18,15 @@ package index
 
 import (
 	"context"
-
-	"github.com/pkg/errors"
+	"fmt"
 )
 
 func (idx *Index) Commit(ctx context.Context) error {
 	idx.commitOnce.Do(func() {
 		idx.commitError = idx.commit(ctx)
-		idx.commitError = errors.Wrapf(idx.commitError, "commit error")
+		if idx.commitError != nil {
+			idx.commitError = fmt.Errorf("commit error: %w", idx.commitError)
+		}
 		idx.committed = 1
 	})
 	return idx.commitError

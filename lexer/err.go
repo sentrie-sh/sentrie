@@ -19,7 +19,6 @@ package lexer
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
@@ -33,9 +32,9 @@ func (e *LexerError) Error() string {
 }
 
 func UnterminatedStringError(filename string, pos tokens.Pos) error {
-	return errors.Wrap(&LexerError{Filename: filename, Position: pos}, "unterminated string literal")
+	return fmt.Errorf("unterminated string literal: %w", &LexerError{Filename: filename, Position: pos})
 }
 
 func InvalidHereDocSyntaxError(filename string, pos tokens.Pos) error {
-	return errors.Wrap(&LexerError{Filename: filename, Position: pos}, "invalid heredoc syntax")
+	return fmt.Errorf("invalid heredoc syntax: %w", &LexerError{Filename: filename, Position: pos})
 }

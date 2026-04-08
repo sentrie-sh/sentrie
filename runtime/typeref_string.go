@@ -18,8 +18,8 @@ package runtime
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constraints"
@@ -29,7 +29,7 @@ import (
 
 func validateAgainstStringTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef *ast.StringTypeRef, valueRange tokens.Range) error {
 	if _, ok := v.StringValue(); !ok {
-		return errors.Errorf("value %v is not a string", v)
+		return fmt.Errorf("value %v is not a string", v)
 	}
 
 	for _, constraint := range typeRef.GetConstraints() {
