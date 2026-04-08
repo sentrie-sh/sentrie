@@ -227,3 +227,47 @@ func TestDetectShapeCyclePolicyShapeSelfReferenceAddEdgeError(t *testing.T) {
 		t.Fatalf("expected add-edge error, got %v", err)
 	}
 }
+
+// Policy-branch AddEdge wrapping is reachable when the composing shape exists only on the policy,
+// the dependency is a namespace alias skipped by the first edge pass, and both share the same FQN string.
+func TestDetectShapeCyclePolicyBranchAddEdgeErrorDuplicateFQN(t *testing.T) {
+	rng := testRange()
+	ns := testNamespace("n")
+	p := testPolicy(ns, "pol")
+
+	stmtA := ast.NewShapeStatement("dup", ast.NewStringTypeRef(rng), nil, rng)
+	shapeA, err := createShape(ns, nil, stmtA)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cmplx := &ast.Cmplx{
+		Range:  rng,
+		With:   ast.NewFQN([]string{"dup"}, rng).Ptr(),
+		Fields: map[string]*ast.ShapeField{},
+	}
+	stmtB := ast.NewShapeStatement("dup", nil, cmplx, rng)
+	shapeB, err := createShape(ns, p, stmtB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	shared := ast.CreateFQN(p.FQN, "dup")
+	shapeA.FQN = shared
+	shapeB.FQN = shared
+
+	ns.Shapes["dup"] = shapeA
+	p.Shapes["dup"] = shapeB
+	ns.Policies[p.Name] = p
+
+	idx := CreateIndex()
+	idx.Namespaces[ns.FQN.String()] = ns
+
+	_, err = idx.detectShapeCycle(context.Background())
+	if err == nil {
+		t.Fatal("expected policy-branch add-edge error")
+	}
+	if !strings.Contains(err.Error(), "error adding edge") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}

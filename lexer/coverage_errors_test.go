@@ -62,4 +62,11 @@ func TestReadHereDocReportsNewWrappedSyntaxBranches(t *testing.T) {
 		var lexErr *LexerError
 		require.True(t, errors.As(err, &lexErr))
 	})
+
+	t.Run("unicode tag fails ASCII identifier regex", func(t *testing.T) {
+		lx := NewLexer(strings.NewReader("<<<café\nbody\ncafé\n"), "uni.sentra")
+		_, err := lx.readHereDoc()
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid heredoc tag")
+	})
 }
