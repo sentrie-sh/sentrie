@@ -80,11 +80,16 @@ func initCmd(ctx context.Context, args []string) error {
 	}
 	defer func() { _ = f.Close() }()
 
-	encoder := toml.NewEncoder(f)
-	encoder.SetTablesInline(false)
-	if err := encoder.Encode(packFile); err != nil {
+	if err := encodePackFile(f, packFile); err != nil {
 		return fmt.Errorf("could not encode pack file: %w", err)
 	}
 
 	return nil
+}
+
+// encodePackFile marshals packFile as TOML into f. Overridable in tests.
+var encodePackFile = func(f *os.File, packFile *pack.PackFile) error {
+	encoder := toml.NewEncoder(f)
+	encoder.SetTablesInline(false)
+	return encoder.Encode(packFile)
 }
