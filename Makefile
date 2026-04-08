@@ -12,5 +12,5 @@ clean-git:
 
 	git fetch -p
 	git branch -vv
-	git branch -vv | grep ': gone]' | awk '{print $1}' | xargs git branch -D
+	git branch -vv | grep ': gone]' | awk '{print $$1}' | xargs -r git branch -D
 
