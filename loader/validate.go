@@ -38,7 +38,7 @@ func ValidatePackFile(packFile *pack.PackFile) error {
 
 	// Validate against schema
 	documentLoader := gojsonschema.NewBytesLoader(jsonBytes)
-	result, err := schema.Validate(documentLoader)
+	result, err := validatePackDocument(documentLoader)
 	if err != nil {
 		return fmt.Errorf("schema validation failed: %w", err)
 	}
@@ -56,4 +56,9 @@ func ValidatePackFile(packFile *pack.PackFile) error {
 	}
 
 	return nil
+}
+
+// validatePackDocument runs JSON-schema validation. Swappable in tests.
+var validatePackDocument = func(loader gojsonschema.JSONLoader) (*gojsonschema.Result, error) {
+	return schema.Validate(loader)
 }

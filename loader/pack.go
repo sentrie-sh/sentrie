@@ -41,6 +41,12 @@ var (
 	NameRegex    = regexp.MustCompile(`^([a-zA-Z][a-zA-Z0-9_-]*)(\.[a-zA-Z][a-zA-Z0-9_-]*)*$`)
 )
 
+// statPackFile and filepathAbs are swappable in tests.
+var (
+	statPackFile = os.Stat
+	filepathAbs  = filepath.Abs
+)
+
 func IsValidPackName(name string) bool {
 	return NameRegex.MatchString(name)
 }
@@ -55,7 +61,7 @@ func LoadPack(ctx context.Context, root string) (_ *pack.PackFile, e error) {
 		return nil, fmt.Errorf("locate pack file: %w", err)
 	}
 
-	stat, err := os.Stat(packPath)
+	stat, err := statPackFile(packPath)
 	if err != nil {
 		return nil, fmt.Errorf("stat pack file: %w", err)
 	}
@@ -90,6 +96,20 @@ func LoadPack(ctx context.Context, root string) (_ *pack.PackFile, e error) {
 		}
 	}
 
+	// Check that if engine table exists, it must have sentrie field (before struct decode so empty
+	// strings surface as this error instead of a semver/TOML decode failure).
+	if engineData, exists := rawData["engine"]; exists {
+		if engineMap, ok := engineData.(map[string]interface{}); ok {
+			if _, hasSentrie := engineMap["sentrie"]; !hasSentrie {
+				return nil, errors.New("engine table exists but 'sentrie' field is required")
+			}
+			c, ok := engineMap["sentrie"].(string)
+			if ok && len(c) == 0 {
+				return nil, errors.New("engine table exists but 'sentrie' field is required")
+			}
+		}
+	}
+
 	// Now decode into the struct
 	var p pack.PackFile
 	if err := toml.Unmarshal(fileContent, &p); err != nil {
@@ -107,19 +127,6 @@ func LoadPack(ctx context.Context, root string) (_ *pack.PackFile, e error) {
 	// make sure that the name is an identity
 	if !IsValidPackName(p.Pack.Name) {
 		return nil, errors.New("name must be a valid identity")
-	}
-
-	// Check that if engine table exists, it must have sentrie field
-	if engineData, exists := rawData["engine"]; exists {
-		if engineMap, ok := engineData.(map[string]interface{}); ok {
-			if _, hasSentrie := engineMap["sentrie"]; !hasSentrie {
-				return nil, errors.New("engine table exists but 'sentrie' field is required")
-			}
-			c, ok := engineMap["sentrie"].(string)
-			if ok && len(c) == 0 {
-				return nil, errors.New("engine table exists but 'sentrie' field is required")
-			}
-		}
 	}
 
 	// Validate against JSON Schema
@@ -142,7 +149,7 @@ func locatePackFile(ctx context.Context, root string) (string, error) {
 	}
 
 	// get the absolute path to the root
-	root, err := filepath.Abs(root)
+	root, err := filepathAbs(root)
 	if err != nil {
 		return "", fmt.Errorf("failed to get absolute path to root: %w", err)
 	}
