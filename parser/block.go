@@ -87,10 +87,46 @@ func parseBlockExpression(ctx context.Context, p *Parser) ast.Expression {
 *
 */
 func parseGroupedExpression(ctx context.Context, p *Parser) ast.Expression {
-	p.advance() // consume the left parenthesis
+	lparen := p.advance() // consume the left parenthesis
+
+	p.lexer.PushBack(p.next)
+	p.lexer.PushBack(p.current)
+
+	params, ok := tryReadLambdaSignature(p.lexer)
+	if ok {
+		seen := make(map[string]struct{}, len(params))
+		for _, name := range params {
+			if _, dup := seen[name]; dup {
+				p.errorf("duplicate lambda parameter %q", name)
+				return nil
+			}
+			seen[name] = struct{}{}
+		}
+		p.current = p.lexer.NextToken()
+		p.next = p.lexer.NextToken()
+		bodyExpr := parseBlockExpression(ctx, p)
+		body, isBlock := bodyExpr.(*ast.BlockExpression)
+		if !isBlock || body == nil {
+			p.errorf("lambda body must be a block expression { ... yield ... }")
+			return nil
+		}
+		rng := tokens.Range{
+			File: lparen.Range.File,
+			From: lparen.Range.From,
+			To:   body.Span().To,
+		}
+		return ast.NewLambdaExpression(params, body, rng)
+	}
+
+	p.current = p.lexer.NextToken()
+	p.next = p.lexer.NextToken()
+
 	expression := p.parseExpression(ctx, LOWEST)
+	if expression == nil {
+		return nil
+	}
 	if !p.expect(tokens.PunctRightParentheses) {
-		return nil // Error in parsing the grouped expression
+		return nil
 	}
 	return expression
 }
