@@ -86,7 +86,12 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 
 	injectedFacts := make(map[string]any, len(facts))
 	for name, factValue := range facts {
-		injectedFacts[name] = box.ToBoundaryAny(factValue)
+		b, err := box.TryToBoundaryAny(factValue)
+		if err != nil {
+			err = fmt.Errorf("import with fact %q: %w", name, err)
+			return box.Null(), n.SetErr(err), err
+		}
+		injectedFacts[name] = b
 	}
 
 	output, err := exec.ExecRule(ctx, ns, pol, rule, injectedFacts)
