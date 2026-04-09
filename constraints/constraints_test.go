@@ -20,7 +20,7 @@ import "github.com/sentrie-sh/sentrie/constraints"
 
 func (s *ConstraintsTestSuite) TestEmptyCheckerMapsAreInitialized() {
 	for name, m := range map[string]map[string]constraints.ConstraintDefinition{
-		"map":      constraints.MapContraintCheckers,
+		"map":      constraints.DictContraintCheckers,
 		"record":   constraints.RecordContraintCheckers,
 		"shape":    constraints.ShapeContraintCheckers,
 		"document": constraints.DocumentContraintCheckers,

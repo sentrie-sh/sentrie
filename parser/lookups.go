@@ -34,7 +34,6 @@ func (p *Parser) registerParseFns() {
 	p.registerPrefix(tokens.KeywordCast, parseCastExpression)
 
 	p.registerPrefix(tokens.Ident, parseIdentifier)
-	p.registerPrefix(tokens.KeywordMap, parseIdentifier)
 	p.registerPrefix(tokens.String, parseStringLiteral)
 	p.registerPrefix(tokens.Int, parseIntegerLiteral)
 	p.registerPrefix(tokens.Float, parseFloatLiteral)
@@ -123,6 +122,6 @@ var PRIMITIVE_TYPES = []tokens.Kind{
 
 var AGGREGATE_TYPES = []tokens.Kind{
 	tokens.KeywordList,
-	tokens.KeywordMap,
+	tokens.KeywordDict,
 	tokens.KeywordRecord,
 }

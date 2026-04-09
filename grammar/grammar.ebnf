@@ -121,12 +121,12 @@ typeRef             ::= (primitiveType
                           | typeName
                           | recordType
                           | listType
-                          | mapType) typeRefConstraint*
+                          | dictType) typeRefConstraint*
 
 typeRefConstraint ::= '@' IDENT '(' commaSeparatedExpr? ')'
 primitiveType       ::= 'int' | 'float' | 'string' | 'bool' | 'document'
 listType            ::= 'list' '[' typeRef ']'
-mapType             ::= 'map' '[' typeRef ']'
+dictType            ::= 'dict' '[' typeRef ']'
 recordType          ::= 'record' '[' typeRef (',' typeRef)* ']'
 typeName            ::= FQN
 

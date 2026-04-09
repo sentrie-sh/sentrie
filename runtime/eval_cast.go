@@ -94,9 +94,9 @@ func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *ind
 		}
 		result = val
 
-	case *ast.MapTypeRef:
+	case *ast.DictTypeRef:
 		if val.Kind() != box.ValueMap {
-			err = fmt.Errorf("cannot cast %s to map", val.Kind())
+			err = fmt.Errorf("cannot cast %s to dict", val.Kind())
 			return box.Value{}, node.SetErr(err), err
 		}
 		result = val

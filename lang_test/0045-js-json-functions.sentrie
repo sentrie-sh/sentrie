@@ -5,7 +5,7 @@ policy jsonTest {
   use { isValid } from "@sentrie/json" as jsonUtil
 
   fact jsonStr!: string
-  fact data!: map[string]any
+  fact data!: dict[string]any
 
   rule testParse = default false {
     let parsed = json.parse(jsonStr)

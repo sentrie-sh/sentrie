@@ -80,7 +80,7 @@ const (
 	KeywordBoolean  Kind = "boolean"
 	KeywordTrinary  Kind = "trinary"
 	KeywordList     Kind = "list"
-	KeywordMap      Kind = "map"
+	KeywordDict     Kind = "dict"
 	KeywordRecord   Kind = "record"
 	KeywordDocument Kind = "document"
 
@@ -174,7 +174,7 @@ var keywords = map[string]Kind{
 	"boolean":  KeywordBoolean,
 	"trinary":  KeywordTrinary,
 	"list":     KeywordList,
-	"map":      KeywordMap,
+	"dict":     KeywordDict,
 	"record":   KeywordRecord,
 	"document": KeywordDocument,
 }

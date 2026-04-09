@@ -44,7 +44,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstListTypeRef() {
 }
 
 func (r *RuntimeTestSuite) TestValidateAgainstMapTypeRef() {
-	typeRef := ast.NewMapTypeRef(ast.NewNumberTypeRef(stubRange()), stubRange())
+	typeRef := ast.NewDictTypeRef(ast.NewNumberTypeRef(stubRange()), stubRange())
 
 	r.Run("rejects non-map values", func() {
 		err := validateAgainstMapTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny([]any{"x"}), typeRef, stubRange())

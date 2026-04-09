@@ -27,7 +27,7 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-func validateAgainstMapTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef *ast.MapTypeRef, pos tokens.Range) error {
+func validateAgainstMapTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef *ast.DictTypeRef, pos tokens.Range) error {
 	if _, ok := v.MapValue(); !ok {
 		return fmt.Errorf("value %v is not a map", v)
 	}
@@ -41,7 +41,7 @@ func validateAgainstMapTypeRef(ctx context.Context, ec *ExecutionContext, exec E
 			}
 			args[i] = csArg
 		}
-		checker, ok := constraints.MapContraintCheckers[constraint.Name]
+		checker, ok := constraints.DictContraintCheckers[constraint.Name]
 		if !ok {
 			return ErrUnknownConstraint(constraint)
 		}
