@@ -61,6 +61,7 @@ func (s *RuntimeTestSuite) TestValueKindString() {
 	s.Require().Equal("list", ValueList.String())
 	s.Require().Equal("map", ValueMap.String())
 	s.Require().Equal("document", ValueObject.String())
+	s.Require().Equal("callable", box.ValueCallable.String())
 	s.Require().Equal("invalid", ValueKind(255).String())
 }
 

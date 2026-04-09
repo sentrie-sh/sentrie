@@ -129,9 +129,12 @@ func (s *RuntimeTestSuite) TestEvalCallMemoizedHitAndMiss() {
 	}()
 
 	callCount := 0
-	Builtins[builtinName] = func(_ context.Context, args []any) (any, error) {
+	Builtins[builtinName] = func(_ context.Context, _ *CallSite, args ...box.Value) (box.Value, error) {
 		callCount++
-		return args[0], nil
+		if len(args) > 0 {
+			return args[0], nil
+		}
+		return box.Undefined(), nil
 	}
 
 	ec := NewExecutionContext(p, exec)

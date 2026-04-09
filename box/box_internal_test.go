@@ -33,7 +33,13 @@ func (s *BoxTestSuite) TestValueKindString_AllBranches() {
 	s.Equal("list", ValueList.String())
 	s.Equal("map", ValueMap.String())
 	s.Equal("document", ValueDocument.String())
+	s.Equal("callable", ValueCallable.String())
 	s.Equal("invalid", ValueKind(255).String())
+}
+
+func (s *BoxTestSuite) TestTryToBoundaryAnyCallableErrors() {
+	_, err := TryToBoundaryAny(Callable(struct{}{}))
+	s.ErrorIs(err, ErrCallableBoundary)
 }
 
 func (s *BoxTestSuite) TestValuePredicatesAndAliases() {

@@ -50,7 +50,7 @@ func (s *RuntimeTestSuite) TestGetTargetBuiltinPreservesUndefined() {
 		stubRange(),
 	)
 
-	target, err := getTarget(context.Background(), ec, &index.Policy{}, call)
+	target, err := getTarget(context.Background(), ec, &executorImpl{}, &index.Policy{}, call)
 	s.Require().NoError(err)
 
 	out, err := target(context.Background(), box.Undefined())
@@ -68,7 +68,7 @@ func (s *RuntimeTestSuite) TestGetTargetBuiltinPreservesNestedUndefined() {
 		stubRange(),
 	)
 
-	target, err := getTarget(context.Background(), ec, &index.Policy{}, call)
+	target, err := getTarget(context.Background(), ec, &executorImpl{}, &index.Policy{}, call)
 	s.Require().NoError(err)
 
 	arg := box.List([]box.Value{

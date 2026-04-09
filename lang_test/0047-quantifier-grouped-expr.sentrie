@@ -1,24 +1,24 @@
 namespace quantifier_grouped_expr
 policy test {
-	-- Test simple grouped expression syntax
+	-- Collection builtins with lambdas (grouped / block forms)
 	let nums = [1, 2, 3, 4, 5]
-	let doubled = map nums as n (n * 2)
-	let evens = filter nums as n (n % 2 == 0)
-	let existsEven = any nums as n (n % 2 == 0)
-	let allPos = all nums as n (n > 0)
-	let first = first nums as n (n > 3)
-	let distinct = distinct nums as left, right (left == right)
+	let doubled = map(nums, (n) => { yield n * 2 })
+	let evens = filter(nums, (n) => { yield n % 2 == 0 })
+	let existsEven = any(nums, (n) => { yield n % 2 == 0 })
+	let allPos = all(nums, (n) => { yield n > 0 })
+	let first = first(nums, (n) => { yield n > 3 })
+	let distincted = distinct(nums)
 
-	-- Test nested grouped expressions
-	let nested = map nums as n (
-		map [n, n * 2] as m (m * 3)
-	)
+	-- Test nested calls
+	let nested = map(nums, (n) => {
+		yield map([n, n * 2], (m) => { yield m * 3 })
+	})
 
 	-- Test that block expressions still work
-	let blockForm = map nums as n {
+	let blockForm = map(nums, (n) => {
 		yield n * 2
-	}
+	})
 
 	-- Test with index iterator
-	let withIndex = map nums as n, idx (n + idx)
+	let withIndex = map(nums, (n, idx) => { yield n + idx })
 }
