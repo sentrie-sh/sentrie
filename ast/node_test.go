@@ -152,3 +152,14 @@ func (s *AstTestSuite) TestNodeStringRepresentation() {
 	emptyStr := NewStringLiteral("", r)
 	s.Equal(`""`, emptyStr.String())
 }
+
+func (s *AstTestSuite) TestDictTypeRefStringAndKind() {
+	r := tokens.Range{
+		File: "test.sentra",
+		From: tokens.Pos{Line: 1, Column: 1, Offset: 0},
+		To:   tokens.Pos{Line: 1, Column: 12, Offset: 11},
+	}
+	ref := NewDictTypeRef(NewStringTypeRef(r), r)
+	s.Equal("dict[string]", ref.String())
+	s.Equal("dict_typeref", ref.Kind())
+}

@@ -192,4 +192,8 @@ func (s *RuntimeTestSuite) TestEvalReduceTransformTernaryUnaryBlockCastBranches(
 	castListErr := ast.NewCastExpression(ast.NewIntegerLiteral(1, stubRange()), ast.NewListTypeRef(ast.NewNumberTypeRef(stubRange()), stubRange()), stubRange())
 	_, _, err = evalCast(ctx, ec, exec, p, castListErr)
 	s.Require().ErrorContains(err, "cannot cast number to list")
+
+	castDictErr := ast.NewCastExpression(ast.NewIntegerLiteral(1, stubRange()), ast.NewDictTypeRef(ast.NewNumberTypeRef(stubRange()), stubRange()), stubRange())
+	_, _, err = evalCast(ctx, ec, exec, p, castDictErr)
+	s.Require().ErrorContains(err, "cannot cast number to dict")
 }

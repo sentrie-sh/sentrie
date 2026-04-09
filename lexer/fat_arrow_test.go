@@ -26,10 +26,16 @@ func TestLexerFatArrowTokenization(t *testing.T) {
 	}
 }
 
-func TestLexerMapIsKeywordAgain(t *testing.T) {
+func TestLexerMapIsIdentifierAndDictIsKeyword(t *testing.T) {
 	l := NewLexer(strings.NewReader("map[list]"), "test.sent")
 	first := l.NextToken()
-	if first.Kind != tokens.KeywordMap {
-		t.Fatalf("expected map keyword token, got %v (%q)", first.Kind, first.Value)
+	if first.Kind != tokens.Ident {
+		t.Fatalf("expected map identifier token, got %v (%q)", first.Kind, first.Value)
+	}
+
+	l2 := NewLexer(strings.NewReader("dict[list]"), "test.sent")
+	first2 := l2.NextToken()
+	if first2.Kind != tokens.KeywordDict {
+		t.Fatalf("expected dict keyword token, got %v (%q)", first2.Kind, first2.Value)
 	}
 }

@@ -492,3 +492,39 @@ func (s *ParserTestSuite) TestParseTagStatementInvalid() {
 	_, err := parser.ParseProgram(context.Background())
 	s.Error(err)
 }
+
+func (s *ParserTestSuite) TestMapBuiltinCallParsesWithIdentifierToken() {
+	src := `namespace com/example
+policy p {
+  rule allow = {
+    let xs = [1,2]
+    let result = map(xs, (item) => { yield item + 1 })
+    yield count(result) > 0
+  }
+}`
+	parser := NewParserFromString(src, "test.sentra")
+	_, err := parser.ParseProgram(context.Background())
+	s.NoError(err)
+}
+
+func (s *ParserTestSuite) TestDictTypeRefParses() {
+	src := `namespace com/example
+policy p {
+  fact attrs: dict[string]
+  rule allow = { yield true }
+}`
+	parser := NewParserFromString(src, "test.sentra")
+	_, err := parser.ParseProgram(context.Background())
+	s.NoError(err)
+}
+
+func (s *ParserTestSuite) TestMapTypeRefNoLongerParses() {
+	src := `namespace com/example
+policy p {
+  fact attrs: map[string]
+  rule allow = { yield true }
+}`
+	parser := NewParserFromString(src, "test.sentra")
+	_, err := parser.ParseProgram(context.Background())
+	s.Error(err)
+}
