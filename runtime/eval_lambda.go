@@ -25,8 +25,8 @@ import (
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 )
 
-func evalLambda(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, lam *ast.LambdaExpression) (box.Value, *trace.Node, error) {
-	ctx, n, done := trace.New(ctx, lam, "lambda", map[string]any{
+func evalLambda(ctx context.Context, ec *ExecutionContext, _ *executorImpl, _ *index.Policy, lam *ast.LambdaExpression) (box.Value, *trace.Node, error) {
+	_, n, done := trace.New(ctx, lam, "lambda", map[string]any{
 		"params": lam.Params,
 	})
 	defer done()

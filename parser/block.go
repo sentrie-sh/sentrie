@@ -130,20 +130,3 @@ func parseGroupedExpression(ctx context.Context, p *Parser) ast.Expression {
 	}
 	return expression
 }
-
-/*
-*
-Parses a grouped expression (parentheses) or a block expression (curly braces)
-
-	( some_expression ) or {
-		let statement = some_expression
-		-- a comment statement
-		yield another_expression -- must be the last statement
-	}
-*/
-func parseGroupedOrBlockExpression(ctx context.Context, p *Parser) ast.Expression {
-	if p.head().IsOfKind(tokens.PunctLeftParentheses) {
-		return parseGroupedExpression(ctx, p)
-	}
-	return parseBlockExpression(ctx, p)
-}
