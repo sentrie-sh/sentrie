@@ -96,10 +96,15 @@ func (s *RuntimeTestSuite) TestCallableHelpers_ErrorBranches() {
 	s.Require().Error(err)
 	s.Require().ErrorContains(err, "internal error")
 
-	// invoker arity mismatch
-	_, err = invokeCallable(ctx, site, box.Callable(stubCallable{arity: 2}), []box.Value{box.Number(1)})
-	s.Require().Error(err)
-	s.Require().ErrorContains(err, "expected 2")
+	// direct invocation now takes an already-unwrapped callable.
+	_, err = invokeCallable(ctx, site, stubCallable{
+		arity: 2,
+		fn: func(args []box.Value) (box.Value, error) {
+			s.Require().Len(args, 1)
+			return box.Number(1), nil
+		},
+	}, []box.Value{box.Number(1)})
+	s.Require().NoError(err)
 
 	_, err = iterArgs(site, stubCallable{arity: 9}, box.Number(1), 0)
 	s.Require().Error(err)

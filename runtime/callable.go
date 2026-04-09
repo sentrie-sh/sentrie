@@ -46,9 +46,6 @@ func (c *lambdaCallable) Arity() int {
 }
 
 func (c *lambdaCallable) Invoke(ctx context.Context, site *CallSite, args []box.Value) (box.Value, error) {
-	if len(args) != len(c.lambda.Params) {
-		return box.Undefined(), fmt.Errorf("callable invoked with %d arguments, expected %d", len(args), len(c.lambda.Params))
-	}
 	child := c.capture.AttachedChildContext()
 	defer child.Dispose()
 	for i, name := range c.lambda.Params {
@@ -71,15 +68,8 @@ func callableFromValue(v box.Value) (Callable, error) {
 	return c, nil
 }
 
-// invokeCallable invokes a boxed callable with args after arity check.
-func invokeCallable(ctx context.Context, site *CallSite, v box.Value, args []box.Value) (box.Value, error) {
-	c, err := callableFromValue(v)
-	if err != nil {
-		return box.Undefined(), err
-	}
-	if len(args) != c.Arity() {
-		return box.Undefined(), fmt.Errorf("callable invoked with %d arguments, expected %d", len(args), c.Arity())
-	}
+// invokeCallable invokes a callable value without re-unwrapping or extra arity checks.
+func invokeCallable(ctx context.Context, site *CallSite, c Callable, args []box.Value) (box.Value, error) {
 	return c.Invoke(ctx, site, args)
 }
 

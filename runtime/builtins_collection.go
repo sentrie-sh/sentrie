@@ -50,7 +50,7 @@ func BuiltinAny(ctx context.Context, site *CallSite, args ...box.Value) (box.Val
 		if err != nil {
 			return box.Undefined(), err
 		}
-		res, err := invokeCallable(ctx, site, fn, callArgs)
+		res, err := invokeCallable(ctx, site, c, callArgs)
 		if err != nil {
 			return box.Undefined(), err
 		}
@@ -87,7 +87,7 @@ func BuiltinAll(ctx context.Context, site *CallSite, args ...box.Value) (box.Val
 		if err != nil {
 			return box.Undefined(), err
 		}
-		res, err := invokeCallable(ctx, site, fn, callArgs)
+		res, err := invokeCallable(ctx, site, c, callArgs)
 		if err != nil {
 			return box.Undefined(), err
 		}
@@ -124,7 +124,7 @@ func BuiltinFirst(ctx context.Context, site *CallSite, args ...box.Value) (box.V
 		if err != nil {
 			return box.Undefined(), err
 		}
-		res, err := invokeCallable(ctx, site, fn, callArgs)
+		res, err := invokeCallable(ctx, site, c, callArgs)
 		if err != nil {
 			return box.Undefined(), err
 		}
@@ -162,7 +162,7 @@ func BuiltinFilter(ctx context.Context, site *CallSite, args ...box.Value) (box.
 		if err != nil {
 			return box.Undefined(), err
 		}
-		res, err := invokeCallable(ctx, site, fn, callArgs)
+		res, err := invokeCallable(ctx, site, c, callArgs)
 		if err != nil {
 			return box.Undefined(), err
 		}
@@ -197,7 +197,7 @@ func BuiltinMap(ctx context.Context, site *CallSite, args ...box.Value) (box.Val
 		if err != nil {
 			return box.Undefined(), err
 		}
-		res, err := invokeCallable(ctx, site, fn, callArgs)
+		res, err := invokeCallable(ctx, site, c, callArgs)
 		if err != nil {
 			return box.Undefined(), err
 		}
@@ -233,7 +233,7 @@ func BuiltinReduce(ctx context.Context, site *CallSite, args ...box.Value) (box.
 		if err != nil {
 			return box.Undefined(), err
 		}
-		next, err := invokeCallable(ctx, site, fn, callArgs)
+		next, err := invokeCallable(ctx, site, c, callArgs)
 		if err != nil {
 			return box.Undefined(), err
 		}
@@ -300,7 +300,7 @@ func builtinDistinctSelector(ctx context.Context, site *CallSite, col, fn box.Va
 		if err != nil {
 			return box.Undefined(), err
 		}
-		keyVal, err := invokeCallable(ctx, site, fn, callArgs)
+		keyVal, err := invokeCallable(ctx, site, c, callArgs)
 		if err != nil {
 			return box.Undefined(), err
 		}
