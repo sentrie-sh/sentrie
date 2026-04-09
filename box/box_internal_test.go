@@ -148,6 +148,35 @@ func (s *BoxTestSuite) TestMarshalJSON_FromAny_AndBoundaries() {
 	s.False(IsBoundaryUndefined(nil))
 }
 
+func (s *BoxTestSuite) TestToBoundaryAnyCallableDoesNotPanic() {
+	nested := Map(map[string]Value{
+		"items": List([]Value{
+			Number(1),
+			Callable(struct{}{}),
+		}),
+	})
+
+	s.NotPanics(func() {
+		out := ToBoundaryAny(nested)
+		m, ok := out.(map[string]any)
+		s.True(ok)
+		items, ok := m["items"].([]any)
+		s.True(ok)
+		s.Equal(1.0, items[0])
+		s.Equal("<callable>", items[1])
+	})
+}
+
+func (s *BoxTestSuite) TestCallableRenderingAndMarshalBehavior() {
+	v := Callable(struct{}{})
+	s.Equal("<callable>", v.Any())
+	s.Equal("<callable>", v.String())
+
+	_, err := v.MarshalJSON()
+	s.Require().Error(err)
+	s.Require().ErrorContains(err, "cannot marshal callable")
+}
+
 func (s *BoxTestSuite) TestEqualValues_InvalidKindFallsBackToFalse() {
 	s.False(EqualValues(Value{kind: ValueInvalid}, Value{kind: ValueInvalid}))
 	s.False(EqualValues(List([]Value{Number(1)}), List([]Value{Number(1), Number(2)})))

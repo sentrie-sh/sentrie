@@ -29,6 +29,8 @@ import (
 // non-native boundary ([]any, JS/module interop, etc.).
 var ErrCallableBoundary = errors.New("callable value cannot cross this boundary")
 
+const callablePlaceholder = "<callable>"
+
 type undefinedBoundaryToken struct{}
 
 var boundaryUndefined = undefinedBoundaryToken{}
@@ -290,7 +292,7 @@ func (v Value) Any() any {
 	case ValueDocument:
 		return v.ref
 	case ValueCallable:
-		return v.ref
+		return callablePlaceholder
 	default:
 		return nil
 	}
@@ -318,6 +320,8 @@ func (v Value) String() string {
 	case ValueTrinary:
 		t, _ := v.TrinaryValue()
 		return t.String()
+	case ValueCallable:
+		return callablePlaceholder
 	default:
 		return fmt.Sprintf("%v", v.Any())
 	}
@@ -326,6 +330,9 @@ func (v Value) String() string {
 func (v Value) MarshalJSON() ([]byte, error) {
 	if v.IsUndefined() {
 		return []byte("null"), nil
+	}
+	if v.IsCallable() {
+		return nil, fmt.Errorf("cannot marshal callable value to JSON")
 	}
 	return json.Marshal(v.Any())
 }
@@ -433,9 +440,35 @@ func TryToBoundaryAny(v Value) (any, error) {
 func ToBoundaryAny(v Value) any {
 	a, err := TryToBoundaryAny(v)
 	if err != nil {
-		panic(err.Error())
+		return toBoundaryAnyLossy(v)
 	}
 	return a
+}
+
+// toBoundaryAnyLossy is a non-panicking fallback used by ToBoundaryAny only.
+func toBoundaryAnyLossy(v Value) any {
+	switch v.Kind() {
+	case ValueUndefined:
+		return boundaryUndefined
+	case ValueCallable:
+		return callablePlaceholder
+	case ValueList:
+		xs, _ := v.ListValue()
+		out := make([]any, 0, len(xs))
+		for _, item := range xs {
+			out = append(out, toBoundaryAnyLossy(item))
+		}
+		return out
+	case ValueMap:
+		m, _ := v.MapValue()
+		out := make(map[string]any, len(m))
+		for k, item := range m {
+			out[k] = toBoundaryAnyLossy(item)
+		}
+		return out
+	default:
+		return v.Any()
+	}
 }
 
 // FromBoundaryAny converts runtime boundary values back into boxed Value while
