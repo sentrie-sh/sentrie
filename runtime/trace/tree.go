@@ -32,7 +32,7 @@ type Node struct {
 	// "reduce", "transform", "rule", "policy"
 	Kind string `json:"kind"`
 
-	// Op is the operator or sub-kind (e.g., "not", "+", "any", "map", "filter"),
+	// Op is the operator or sub-kind (e.g., "not", "+", "any", "collect", "filter"),
 	// or rule/policy name for those node kinds.
 	Op string `json:"op,omitempty"`
 

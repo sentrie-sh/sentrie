@@ -29,7 +29,7 @@ import (
 
 func validateAgainstDocumentTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef *ast.DocumentTypeRef, pos tokens.Range) error {
 	// just validate that it's a map
-	if _, ok := v.MapValue(); !ok {
+	if _, ok := v.DictValue(); !ok {
 		return fmt.Errorf("value %v is not a document at %s - expected document", v, pos)
 	}
 

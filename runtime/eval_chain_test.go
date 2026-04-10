@@ -143,103 +143,80 @@ func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
 			wantAny: 42.0,
 		},
 		{
-			name: "any quantifier dispatch",
-			expr: ast.NewAnyExpression(
+			name: "any builtin dispatch",
+			expr: ast.NewCallExpression(ast.NewIdentifier("any", stubRange()), []ast.Expression{
 				ast.NewListLiteral([]ast.Expression{
 					ast.NewIntegerLiteral(1, stubRange()),
 				}, stubRange()),
-				"v",
-				"",
-				ast.NewInfixExpression(ast.NewIdentifier("v", stubRange()), ast.NewIntegerLiteral(1, stubRange()), "==", stubRange()),
-				stubRange(),
-			),
+				stubLambda([]string{"v"}, ast.NewInfixExpression(ast.NewIdentifier("v", stubRange()), ast.NewIntegerLiteral(1, stubRange()), "==", stubRange())),
+			}, false, nil, stubRange()),
 			wantAny: true,
 		},
 		{
-			name: "all quantifier dispatch",
-			expr: ast.NewAllExpression(
+			name: "all builtin dispatch",
+			expr: ast.NewCallExpression(ast.NewIdentifier("all", stubRange()), []ast.Expression{
 				ast.NewListLiteral([]ast.Expression{
 					ast.NewIntegerLiteral(2, stubRange()),
 					ast.NewIntegerLiteral(3, stubRange()),
 				}, stubRange()),
-				"v",
-				"",
-				ast.NewInfixExpression(ast.NewIdentifier("v", stubRange()), ast.NewIntegerLiteral(1, stubRange()), ">", stubRange()),
-				stubRange(),
-			),
+				stubLambda([]string{"v"}, ast.NewInfixExpression(ast.NewIdentifier("v", stubRange()), ast.NewIntegerLiteral(1, stubRange()), ">", stubRange())),
+			}, false, nil, stubRange()),
 			wantAny: true,
 		},
 		{
-			name: "first quantifier dispatch",
-			expr: ast.NewFirstExpression(
+			name: "first builtin dispatch",
+			expr: ast.NewCallExpression(ast.NewIdentifier("first", stubRange()), []ast.Expression{
 				ast.NewListLiteral([]ast.Expression{
 					ast.NewIntegerLiteral(1, stubRange()),
 					ast.NewIntegerLiteral(2, stubRange()),
 				}, stubRange()),
-				"v",
-				"",
-				ast.NewInfixExpression(ast.NewIdentifier("v", stubRange()), ast.NewIntegerLiteral(1, stubRange()), ">", stubRange()),
-				stubRange(),
-			),
+				stubLambda([]string{"v"}, ast.NewInfixExpression(ast.NewIdentifier("v", stubRange()), ast.NewIntegerLiteral(1, stubRange()), ">", stubRange())),
+			}, false, nil, stubRange()),
 			wantAny: 2.0,
 		},
 		{
-			name: "filter quantifier dispatch",
-			expr: ast.NewFilterExpression(
+			name: "filter builtin dispatch",
+			expr: ast.NewCallExpression(ast.NewIdentifier("filter", stubRange()), []ast.Expression{
 				ast.NewListLiteral([]ast.Expression{
 					ast.NewIntegerLiteral(1, stubRange()),
 					ast.NewIntegerLiteral(2, stubRange()),
 				}, stubRange()),
-				"v",
-				"",
-				ast.NewInfixExpression(ast.NewIdentifier("v", stubRange()), ast.NewIntegerLiteral(1, stubRange()), ">", stubRange()),
-				stubRange(),
-			),
+				stubLambda([]string{"v"}, ast.NewInfixExpression(ast.NewIdentifier("v", stubRange()), ast.NewIntegerLiteral(1, stubRange()), ">", stubRange())),
+			}, false, nil, stubRange()),
 			wantAny: []any{2.0},
 		},
 		{
-			name: "reduce dispatch",
-			expr: ast.NewReduceExpression(
+			name: "reduce builtin dispatch",
+			expr: ast.NewCallExpression(ast.NewIdentifier("reduce", stubRange()), []ast.Expression{
 				ast.NewListLiteral([]ast.Expression{
 					ast.NewIntegerLiteral(1, stubRange()),
 					ast.NewIntegerLiteral(2, stubRange()),
 					ast.NewIntegerLiteral(3, stubRange()),
 				}, stubRange()),
 				ast.NewIntegerLiteral(0, stubRange()),
-				"acc",
-				"v",
-				"",
-				ast.NewInfixExpression(ast.NewIdentifier("acc", stubRange()), ast.NewIdentifier("v", stubRange()), "+", stubRange()),
-				stubRange(),
-			),
+				stubLambda([]string{"acc", "v"}, ast.NewInfixExpression(ast.NewIdentifier("acc", stubRange()), ast.NewIdentifier("v", stubRange()), "+", stubRange())),
+			}, false, nil, stubRange()),
 			wantAny: 6.0,
 		},
 		{
-			name: "map transform dispatch",
-			expr: ast.NewMapExpression(
+			name: "map builtin dispatch",
+			expr: ast.NewCallExpression(ast.NewIdentifier("collect", stubRange()), []ast.Expression{
 				ast.NewListLiteral([]ast.Expression{
 					ast.NewIntegerLiteral(3, stubRange()),
 				}, stubRange()),
-				"v",
-				"i",
-				ast.NewInfixExpression(ast.NewIdentifier("v", stubRange()), ast.NewIdentifier("i", stubRange()), "+", stubRange()),
-				stubRange(),
-			),
+				stubLambda([]string{"v", "i"}, ast.NewInfixExpression(ast.NewIdentifier("v", stubRange()), ast.NewIdentifier("i", stubRange()), "+", stubRange())),
+			}, false, nil, stubRange()),
 			wantAny: []any{3.0},
 		},
 		{
-			name: "distinct dispatch",
-			expr: ast.NewDistinctExpression(
+			name: "distinct builtin dispatch",
+			expr: ast.NewCallExpression(ast.NewIdentifier("distinct", stubRange()), []ast.Expression{
 				ast.NewListLiteral([]ast.Expression{
 					ast.NewIntegerLiteral(1, stubRange()),
 					ast.NewIntegerLiteral(1, stubRange()),
 					ast.NewIntegerLiteral(2, stubRange()),
 				}, stubRange()),
-				"left",
-				"right",
-				ast.NewInfixExpression(ast.NewIdentifier("left", stubRange()), ast.NewIdentifier("right", stubRange()), "==", stubRange()),
-				stubRange(),
-			),
+			}, false, nil, stubRange()),
 			wantAny: []any{1.0, 2.0},
 		},
 		{

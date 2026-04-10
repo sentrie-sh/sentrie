@@ -51,34 +51,34 @@ func (s *BoxTestSuite) TestEqualValues() {
 		left := List([]Value{
 			Number(1),
 			List([]Value{String("x"), Number(2)}),
-			Map(map[string]Value{"k": Bool(true)}),
+			Dict(map[string]Value{"k": Bool(true)}),
 		})
 		rightEqual := List([]Value{
 			Number(1.0),
 			List([]Value{String("x"), Number(2)}),
-			Map(map[string]Value{"k": Bool(true)}),
+			Dict(map[string]Value{"k": Bool(true)}),
 		})
 		rightDifferent := List([]Value{
 			Number(1),
 			List([]Value{String("x"), Number(3)}),
-			Map(map[string]Value{"k": Bool(true)}),
+			Dict(map[string]Value{"k": Bool(true)}),
 		})
 		s.True(EqualValues(left, rightEqual))
 		s.False(EqualValues(left, rightDifferent))
 	})
 	s.Run("compares maps recursively and checks key set", func() {
-		left := Map(map[string]Value{
+		left := Dict(map[string]Value{
 			"a": Number(7),
-			"b": Map(map[string]Value{"nested": String("ok")}),
+			"b": Dict(map[string]Value{"nested": String("ok")}),
 		})
-		rightEqual := Map(map[string]Value{
+		rightEqual := Dict(map[string]Value{
 			"a": Number(7.0),
-			"b": Map(map[string]Value{"nested": String("ok")}),
+			"b": Dict(map[string]Value{"nested": String("ok")}),
 		})
-		rightMissingKey := Map(map[string]Value{"a": Number(7)})
-		rightDifferentValue := Map(map[string]Value{
+		rightMissingKey := Dict(map[string]Value{"a": Number(7)})
+		rightDifferentValue := Dict(map[string]Value{
 			"a": Number(7),
-			"b": Map(map[string]Value{"nested": String("nope")}),
+			"b": Dict(map[string]Value{"nested": String("nope")}),
 		})
 		s.True(EqualValues(left, rightEqual))
 		s.False(EqualValues(left, rightMissingKey))
@@ -133,14 +133,14 @@ func (s *BoxTestSuite) TestContainsValue() {
 	s.Run("list uses semantic equality for contains", func() {
 		haystack := List([]Value{
 			Number(1),
-			Map(map[string]Value{"x": Number(2)}),
+			Dict(map[string]Value{"x": Number(2)}),
 		})
 		s.True(ContainsValue(haystack, Number(1.0)))
-		s.True(ContainsValue(haystack, Map(map[string]Value{"x": Number(2.0)})))
-		s.False(ContainsValue(haystack, Map(map[string]Value{"x": Number(3)})))
+		s.True(ContainsValue(haystack, Dict(map[string]Value{"x": Number(2.0)})))
+		s.False(ContainsValue(haystack, Dict(map[string]Value{"x": Number(3)})))
 	})
 	s.Run("map string needle performs key lookup", func() {
-		haystack := Map(map[string]Value{
+		haystack := Dict(map[string]Value{
 			"k1": Number(1),
 			"k2": String("v2"),
 		})
@@ -148,24 +148,24 @@ func (s *BoxTestSuite) TestContainsValue() {
 		s.False(ContainsValue(haystack, String("missing")))
 	})
 	s.Run("map needle as map checks subset semantics", func() {
-		haystack := Map(map[string]Value{
+		haystack := Dict(map[string]Value{
 			"a": Number(1),
-			"b": Map(map[string]Value{"nested": Bool(true)}),
+			"b": Dict(map[string]Value{"nested": Bool(true)}),
 		})
-		s.True(ContainsValue(haystack, Map(map[string]Value{"a": Number(1.0)})))
-		s.True(ContainsValue(haystack, Map(map[string]Value{"b": Map(map[string]Value{"nested": Bool(true)})})))
-		s.False(ContainsValue(haystack, Map(map[string]Value{"missing": Number(1)})))
-		s.False(ContainsValue(haystack, Map(map[string]Value{"b": Map(map[string]Value{"nested": Bool(false)})})))
+		s.True(ContainsValue(haystack, Dict(map[string]Value{"a": Number(1.0)})))
+		s.True(ContainsValue(haystack, Dict(map[string]Value{"b": Dict(map[string]Value{"nested": Bool(true)})})))
+		s.False(ContainsValue(haystack, Dict(map[string]Value{"missing": Number(1)})))
+		s.False(ContainsValue(haystack, Dict(map[string]Value{"b": Dict(map[string]Value{"nested": Bool(false)})})))
 	})
 	s.Run("map rejects non string and non map needles", func() {
-		haystack := Map(map[string]Value{
+		haystack := Dict(map[string]Value{
 			"a": Number(1),
 			"b": List([]Value{String("x")}),
 		})
 		s.False(ContainsValue(haystack, Number(1.0)))
 		s.False(ContainsValue(haystack, List([]Value{String("x")})))
 		s.False(ContainsValue(haystack, Number(2)))
-		reviewerExample := Map(map[string]Value{"a": Number(42)})
+		reviewerExample := Dict(map[string]Value{"a": Number(42)})
 		s.False(ContainsValue(reviewerExample, Number(42)))
 	})
 	s.Run("returns false for unsupported haystack kinds", func() {

@@ -61,12 +61,6 @@ const (
 	KeywordIs        Kind = "is"
 	KeywordMatches   Kind = "matches"
 	KeywordContains  Kind = "contains"
-	KeywordAny       Kind = "any"
-	KeywordAll       Kind = "all"
-	KeywordFilter    Kind = "filter"
-	KeywordFirst     Kind = "first"
-	KeywordDistinct  Kind = "distinct"
-	KeywordReduce    Kind = "reduce"
 	KeywordDefined   Kind = "defined"
 	KeywordEmpty     Kind = "empty"
 	KeywordYield     Kind = "yield"
@@ -86,7 +80,7 @@ const (
 	KeywordBoolean  Kind = "boolean"
 	KeywordTrinary  Kind = "trinary"
 	KeywordList     Kind = "list"
-	KeywordMap      Kind = "map"
+	KeywordDict     Kind = "dict"
 	KeywordRecord   Kind = "record"
 	KeywordDocument Kind = "document"
 
@@ -109,6 +103,7 @@ const (
 	TokenDot       Kind = "Dot"
 	TokenDotDotDot Kind = "DotDotDot"
 	TokenAt        Kind = "At"
+	TokenFatArrow  Kind = "FatArrow"
 
 	// Punctuation
 	PunctComma            Kind = "Comma"
@@ -160,12 +155,6 @@ var keywords = map[string]Kind{
 	"is":        KeywordIs,
 	"matches":   KeywordMatches,
 	"contains":  KeywordContains,
-	"any":       KeywordAny,
-	"all":       KeywordAll,
-	"filter":    KeywordFilter,
-	"first":     KeywordFirst,
-	"distinct":  KeywordDistinct,
-	"reduce":    KeywordReduce,
 	"defined":   KeywordDefined,
 	"empty":     KeywordEmpty,
 
@@ -185,7 +174,7 @@ var keywords = map[string]Kind{
 	"boolean":  KeywordBoolean,
 	"trinary":  KeywordTrinary,
 	"list":     KeywordList,
-	"map":      KeywordMap,
+	"dict":     KeywordDict,
 	"record":   KeywordRecord,
 	"document": KeywordDocument,
 }

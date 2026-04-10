@@ -44,16 +44,16 @@ func (r *RuntimeTestSuite) TestValidateAgainstListTypeRef() {
 }
 
 func (r *RuntimeTestSuite) TestValidateAgainstMapTypeRef() {
-	typeRef := ast.NewMapTypeRef(ast.NewNumberTypeRef(stubRange()), stubRange())
+	typeRef := ast.NewDictTypeRef(ast.NewNumberTypeRef(stubRange()), stubRange())
 
-	r.Run("rejects non-map values", func() {
-		err := validateAgainstMapTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny([]any{"x"}), typeRef, stubRange())
+	r.Run("rejects non-dict values", func() {
+		err := validateAgainstDictTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny([]any{"x"}), typeRef, stubRange())
 		r.Error(err)
-		r.Contains(err.Error(), "is not a map")
+		r.Contains(err.Error(), "is not a dict")
 	})
 
-	r.Run("accepts map values without constraints", func() {
-		err := validateAgainstMapTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny(map[string]any{"x": "any-value", "y": 2.0}), typeRef, stubRange())
+	r.Run("accepts dict values without constraints", func() {
+		err := validateAgainstDictTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny(map[string]any{"x": "any-value", "y": 2.0}), typeRef, stubRange())
 		r.NoError(err)
 	})
 }
@@ -115,7 +115,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstShapeTypeRef() {
 		r.NoError(validateAgainstShapeTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, p, box.String("alice"), typeRef, stubRange()))
 	})
 
-	r.Run("rejects non-map for complex shapes", func() {
+	r.Run("rejects non-dict for complex shapes", func() {
 		p := newPolicy()
 		p.Shapes["app/UserShape"] = &index.Shape{
 			Model: &index.ShapeModel{

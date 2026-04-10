@@ -52,22 +52,22 @@ func (s *RuntimeTestSuite) TestContainsValueStringListAndMapBranches() {
 	s.Require().True(box.ContainsValue(box.List([]box.Value{box.Number(1), box.String("x")}), box.String("x")))
 	s.Require().False(box.ContainsValue(box.List([]box.Value{box.Number(1), box.String("x")}), box.String("y")))
 
-	haystack := box.Map(map[string]box.Value{
+	haystack := box.Dict(map[string]box.Value{
 		"id":   box.Number(7),
 		"name": box.String("alice"),
-		"meta": box.Map(map[string]box.Value{"active": box.Bool(true)}),
+		"meta": box.Dict(map[string]box.Value{"active": box.Bool(true)}),
 	})
 
 	s.Require().True(box.ContainsValue(haystack, box.String("name")))
 	s.Require().False(box.ContainsValue(haystack, box.String("missing")))
 
-	s.Require().True(box.ContainsValue(haystack, box.Map(map[string]box.Value{
+	s.Require().True(box.ContainsValue(haystack, box.Dict(map[string]box.Value{
 		"id": box.Number(7),
 	})))
-	s.Require().False(box.ContainsValue(haystack, box.Map(map[string]box.Value{
+	s.Require().False(box.ContainsValue(haystack, box.Dict(map[string]box.Value{
 		"id": box.Number(8),
 	})))
-	s.Require().False(box.ContainsValue(haystack, box.Map(map[string]box.Value{
+	s.Require().False(box.ContainsValue(haystack, box.Dict(map[string]box.Value{
 		"id":      box.Number(7),
 		"missing": box.Number(1),
 	})))
@@ -94,8 +94,8 @@ func (s *RuntimeTestSuite) TestEqualValuesDeepAndKindSensitiveBranches() {
 	s.Require().False(box.EqualValues(box.Trinary(trinary.True), box.Trinary(trinary.False)))
 
 	s.Require().True(box.EqualValues(
-		box.List([]box.Value{box.Number(1), box.Map(map[string]box.Value{"k": box.String("v")})}),
-		box.List([]box.Value{box.Number(1), box.Map(map[string]box.Value{"k": box.String("v")})}),
+		box.List([]box.Value{box.Number(1), box.Dict(map[string]box.Value{"k": box.String("v")})}),
+		box.List([]box.Value{box.Number(1), box.Dict(map[string]box.Value{"k": box.String("v")})}),
 	))
 	s.Require().False(box.EqualValues(
 		box.List([]box.Value{box.Number(1)}),
@@ -107,20 +107,20 @@ func (s *RuntimeTestSuite) TestEqualValuesDeepAndKindSensitiveBranches() {
 	))
 
 	s.Require().True(box.EqualValues(
-		box.Map(map[string]box.Value{"a": box.Number(1), "b": box.String("x")}),
-		box.Map(map[string]box.Value{"b": box.String("x"), "a": box.Number(1)}),
+		box.Dict(map[string]box.Value{"a": box.Number(1), "b": box.String("x")}),
+		box.Dict(map[string]box.Value{"b": box.String("x"), "a": box.Number(1)}),
 	))
 	s.Require().False(box.EqualValues(
-		box.Map(map[string]box.Value{"a": box.Number(1)}),
-		box.Map(map[string]box.Value{"a": box.Number(1), "b": box.Number(2)}),
+		box.Dict(map[string]box.Value{"a": box.Number(1)}),
+		box.Dict(map[string]box.Value{"a": box.Number(1), "b": box.Number(2)}),
 	))
 	s.Require().False(box.EqualValues(
-		box.Map(map[string]box.Value{"a": box.Number(1)}),
-		box.Map(map[string]box.Value{"a": box.Number(2)}),
+		box.Dict(map[string]box.Value{"a": box.Number(1)}),
+		box.Dict(map[string]box.Value{"a": box.Number(2)}),
 	))
 	s.Require().False(box.EqualValues(
-		box.Map(map[string]box.Value{"a": box.Number(1)}),
-		box.Map(map[string]box.Value{"b": box.Number(1)}),
+		box.Dict(map[string]box.Value{"a": box.Number(1)}),
+		box.Dict(map[string]box.Value{"b": box.Number(1)}),
 	))
 
 	shared := &struct{ Name string }{Name: "same"}
@@ -130,7 +130,7 @@ func (s *RuntimeTestSuite) TestEqualValuesDeepAndKindSensitiveBranches() {
 		box.Object(&struct{ Name string }{Name: "same"}),
 	))
 
-	s.Require().False(box.EqualValues(box.List([]box.Value{}), box.Map(map[string]box.Value{})))
+	s.Require().False(box.EqualValues(box.List([]box.Value{}), box.Dict(map[string]box.Value{})))
 }
 
 func (s *RuntimeTestSuite) TestEvalInfixArithmeticComparisonAndTrinaryMatrix() {

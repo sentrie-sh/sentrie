@@ -55,12 +55,6 @@ cmpExpr             ::= addExpr
                       | containsExpr
                       | inExpr
                       | kvInExpr
-                      | anyExpr
-                      | allExpr
-                      | filterExpr
-                      | mapExpr
-                      | distinctExpr
-                      | reduceExpr
                       | countExpr
                       | definedExpr
                       | emptyExpr
@@ -78,7 +72,10 @@ primaryExpr         ::= literal
                       | functionCall
                       | indexAccess
                       | fieldAccess
+                      | lambdaExpr
                       | groupedExpr
+
+lambdaExpr          ::= '(' ( IDENT ( ',' IDENT )* )? ')' '=>' blockExpr
 
 /* Specific Expression Types */
 equalityExpr        ::= addExpr ( '==' | '!=' ) addExpr
@@ -93,13 +90,7 @@ containsExpr        ::= addExpr ( 'not' )? 'contains' addExpr
 inExpr              ::= addExpr ( 'not' )? 'in' addExpr
 kvInExpr            ::= mapLiteral 'in' addExpr
 
-/* Higher-Order Operations */
-anyExpr             ::= 'any' addExpr 'as' IDENT (',' IDENT)? (blockExpr | groupedExpr)
-allExpr             ::= 'all' addExpr 'as' IDENT (',' IDENT)? (blockExpr | groupedExpr)
-filterExpr          ::= 'filter' addExpr 'as' IDENT (',' IDENT)? (blockExpr | groupedExpr)
-mapExpr             ::= 'map' addExpr 'as' IDENT (',' IDENT)? (blockExpr | groupedExpr)
-distinctExpr        ::= 'distinct' addExpr 'as' IDENT (',' IDENT)? (blockExpr | groupedExpr)
-reduceExpr          ::= 'reduce' addExpr 'from' expr 'as' IDENT (',' IDENT)? blockExpr
+/* Built-in collection helpers are ordinary function calls, e.g. filter(list, (x) => { yield ... }). */
 castExpr            ::= 'cast' addExpr 'as' primitiveType
 countExpr           ::= 'count' addExpr
 
@@ -130,12 +121,12 @@ typeRef             ::= (primitiveType
                           | typeName
                           | recordType
                           | listType
-                          | mapType) typeRefConstraint*
+                          | dictType) typeRefConstraint*
 
 typeRefConstraint ::= '@' IDENT '(' commaSeparatedExpr? ')'
 primitiveType       ::= 'int' | 'float' | 'string' | 'bool' | 'document'
 listType            ::= 'list' '[' typeRef ']'
-mapType             ::= 'map' '[' typeRef ']'
+dictType            ::= 'dict' '[' typeRef ']'
 recordType          ::= 'record' '[' typeRef (',' typeRef)* ']'
 typeName            ::= FQN
 

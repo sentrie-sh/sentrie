@@ -18,25 +18,25 @@ package ast
 
 import "github.com/sentrie-sh/sentrie/tokens"
 
-type MapTypeRef struct {
+type DictTypeRef struct {
 	*baseTypeRef
 	ValueType TypeRef
 }
 
-func NewMapTypeRef(valueType TypeRef, ssp tokens.Range) *MapTypeRef {
-	return &MapTypeRef{
+func NewDictTypeRef(valueType TypeRef, ssp tokens.Range) *DictTypeRef {
+	return &DictTypeRef{
 		baseTypeRef: &baseTypeRef{
 			baseNode: &baseNode{
 				Rnge:  ssp,
-				Kind_: "map_typeref",
+				Kind_: "dict_typeref",
 			},
-			validConstraints: genMapConstraints,
+			validConstraints: genDictConstraints,
 		},
 		ValueType: valueType,
 	}
 }
 
-func (m *MapTypeRef) String() string { return "map[" + m.ValueType.String() + "]" }
+func (m *DictTypeRef) String() string { return "dict[" + m.ValueType.String() + "]" }
 
-var _ TypeRef = &MapTypeRef{}
-var _ Node = &MapTypeRef{}
+var _ TypeRef = &DictTypeRef{}
+var _ Node = &DictTypeRef{}

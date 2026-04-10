@@ -14,18 +14,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package constraints_test
+package runtime
 
-import "github.com/sentrie-sh/sentrie/constraints"
+import (
+	"context"
 
-func (s *ConstraintsTestSuite) TestEmptyCheckerMapsAreInitialized() {
-	for name, m := range map[string]map[string]constraints.ConstraintDefinition{
-		"dict":     constraints.DictContraintCheckers,
-		"record":   constraints.RecordContraintCheckers,
-		"shape":    constraints.ShapeContraintCheckers,
-		"document": constraints.DocumentContraintCheckers,
-	} {
-		s.NotNil(m, "%s: map is nil", name)
-		s.Empty(m, "%s: expected empty map", name)
-	}
+	"github.com/sentrie-sh/sentrie/box"
+	"github.com/sentrie-sh/sentrie/index"
+)
+
+// CallSite is the evaluation frame passed to every builtin so higher-order
+// builtins can invoke lambdas with the correct policy and executor.
+type CallSite struct {
+	EC     *ExecutionContext
+	Exec   *executorImpl
+	Policy *index.Policy
 }
+
+// Builtin is a built-in function taking evaluated boxed arguments.
+type Builtin func(ctx context.Context, site *CallSite, args ...box.Value) (box.Value, error)

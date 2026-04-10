@@ -35,9 +35,9 @@ func (s *BoxTestSuite) TestTrinaryFrom_matchesFromAny() {
 		List(nil),
 		List([]Value{}),
 		List([]Value{Number(0)}),
-		Map(nil),
-		Map(map[string]Value{}),
-		Map(map[string]Value{"a": Number(1)}),
+		Dict(nil),
+		Dict(map[string]Value{}),
+		Dict(map[string]Value{"a": Number(1)}),
 		Object(struct{ X int }{1}),
 		Object(map[string]any{"k": 1}),
 	}

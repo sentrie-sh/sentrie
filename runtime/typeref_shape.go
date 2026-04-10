@@ -81,7 +81,7 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 
 	// at this point, we know it's a complex shape
 	// so we need to validate the value against the complex shape
-	vm, ok := v.MapValue()
+	vm, ok := v.DictValue()
 	if !ok {
 		return fmt.Errorf("value %v is not a shape at %s - expected shape", v, pos)
 	}
