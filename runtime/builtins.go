@@ -40,8 +40,8 @@ func toIntV(v box.Value) (int64, bool) {
 func copyMapDeep(m map[string]box.Value) map[string]box.Value {
 	out := make(map[string]box.Value, len(m))
 	for k, v := range m {
-		if vm, ok := v.MapValue(); ok {
-			out[k] = box.Map(copyMapDeep(vm))
+		if vm, ok := v.DictValue(); ok {
+			out[k] = box.Dict(copyMapDeep(vm))
 		} else {
 			out[k] = v
 		}
@@ -49,19 +49,19 @@ func copyMapDeep(m map[string]box.Value) map[string]box.Value {
 	return out
 }
 
-func mergeValueMaps(map1, map2 map[string]box.Value) map[string]box.Value {
+func mergeValueDicts(map1, map2 map[string]box.Value) map[string]box.Value {
 	result := copyMapDeep(map1)
 	for key, value2 := range map2 {
 		if existing, exists := result[key]; exists {
-			m1, ok1 := existing.MapValue()
-			m2, ok2 := value2.MapValue()
+			m1, ok1 := existing.DictValue()
+			m2, ok2 := value2.DictValue()
 			if ok1 && ok2 {
-				result[key] = box.Map(mergeValueMaps(m1, m2))
+				result[key] = box.Dict(mergeValueDicts(m1, m2))
 				continue
 			}
 		}
-		if nestedMap, ok := value2.MapValue(); ok {
-			result[key] = box.Map(copyMapDeep(nestedMap))
+		if nestedMap, ok := value2.DictValue(); ok {
+			result[key] = box.Dict(copyMapDeep(nestedMap))
 			continue
 		}
 		result[key] = value2
@@ -69,23 +69,23 @@ func mergeValueMaps(map1, map2 map[string]box.Value) map[string]box.Value {
 	return result
 }
 
-// BuiltinMerge merges two maps into a new map recursively.
+// BuiltinMerge merges two dict values into a new dict recursively.
 func BuiltinMerge(_ context.Context, _ *CallSite, args ...box.Value) (box.Value, error) {
 	if len(args) != 2 {
 		return box.Undefined(), fmt.Errorf("merge requires 2 arguments")
 	}
-	m1, ok := args[0].MapValue()
+	m1, ok := args[0].DictValue()
 	if !ok {
-		return box.Undefined(), fmt.Errorf("first argument is not a map")
+		return box.Undefined(), fmt.Errorf("first argument is not a dict")
 	}
-	m2, ok := args[1].MapValue()
+	m2, ok := args[1].DictValue()
 	if !ok {
-		return box.Undefined(), fmt.Errorf("second argument is not a map")
+		return box.Undefined(), fmt.Errorf("second argument is not a dict")
 	}
-	return box.Map(mergeValueMaps(m1, m2)), nil
+	return box.Dict(mergeValueDicts(m1, m2)), nil
 }
 
-// BuiltinCount returns the length of a list, string, or map.
+// BuiltinCount returns the length of a list, string, or dict.
 func BuiltinCount(_ context.Context, _ *CallSite, args ...box.Value) (box.Value, error) {
 	if len(args) != 1 {
 		return box.Undefined(), fmt.Errorf("count requires 1 argument")
@@ -96,7 +96,7 @@ func BuiltinCount(_ context.Context, _ *CallSite, args ...box.Value) (box.Value,
 	if s, ok := args[0].StringValue(); ok {
 		return box.Number(len(s)), nil
 	}
-	if m, ok := args[0].MapValue(); ok {
+	if m, ok := args[0].DictValue(); ok {
 		return box.Number(len(m)), nil
 	}
 	return box.Number(0), nil
@@ -300,7 +300,7 @@ var Builtins = map[string]Builtin{
 	"first":          BuiltinFirst,
 	"flatten":        BuiltinFlatten,
 	"flatten_deep":   BuiltinFlattenDeep,
-	"map":            BuiltinMap,
+	"collect": BuiltinCollect,
 	"merge":          BuiltinMerge,
 	"normalise_list": BuiltinNormaliseList,
 	"reduce":         BuiltinReduce,

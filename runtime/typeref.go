@@ -36,7 +36,7 @@ func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec
 	case *ast.ListTypeRef:
 		return validateAgainstListTypeRef(ctx, ec, exec, p, v, t, valueRange)
 	case *ast.DictTypeRef:
-		return validateAgainstMapTypeRef(ctx, ec, exec, p, v, t, valueRange)
+		return validateAgainstDictTypeRef(ctx, ec, exec, p, v, t, valueRange)
 	case *ast.ShapeTypeRef:
 		return validateAgainstShapeTypeRef(ctx, ec, exec, p, v, t, valueRange)
 	case *ast.DocumentTypeRef:

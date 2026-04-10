@@ -173,15 +173,15 @@ func BuiltinFilter(ctx context.Context, site *CallSite, args ...box.Value) (box.
 	return box.List(out), nil
 }
 
-// BuiltinMap maps each element through the callable.
-func BuiltinMap(ctx context.Context, site *CallSite, args ...box.Value) (box.Value, error) {
+// BuiltinCollect maps each list element through the callable.
+func BuiltinCollect(ctx context.Context, site *CallSite, args ...box.Value) (box.Value, error) {
 	if len(args) != 2 {
-		return box.Undefined(), fmt.Errorf("map requires 2 arguments")
+		return box.Undefined(), fmt.Errorf("collect requires 2 arguments")
 	}
 	col := args[0]
 	list, ok := col.ListValue()
 	if !ok {
-		return box.Undefined(), fmt.Errorf("map: first argument must be a list")
+		return box.Undefined(), fmt.Errorf("collect: first argument must be a list")
 	}
 	fn := args[1]
 	c, err := callableFromValue(fn)
@@ -189,7 +189,7 @@ func BuiltinMap(ctx context.Context, site *CallSite, args ...box.Value) (box.Val
 		return box.Undefined(), err
 	}
 	if c.Arity() != 1 && c.Arity() != 2 {
-		return box.Undefined(), fmt.Errorf("map: callable must have arity 1 or 2")
+		return box.Undefined(), fmt.Errorf("collect: callable must have arity 1 or 2")
 	}
 	out := make([]box.Value, 0, len(list))
 	for idx, item := range list {

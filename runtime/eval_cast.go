@@ -95,7 +95,7 @@ func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *ind
 		result = val
 
 	case *ast.DictTypeRef:
-		if val.Kind() != box.ValueMap {
+		if val.Kind() != box.ValueDict {
 			err = fmt.Errorf("cannot cast %s to dict", val.Kind())
 			return box.Value{}, node.SetErr(err), err
 		}

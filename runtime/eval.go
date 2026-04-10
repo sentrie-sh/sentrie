@@ -92,7 +92,7 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 		return out, n.SetResult(out), nil
 
 	case *ast.MapLiteral:
-		ctx, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "map"})
+		ctx, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "dict"})
 		defer done()
 
 		m := map[string]box.Value{}
@@ -115,7 +115,7 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 			}
 			m[keyValue] = v
 		}
-		out := box.Map(m)
+		out := box.Dict(m)
 		return out, n.SetResult(out), nil
 
 	case *ast.Identifier:
