@@ -31,7 +31,7 @@ func (s *BoxTestSuite) TestValueKindString_AllBranches() {
 	s.Equal("string", ValueString.String())
 	s.Equal("trinary", ValueTrinary.String())
 	s.Equal("list", ValueList.String())
-	s.Equal("map", ValueMap.String())
+	s.Equal("dict", ValueDict.String())
 	s.Equal("document", ValueDocument.String())
 	s.Equal("callable", ValueCallable.String())
 	s.Equal("invalid", ValueKind(255).String())
@@ -77,15 +77,15 @@ func (s *BoxTestSuite) TestAccessorsWithWrongKindOrMalformedPayload() {
 	gotList, ok := list.ListValue()
 	s.False(ok)
 	s.Nil(gotList)
-	m := Value{kind: ValueMap, ref: "not-a-map"}
-	gotMap, ok := m.MapValue()
+	m := Value{kind: ValueDict, ref: "not-a-map"}
+	gotMap, ok := m.DictValue()
 	s.False(ok)
 	s.Nil(gotMap)
 }
 
 func (s *BoxTestSuite) TestAnyAndString_WithMalformedAndInvalidKinds() {
 	s.Equal([]any{}, Value{kind: ValueList, ref: "bad"}.Any())
-	s.Equal(map[string]any{}, Value{kind: ValueMap, ref: "bad"}.Any())
+	s.Equal(map[string]any{}, Value{kind: ValueDict, ref: "bad"}.Any())
 	s.Nil(Value{kind: ValueInvalid}.Any())
 	s.Nil(Value{kind: ValueKind(254)}.Any())
 	s.Equal("invalid", Value{kind: ValueInvalid}.String())
@@ -128,20 +128,20 @@ func (s *BoxTestSuite) TestMarshalJSON_FromAny_AndBoundaries() {
 	listInput := []Value{Number(1)}
 	s.Equal(List(listInput), FromAny(listInput))
 	mapInput := map[string]Value{"a": Number(1)}
-	s.Equal(Map(mapInput), FromAny(mapInput))
+	s.Equal(Dict(mapInput), FromAny(mapInput))
 	s.Equal(List([]Value{Number(1), Bool(true)}), FromAny([]any{1, true}))
-	s.Equal(Map(map[string]Value{"a": Number(1)}), FromAny(map[string]any{"a": 1}))
+	s.Equal(Dict(map[string]Value{"a": Number(1)}), FromAny(map[string]any{"a": 1}))
 	type hostDoc struct{ ID int }
 	doc := hostDoc{ID: 7}
 	s.Equal(Document(doc), FromAny(doc))
 	undefinedBoundary := ToBoundaryAny(Undefined())
 	s.True(IsBoundaryUndefined(undefinedBoundary))
 	s.Equal(Undefined(), FromBoundaryAny(undefinedBoundary))
-	roundTrip := FromBoundaryAny(ToBoundaryAny(Map(map[string]Value{
+	roundTrip := FromBoundaryAny(ToBoundaryAny(Dict(map[string]Value{
 		"a": Number(1),
 		"b": List([]Value{Undefined(), String("x")}),
 	})))
-	s.True(EqualValues(Map(map[string]Value{
+	s.True(EqualValues(Dict(map[string]Value{
 		"a": Number(1),
 		"b": List([]Value{Undefined(), String("x")}),
 	}), roundTrip))
@@ -149,7 +149,7 @@ func (s *BoxTestSuite) TestMarshalJSON_FromAny_AndBoundaries() {
 }
 
 func (s *BoxTestSuite) TestToBoundaryAnyCallableDoesNotPanic() {
-	nested := Map(map[string]Value{
+	nested := Dict(map[string]Value{
 		"items": List([]Value{
 			Number(1),
 			Callable(struct{}{}),

@@ -74,9 +74,9 @@ func EqualValues(a, b Value) bool {
 			}
 		}
 		return true
-	case ValueMap:
-		am, _ := a.MapValue()
-		bm, _ := b.MapValue()
+	case ValueDict:
+		am, _ := a.DictValue()
+		bm, _ := b.DictValue()
 		if len(am) != len(bm) {
 			return false
 		}
@@ -107,8 +107,8 @@ func MatchesValue(haystack, pattern Value) (bool, error) {
 	return regexp.MatchString(p, h)
 }
 
-// ContainsValue implements infix `contains` / `in` semantics for string, list, and map haystacks.
-// For map haystacks, only string-key lookup and map-subset containment are supported.
+// ContainsValue implements infix `contains` / `in` semantics for string, list, and dict haystacks.
+// For dict haystacks, only string-key lookup and dict-subset containment are supported.
 func ContainsValue(haystack, needle Value) bool {
 	switch haystack.Kind() {
 	case ValueString:
@@ -123,13 +123,13 @@ func ContainsValue(haystack, needle Value) bool {
 			}
 		}
 		return false
-	case ValueMap:
-		m, _ := haystack.MapValue()
+	case ValueDict:
+		m, _ := haystack.DictValue()
 		if s, ok := needle.StringValue(); ok {
 			_, ok2 := m[s]
 			return ok2
 		}
-		if sub, ok := needle.MapValue(); ok {
+		if sub, ok := needle.DictValue(); ok {
 			for k, v := range sub {
 				mv, ok2 := m[k]
 				if !ok2 {

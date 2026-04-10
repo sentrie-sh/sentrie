@@ -46,7 +46,7 @@ const (
 	ValueString
 	ValueTrinary
 	ValueList
-	ValueMap
+	ValueDict
 	ValueDocument
 	ValueCallable
 	// ValueObject is a backward-compatible alias for ValueDocument.
@@ -69,8 +69,8 @@ func (k ValueKind) String() string {
 		return "trinary"
 	case ValueList:
 		return "list"
-	case ValueMap:
-		return "map"
+	case ValueDict:
+		return "dict"
 	case ValueDocument:
 		return "document"
 	case ValueCallable:
@@ -122,8 +122,8 @@ func List(xs []Value) Value {
 	return Value{kind: ValueList, ref: xs}
 }
 
-func Map(m map[string]Value) Value {
-	return Value{kind: ValueMap, ref: m}
+func Dict(m map[string]Value) Value {
+	return Value{kind: ValueDict, ref: m}
 }
 
 func Document[T any](x T) Value {
@@ -201,8 +201,8 @@ func (v Value) ListValue() ([]Value, bool) {
 	return xs, ok
 }
 
-func (v Value) MapValue() (map[string]Value, bool) {
-	if v.kind != ValueMap {
+func (v Value) DictValue() (map[string]Value, bool) {
+	if v.kind != ValueDict {
 		return nil, false
 	}
 	m, ok := v.ref.(map[string]Value)
@@ -243,7 +243,7 @@ func TrinaryFrom(b Value) trinary.Value {
 			return trinary.False
 		}
 		return trinary.True
-	case ValueMap:
+	case ValueDict:
 		m, _ := b.ref.(map[string]Value)
 		if len(m) == 0 {
 			return trinary.False
@@ -282,7 +282,7 @@ func (v Value) Any() any {
 			out = append(out, x.Any())
 		}
 		return out
-	case ValueMap:
+	case ValueDict:
 		m, _ := v.ref.(map[string]Value)
 		out := make(map[string]any, len(m))
 		for k, x := range m {
@@ -376,7 +376,7 @@ func FromAny(x any) Value {
 	case []Value:
 		return List(t)
 	case map[string]Value:
-		return Map(t)
+		return Dict(t)
 	case []any:
 		out := make([]Value, 0, len(t))
 		for _, item := range t {
@@ -388,7 +388,7 @@ func FromAny(x any) Value {
 		for k, v := range t {
 			out[k] = FromAny(v)
 		}
-		return Map(out)
+		return Dict(out)
 	default:
 		return Document(x)
 	}
@@ -418,8 +418,8 @@ func TryToBoundaryAny(v Value) (any, error) {
 			out = append(out, x)
 		}
 		return out, nil
-	case ValueMap:
-		m, _ := v.MapValue()
+	case ValueDict:
+		m, _ := v.DictValue()
 		out := make(map[string]any, len(m))
 		for k, item := range m {
 			x, err := TryToBoundaryAny(item)
@@ -459,8 +459,8 @@ func toBoundaryAnyLossy(v Value) any {
 			out = append(out, toBoundaryAnyLossy(item))
 		}
 		return out
-	case ValueMap:
-		m, _ := v.MapValue()
+	case ValueDict:
+		m, _ := v.DictValue()
 		out := make(map[string]any, len(m))
 		for k, item := range m {
 			out[k] = toBoundaryAnyLossy(item)
@@ -489,7 +489,7 @@ func FromBoundaryAny(x any) Value {
 		for k, item := range t {
 			out[k] = FromBoundaryAny(item)
 		}
-		return Map(out)
+		return Dict(out)
 	default:
 		return FromAny(x)
 	}
