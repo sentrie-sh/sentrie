@@ -15,7 +15,7 @@
  */
 
 /**
- * Collection module provides utilities for both list/array and map/object manipulation and operations.
+ * Collection module provides utilities for both list/array and dict (plain object) manipulation and operations.
  * Functions are prefixed with `list_` for list operations and `map_` for map operations.
  */
 declare module "@sentrie/collection" {
@@ -82,40 +82,40 @@ declare module "@sentrie/collection" {
   export function list_flatten(arr: any[]): any[];
 
   /**
-   * Gets all keys from a map/object.
-   * @param map - The map/object to extract keys from
-   * @returns Array of all keys in the map
-   * @throws Error if the input is not a map
+   * Gets all keys from a dict (plain object).
+   * @param map - The dict (plain object) to extract keys from
+   * @returns Array of all keys in the dict
+   * @throws Error if the input is not a dict
    */
   export function map_keys(map: Record<string, any>): any[];
 
   /**
-   * Gets all values from a map/object.
-   * @param map - The map/object to extract values from
-   * @returns Array of all values in the map
-   * @throws Error if the input is not a map
+   * Gets all values from a dict (plain object).
+   * @param map - The dict (plain object) to extract values from
+   * @returns Array of all values in the dict
+   * @throws Error if the input is not a dict
    */
   export function map_values(map: Record<string, any>): any[];
 
   /**
-   * Gets all key-value pairs from a map/object as an array of [key, value] tuples.
-   * @param map - The map/object to extract entries from
+   * Gets all key-value pairs from a dict (plain object) as an array of [key, value] tuples.
+   * @param map - The dict (plain object) to extract entries from
    * @returns Array of [key, value] pairs
-   * @throws Error if the input is not a map
+   * @throws Error if the input is not a dict
    */
   export function map_entries(map: Record<string, any>): [any, any][];
 
   /**
-   * Checks if a map/object contains a specific key.
-   * @param map - The map/object to check
+   * Checks if a dict (plain object) contains a specific key.
+   * @param map - The dict (plain object) to check
    * @param key - The key to check for
-   * @returns true if the key exists in the map, false otherwise
+   * @returns true if the key exists in the dict, false otherwise
    */
   export function map_has(map: Record<string, any>, key: any): boolean;
 
   /**
-   * Gets a value from a map/object by key, with an optional default value.
-   * @param map - The map/object to get the value from
+   * Gets a value from a dict (plain object) by key, with an optional default value.
+   * @param map - The dict (plain object) to get the value from
    * @param key - The key to look up
    * @param defaultValue - Optional default value to return if the key is not found
    * @returns The value associated with the key, or the default value if the key is not found (or undefined if no default provided)
@@ -123,29 +123,29 @@ declare module "@sentrie/collection" {
   export function map_get(map: Record<string, any>, key: any, defaultValue?: any): any;
 
   /**
-   * Gets the number of key-value pairs in a map/object.
-   * @param map - The map/object to get the size of
-   * @returns The number of entries in the map
-   * @throws Error if the input is not a map
+   * Gets the number of key-value pairs in a dict (plain object).
+   * @param map - The dict (plain object) to get the size of
+   * @returns The number of entries in the dict
+   * @throws Error if the input is not a dict
    */
   export function map_size(map: Record<string, any>): number;
 
   /**
-   * Checks if a map/object is empty (has no entries).
-   * @param map - The map/object to check
-   * @returns true if the map has no entries, false otherwise
-   * @throws Error if the input is not a map
+   * Checks if a dict (plain object) is empty (has no entries).
+   * @param map - The dict (plain object) to check
+   * @returns true if the dict has no entries, false otherwise
+   * @throws Error if the input is not a dict
    */
   export function map_isEmpty(map: Record<string, any>): boolean;
 
   /**
-   * Merges multiple maps/objects into a single map.
-   * Later maps override earlier maps if they have the same keys.
-   * @param map1 - The first map/object
-   * @param map2 - The second map/object
-   * @param ...maps - Additional maps/objects to merge
-   * @returns A new merged map (original maps are not modified)
-   * @throws Error if any argument is not a map
+   * Merges multiple dicts into a single dict.
+   * Later dicts override earlier dicts if they have the same keys.
+   * @param map1 - The first dict (plain object)
+   * @param map2 - The second dict (plain object)
+   * @param ...maps - Additional dicts to merge
+   * @returns A new merged dict (original dicts are not modified)
+   * @throws Error if any argument is not a dict
    */
   export function map_merge(map1: Record<string, any>, map2: Record<string, any>, ...maps: Record<string, any>[]): Record<string, any>;
 }
