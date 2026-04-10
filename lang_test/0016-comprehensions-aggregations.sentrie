@@ -4,7 +4,7 @@ policy comp {
 	let existsEven  = any(nums, (n) => { yield n % 2 == 0 })
 	let allPos      = all(nums, (n) => { yield n > 0 })
 	let evens       = filter(nums, (n) => { yield n % 2 == 0 })
-	let doubled     = map(nums, (n) => { yield n * 2 })
+	let doubled     = collect(nums, (n) => { yield n * 2 })
 	let uniq        = distinct(nums)
 	let sum         = reduce(nums, 0, (acc, n) => { yield acc + n })
 	let sum         = reduce(nums, 0, (acc, n, idx) => { yield acc + n }) -- Reduce with index
@@ -12,7 +12,7 @@ policy comp {
 	let complex     = any(nums, (n) => { yield n > 3 and n < 5 })
 	let advanced    = all(nums, (n) => { yield n % 2 == 0 or n > 3 })
 	let nested      = filter(nums, (n) => { yield n > 2 and n < 5 })
-	let mapped      = map(nums, (n) => { yield n * 3 })
+	let mapped      = collect(nums, (n) => { yield n * 3 })
 	let unique      = distinct(nums, (n) => { yield n % 2 == 0 })
 	let summed      = reduce(nums, 0, (acc, n) => { yield acc + n * 2 })
 	let counted     = count(nums)

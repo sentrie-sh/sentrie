@@ -20,7 +20,7 @@ policy user_access {
     attach the_float as (10 + 5) * (5 - 2) / 2
     attach the_number as 8 / 6
     attach the_list as [1, 2, 3]
-    attach the_map as {"key": "value"}
+    attach the_dict as {"key": "value"}
     attach the_string as "hello"
     attach the_bool as true
     attach the_null as null
