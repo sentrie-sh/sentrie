@@ -84,8 +84,8 @@ func (s *RuntimeTestSuite) TestGetTargetBuiltinPreservesNestedUndefined() {
 
 func (s *RuntimeTestSuite) TestCalculateHashKeyMapKeyOrderStable() {
 	node := &ast.CallExpression{}
-	arg1 := box.Map(map[string]box.Value{"a": box.Number(1), "b": box.Number(2)})
-	arg2 := box.Map(map[string]box.Value{"b": box.Number(2), "a": box.Number(1)})
+	arg1 := box.Dict(map[string]box.Value{"a": box.Number(1), "b": box.Number(2)})
+	arg2 := box.Dict(map[string]box.Value{"b": box.Number(2), "a": box.Number(1)})
 	hash1 := calculateHashKey(node, []box.Value{arg1})
 	hash2 := calculateHashKey(node, []box.Value{arg2})
 	s.Require().Equal(hash1, hash2)
@@ -94,7 +94,7 @@ func (s *RuntimeTestSuite) TestCalculateHashKeyMapKeyOrderStable() {
 func (s *RuntimeTestSuite) TestCalculateHashKeyNestedStructureStable() {
 	node := &ast.CallExpression{}
 	arg := box.List([]box.Value{
-		box.Map(map[string]box.Value{"k": box.List([]box.Value{box.Number(1), box.String("x")})}),
+		box.Dict(map[string]box.Value{"k": box.List([]box.Value{box.Number(1), box.String("x")})}),
 	})
 	hash := calculateHashKey(node, []box.Value{arg})
 	s.Require().NotEmpty(hash)

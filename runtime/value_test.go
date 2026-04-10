@@ -35,7 +35,7 @@ const (
 	ValueString    = box.ValueString
 	ValueTrinary   = box.ValueTrinary
 	ValueList      = box.ValueList
-	ValueMap       = box.ValueMap
+	ValueDict       = box.ValueDict
 	ValueObject    = box.ValueObject
 )
 
@@ -44,7 +44,7 @@ var (
 	Null            = box.Null
 	Trinary         = box.Trinary
 	List            = box.List
-	Map             = box.Map
+	Dict            = box.Dict
 	FromAny         = box.FromAny
 	ToBoundaryAny   = box.ToBoundaryAny
 	FromBoundaryAny = box.FromBoundaryAny
@@ -59,7 +59,7 @@ func (s *RuntimeTestSuite) TestValueKindString() {
 	s.Require().Equal("string", ValueString.String())
 	s.Require().Equal("trinary", ValueTrinary.String())
 	s.Require().Equal("list", ValueList.String())
-	s.Require().Equal("map", ValueMap.String())
+	s.Require().Equal("dict", ValueDict.String())
 	s.Require().Equal("document", ValueObject.String())
 	s.Require().Equal("callable", box.ValueCallable.String())
 	s.Require().Equal("invalid", ValueKind(255).String())
@@ -117,8 +117,8 @@ func (s *RuntimeTestSuite) TestValueContainers() {
 	s.Require().Equal(1.0, xs[0].Any())
 	s.Require().Equal("x", xs[1].Any())
 
-	m := Map(map[string]Value{"a": box.Number(1), "b": box.Bool(true)})
-	mv, ok := m.MapValue()
+	m := Dict(map[string]Value{"a": box.Number(1), "b": box.Bool(true)})
+	mv, ok := m.DictValue()
 	s.Require().True(ok)
 	s.Require().Equal(1.0, mv["a"].Any())
 	s.Require().Equal(true, mv["b"].Any())
@@ -148,7 +148,7 @@ func (s *RuntimeTestSuite) TestValueAnyAndFromAnyRoundTrip() {
 	}
 
 	v := FromAny(input)
-	s.Require().Equal(ValueMap, v.Kind())
+	s.Require().Equal(ValueDict, v.Kind())
 
 	outAny := v.Any()
 	outMap, ok := outAny.(map[string]any)
@@ -161,7 +161,7 @@ func (s *RuntimeTestSuite) TestValueAnyAndFromAnyRoundTrip() {
 }
 
 func (s *RuntimeTestSuite) TestValueMarshalJSON() {
-	v := Map(map[string]Value{
+	v := Dict(map[string]Value{
 		"ok":   box.Bool(true),
 		"num":  box.Number(3.14),
 		"null": Null(),
@@ -188,7 +188,7 @@ func (s *RuntimeTestSuite) TestValueDefaultBranchesAndMismatches() {
 	s.Require().False(ok)
 	_, ok = box.Bool(true).ListValue()
 	s.Require().False(ok)
-	_, ok = box.Bool(true).MapValue()
+	_, ok = box.Bool(true).DictValue()
 	s.Require().False(ok)
 	_, ok = box.Number(1).TrinaryValue()
 	s.Require().False(ok)
@@ -219,9 +219,9 @@ func (s *RuntimeTestSuite) TestFromAnyNumericAndCollectionCases() {
 		{"x", ValueString},
 		{trinary.True, ValueTrinary},
 		{[]Value{box.Number(1)}, ValueList},
-		{map[string]Value{"a": box.Number(1)}, ValueMap},
+		{map[string]Value{"a": box.Number(1)}, ValueDict},
 		{[]any{1, 2, 3}, ValueList},
-		{map[string]any{"a": 1}, ValueMap},
+		{map[string]any{"a": 1}, ValueDict},
 	}
 
 	for _, tc := range cases {
@@ -231,11 +231,11 @@ func (s *RuntimeTestSuite) TestFromAnyNumericAndCollectionCases() {
 }
 
 func (s *RuntimeTestSuite) TestBoundaryAnyRoundTripNestedContainers() {
-	in := Map(map[string]Value{
+	in := Dict(map[string]Value{
 		"a": Undefined(),
 		"b": List([]Value{
 			box.Number(1),
-			Map(map[string]Value{
+			Dict(map[string]Value{
 				"nested": Undefined(),
 				"ok":     box.String("x"),
 			}),
@@ -244,12 +244,12 @@ func (s *RuntimeTestSuite) TestBoundaryAnyRoundTripNestedContainers() {
 
 	boundary := ToBoundaryAny(in)
 	out := FromBoundaryAny(boundary)
-	outMap, ok := out.MapValue()
+	outMap, ok := out.DictValue()
 	s.Require().True(ok)
 	s.Require().True(outMap["a"].IsUndefined())
 	bList, ok := outMap["b"].ListValue()
 	s.Require().True(ok)
-	nestedMap, ok := bList[1].MapValue()
+	nestedMap, ok := bList[1].DictValue()
 	s.Require().True(ok)
 	s.Require().True(nestedMap["nested"].IsUndefined())
 	s.Require().Equal("x", nestedMap["ok"].Any())

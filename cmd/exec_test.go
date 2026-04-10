@@ -19,7 +19,7 @@ package cmd
 import "github.com/sentrie-sh/sentrie/box"
 
 func (s *CmdTestSuite) TestFormatAttachmentRecursesBoxedContainers() {
-	value := box.Map(map[string]box.Value{
+	value := box.Dict(map[string]box.Value{
 		"items": box.List([]box.Value{box.Number(1), box.Number(2)}),
 	})
 	out := s.captureStdout(func() {

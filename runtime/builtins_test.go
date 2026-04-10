@@ -702,12 +702,12 @@ func (s *RuntimeTestSuite) TestMerge_ErrorNonMapFirst() {
 	// First argument not a map should return error
 	_, err := BuiltinMerge(s.ctx, s.builtinSite(), s.builtinArgs("not a map", map[string]any{})...)
 	s.Error(err)
-	s.Contains(err.Error(), "first argument is not a map")
+	s.Contains(err.Error(), "first argument is not a dict")
 }
 
 func (s *RuntimeTestSuite) TestMerge_ErrorNonMapSecond() {
 	// Second argument not a map should return error
 	_, err := BuiltinMerge(s.ctx, s.builtinSite(), s.builtinArgs(map[string]any{}, "not a map")...)
 	s.Error(err)
-	s.Contains(err.Error(), "second argument is not a map")
+	s.Contains(err.Error(), "second argument is not a dict")
 }

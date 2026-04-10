@@ -113,11 +113,11 @@ func (s *RuntimeTestSuite) TestEvalQuantifiersAndMapBranches() {
 	s.Require().Len(filtered, 1)
 	s.Require().Equal(2.0, filtered[0].Any())
 
-	mapCall := ast.NewCallExpression(ast.NewIdentifier("map", stubRange()), []ast.Expression{
+	collectCall := ast.NewCallExpression(ast.NewIdentifier("collect", stubRange()), []ast.Expression{
 		ast.NewListLiteral([]ast.Expression{ast.NewIntegerLiteral(3, stubRange())}, stubRange()),
 		stubLambda([]string{"v", "idx"}, ast.NewInfixExpression(ast.NewIdentifier("v", stubRange()), ast.NewIdentifier("idx", stubRange()), "+", stubRange())),
 	}, false, nil, stubRange())
-	mapResult, _, err := eval(ctx, ec, exec, p, mapCall)
+	mapResult, _, err := eval(ctx, ec, exec, p, collectCall)
 	s.Require().NoError(err)
 	mapped, ok := mapResult.ListValue()
 	s.Require().True(ok)

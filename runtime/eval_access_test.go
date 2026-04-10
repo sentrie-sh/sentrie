@@ -23,7 +23,7 @@ import (
 )
 
 func (s *RuntimeTestSuite) TestAccessFieldPreservesBoxedUndefined() {
-	obj := box.Map(map[string]box.Value{
+	obj := box.Dict(map[string]box.Value{
 		"nested": box.Undefined(),
 	})
 	out, err := accessField(context.Background(), obj, "nested")

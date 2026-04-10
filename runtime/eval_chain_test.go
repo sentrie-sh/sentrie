@@ -200,7 +200,7 @@ func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
 		},
 		{
 			name: "map builtin dispatch",
-			expr: ast.NewCallExpression(ast.NewIdentifier("map", stubRange()), []ast.Expression{
+			expr: ast.NewCallExpression(ast.NewIdentifier("collect", stubRange()), []ast.Expression{
 				ast.NewListLiteral([]ast.Expression{
 					ast.NewIntegerLiteral(3, stubRange()),
 				}, stubRange()),

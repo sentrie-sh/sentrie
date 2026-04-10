@@ -26,11 +26,11 @@ func TestLexerFatArrowTokenization(t *testing.T) {
 	}
 }
 
-func TestLexerMapIsIdentifierAndDictIsKeyword(t *testing.T) {
-	l := NewLexer(strings.NewReader("map[list]"), "test.sent")
+func TestLexerCollectIsIdentifierAndDictIsKeyword(t *testing.T) {
+	l := NewLexer(strings.NewReader("collect[list]"), "test.sent")
 	first := l.NextToken()
 	if first.Kind != tokens.Ident {
-		t.Fatalf("expected map identifier token, got %v (%q)", first.Kind, first.Value)
+		t.Fatalf("expected collect identifier token, got %v (%q)", first.Kind, first.Value)
 	}
 
 	l2 := NewLexer(strings.NewReader("dict[list]"), "test.sent")

@@ -493,12 +493,12 @@ func (s *ParserTestSuite) TestParseTagStatementInvalid() {
 	s.Error(err)
 }
 
-func (s *ParserTestSuite) TestMapBuiltinCallParsesWithIdentifierToken() {
+func (s *ParserTestSuite) TestCollectBuiltinCallParsesWithIdentifierToken() {
 	src := `namespace com/example
 policy p {
   rule allow = {
     let xs = [1,2]
-    let result = map(xs, (item) => { yield item + 1 })
+    let result = collect(xs, (item) => { yield item + 1 })
     yield count(result) > 0
   }
 }`

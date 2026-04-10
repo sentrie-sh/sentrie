@@ -32,7 +32,7 @@ func (s *RuntimeTestSuite) TestImportWithFactBoundaryPreservesUndefined() {
 }
 
 func (s *RuntimeTestSuite) TestImportWithFactBoundaryPreservesNestedUndefined() {
-	withFactValue := box.Map(map[string]box.Value{
+	withFactValue := box.Dict(map[string]box.Value{
 		"payload": box.List([]box.Value{
 			box.Number(1),
 			box.Undefined(),
@@ -41,7 +41,7 @@ func (s *RuntimeTestSuite) TestImportWithFactBoundaryPreservesNestedUndefined() 
 
 	boundary := box.ToBoundaryAny(withFactValue)
 	decoded := box.FromBoundaryAny(boundary)
-	decodedMap, ok := decoded.MapValue()
+	decodedMap, ok := decoded.DictValue()
 	s.Require().True(ok)
 	list, ok := decodedMap["payload"].ListValue()
 	s.Require().True(ok)
@@ -100,7 +100,7 @@ func (s *RuntimeTestSuite) TestExecutorOutputEnvelopeIncludesDecisionAndAttachme
 	}
 
 	envelope := executorOutputEnvelope(output)
-	m, ok := envelope.MapValue()
+	m, ok := envelope.DictValue()
 	s.Require().True(ok)
 	s.Require().Equal(trinary.False, m["state"].Any())
 	s.Require().Equal(42.0, m["value"].Any())

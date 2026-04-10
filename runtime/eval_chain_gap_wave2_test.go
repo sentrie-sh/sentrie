@@ -294,7 +294,7 @@ func (s *RuntimeTestSuite) TestImportDecisionSuccessWithWithInjection() {
 	out, node, err := ImportDecision(ctx, exec, ec, callerPolicy, imp)
 	s.Require().NoError(err)
 	s.Require().NotNil(node)
-	outMap, ok := out.MapValue()
+	outMap, ok := out.DictValue()
 	s.Require().True(ok)
 	s.Require().Equal(trinary.True, outMap["state"].Any())
 	s.Require().Equal(9.0, outMap["value"].Any())
