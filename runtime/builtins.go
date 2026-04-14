@@ -99,7 +99,7 @@ func BuiltinCount(_ context.Context, _ *CallSite, args ...box.Value) (box.Value,
 	if m, ok := args[0].DictValue(); ok {
 		return box.Number(len(m)), nil
 	}
-	return box.Number(0), nil
+	return box.Undefined(), nil
 }
 
 // BuiltInError short-circuits execution with a formatted error.
@@ -300,7 +300,7 @@ var Builtins = map[string]Builtin{
 	"first":          BuiltinFirst,
 	"flatten":        BuiltinFlatten,
 	"flatten_deep":   BuiltinFlattenDeep,
-	"collect": BuiltinCollect,
+	"collect":        BuiltinCollect,
 	"merge":          BuiltinMerge,
 	"normalise_list": BuiltinNormaliseList,
 	"reduce":         BuiltinReduce,
