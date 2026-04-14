@@ -447,14 +447,14 @@ func (s *RuntimeTestSuite) TestCount_OtherType() {
 	// Count should return 0 for non-list, non-string, non-map types
 	result, err := BuiltinCount(s.ctx, s.builtinSite(), s.builtinArgs(42)...)
 	s.NoError(err)
-	s.Equal(0.0, result.Any())
+	s.True(result.IsUndefined())
 }
 
 func (s *RuntimeTestSuite) TestCount_Bool() {
 	// Count should return 0 for bool
 	result, err := BuiltinCount(s.ctx, s.builtinSite(), s.builtinArgs(true)...)
 	s.NoError(err)
-	s.Equal(0.0, result.Any())
+	s.True(result.IsUndefined())
 }
 
 func (s *RuntimeTestSuite) TestCount_ErrorWrongArgCount() {
