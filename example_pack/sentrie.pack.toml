@@ -1,20 +1,27 @@
-schema_version = "0.1.0"
-name = "example"
-# version = "0.1.0"
-# description = "Example pack"
-# license = "MIT"
-# repository = "https://github.com/binaek/sentrie"
-# 
-# [engines]
-# sentrie = "0.1.0"
-# 
-# [authors]
-# "Binaek Sarkar" = "binaek@gmail.com"
-# 
-# [permissions]
-# fs_read = ["/etc/passwd"]
-# net = ["http://example.com"]
-# 
-# [metadata]
-# permissions = { fs_read = ["/etc/passwd"], net = ["http://example.com"] }
-# metadata = { "example" = "example" }
+[schema]
+version = 1
+
+[pack]
+name = "example-pack"
+version = "1.2.3"
+description = "Organization policies across all teams"
+license = "MIT"
+repository = "https://github.com/my-org/org-policies"
+
+[pack.authors]
+"John Doe" = "john@example.com"
+"Alice Robinson" = "alice@example.com"
+"Bob Smith" = "bob@example.com"
+
+[engine]
+sentrie = ">=0.1.0 <2.0.0"
+
+[permissions]
+fs_read = ["./data/**", "/etc/ssl/certs/**"]
+net = ["https://api.example.com", "https://sts.amazonaws.com"]
+env = ["AWS_REGION", "AWS_PROFILE"]
+
+[metadata]
+category = "enterprise"
+maturity = "stable"
+team = "platform"
