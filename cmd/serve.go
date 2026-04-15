@@ -30,9 +30,9 @@ func addServeCmd(cli *cling.CLI) {
 	cli.WithCommand(
 		cling.NewCommand("serve", serveCmd).
 			WithFlag(cling.
-				NewIntCmdInput("port").
+				NewIntCmdInput("http-port").
 				WithDefault(7529 /* PLCY - keypad */).
-				WithDescription("Port to listen on").
+				WithDescription("HTTP port to listen on").
 				AsFlag(),
 			).
 			WithFlag(cling.
@@ -42,18 +42,18 @@ func addServeCmd(cli *cling.CLI) {
 				AsFlag(),
 			).
 			WithFlag(cling.
-				NewCmdSliceInput[string]("listen").
+				NewCmdSliceInput[string]("http-listen").
 				WithDefault([]string{"local"}).
-				WithDescription("Address(es) to listen on").
+				WithDescription("HTTP address(es) to listen on").
 				AsFlag(),
 			),
 	)
 }
 
 type serveCmdArgs struct {
-	Port         int      `cling-name:"port"`
+	Port         int      `cling-name:"http-port"`
 	PackLocation string   `cling-name:"pack-location"`
-	Listen       []string `cling-name:"listen"`
+	Listen       []string `cling-name:"http-listen"`
 }
 
 func serveCmd(ctx context.Context, args []string) error {
