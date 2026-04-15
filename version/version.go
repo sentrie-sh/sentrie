@@ -21,6 +21,8 @@ import (
 	"runtime/debug"
 	"strings"
 	"text/tabwriter"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 // Info holds version information for the application.
@@ -107,7 +109,8 @@ func (i Info) String() string {
 	// App details
 	if i.Name != "" {
 		if i.GitVersion != "" {
-			_, _ = fmt.Fprintf(&b, "%s v%s\n", i.Name, i.GitVersion)
+			v := semver.MustParse(i.GitVersion)
+			_, _ = fmt.Fprintf(&b, "%s v%s\n", i.Name, v.String())
 		} else {
 			_, _ = fmt.Fprintf(&b, "%s\n", i.Name)
 		}
