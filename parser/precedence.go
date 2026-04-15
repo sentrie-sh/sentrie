@@ -23,6 +23,7 @@ type Precedence uint8
 
 const (
 	LOWEST     Precedence = iota
+	PIPELINE             // |>
 	TERNARY               // ? :
 	OR                    // or
 	XOR                   // xor
@@ -38,6 +39,7 @@ const (
 )
 
 var precedences = map[tokens.Kind]Precedence{
+	tokens.TokenPipeForward:     PIPELINE,
 	tokens.TokenQuestion:        TERNARY,
 	tokens.KeywordOr:            OR,
 	tokens.KeywordXor:           XOR,

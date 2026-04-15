@@ -62,6 +62,7 @@ func (p *Parser) registerParseFns() {
 	p.registerInfix(tokens.PunctLeftBracket, parseIndexAccessExpression)
 	p.registerInfix(tokens.TokenDot, parseFieldAccessExpression)
 	p.registerInfix(tokens.PunctLeftParentheses, parseCallExpression)
+	p.registerInfix(tokens.TokenPipeForward, parsePipelineExpression)
 
 	p.registerInfix(tokens.TokenPlus, parseInfixExpression)
 	p.registerInfix(tokens.TokenMinus, parseInfixExpression)
