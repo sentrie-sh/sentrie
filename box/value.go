@@ -18,11 +18,18 @@ package box
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 
 	"github.com/sentrie-sh/sentrie/trinary"
 )
+
+// ErrCallableBoundary is returned when a callable value is forced through a
+// non-native boundary ([]any, JS/module interop, etc.).
+var ErrCallableBoundary = errors.New("callable value cannot cross this boundary")
+
+const callablePlaceholder = "<callable>"
 
 type undefinedBoundaryToken struct{}
 
@@ -39,8 +46,9 @@ const (
 	ValueString
 	ValueTrinary
 	ValueList
-	ValueMap
+	ValueDict
 	ValueDocument
+	ValueCallable
 	// ValueObject is a backward-compatible alias for ValueDocument.
 	ValueObject = ValueDocument
 )
@@ -61,10 +69,12 @@ func (k ValueKind) String() string {
 		return "trinary"
 	case ValueList:
 		return "list"
-	case ValueMap:
-		return "map"
+	case ValueDict:
+		return "dict"
 	case ValueDocument:
 		return "document"
+	case ValueCallable:
+		return "callable"
 	default:
 		return "invalid"
 	}
@@ -112,12 +122,25 @@ func List(xs []Value) Value {
 	return Value{kind: ValueList, ref: xs}
 }
 
-func Map(m map[string]Value) Value {
-	return Value{kind: ValueMap, ref: m}
+func Dict(m map[string]Value) Value {
+	return Value{kind: ValueDict, ref: m}
 }
 
 func Document[T any](x T) Value {
 	return Value{kind: ValueDocument, ref: x}
+}
+
+// Callable wraps a runtime-defined callable value (opaque ref; interpreted in package runtime).
+func Callable(ref any) Value {
+	return Value{kind: ValueCallable, ref: ref}
+}
+
+// CallableRef returns the opaque callable payload for ValueCallable.
+func (v Value) CallableRef() (any, bool) {
+	if v.kind != ValueCallable {
+		return nil, false
+	}
+	return v.ref, true
 }
 
 // Object is a backward-compatible alias for Document.
@@ -178,8 +201,8 @@ func (v Value) ListValue() ([]Value, bool) {
 	return xs, ok
 }
 
-func (v Value) MapValue() (map[string]Value, bool) {
-	if v.kind != ValueMap {
+func (v Value) DictValue() (map[string]Value, bool) {
+	if v.kind != ValueDict {
 		return nil, false
 	}
 	m, ok := v.ref.(map[string]Value)
@@ -220,7 +243,7 @@ func TrinaryFrom(b Value) trinary.Value {
 			return trinary.False
 		}
 		return trinary.True
-	case ValueMap:
+	case ValueDict:
 		m, _ := b.ref.(map[string]Value)
 		if len(m) == 0 {
 			return trinary.False
@@ -228,6 +251,8 @@ func TrinaryFrom(b Value) trinary.Value {
 		return trinary.True
 	case ValueDocument:
 		return trinary.From(b.ref)
+	case ValueCallable:
+		return trinary.True
 	case ValueInvalid:
 		return trinary.Unknown
 	default:
@@ -257,7 +282,7 @@ func (v Value) Any() any {
 			out = append(out, x.Any())
 		}
 		return out
-	case ValueMap:
+	case ValueDict:
 		m, _ := v.ref.(map[string]Value)
 		out := make(map[string]any, len(m))
 		for k, x := range m {
@@ -266,6 +291,8 @@ func (v Value) Any() any {
 		return out
 	case ValueDocument:
 		return v.ref
+	case ValueCallable:
+		return callablePlaceholder
 	default:
 		return nil
 	}
@@ -293,6 +320,8 @@ func (v Value) String() string {
 	case ValueTrinary:
 		t, _ := v.TrinaryValue()
 		return t.String()
+	case ValueCallable:
+		return callablePlaceholder
 	default:
 		return fmt.Sprintf("%v", v.Any())
 	}
@@ -301,6 +330,9 @@ func (v Value) String() string {
 func (v Value) MarshalJSON() ([]byte, error) {
 	if v.IsUndefined() {
 		return []byte("null"), nil
+	}
+	if v.IsCallable() {
+		return nil, fmt.Errorf("cannot marshal callable value to JSON")
 	}
 	return json.Marshal(v.Any())
 }
@@ -344,7 +376,7 @@ func FromAny(x any) Value {
 	case []Value:
 		return List(t)
 	case map[string]Value:
-		return Map(t)
+		return Dict(t)
 	case []any:
 		out := make([]Value, 0, len(t))
 		for _, item := range t {
@@ -356,30 +388,82 @@ func FromAny(x any) Value {
 		for k, v := range t {
 			out[k] = FromAny(v)
 		}
-		return Map(out)
+		return Dict(out)
 	default:
 		return Document(x)
 	}
 }
 
-// ToBoundaryAny converts a boxed Value into an unboxed representation suitable
-// for runtime boundaries while preserving undefined/null distinction.
-func ToBoundaryAny(v Value) any {
+// IsCallable reports whether v is a first-class callable boxed value.
+func (v Value) IsCallable() bool {
+	return v.kind == ValueCallable
+}
+
+// TryToBoundaryAny converts v like ToBoundaryAny but fails if a callable appears
+// anywhere in the value tree.
+func TryToBoundaryAny(v Value) (any, error) {
 	switch v.Kind() {
+	case ValueCallable:
+		return nil, ErrCallableBoundary
 	case ValueUndefined:
-		return boundaryUndefined
+		return boundaryUndefined, nil
 	case ValueList:
 		xs, _ := v.ListValue()
 		out := make([]any, 0, len(xs))
 		for _, item := range xs {
-			out = append(out, ToBoundaryAny(item))
+			x, err := TryToBoundaryAny(item)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, x)
 		}
-		return out
-	case ValueMap:
-		m, _ := v.MapValue()
+		return out, nil
+	case ValueDict:
+		m, _ := v.DictValue()
 		out := make(map[string]any, len(m))
 		for k, item := range m {
-			out[k] = ToBoundaryAny(item)
+			x, err := TryToBoundaryAny(item)
+			if err != nil {
+				return nil, err
+			}
+			out[k] = x
+		}
+		return out, nil
+	default:
+		return v.Any(), nil
+	}
+}
+
+// ToBoundaryAny converts a boxed Value into an unboxed representation suitable
+// for runtime boundaries while preserving undefined/null distinction.
+// Callable values (and nested callables) must not be passed; use TryToBoundaryAny instead.
+func ToBoundaryAny(v Value) any {
+	a, err := TryToBoundaryAny(v)
+	if err != nil {
+		return toBoundaryAnyLossy(v)
+	}
+	return a
+}
+
+// toBoundaryAnyLossy is a non-panicking fallback used by ToBoundaryAny only.
+func toBoundaryAnyLossy(v Value) any {
+	switch v.Kind() {
+	case ValueUndefined:
+		return boundaryUndefined
+	case ValueCallable:
+		return callablePlaceholder
+	case ValueList:
+		xs, _ := v.ListValue()
+		out := make([]any, 0, len(xs))
+		for _, item := range xs {
+			out = append(out, toBoundaryAnyLossy(item))
+		}
+		return out
+	case ValueDict:
+		m, _ := v.DictValue()
+		out := make(map[string]any, len(m))
+		for k, item := range m {
+			out[k] = toBoundaryAnyLossy(item)
 		}
 		return out
 	default:
@@ -405,7 +489,7 @@ func FromBoundaryAny(x any) Value {
 		for k, item := range t {
 			out[k] = FromBoundaryAny(item)
 		}
-		return Map(out)
+		return Dict(out)
 	default:
 		return FromAny(x)
 	}

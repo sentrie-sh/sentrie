@@ -48,7 +48,16 @@ func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *
 		args = append(args, v)
 	}
 
-	target, err := getTarget(ctx, ec, p, t)
+	if t.Memoized {
+		for _, a := range args {
+			if a.IsCallable() {
+				err := fmt.Errorf("memoized call cannot take callable arguments")
+				return box.Undefined(), n.SetErr(err), err
+			}
+		}
+	}
+
+	target, err := getTarget(ctx, ec, exec, p, t)
 	if err != nil {
 		return box.Undefined(), n.SetErr(err), err
 	}
@@ -104,7 +113,12 @@ func splitAliasFn(s string) (string, string) {
 func calculateHashKey(node *ast.CallExpression, args []box.Value) string {
 	hashArgs := make([]any, 0, len(args))
 	for _, a := range args {
-		hashArgs = append(hashArgs, box.ToBoundaryAny(a))
+		// Callables are rejected for memoized calls before we get here.
+		h, err := box.TryToBoundaryAny(a)
+		if err != nil {
+			return ""
+		}
+		hashArgs = append(hashArgs, h)
 	}
 	arghash, err := hashstructure.Hash(hashArgs, hashstructure.FormatV2, nil)
 	if err != nil {
@@ -113,25 +127,18 @@ func calculateHashKey(node *ast.CallExpression, args []box.Value) string {
 	return fmt.Sprintf("%p:%d", node, arghash)
 }
 
-func getTarget(_ context.Context, ec *ExecutionContext, p *index.Policy, c *ast.CallExpression) (func(context.Context, ...box.Value) (box.Value, error), error) {
+func getTarget(_ context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, c *ast.CallExpression) (func(context.Context, ...box.Value) (box.Value, error), error) {
 	callee := c.Callee.String()
 
-	// check if we have a builtin function
 	if builtin, ok := Builtins[callee]; ok {
 		return func(ctx context.Context, args ...box.Value) (box.Value, error) {
-			anyArgs := make([]any, 0, len(args))
-			for _, a := range args {
-				anyArgs = append(anyArgs, box.ToBoundaryAny(a))
-			}
-			out, err := builtin(ctx, anyArgs)
-			return box.FromBoundaryAny(out), err
+			site := &CallSite{EC: ec, Exec: exec, Policy: p}
+			return builtin(ctx, site, args...)
 		}, nil
 	}
 
-	// otherwise, assume that's a module function
 	module, fn := splitAliasFn(callee)
 
-	// if the module or fn are empty, it's a problem
 	if module == "" || fn == "" {
 		e := xerr.ErrImportResolution(module, p.Namespace.FQN.String())
 		return nil, e
@@ -146,7 +153,14 @@ func getTarget(_ context.Context, ec *ExecutionContext, p *index.Policy, c *ast.
 	return func(ctx context.Context, args ...box.Value) (box.Value, error) {
 		anyArgs := make([]any, 0, len(args))
 		for _, a := range args {
-			anyArgs = append(anyArgs, box.ToBoundaryAny(a))
+			if a.IsCallable() {
+				return box.Undefined(), fmt.Errorf("cannot pass callable value to module function %s.%s", module, fn)
+			}
+			x, err := box.TryToBoundaryAny(a)
+			if err != nil {
+				return box.Undefined(), fmt.Errorf("module call %s.%s: %w", module, fn, err)
+			}
+			anyArgs = append(anyArgs, x)
 		}
 		out, err := modulebinding.Call(ctx, ec, fn, anyArgs...)
 		return box.FromBoundaryAny(out), err

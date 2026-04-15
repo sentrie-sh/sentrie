@@ -86,7 +86,12 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 
 	injectedFacts := make(map[string]any, len(facts))
 	for name, factValue := range facts {
-		injectedFacts[name] = box.ToBoundaryAny(factValue)
+		b, err := box.TryToBoundaryAny(factValue)
+		if err != nil {
+			err = fmt.Errorf("import with fact %q: %w", name, err)
+			return box.Null(), n.SetErr(err), err
+		}
+		injectedFacts[name] = b
 	}
 
 	output, err := exec.ExecRule(ctx, ns, pol, rule, injectedFacts)
@@ -106,7 +111,7 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 // "state" and "value" are applied after attachments so they cannot be shadowed by attachment names.
 func executorOutputEnvelope(output *ExecutorOutput) box.Value {
 	if output == nil {
-		return box.Map(map[string]box.Value{
+		return box.Dict(map[string]box.Value{
 			"state": box.Trinary(trinary.Unknown),
 			"value": box.Undefined(),
 		})
@@ -123,5 +128,5 @@ func executorOutputEnvelope(output *ExecutorOutput) box.Value {
 	maps.Copy(m, map[string]box.Value(output.Attachments))
 	m["state"] = box.Trinary(state)
 	m["value"] = value
-	return box.Map(m)
+	return box.Dict(m)
 }

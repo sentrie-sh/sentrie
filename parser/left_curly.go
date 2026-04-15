@@ -24,7 +24,7 @@ import (
 )
 
 func parseFromLeftCurly(ctx context.Context, p *Parser) ast.Expression {
-	// depending on what follows a left curly, we switch between parsing a map literal or a block expression
+	// depending on what follows a left curly, we switch between parsing a dict literal or a block expression
 	if p.peek().IsOfKind(tokens.String) || p.peek().IsOfKind(tokens.PunctLeftBracket) || p.peek().IsOfKind(tokens.PunctRightCurly) {
 		return parseMapLiteral(ctx, p)
 	}

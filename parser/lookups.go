@@ -31,14 +31,6 @@ func (p *Parser) registerParseFns() {
 	p.registerPrefix(tokens.KeywordUnknown, parseTrinaryLiteral)
 
 	p.registerPrefix(tokens.KeywordNull, parseNullLiteral)
-	p.registerPrefix(tokens.KeywordAny, quantifierParserFactory(tokens.KeywordAny))
-	p.registerPrefix(tokens.KeywordAll, quantifierParserFactory(tokens.KeywordAll))
-	p.registerPrefix(tokens.KeywordFilter, quantifierParserFactory(tokens.KeywordFilter))
-	p.registerPrefix(tokens.KeywordFirst, quantifierParserFactory(tokens.KeywordFirst))
-	p.registerPrefix(tokens.KeywordMap, quantifierParserFactory(tokens.KeywordMap))
-	p.registerPrefix(tokens.KeywordDistinct, parseDistinctExpression)
-
-	p.registerPrefix(tokens.KeywordReduce, parseReduceExpression)
 	p.registerPrefix(tokens.KeywordCast, parseCastExpression)
 
 	p.registerPrefix(tokens.Ident, parseIdentifier)
@@ -130,6 +122,6 @@ var PRIMITIVE_TYPES = []tokens.Kind{
 
 var AGGREGATE_TYPES = []tokens.Kind{
 	tokens.KeywordList,
-	tokens.KeywordMap,
+	tokens.KeywordDict,
 	tokens.KeywordRecord,
 }

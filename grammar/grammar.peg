@@ -51,12 +51,6 @@ CmpExpr = EqualityExpr
         / ContainsExpr
         / InExpr
         / KvInExpr
-        / AnyExpr
-        / AllExpr
-        / FilterExpr
-        / MapExpr
-        / DistinctExpr
-        / ReduceExpr
         / CountExpr
         / DefinedExpr
         / EmptyExpr
@@ -78,7 +72,10 @@ PrimaryExpr = Literal
             / FunctionCall
             / IndexAccess
             / FieldAccess
+            / LambdaExpr
             / GroupedExpr
+
+LambdaExpr = "(" (IDENT ("," IDENT)*)? ")" "=>" BlockExpr
 
 /* Specific Expression Types */
 EqualityExpr = AddExpr ("==" / "!=") AddExpr
@@ -93,13 +90,7 @@ ContainsExpr = AddExpr ("not")? "contains" AddExpr
 InExpr = AddExpr ("not")? "in" AddExpr
 KvInExpr = MapLiteral "in" AddExpr
 
-/* Higher-Order Operations */
-AnyExpr = "any" AddExpr "as" IDENT ("," IDENT)? (BlockExpr / GroupedExpr)
-AllExpr = "all" AddExpr "as" IDENT ("," IDENT)? (BlockExpr / GroupedExpr)
-FilterExpr = "filter" AddExpr "as" IDENT ("," IDENT)? (BlockExpr / GroupedExpr)
-MapExpr = "map" AddExpr "as" IDENT ("," IDENT)? (BlockExpr / GroupedExpr)
-DistinctExpr = "distinct" AddExpr "as" IDENT ("," IDENT)? (BlockExpr / GroupedExpr)
-ReduceExpr = "reduce" AddExpr "from" Expr "as" IDENT ("," IDENT)? BlockExpr
+/* Built-in collection helpers use ordinary calls, e.g. filter(list, (x) => { yield ... }). */
 CastExpr = "cast" AddExpr "as" PrimitiveType
 CountExpr = "count" AddExpr
 
@@ -126,12 +117,12 @@ MapEntry = STRING ":" Expr
 ShapeDecl = "shape" IDENT (TypeRef / ComplexShape)
 ComplexShape = ("with" TypeName)? "{" ShapeElement+ "}"
 ShapeElement = IDENT ("!" / "?")? ":" TypeRef
-TypeRef = (PrimitiveType / TypeName / ListType / MapType / RecordType) TypeRefConstraint*
+TypeRef = (PrimitiveType / TypeName / ListType / DictType / RecordType) TypeRefConstraint*
 
 TypeRefConstraint = "@" IDENT "(" CommaSeparatedExpr? ")"
 PrimitiveType = "int" / "float" / "string" / "bool" / "document"
 ListType = "list" "[" TypeRef "]"
-MapType = "map" "[" TypeRef "]"
+DictType = "dict" "[" TypeRef "]"
 RecordType = "record" "[" TypeRef ("," TypeRef)* "]"
 TypeName = FQN
 

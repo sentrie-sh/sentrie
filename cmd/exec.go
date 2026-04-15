@@ -306,7 +306,7 @@ func formatAttachment(name string, attachment any, indent int) {
 			}
 			return
 		}
-		if m, mok := boxed.MapValue(); mok {
+		if m, mok := boxed.DictValue(); mok {
 			fmt.Printf("%s     %s:\n", indentStr, name)
 			for key, val := range m {
 				formatAttachment(key, val, indent+1)

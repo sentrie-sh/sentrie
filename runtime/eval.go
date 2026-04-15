@@ -92,7 +92,7 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 		return out, n.SetResult(out), nil
 
 	case *ast.MapLiteral:
-		ctx, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "map"})
+		ctx, n, done := trace.New(ctx, t, "literal", map[string]any{"type": "dict"})
 		defer done()
 
 		m := map[string]box.Value{}
@@ -115,7 +115,7 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 			}
 			m[keyValue] = v
 		}
-		out := box.Map(m)
+		out := box.Dict(m)
 		return out, n.SetResult(out), nil
 
 	case *ast.Identifier:
@@ -148,29 +148,11 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 	case *ast.TernaryExpression:
 		return evalTernary(ctx, ec, exec, p, t)
 
-	case *ast.AnyExpression:
-		return evalAny(ctx, ec, exec, p, t)
-
-	case *ast.AllExpression:
-		return evalAll(ctx, ec, exec, p, t)
-
-	case *ast.FirstExpression:
-		return evalFirst(ctx, ec, exec, p, t)
-
-	case *ast.FilterExpression:
-		return evalFilter(ctx, ec, exec, p, t)
-
-	case *ast.ReduceExpression:
-		return evalReduce(ctx, ec, exec, p, t)
-
-	case *ast.MapExpression:
-		return evalMap(ctx, ec, exec, p, t)
+	case *ast.LambdaExpression:
+		return evalLambda(ctx, ec, exec, p, t)
 
 	case *ast.TransformExpression:
 		return evalTransform(ctx, ec, exec, p, t)
-
-	case *ast.DistinctExpression:
-		return evalDistinct(ctx, ec, exec, p, t)
 
 	default:
 		err := fmt.Errorf("unsupported expression node: %T", t)

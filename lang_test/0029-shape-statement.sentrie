@@ -10,10 +10,10 @@ shape aShape {
   aList: list[string]
   aMap: AnotherShape @ashapevalidator()
   anotherList: list[Rectangle]
-  listofmap: list[map[AnotherShape]]
+  listofmap: list[dict[AnotherShape]]
   listoflist: list[list[int]]
-  mapoflist: map[list[AnotherShape]]
-  mapofmap: map[ map[ map[AnotherShape] ] ]
+  mapoflist: dict[list[AnotherShape]]
+  mapofmap: dict[ dict[ dict[AnotherShape] ] ]
   anotherMap: AnotherShape
 
   withValidators: int @min(0) @max(10)

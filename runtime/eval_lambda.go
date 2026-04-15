@@ -14,19 +14,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package runtime
 
-import "github.com/sentrie-sh/sentrie/box"
+import (
+	"context"
 
-func (s *CmdTestSuite) TestFormatAttachmentRecursesBoxedContainers() {
-	value := box.Dict(map[string]box.Value{
-		"items": box.List([]box.Value{box.Number(1), box.Number(2)}),
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
+	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/runtime/trace"
+)
+
+func evalLambda(ctx context.Context, ec *ExecutionContext, _ *executorImpl, _ *index.Policy, lam *ast.LambdaExpression) (box.Value, *trace.Node, error) {
+	_, n, done := trace.New(ctx, lam, "lambda", map[string]any{
+		"params": lam.Params,
 	})
-	out := s.captureStdout(func() {
-		formatAttachment("root", value, 0)
-	})
-	s.Contains(out, "root:")
-	s.Contains(out, "items:")
-	s.Contains(out, "- 1")
-	s.Contains(out, "- 2")
+	defer done()
+
+	// v1: capture the current execution context by reference (not a value snapshot).
+	fn := newLambdaCallable(lam, ec)
+	out := box.Callable(fn)
+	return out, n.SetResult(out), nil
 }

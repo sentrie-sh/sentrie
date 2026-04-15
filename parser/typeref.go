@@ -50,8 +50,8 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		ref = ast.NewShapeTypeRef(fqn, fqn.Rnge)
 	case tokens.KeywordList:
 		ref = ast.NewListTypeRef(nil, p.advance().Range) // elemType will be set later
-	case tokens.KeywordMap:
-		ref = ast.NewMapTypeRef(nil, p.advance().Range) // valueType will be set later
+	case tokens.KeywordDict:
+		ref = ast.NewDictTypeRef(nil, p.advance().Range) // valueType will be set later
 	case tokens.KeywordRecord:
 		ref = ast.NewRecordTypeRef(nil, p.advance().Range) // fields will be set later
 	case tokens.KeywordDocument:
@@ -72,7 +72,7 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 			return nil
 		}
 		r.Rnge.To = rBracket.Range.To
-	} else if r, ok := ref.(*ast.MapTypeRef); ok {
+	} else if r, ok := ref.(*ast.DictTypeRef); ok {
 		if !p.expect(tokens.PunctLeftBracket) {
 			return nil
 		}

@@ -16,4 +16,4 @@
 
 package constraints
 
-var MapContraintCheckers map[string]ConstraintDefinition = map[string]ConstraintDefinition{}
+var DictContraintCheckers map[string]ConstraintDefinition = map[string]ConstraintDefinition{}

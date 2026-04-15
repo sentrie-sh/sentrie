@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -78,7 +78,7 @@ var genListConstraints = map[string]int{
 	"not_empty": 0,
 }
 
-var genMapConstraints = map[string]int{}
+var genDictConstraints = map[string]int{}
 
 var genDocumentConstraints = map[string]int{}
 

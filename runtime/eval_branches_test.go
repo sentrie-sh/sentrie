@@ -41,6 +41,10 @@ func newEvalTestPolicy() *index.Policy {
 	}
 }
 
+func stubLambda(params []string, yield ast.Expression) *ast.LambdaExpression {
+	return ast.NewLambdaExpression(params, ast.NewBlockExpression(nil, yield, stubRange()), stubRange())
+}
+
 func (s *RuntimeTestSuite) TestExecutionContextBranchCoverage() {
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
@@ -72,50 +76,48 @@ func (s *RuntimeTestSuite) TestEvalQuantifiersAndMapBranches() {
 	ctx := context.Background()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
+	exec := &executorImpl{}
 
 	undefinedCollection := ast.NewFieldAccessExpression(ast.NewMapLiteral([]ast.MapEntry{}, stubRange()), "missing", stubRange())
-	anyExpr := ast.NewAnyExpression(undefinedCollection, "v", "", ast.NewTrinaryLiteral(trinary.True, stubRange()), stubRange())
-	anyResult, _, err := evalAny(ctx, ec, &executorImpl{}, p, anyExpr)
+	anyCall := ast.NewCallExpression(ast.NewIdentifier("any", stubRange()), []ast.Expression{
+		undefinedCollection,
+		stubLambda([]string{"v"}, ast.NewTrinaryLiteral(trinary.True, stubRange())),
+	}, false, nil, stubRange())
+	anyResult, _, err := eval(ctx, ec, exec, p, anyCall)
 	s.Require().NoError(err)
 	s.Require().Equal(false, anyResult.Any())
 
-	allExpr := ast.NewAllExpression(ast.NewStringLiteral("bad", stubRange()), "v", "", ast.NewTrinaryLiteral(trinary.True, stubRange()), stubRange())
-	_, _, err = evalAll(ctx, ec, &executorImpl{}, p, allExpr)
-	s.Require().ErrorContains(err, "all expects list source")
+	allCall := ast.NewCallExpression(ast.NewIdentifier("all", stubRange()), []ast.Expression{
+		ast.NewStringLiteral("bad", stubRange()),
+		stubLambda([]string{"v"}, ast.NewTrinaryLiteral(trinary.True, stubRange())),
+	}, false, nil, stubRange())
+	_, _, err = eval(ctx, ec, exec, p, allCall)
+	s.Require().ErrorContains(err, "all: first argument must be a list")
 
-	firstExpr := ast.NewFirstExpression(
+	firstCall := ast.NewCallExpression(ast.NewIdentifier("first", stubRange()), []ast.Expression{
 		ast.NewListLiteral([]ast.Expression{ast.NewIntegerLiteral(1, stubRange())}, stubRange()),
-		"v",
-		"",
-		ast.NewTrinaryLiteral(trinary.False, stubRange()),
-		stubRange(),
-	)
-	firstResult, _, err := evalFirst(ctx, ec, &executorImpl{}, p, firstExpr)
+		stubLambda([]string{"v"}, ast.NewTrinaryLiteral(trinary.False, stubRange())),
+	}, false, nil, stubRange())
+	firstResult, _, err := eval(ctx, ec, exec, p, firstCall)
 	s.Require().NoError(err)
 	s.Require().True(firstResult.IsUndefined())
 
-	filterExpr := ast.NewFilterExpression(
+	filterCall := ast.NewCallExpression(ast.NewIdentifier("filter", stubRange()), []ast.Expression{
 		ast.NewListLiteral([]ast.Expression{ast.NewIntegerLiteral(1, stubRange()), ast.NewIntegerLiteral(2, stubRange())}, stubRange()),
-		"v",
-		"idx",
-		ast.NewInfixExpression(ast.NewIdentifier("idx", stubRange()), ast.NewIntegerLiteral(0, stubRange()), ">", stubRange()),
-		stubRange(),
-	)
-	filterResult, _, err := evalFilter(ctx, ec, &executorImpl{}, p, filterExpr)
+		stubLambda([]string{"v", "idx"}, ast.NewInfixExpression(ast.NewIdentifier("idx", stubRange()), ast.NewIntegerLiteral(0, stubRange()), ">", stubRange())),
+	}, false, nil, stubRange())
+	filterResult, _, err := eval(ctx, ec, exec, p, filterCall)
 	s.Require().NoError(err)
 	filtered, ok := filterResult.ListValue()
 	s.Require().True(ok)
 	s.Require().Len(filtered, 1)
 	s.Require().Equal(2.0, filtered[0].Any())
 
-	mapExpr := ast.NewMapExpression(
+	collectCall := ast.NewCallExpression(ast.NewIdentifier("collect", stubRange()), []ast.Expression{
 		ast.NewListLiteral([]ast.Expression{ast.NewIntegerLiteral(3, stubRange())}, stubRange()),
-		"v",
-		"idx",
-		ast.NewInfixExpression(ast.NewIdentifier("v", stubRange()), ast.NewIdentifier("idx", stubRange()), "+", stubRange()),
-		stubRange(),
-	)
-	mapResult, _, err := evalMap(ctx, ec, &executorImpl{}, p, mapExpr)
+		stubLambda([]string{"v", "idx"}, ast.NewInfixExpression(ast.NewIdentifier("v", stubRange()), ast.NewIdentifier("idx", stubRange()), "+", stubRange())),
+	}, false, nil, stubRange())
+	mapResult, _, err := eval(ctx, ec, exec, p, collectCall)
 	s.Require().NoError(err)
 	mapped, ok := mapResult.ListValue()
 	s.Require().True(ok)
@@ -126,37 +128,46 @@ func (s *RuntimeTestSuite) TestEvalReduceTransformTernaryUnaryBlockCastBranches(
 	ctx := context.Background()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
+	exec := &executorImpl{}
 
 	undefinedCollection := ast.NewFieldAccessExpression(ast.NewMapLiteral([]ast.MapEntry{}, stubRange()), "missing", stubRange())
-	reduceUndefinedExpr := ast.NewReduceExpression(undefinedCollection, ast.NewIntegerLiteral(0, stubRange()), "acc", "v", "i", ast.NewIdentifier("acc", stubRange()), stubRange())
-	reduceUndefined, _, err := evalReduce(ctx, ec, &executorImpl{}, p, reduceUndefinedExpr)
+	reduceUndefinedExpr := ast.NewCallExpression(ast.NewIdentifier("reduce", stubRange()), []ast.Expression{
+		undefinedCollection,
+		ast.NewIntegerLiteral(0, stubRange()),
+		stubLambda([]string{"acc", "v", "i"}, ast.NewIdentifier("acc", stubRange())),
+	}, false, nil, stubRange())
+	reduceUndefined, _, err := eval(ctx, ec, exec, p, reduceUndefinedExpr)
 	s.Require().NoError(err)
 	s.Require().True(reduceUndefined.IsUndefined())
 
-	reduceErrExpr := ast.NewReduceExpression(ast.NewStringLiteral("bad", stubRange()), ast.NewIntegerLiteral(0, stubRange()), "acc", "v", "", ast.NewIdentifier("acc", stubRange()), stubRange())
-	_, _, err = evalReduce(ctx, ec, &executorImpl{}, p, reduceErrExpr)
-	s.Require().ErrorContains(err, "filter expects list source")
+	reduceErrExpr := ast.NewCallExpression(ast.NewIdentifier("reduce", stubRange()), []ast.Expression{
+		ast.NewStringLiteral("bad", stubRange()),
+		ast.NewIntegerLiteral(0, stubRange()),
+		stubLambda([]string{"acc", "v"}, ast.NewIdentifier("acc", stubRange())),
+	}, false, nil, stubRange())
+	_, _, err = eval(ctx, ec, exec, p, reduceErrExpr)
+	s.Require().ErrorContains(err, "reduce: first argument must be a list")
 
 	transformExpr := ast.NewTransformExpression(ast.NewIntegerLiteral(1, stubRange()), "noop", stubRange())
-	_, _, err = evalTransform(ctx, ec, &executorImpl{}, p, transformExpr)
+	_, _, err = evalTransform(ctx, ec, exec, p, transformExpr)
 	s.Require().ErrorIs(err, xerr.ErrNotImplemented)
 
 	thenExpr := ast.NewTernaryExpression(ast.NewTrinaryLiteral(trinary.True, stubRange()), ast.NewIntegerLiteral(10, stubRange()), ast.NewIntegerLiteral(20, stubRange()), stubRange())
-	thenResult, _, err := evalTernary(ctx, ec, &executorImpl{}, p, thenExpr)
+	thenResult, _, err := evalTernary(ctx, ec, exec, p, thenExpr)
 	s.Require().NoError(err)
 	s.Require().Equal(10.0, thenResult.Any())
 
 	elseExpr := ast.NewTernaryExpression(ast.NewTrinaryLiteral(trinary.False, stubRange()), ast.NewIntegerLiteral(10, stubRange()), ast.NewIntegerLiteral(20, stubRange()), stubRange())
-	elseResult, _, err := evalTernary(ctx, ec, &executorImpl{}, p, elseExpr)
+	elseResult, _, err := evalTernary(ctx, ec, exec, p, elseExpr)
 	s.Require().NoError(err)
 	s.Require().Equal(20.0, elseResult.Any())
 
-	unaryNot, _, err := evalUnary(ctx, ec, &executorImpl{}, p, ast.NewUnaryExpression("not", ast.NewTrinaryLiteral(trinary.True, stubRange()), stubRange()))
+	unaryNot, _, err := evalUnary(ctx, ec, exec, p, ast.NewUnaryExpression("not", ast.NewTrinaryLiteral(trinary.True, stubRange()), stubRange()))
 	s.Require().NoError(err)
 	s.Require().Equal(trinary.False, unaryNot.Any())
 
 	unaryErrExpr := ast.NewUnaryExpression("+", ast.NewStringLiteral("x", stubRange()), stubRange())
-	_, _, err = evalUnary(ctx, ec, &executorImpl{}, p, unaryErrExpr)
+	_, _, err = evalUnary(ctx, ec, exec, p, unaryErrExpr)
 	s.Require().ErrorContains(err, "unary + requires number")
 
 	blockExpr := ast.NewBlockExpression(
@@ -167,18 +178,22 @@ func (s *RuntimeTestSuite) TestEvalReduceTransformTernaryUnaryBlockCastBranches(
 		ast.NewIdentifier("x", stubRange()),
 		stubRange(),
 	)
-	_, _, err = evalBlock(ctx, ec, &executorImpl{}, p, blockExpr)
+	_, _, err = evalBlock(ctx, ec, exec, p, blockExpr)
 	s.Require().Error(err)
 
 	castBoolExpr := ast.NewCastExpression(ast.NewUnaryExpression("!", ast.NewTrinaryLiteral(trinary.False, stubRange()), stubRange()), ast.NewNumberTypeRef(stubRange()), stubRange())
-	_, _, err = evalCast(ctx, ec, &executorImpl{}, p, castBoolExpr)
+	_, _, err = evalCast(ctx, ec, exec, p, castBoolExpr)
 	s.Require().ErrorContains(err, "cannot cast trinary to number")
 
 	castParseErr := ast.NewCastExpression(ast.NewStringLiteral("abc", stubRange()), ast.NewNumberTypeRef(stubRange()), stubRange())
-	_, _, err = evalCast(ctx, ec, &executorImpl{}, p, castParseErr)
+	_, _, err = evalCast(ctx, ec, exec, p, castParseErr)
 	s.Require().Error(err)
 
 	castListErr := ast.NewCastExpression(ast.NewIntegerLiteral(1, stubRange()), ast.NewListTypeRef(ast.NewNumberTypeRef(stubRange()), stubRange()), stubRange())
-	_, _, err = evalCast(ctx, ec, &executorImpl{}, p, castListErr)
+	_, _, err = evalCast(ctx, ec, exec, p, castListErr)
 	s.Require().ErrorContains(err, "cannot cast number to list")
+
+	castDictErr := ast.NewCastExpression(ast.NewIntegerLiteral(1, stubRange()), ast.NewDictTypeRef(ast.NewNumberTypeRef(stubRange()), stubRange()), stubRange())
+	_, _, err = evalCast(ctx, ec, exec, p, castDictErr)
+	s.Require().ErrorContains(err, "cannot cast number to dict")
 }

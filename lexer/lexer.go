@@ -45,6 +45,9 @@ type Lexer struct {
 	atEOF        bool
 
 	identRegex *regexp.Regexp
+
+	// pushBack is a LIFO stack: NextToken pops from here before lexing more input.
+	pushBack []tokens.Instance
 }
 
 func NewLexer(reader io.Reader, filename string) *Lexer {
@@ -58,8 +61,20 @@ func NewLexer(reader io.Reader, filename string) *Lexer {
 	return l
 }
 
+// PushBack returns a token to the stream so the next NextToken yields it.
+// Used for speculative lookahead in the parser (e.g. grouped vs lambda).
+func (l *Lexer) PushBack(t tokens.Instance) {
+	l.pushBack = append(l.pushBack, t)
+}
+
 // NextToken returns the next token from the input
 func (l *Lexer) NextToken() tokens.Instance {
+	if len(l.pushBack) > 0 {
+		i := len(l.pushBack) - 1
+		t := l.pushBack[i]
+		l.pushBack = l.pushBack[:i]
+		return t
+	}
 	for {
 		l.skipWhitespace()
 
@@ -87,6 +102,12 @@ func (l *Lexer) NextToken() tokens.Instance {
 				endPos := l.currentPosition()
 				l.readRune()
 				return tokens.New(tokens.TokenEq, "==", tokens.NewRange(l.filename, startPos, endPos))
+			}
+			if l.peekAhead() == '>' {
+				l.readRune()
+				endPos := l.currentPosition()
+				l.readRune()
+				return tokens.New(tokens.TokenFatArrow, "=>", tokens.NewRange(l.filename, startPos, endPos))
 			}
 			l.readRune()
 			endPos := l.currentPosition()

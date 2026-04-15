@@ -68,7 +68,7 @@ func accessField(_ context.Context, obj box.Value, field string) (box.Value, err
 	if obj.IsUndefined() {
 		return box.Undefined(), nil
 	}
-	if m, ok := obj.MapValue(); ok {
+	if m, ok := obj.DictValue(); ok {
 		if v, exists := m[field]; exists {
 			return v, nil
 		}
@@ -100,7 +100,7 @@ func accessIndex(_ context.Context, col box.Value, idx box.Value) (box.Value, er
 		}
 		return c[i], nil
 	}
-	if c, ok := col.MapValue(); ok {
+	if c, ok := col.DictValue(); ok {
 		if s, sok := idx.StringValue(); sok {
 			if v, exists := c[s]; exists {
 				return v, nil
