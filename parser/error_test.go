@@ -175,6 +175,8 @@ func (s *ParserTestSuite) TestParseErrorInvalidOperators() {
 		"namespace com/example; rule check { 1 %% 2 }",  // Invalid operator
 		"namespace com/example; rule check { 1 &&& 2 }", // Invalid operator
 		"namespace com/example; rule check { 1 ||| 2 }", // Invalid operator
+
+		"namespace com/example; policy p { rule allow = value | len export decision of allow }", // Bare pipe should fail at lexer level
 	}
 
 	for _, tc := range testCases {

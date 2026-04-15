@@ -111,3 +111,28 @@ func (s *RuntimeTestSuite) TestCalculateHashKeyNumericEdges() {
 	s.Require().NotEmpty(hashInf)
 	s.Require().NotEqual(hashNegZero, hashPosZero)
 }
+
+func (s *RuntimeTestSuite) TestGetTargetDoesNotResolveImportedFunctionAsBareIdentifier() {
+	p := newEvalTestPolicy()
+	p.Uses = map[string]*ast.UseStatement{
+		"string": ast.NewUseStatement(
+			[]string{"trim"},
+			"",
+			[]string{"sentrie", "string"},
+			"string",
+			stubRange(),
+		),
+	}
+	ec := NewExecutionContext(p, &executorImpl{})
+	call := ast.NewCallExpression(
+		ast.NewIdentifier("trim", stubRange()),
+		[]ast.Expression{},
+		false,
+		nil,
+		stubRange(),
+	)
+
+	_, err := getTarget(s.T().Context(), ec, &executorImpl{}, p, call)
+	s.Require().Error(err)
+	s.Require().Contains(err.Error(), "unable to resolve import")
+}
