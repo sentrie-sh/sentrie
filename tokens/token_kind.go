@@ -105,6 +105,8 @@ const (
 	TokenAt        Kind = "At"
 	TokenFatArrow  Kind = "FatArrow"
 
+	TokenPipeForward Kind = "PipeForward"
+
 	// Punctuation
 	PunctComma            Kind = "Comma"
 	PunctSemicolon        Kind = "Semicolon"
