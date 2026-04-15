@@ -1,0 +1,22 @@
+namespace sh/sentrie/example/pipeline/module
+
+policy module_pipeline {
+  fact input?: string as input default "sentrie"
+
+  use { sha256 } from @sentrie/hash as hash
+
+  rule digest_available = default false {
+    let digest = input |> hash.sha256
+    yield digest != ""
+  }
+
+  rule digest_length = default 0 {
+    let length = input
+                  |> hash.sha256
+                  |> count
+    yield length
+  }
+
+  export decision of digest_available
+  export decision of digest_length
+}
