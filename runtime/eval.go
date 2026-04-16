@@ -121,6 +121,10 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 	case *ast.Identifier:
 		return evalIdent(ctx, ec, exec, p, t)
 
+	case *ast.PipelineHoleExpression:
+		err := fmt.Errorf("pipeline placeholder '#' must be used inside a pipeline call target")
+		return box.Undefined(), trace.UnsupportedExpression(t).SetErr(err), err
+
 	case *ast.CastExpression:
 		return evalCast(ctx, ec, exec, p, t)
 

@@ -34,6 +34,12 @@ func (s *ParserTestSuite) TestPipelineExpressionLowering() {
 		{"value |> mod.sub.fn", "mod.sub.fn(value)"},
 		{"value |> len |> math.abs", "math.abs(len(value))"},
 		{"value |> str.trim |> len", "len(str.trim(value))"},
+		{"needle |> str.replace(haystack, #, \"$$\")", "str.replace(haystack, needle, \"$$\")"},
+		{"x |> f(1, #)", "f(1, x)"},
+		{"x |> f(#, 2)", "f(x, 2)"},
+		{"x |> f(#, #)", "f(x, x)"},
+		{"x |> f(1, #) |> g(#)", "g(f(1, x))"},
+		{"x |> f(g(#))", "f(g(x))"},
 		{"a + b |> len", "len((a + b))"},
 		{"a ? b : c |> len", "len((a ? b : c))"},
 	}
@@ -128,6 +134,7 @@ func (s *ParserTestSuite) TestPipelineExpressionInvalidTargets() {
 		{"value |> foo[0]", true},
 		{"value |> foo().bar", true},
 		{"value |> foo().bar()", true},
+		{"value |> #", true},
 		{"value |> (str.trim)", true},
 	}
 
@@ -169,6 +176,114 @@ func (s *ParserTestSuite) TestHasIdentifierRoot() {
 			),
 		),
 	)
+}
+
+func (s *ParserTestSuite) TestPipelineHoleHelpers() {
+	rng := tokens.BadRange("test.sentra")
+	replacement := ast.NewIdentifier("x", rng)
+
+	exprs := []struct {
+		name     string
+		input    ast.Expression
+		expected string
+	}{
+		{
+			name:     "call",
+			input:    ast.NewCallExpression(ast.NewIdentifier("f", rng), []ast.Expression{ast.NewPipelineHoleExpression(rng)}, false, nil, rng),
+			expected: "f(x)",
+		},
+		{
+			name: "field_access_left",
+			input: ast.NewFieldAccessExpression(
+				ast.NewPipelineHoleExpression(rng),
+				"trim",
+				rng,
+			),
+			expected: "x.trim",
+		},
+		{
+			name: "index_access",
+			input: ast.NewIndexAccessExpression(
+				ast.NewIdentifier("arr", rng),
+				ast.NewPipelineHoleExpression(rng),
+				rng,
+			),
+			expected: "arr[x]",
+		},
+		{
+			name:     "list",
+			input:    ast.NewListLiteral([]ast.Expression{ast.NewPipelineHoleExpression(rng)}, rng),
+			expected: "[x]",
+		},
+		{
+			name: "map",
+			input: ast.NewMapLiteral([]ast.MapEntry{{
+				Key:   ast.NewStringLiteral("k", rng),
+				Value: ast.NewPipelineHoleExpression(rng),
+			}}, rng),
+			expected: "{k: x}",
+		},
+		{
+			name:     "infix",
+			input:    ast.NewInfixExpression(ast.NewPipelineHoleExpression(rng), ast.NewIntegerLiteral(1, rng), "+", rng),
+			expected: "(x + 1)",
+		},
+		{
+			name:     "unary",
+			input:    ast.NewUnaryExpression("-", ast.NewPipelineHoleExpression(rng), rng),
+			expected: "-x",
+		},
+		{
+			name: "ternary",
+			input: ast.NewTernaryExpression(
+				ast.NewPipelineHoleExpression(rng),
+				ast.NewIntegerLiteral(1, rng),
+				ast.NewIntegerLiteral(0, rng),
+				rng,
+			),
+			expected: "(x ? 1 : 0)",
+		},
+		{
+			name:     "cast",
+			input:    ast.NewCastExpression(ast.NewPipelineHoleExpression(rng), ast.NewNumberTypeRef(rng), rng),
+			expected: "cast x as number",
+		},
+		{
+			name:     "is_defined",
+			input:    ast.NewIsDefinedExpression(ast.NewPipelineHoleExpression(rng), rng),
+			expected: "is defined x",
+		},
+		{
+			name:     "is_empty",
+			input:    ast.NewIsEmptyExpression(ast.NewPipelineHoleExpression(rng), rng),
+			expected: "is empty x",
+		},
+		{
+			name:     "transform",
+			input:    ast.NewTransformExpression(ast.NewPipelineHoleExpression(rng), "to_number", rng),
+			expected: "transform  x to_number",
+		},
+		{
+			name:     "preceding_comment",
+			input:    ast.NewPrecedingCommentExpression("c", ast.NewPipelineHoleExpression(rng), rng),
+			expected: "c -- x",
+		},
+		{
+			name:     "trailing_comment",
+			input:    ast.NewTrailingCommentExpression("c", ast.NewPipelineHoleExpression(rng), rng),
+			expected: "x -- c",
+		},
+	}
+
+	for _, tc := range exprs {
+		s.True(containsPipelineHole(tc.input), tc.name)
+		got := substitutePipelineHoles(tc.input, replacement)
+		s.Equal(tc.expected, got.String(), tc.name)
+		s.False(containsPipelineHole(got), tc.name)
+	}
+
+	s.False(containsPipelineHole(ast.NewIdentifier("plain", rng)))
+	s.False(containsPipelineHoleInExprs([]ast.Expression{ast.NewIdentifier("plain", rng)}))
 }
 
 func durationPtr(d time.Duration) *time.Duration {

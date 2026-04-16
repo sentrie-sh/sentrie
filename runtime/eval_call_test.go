@@ -136,3 +136,13 @@ func (s *RuntimeTestSuite) TestGetTargetDoesNotResolveImportedFunctionAsBareIden
 	s.Require().Error(err)
 	s.Require().Contains(err.Error(), "unable to resolve import")
 }
+
+func (s *RuntimeTestSuite) TestPipelineHoleOutsidePipelineErrors() {
+	p := newEvalTestPolicy()
+	ec := NewExecutionContext(p, &executorImpl{})
+	hole := ast.NewPipelineHoleExpression(stubRange())
+
+	_, _, err := eval(s.T().Context(), ec, &executorImpl{}, p, hole)
+	s.Require().Error(err)
+	s.Require().Contains(err.Error(), "pipeline placeholder '#'")
+}
