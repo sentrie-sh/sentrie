@@ -28,6 +28,10 @@ func parsePipelineExpression(ctx context.Context, p *Parser, left ast.Expression
 	if !found {
 		return nil
 	}
+	if left == nil {
+		p.errorf("invalid pipeline target: missing left-hand side expression")
+		return nil
+	}
 
 	startedAsGrouped := p.head().IsOfKind(tokens.PunctLeftParentheses)
 	right := p.parseExpression(ctx, precedence)
@@ -45,37 +49,30 @@ func parsePipelineExpression(ctx context.Context, p *Parser, left ast.Expression
 		To:   right.Span().To,
 	}
 
-	switch rhs := right.(type) {
-	case *ast.Identifier:
-		call := ast.NewCallExpression(rhs, []ast.Expression{left}, false, nil, pipelineRange)
-		return applyPipelineMemoizationSuffix(ctx, p, call, pipelineRange)
-	case *ast.FieldAccessExpression:
-		if !hasIdentifierRoot(rhs) {
-			break
-		}
-		call := ast.NewCallExpression(rhs, []ast.Expression{left}, false, nil, pipelineRange)
-		return applyPipelineMemoizationSuffix(ctx, p, call, pipelineRange)
-	case *ast.CallExpression:
-		if hasIdentifierRoot(rhs.Callee) {
-			args := rhs.Arguments
-			if containsPipelineHoleInExprs(rhs.Arguments) {
-				args = make([]ast.Expression, len(rhs.Arguments))
-				for i := range rhs.Arguments {
-					args[i] = substitutePipelineHoles(rhs.Arguments[i], left)
-				}
-			} else {
-				args = make([]ast.Expression, 0, len(rhs.Arguments)+1)
-				args = append(args, left)
-				args = append(args, rhs.Arguments...)
-			}
-			return ast.NewCallExpression(rhs.Callee, args, rhs.Memoized, rhs.MemoizeTTL, pipelineRange)
-		}
+	const invalidPipelineRHS = "invalid pipeline target: right-hand side must be a call on an identifier or module-qualified field access"
+
+	rhs, ok := right.(*ast.CallExpression)
+	if !ok {
+		p.errorf(invalidPipelineRHS)
+		return nil
+	}
+	if !hasIdentifierRoot(rhs.Callee) {
+		p.errorf(invalidPipelineRHS)
+		return nil
 	}
 
-	p.errorf(
-		"invalid pipeline target: right-hand side must be an identifier, a module-qualified field access, or a call on one of those targets",
-	)
-	return nil
+	var args []ast.Expression
+	if containsPipelineHoleInExprs(rhs.Arguments) {
+		args = make([]ast.Expression, len(rhs.Arguments))
+		for i := range rhs.Arguments {
+			args[i] = substitutePipelineHoles(rhs.Arguments[i], left)
+		}
+	} else {
+		args = make([]ast.Expression, 0, len(rhs.Arguments)+1)
+		args = append(args, left)
+		args = append(args, rhs.Arguments...)
+	}
+	return ast.NewCallExpression(rhs.Callee, args, rhs.Memoized, rhs.MemoizeTTL, pipelineRange)
 }
 
 func hasIdentifierRoot(expr ast.Expression) bool {
@@ -87,20 +84,6 @@ func hasIdentifierRoot(expr ast.Expression) bool {
 	default:
 		return false
 	}
-}
-
-func applyPipelineMemoizationSuffix(ctx context.Context, p *Parser, call *ast.CallExpression, baseRange tokens.Range) ast.Expression {
-	hadBang := p.head().IsOfKind(tokens.TokenBang)
-	suffix := parseMemoizationSuffix(ctx, p)
-	if suffix == nil {
-		if hadBang {
-			return nil
-		}
-		return call
-	}
-	rnge := baseRange
-	rnge.To = suffix.To
-	return ast.NewCallExpression(call.Callee, call.Arguments, true, suffix.TTL, rnge)
 }
 
 func containsPipelineHoleInExprs(exprs []ast.Expression) bool {

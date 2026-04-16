@@ -28,20 +28,20 @@ func (s *ParserTestSuite) TestPipelineExpressionLowering() {
 		input    string
 		expected string
 	}{
-		{"value |> len", "len(value)"},
-		{"value |> str.trim", "str.trim(value)"},
+		{"value |> len()", "len(value)"},
+		{"value |> str.trim()", "str.trim(value)"},
 		{"value |> str.replaceAll(\" \", \"-\")", "str.replaceAll(value, \" \", \"-\")"},
-		{"value |> mod.sub.fn", "mod.sub.fn(value)"},
-		{"value |> len |> math.abs", "math.abs(len(value))"},
-		{"value |> str.trim |> len", "len(str.trim(value))"},
+		{"value |> mod.sub.fn()", "mod.sub.fn(value)"},
+		{"value |> len() |> math.abs()", "math.abs(len(value))"},
+		{"value |> str.trim() |> len()", "len(str.trim(value))"},
 		{"needle |> str.replace(haystack, #, \"$$\")", "str.replace(haystack, needle, \"$$\")"},
 		{"x |> f(1, #)", "f(1, x)"},
 		{"x |> f(#, 2)", "f(x, 2)"},
 		{"x |> f(#, #)", "f(x, x)"},
 		{"x |> f(1, #) |> g(#)", "g(f(1, x))"},
 		{"x |> f(g(#))", "f(g(x))"},
-		{"a + b |> len", "len((a + b))"},
-		{"a ? b : c |> len", "len((a ? b : c))"},
+		{"a + b |> len()", "len((a + b))"},
+		{"a ? b : c |> len()", "len((a ? b : c))"},
 	}
 
 	for _, tc := range testCases {
@@ -63,24 +63,6 @@ func (s *ParserTestSuite) TestPipelineExpressionMemoizationPreserved() {
 		expectMemoized bool
 		expectTTL      *time.Duration
 	}{
-		{
-			input:          "x |> f!",
-			expectedCall:   "f(x)",
-			expectMemoized: true,
-			expectTTL:      nil,
-		},
-		{
-			input:          "x |> f!10",
-			expectedCall:   "f(x)",
-			expectMemoized: true,
-			expectTTL:      durationPtr(10 * time.Second),
-		},
-		{
-			input:          "x |> mod.f!30",
-			expectedCall:   "mod.f(x)",
-			expectMemoized: true,
-			expectTTL:      durationPtr(30 * time.Second),
-		},
 		{
 			input:          "x |> f()!",
 			expectedCall:   "f(x)",
@@ -129,6 +111,14 @@ func (s *ParserTestSuite) TestPipelineExpressionInvalidTargets() {
 		{"value |>", false},
 		{"value |> (a + b)", true},
 		{"value |> foo ? bar : baz", true},
+		{"value |> len", true},
+		{"value |> str.trim", true},
+		{"value |> mod.sub.fn", true},
+		{"value |> len |> math.abs", true},
+		{"value |> str.trim |> len", true},
+		{"x |> f!", true},
+		{"x |> f!10", true},
+		{"x |> mod.f!30", true},
 		{"value |> [1, 2]", true},
 		{"value |> {\"k\": 1}", true},
 		{"value |> foo[0]", true},
