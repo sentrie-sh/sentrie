@@ -108,6 +108,12 @@ func (s *AstTestSuite) TestExpressionInterface() {
 	str := NewStringLiteral("hello", r)
 	s.Implements((*Expression)(nil), str)
 	s.Implements((*Node)(nil), str)
+
+	// Test PipelineHoleExpression implements Expression
+	hole := NewPipelineHoleExpression(r)
+	s.Implements((*Expression)(nil), hole)
+	s.Implements((*Node)(nil), hole)
+	s.Equal("#", hole.String())
 }
 
 // TestNodePositioning tests position handling across different node types

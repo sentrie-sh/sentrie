@@ -34,6 +34,7 @@ func (p *Parser) registerParseFns() {
 	p.registerPrefix(tokens.KeywordCast, parseCastExpression)
 
 	p.registerPrefix(tokens.Ident, parseIdentifier)
+	p.registerPrefix(tokens.TokenPipelineHole, parsePipelineHoleExpression)
 	p.registerPrefix(tokens.String, parseStringLiteral)
 	p.registerPrefix(tokens.Int, parseIntegerLiteral)
 	p.registerPrefix(tokens.Float, parseFloatLiteral)

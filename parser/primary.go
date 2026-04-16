@@ -46,6 +46,11 @@ func parseIdentifier(ctx context.Context, p *Parser) ast.Expression {
 	return ast.NewIdentifier(token.Value, token.Range)
 }
 
+func parsePipelineHoleExpression(ctx context.Context, p *Parser) ast.Expression {
+	token := p.advance()
+	return ast.NewPipelineHoleExpression(token.Range)
+}
+
 func parseIntegerLiteral(ctx context.Context, p *Parser) ast.Expression {
 	token := p.advance()
 	value, err := strconv.ParseInt(token.Value, 10, 64)
