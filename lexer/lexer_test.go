@@ -125,3 +125,39 @@ func TestLexerRejectsDoublePipe(t *testing.T) {
 		t.Fatalf("expected error token, got %s", tok.Kind)
 	}
 }
+
+func TestLexerPipelineHoleToken(t *testing.T) {
+	got := collectKinds("#")
+	want := []tokens.Kind{tokens.TokenPipelineHole, tokens.EOF}
+	if len(got) != len(want) {
+		t.Fatalf("expected %d tokens, got %d: %v", len(want), len(got), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("token %d: expected %s, got %s", i, want[i], got[i])
+		}
+	}
+}
+
+func TestLexerPipelineHoleInsideCall(t *testing.T) {
+	got := collectKinds("f(a, #, b)")
+	want := []tokens.Kind{
+		tokens.Ident,
+		tokens.PunctLeftParentheses,
+		tokens.Ident,
+		tokens.PunctComma,
+		tokens.TokenPipelineHole,
+		tokens.PunctComma,
+		tokens.Ident,
+		tokens.PunctRightParentheses,
+		tokens.EOF,
+	}
+	if len(got) != len(want) {
+		t.Fatalf("expected %d tokens, got %d: %v", len(want), len(got), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("token %d: expected %s, got %s", i, want[i], got[i])
+		}
+	}
+}

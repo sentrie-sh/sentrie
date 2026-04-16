@@ -194,6 +194,10 @@ func (l *Lexer) NextToken() tokens.Instance {
 			l.readRune()
 			endPos := l.currentPosition()
 			return tokens.New(tokens.TokenAt, "@", tokens.NewRange(l.filename, startPos, endPos))
+		case '#':
+			l.readRune()
+			endPos := l.currentPosition()
+			return tokens.New(tokens.TokenPipelineHole, "#", tokens.NewRange(l.filename, startPos, endPos))
 		case '|':
 			if l.peekAhead() == '>' {
 				l.readRune()

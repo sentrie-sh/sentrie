@@ -103,7 +103,9 @@ const (
 	TokenDot       Kind = "Dot"
 	TokenDotDotDot Kind = "DotDotDot"
 	TokenAt        Kind = "At"
-	TokenFatArrow  Kind = "FatArrow"
+
+	TokenPipelineHole Kind = "PipelineHole"
+	TokenFatArrow     Kind = "FatArrow"
 
 	TokenPipeForward Kind = "PipeForward"
 
