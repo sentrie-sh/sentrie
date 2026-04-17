@@ -10,7 +10,7 @@ type Precedence uint8
 
 const (
 	LOWEST     Precedence = iota
-	PIPELINE             // |>
+	PIPELINE              // |>
 	TERNARY               // ? :
 	OR                    // or
 	XOR                   // xor
