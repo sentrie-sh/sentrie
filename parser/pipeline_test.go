@@ -4,9 +4,11 @@
 package parser
 
 import (
+	"strings"
 	"time"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/lexer"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
@@ -265,4 +267,74 @@ func (s *ParserTestSuite) TestPipelineHoleHelpers() {
 
 func durationPtr(d time.Duration) *time.Duration {
 	return &d
+}
+
+func (s *ParserTestSuite) TestPrimaryLiteralParseErrors() {
+	rng := tokens.BadRange("test.sentra")
+
+	p := &Parser{
+		current: tokens.New(tokens.Int, "12x", rng),
+		next:    tokens.EofInstance("test.sentra", rng.To),
+	}
+	s.Nil(parseIntegerLiteral(s.T().Context(), p))
+	s.Error(p.err)
+	s.Contains(p.err.Error(), "invalid integer literal")
+
+	p = &Parser{
+		current: tokens.New(tokens.Float, "1.2.3", rng),
+		next:    tokens.EofInstance("test.sentra", rng.To),
+	}
+	s.Nil(parseFloatLiteral(s.T().Context(), p))
+	s.Error(p.err)
+	s.Contains(p.err.Error(), "invalid float literal")
+
+	p = &Parser{
+		current: tokens.New(tokens.Int, "42", rng),
+		next:    tokens.EofInstance("test.sentra", rng.To),
+	}
+	s.Nil(parseNullLiteral(s.T().Context(), p))
+	s.Error(p.err)
+	s.Contains(p.err.Error(), "expected `null` literal")
+}
+
+func (s *ParserTestSuite) TestParseCallExpressionErrorBranches() {
+	rng := tokens.BadRange("test.sentra")
+	left := ast.NewIdentifier("fn", rng)
+
+	p := NewParserFromString("fn", "test.sentra")
+	s.Nil(parseCallExpression(s.T().Context(), p, left, CALL))
+	s.Error(p.err)
+	s.Contains(p.err.Error(), "expected")
+
+	p = NewParserFromString("fn(,)", "test.sentra")
+	callHead := p.parseExpression(s.T().Context(), LOWEST)
+	s.Nil(callHead)
+	s.Error(p.err)
+
+	p = NewParserFromString("fn(1", "test.sentra")
+	s.Nil(p.parseExpression(s.T().Context(), LOWEST))
+	s.Error(p.err)
+	s.Contains(p.err.Error(), "expected")
+}
+
+func (s *ParserTestSuite) TestParseMemoizationSuffixBranches() {
+	p := NewParserFromString("!15", "test.sentra")
+	suffix := parseMemoizationSuffix(s.T().Context(), p)
+	s.NotNil(suffix)
+	if s.NotNil(suffix.TTL) {
+		s.Equal(15*time.Second, *suffix.TTL)
+	}
+
+	p = NewParserFromString("fn", "test.sentra")
+	s.Nil(parseMemoizationSuffix(s.T().Context(), p))
+
+	rng := tokens.BadRange("test.sentra")
+	p = &Parser{
+		lexer:   lexer.NewLexer(strings.NewReader(""), "test.sentra"),
+		current: tokens.New(tokens.TokenBang, "!", rng),
+		next:    tokens.New(tokens.Int, "not-a-number", rng),
+	}
+	s.Nil(parseMemoizationSuffix(s.T().Context(), p))
+	s.Error(p.err)
+	s.Contains(p.err.Error(), "invalid integer literal")
 }
