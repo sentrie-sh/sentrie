@@ -1,0 +1,12 @@
+namespace sh/sentrie/example/pipeline
+
+policy basics {
+  fact input?: string as input default "  Hello World  "
+
+  rule has_content = default false {
+    let chars = input |> count()
+    yield chars > 0
+  }
+
+  export decision of has_content
+}

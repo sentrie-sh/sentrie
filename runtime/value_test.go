@@ -35,7 +35,7 @@ const (
 	ValueString    = box.ValueString
 	ValueTrinary   = box.ValueTrinary
 	ValueList      = box.ValueList
-	ValueDict       = box.ValueDict
+	ValueDict      = box.ValueDict
 	ValueObject    = box.ValueObject
 )
 

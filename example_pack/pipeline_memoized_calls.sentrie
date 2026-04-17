@@ -1,0 +1,17 @@
+namespace sh/sentrie/example/pipeline/memoized
+
+policy memoized_pipeline {
+  fact input?: string as input default "memoized-input"
+
+  use { sha256 } from @sentrie/hash as hash
+
+  rule digest_length_memoized = default 0 {
+    let length = input
+      |> hash.sha256()!60
+      |> count()!30
+
+    yield length
+  }
+
+  export decision of digest_length_memoized
+}

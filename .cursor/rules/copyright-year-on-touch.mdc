@@ -1,5 +1,5 @@
 ---
-description: New licensed files use SPDX-FileCopyrightText (© + year + git user.name / optional user.email) and SPDX-License-Identifier; do not change existing headers on ordinary edits.
+description: Maintain license headers for touched source files only: add missing headers when required and update outdated copyright years.
 alwaysApply: true
 ---
 
@@ -32,12 +32,26 @@ If Git identity is **not** available or the repo standard differs (e.g. corporat
 - Prefer the **actual current year** for the session: use **`Today's date`** from the user or workspace context when it is provided (authoritative for the run).
 - If no date is available, use a **reasonable default** for “now” (do **not** assume a fixed past year such as 2025).
 
-## Existing files
+## Source-file scope
 
-When you **modify** a file that **already** has a license header (including **`SPDX-FileCopyrightText`**, legacy **`Copyright …`** lines, or the full Apache boilerplate block), **leave the copyright year and header text unchanged** unless the user **explicitly** asks to refresh, migrate, or correct it.
+This rule applies **only** when editing a **source file**. In this repository, source-file extensions are:
+`.go`, `.ts`, `.js`, `.sentrie`, `.sh`, `.ps1`, `.peg`, `.ebnf`.
 
-Do **not** run drive-by or mass copyright-year updates on files you did not touch, unless the user **explicitly** asks for that.
+Follow repository conventions if additional extensions are treated as source in this repo.
+
+Do **not** apply this rule to non-source files (for example `.md`, `.txt`, `.json`, `.yaml`, `.yml`, lockfiles, generated assets), unless the user explicitly asks.
+
+## Existing touched source files
+
+When you modify a touched source file that already has a license header (including `SPDX-FileCopyrightText`, legacy `Copyright ...` lines, or the full Apache boilerplate block):
+
+- You **MUST** update an outdated copyright year to the current year for this session.
+- You **MUST NOT** change untouched files only to refresh headers.
+- You **MUST NOT** run repository-wide header refreshes unless explicitly requested.
 
 ## Legacy headers
 
-Older files may use only `SPDX-License-Identifier` plus a `Copyright …` paragraph and Apache license text. **Do not rewrite those to the two-line form** as part of unrelated edits; only new files (or explicit migration tasks) should use the **`SPDX-FileCopyrightText`** + **`SPDX-License-Identifier`** pattern above.
+Older files may use only `SPDX-License-Identifier` plus a `Copyright ...` paragraph and Apache license text.
+
+- If such a header exists in a touched source file, keep the header style, but update an outdated year.
+- Do **not** rewrite legacy headers to the two-line form as part of unrelated edits; only new files (or explicit migration tasks) should use the `SPDX-FileCopyrightText` + `SPDX-License-Identifier` pattern above.

@@ -58,17 +58,17 @@ policy var_test {
   let numbers: list[number] = [1, 2, 3, 4, 5]
   let words: list[string] = ["Hello", "World", "Sentrie"]
   
-  let sum: number = reduce numbers from 0 as acc, num, idx {
+  let sum: number = reduce(numbers, 0, (acc, num, idx) => {
     yield acc + num
-  }
+  })
   
-  let max: number = reduce numbers from numbers[0] as acc, num, idx {
+  let max: number = reduce(numbers, numbers[0], (acc, num, idx) => {
     yield num > acc ? num : acc
-  }
+  })
   
-  let min: number = reduce numbers from numbers[0] as acc, num, idx {
+  let min: number = reduce(numbers, numbers[0], (acc, num, idx) => {
     yield num < acc ? num : acc
-  }
+  })
   
   let tri:trinary = unknown
 

@@ -52,6 +52,7 @@ export const MIN_VALUE = Number.MIN_VALUE;
 // String functions
 export const length = (str: string) => str.length;
 export const fromCharCode = String.fromCharCode;
+export const replaceAll = (str: string, search: string, replace: string) => str.replaceAll(search, replace);
 
 // Number functions
 export const isNaN = Number.isNaN;

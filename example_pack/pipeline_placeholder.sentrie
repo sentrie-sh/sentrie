@@ -1,0 +1,21 @@
+namespace sh/sentrie/example/pipeline/placeholder
+
+policy placeholder_pipeline {
+  fact input?: string as input default "hello world"
+  fact needle?: string as needle default "world"
+
+  use { replaceAll } from @sentrie/js as str
+
+  rule replaced = default "" {
+    let out = needle |> str.replaceAll(input, #, "sentrie")
+    yield out
+  }
+
+  rule duplicated = default "" {
+    let out = needle |> str.replaceAll(#, #, "x")
+    yield out
+  }
+
+  export decision of replaced
+  export decision of duplicated
+}
