@@ -34,10 +34,8 @@ func parseCallExpression(ctx context.Context, p *Parser, left ast.Expression, pr
 	exp := ast.NewCallExpression(left, arguments, false, nil, rnge)
 
 	if p.head().IsOfKind(tokens.TokenBang) {
-		bang, ok := p.advanceExpected(tokens.TokenBang)
-		if !ok {
-			return nil
-		}
+		// advance() is enough here: we already matched TokenBang on the head.
+		bang := p.advance()
 		suffixTo := bang.Range.To
 		var memoTTL *time.Duration
 		if p.head().IsOfKind(tokens.Int) {
