@@ -5,6 +5,7 @@ package parser
 
 import (
 	"context"
+	"time"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/tokens"
@@ -32,13 +33,25 @@ func parseCallExpression(ctx context.Context, p *Parser, left ast.Expression, pr
 
 	exp := ast.NewCallExpression(left, arguments, false, nil, rnge)
 
-	hadBang := p.head().IsOfKind(tokens.TokenBang)
-	if suffix := parseMemoizationSuffix(ctx, p); suffix != nil {
+	if p.head().IsOfKind(tokens.TokenBang) {
+		bang, ok := p.advanceExpected(tokens.TokenBang)
+		if !ok {
+			return nil
+		}
+		suffixTo := bang.Range.To
+		var memoTTL *time.Duration
+		if p.head().IsOfKind(tokens.Int) {
+			literal := parseIntegerLiteral(ctx, p)
+			if literal == nil {
+				return nil
+			}
+			ttl := time.Duration(literal.(*ast.IntegerLiteral).Value) * time.Second
+			memoTTL = &ttl
+			suffixTo = literal.Span().To
+		}
 		exp.Memoized = true
-		exp.MemoizeTTL = suffix.TTL
-		rnge.To = suffix.To
-	} else if hadBang {
-		return nil
+		exp.MemoizeTTL = memoTTL
+		rnge.To = suffixTo
 	}
 
 	return exp
