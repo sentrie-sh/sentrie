@@ -50,11 +50,10 @@ type ExportedShape struct {
 }
 
 type ShapeModelField struct {
-	Node        *ast.ShapeField
-	Name        string
-	NotNullable bool
-	Required    bool
-	TypeRef     ast.TypeRef
+	Node     *ast.ShapeField
+	Name     string
+	Optional bool
+	TypeRef  ast.TypeRef
 }
 
 func (s *Shape) String() string {
@@ -186,11 +185,10 @@ func createShape(ns *Namespace, p *Policy, stmt *ast.ShapeStatement) (*Shape, er
 			}
 
 			shape.Model.Fields[field.Name] = &ShapeModelField{
-				Node:        field,
-				Name:        field.Name,
-				NotNullable: field.NotNullable,
-				Required:    field.Required,
-				TypeRef:     field.Type,
+				Node:     field,
+				Name:     field.Name,
+				Optional: field.Optional,
+				TypeRef:  field.Type,
 			}
 		}
 	} else {

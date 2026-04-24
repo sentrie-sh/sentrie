@@ -1193,8 +1193,8 @@ func (suite *IndexTestSuite) TestPolicyAddShapeDuplicateInnerFieldName() {
 			Range: rng,
 			With:  nil,
 			Fields: map[string]*ast.ShapeField{
-				"k1": {Range: rng, Name: "dup", NotNullable: true, Required: true, Type: ast.NewStringTypeRef(rng)},
-				"k2": {Range: rng, Name: "dup", NotNullable: true, Required: true, Type: ast.NewNumberTypeRef(rng)},
+				"k1": {Range: rng, Name: "dup", Optional: false, Type: ast.NewStringTypeRef(rng)},
+				"k2": {Range: rng, Name: "dup", Optional: false, Type: ast.NewNumberTypeRef(rng)},
 			},
 		},
 		rng,
@@ -1565,8 +1565,8 @@ func (suite *IndexTestSuite) TestCreatePolicyShapeBodyDuplicateFieldErrors() {
 			Range: rng,
 			With:  nil,
 			Fields: map[string]*ast.ShapeField{
-				"k1": {Range: rng, Name: "d", NotNullable: true, Required: true, Type: ast.NewStringTypeRef(rng)},
-				"k2": {Range: rng, Name: "d", NotNullable: true, Required: true, Type: ast.NewNumberTypeRef(rng)},
+				"k1": {Range: rng, Name: "d", Optional: false, Type: ast.NewStringTypeRef(rng)},
+				"k2": {Range: rng, Name: "d", Optional: false, Type: ast.NewNumberTypeRef(rng)},
 			},
 		},
 		rng,

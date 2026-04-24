@@ -470,7 +470,7 @@ func programParentShapeOnly() *ast.Program {
 			Range: r,
 			With:  nil,
 			Fields: map[string]*ast.ShapeField{
-				"p": {Range: pr(5), Name: "p", NotNullable: true, Required: true, Type: ast.NewStringTypeRef(pr(5))},
+				"p": {Range: pr(5), Name: "p", Optional: false, Type: ast.NewStringTypeRef(pr(5))},
 			},
 		},
 		pr(4),
@@ -533,7 +533,7 @@ func programWithNamespaceShapesCycleViaWith() *ast.Program {
 			Range: pr(10),
 			With:  ast.NewFQN([]string{"NSB"}, r).Ptr(),
 			Fields: map[string]*ast.ShapeField{
-				"a": {Range: pr(11), Name: "a", NotNullable: true, Required: true, Type: ast.NewStringTypeRef(pr(11))},
+				"a": {Range: pr(11), Name: "a", Optional: false, Type: ast.NewStringTypeRef(pr(11))},
 			},
 		},
 		pr(10),
@@ -545,7 +545,7 @@ func programWithNamespaceShapesCycleViaWith() *ast.Program {
 			Range: pr(20),
 			With:  ast.NewFQN([]string{"NSA"}, r).Ptr(),
 			Fields: map[string]*ast.ShapeField{
-				"b": {Range: pr(21), Name: "b", NotNullable: true, Required: true, Type: ast.NewStringTypeRef(pr(21))},
+				"b": {Range: pr(21), Name: "b", Optional: false, Type: ast.NewStringTypeRef(pr(21))},
 			},
 		},
 		pr(20),
