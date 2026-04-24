@@ -73,6 +73,20 @@ func (s *RuntimeTestSuite) TestExecRuleFactNullBranchesWrapInvalidInvocation() {
 	s.ErrorIs(err, xerr.InvalidInvocationError{})
 }
 
+func (s *RuntimeTestSuite) TestExecRuleNullableFactAcceptsNull() {
+	fact := ast.NewFactStatement(
+		"user",
+		ast.NewNullableTypeRef(ast.NewStringTypeRef(stubRange()), stubRange()),
+		"user",
+		nil,
+		false,
+		stubRange(),
+	)
+	exec, _ := newExecutorAndPolicyWithFact(fact)
+	_, err := exec.ExecRule(context.Background(), "test/ns", "pol", "allow", map[string]any{"user": nil})
+	s.Require().NoError(err)
+}
+
 func (s *RuntimeTestSuite) TestExecRuleDefaultFactEvalErrorWrapsUnresolvableFact() {
 	fact := ast.NewFactStatement("user", ast.NewStringTypeRef(stubRange()), "user", ast.NewIdentifier("missing", stubRange()), true, stubRange())
 	exec, _ := newExecutorAndPolicyWithFact(fact)
@@ -91,6 +105,20 @@ func (s *RuntimeTestSuite) TestExecRuleDefaultFactNullWrapsInvalidInvocation() {
 	s.ErrorIs(err, xerr.InvalidInvocationError{})
 }
 
+func (s *RuntimeTestSuite) TestExecRuleNullableFactDefaultAcceptsNull() {
+	fact := ast.NewFactStatement(
+		"user",
+		ast.NewNullableTypeRef(ast.NewStringTypeRef(stubRange()), stubRange()),
+		"user",
+		ast.NewNullLiteral(stubRange()),
+		true,
+		stubRange(),
+	)
+	exec, _ := newExecutorAndPolicyWithFact(fact)
+	_, err := exec.ExecRule(context.Background(), "test/ns", "pol", "allow", map[string]any{})
+	s.Require().NoError(err)
+}
+
 func (s *RuntimeTestSuite) TestValidateAgainstShapeTypeRefFieldErrorBranches() {
 	typeRef := ast.NewShapeTypeRef(ast.NewFQN([]string{"UserShape"}, stubRange()).Ptr(), stubRange())
 	policy := &index.Policy{
@@ -98,7 +126,7 @@ func (s *RuntimeTestSuite) TestValidateAgainstShapeTypeRefFieldErrorBranches() {
 			"UserShape": {
 				Model: &index.ShapeModel{
 					Fields: map[string]*index.ShapeModelField{
-						"name": {Name: "name", Required: true, TypeRef: ast.NewStringTypeRef(stubRange())},
+						"name": {Name: "name", Optional: false, TypeRef: ast.NewStringTypeRef(stubRange())},
 					},
 				},
 			},
@@ -113,13 +141,17 @@ func (s *RuntimeTestSuite) TestValidateAgainstShapeTypeRefFieldErrorBranches() {
 	policy.Shapes["UserShape"] = &index.Shape{
 		Model: &index.ShapeModel{
 			Fields: map[string]*index.ShapeModelField{
-				"name": {Name: "name", NotNullable: true, TypeRef: ast.NewStringTypeRef(stubRange())},
+				"name": {Name: "name", TypeRef: ast.NewStringTypeRef(stubRange())},
 			},
 		},
 	}
 	err = validateAgainstShapeTypeRef(context.Background(), &ExecutionContext{}, &executorImpl{}, policy, box.FromAny(map[string]any{"name": nil}), typeRef, stubRange())
 	s.Require().Error(err)
-	s.Contains(err.Error(), "field name cannot be null")
+	s.Contains(err.Error(), "field 'name' is not valid")
+
+	err = validateAgainstShapeTypeRef(context.Background(), &ExecutionContext{}, &executorImpl{}, policy, box.FromAny(map[string]box.Value{"name": box.Undefined()}), typeRef, stubRange())
+	s.Require().Error(err)
+	s.Contains(err.Error(), "cannot be undefined")
 
 	policy.Shapes["UserShape"] = &index.Shape{
 		Model: &index.ShapeModel{

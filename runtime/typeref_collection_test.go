@@ -120,7 +120,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstShapeTypeRef() {
 		p.Shapes["app/UserShape"] = &index.Shape{
 			Model: &index.ShapeModel{
 				Fields: map[string]*index.ShapeModelField{
-					"name": {Name: "name", Required: true, TypeRef: ast.NewStringTypeRef(stubRange())},
+					"name": {Name: "name", Optional: false, TypeRef: ast.NewStringTypeRef(stubRange())},
 				},
 			},
 		}
