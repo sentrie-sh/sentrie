@@ -33,12 +33,11 @@ type Cmplx struct {
 }
 
 type ShapeField struct {
-	Range       tokens.Range
-	Name        string
-	NotNullable bool // true if field is not nullable
-	Required    bool // true if field is required to be present
-	Type        TypeRef
-	Node        Node
+	Range    tokens.Range
+	Name     string
+	Optional bool
+	Type     TypeRef
+	Node     Node
 }
 
 func NewShapeStatement(name string, simple TypeRef, complex *Cmplx, ssp tokens.Range) *ShapeStatement {
