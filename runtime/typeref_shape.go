@@ -88,17 +88,16 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 
 	// check the fields
 	for _, field := range shape.Model.Fields {
-		// if not nullable, the field MUST exist and MUST NOT be null
-		// if optional, the field MAY exist and MAY be null
-
-		// if required, the field MUST exist
 		fieldValue, ok := vm[field.Name]
-		if !ok && field.Required {
+		if !ok {
+			if field.Optional {
+				continue
+			}
 			return fmt.Errorf("field %s is required at %s - expected field", field.Name, pos)
 		}
 
-		if field.NotNullable && (!ok || fieldValue.IsNull()) {
-			return fmt.Errorf("field %s cannot be null at %s - expected field", field.Name, pos)
+		if fieldValue.IsUndefined() {
+			return fmt.Errorf("field %s cannot be undefined at %s - expected field value", field.Name, pos)
 		}
 
 		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, fieldValue, field.TypeRef, pos); err != nil {

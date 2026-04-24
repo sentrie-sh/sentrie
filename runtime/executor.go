@@ -178,8 +178,7 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 
 		if ok {
 			decodedFactValue := box.FromBoundaryAny(factValue)
-			// Facts are always non-nullable - validate value is not null
-			if decodedFactValue.IsNull() {
+			if decodedFactValue.IsNull() && !ast.IsNullableTypeRef(factStatement.Type) {
 				return nil, fmt.Errorf("fact '%s' cannot be null: %w", factName, xerr.ErrInvalidInvocation(""))
 			}
 			err := ec.InjectFact(ctx, factName, decodedFactValue, false, factStatement.Type)
@@ -197,8 +196,7 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 				return nil, fmt.Errorf("%s: %w", err.Error(), xerr.ErrUnresolvableFact(factName))
 			}
 
-			// Facts are always non-nullable - validate default value is not null
-			if val.IsNull() {
+			if val.IsNull() && !ast.IsNullableTypeRef(factStatement.Type) {
 				return nil, fmt.Errorf("fact '%s' cannot have null default value: %w", factName, xerr.ErrInvalidInvocation(""))
 			}
 
