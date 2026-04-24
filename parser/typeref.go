@@ -100,6 +100,13 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		r.Rnge.To = rBracket.Range.To
 	}
 
+	if p.canExpect(tokens.TokenQuestion) {
+		question := p.advance()
+		rnge := ref.Span()
+		rnge.To = question.Range.To
+		ref = ast.NewNullableTypeRef(ref, rnge)
+	}
+
 	for p.head().IsOfKind(tokens.TokenAt) {
 		constraint := parseTypeRefConstraint(ctx, p, ref)
 		if constraint == nil {
