@@ -66,7 +66,11 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		if !p.expect(tokens.PunctLeftBracket) {
 			return nil
 		}
-		r.ElemType = parseTypeRef(ctx, p)
+		elemType := parseTypeRef(ctx, p)
+		if elemType == nil {
+			return nil
+		}
+		r.ElemType = elemType
 		rBracket, found := p.advanceExpected(tokens.PunctRightBracket)
 		if !found {
 			return nil
@@ -76,7 +80,11 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		if !p.expect(tokens.PunctLeftBracket) {
 			return nil
 		}
-		r.ValueType = parseTypeRef(ctx, p)
+		valueType := parseTypeRef(ctx, p)
+		if valueType == nil {
+			return nil
+		}
+		r.ValueType = valueType
 		rBracket, found := p.advanceExpected(tokens.PunctRightBracket)
 		if !found {
 			return nil
@@ -87,7 +95,11 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 			return nil
 		}
 		for !p.head().IsOfKind(tokens.PunctRightBracket) {
-			r.Fields = append(r.Fields, parseTypeRef(ctx, p))
+			fieldType := parseTypeRef(ctx, p)
+			if fieldType == nil {
+				return nil
+			}
+			r.Fields = append(r.Fields, fieldType)
 			if p.head().IsOfKind(tokens.PunctComma) {
 				p.advance()
 			}

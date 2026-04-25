@@ -164,3 +164,176 @@ func (s *RuntimeTestSuite) TestValidateAgainstShapeTypeRefFieldErrorBranches() {
 	s.Require().Error(err)
 	s.Contains(err.Error(), "field 'age' is not valid")
 }
+
+func (s *RuntimeTestSuite) TestValidateAgainstShapeTypeRefGlobalResolutionBranches() {
+	typeRef := ast.NewShapeTypeRef(ast.NewFQN([]string{"ext", "models", "User"}, stubRange()).Ptr(), stubRange())
+	policy := &index.Policy{
+		Shapes:    map[string]*index.Shape{},
+		Namespace: &index.Namespace{Shapes: map[string]*index.Shape{}},
+	}
+	idx := index.CreateIndex()
+	exec := &executorImpl{index: idx}
+
+	err := validateAgainstShapeTypeRef(context.Background(), &ExecutionContext{}, exec, policy, box.FromAny(map[string]any{}), typeRef, stubRange())
+	s.Require().Error(err)
+	s.Contains(err.Error(), "not found")
+
+	nsFQN := ast.NewFQN([]string{"ext", "models"}, stubRange())
+	ns := &index.Namespace{
+		FQN:          nsFQN,
+		Policies:     map[string]*index.Policy{},
+		Shapes:       map[string]*index.Shape{"User": {Model: &index.ShapeModel{Fields: map[string]*index.ShapeModelField{}}}},
+		ShapeExports: map[string]*index.ExportedShape{},
+		Children:     []*index.Namespace{},
+	}
+	idx.Namespaces[nsFQN.String()] = ns
+
+	err = validateAgainstShapeTypeRef(context.Background(), &ExecutionContext{}, exec, policy, box.FromAny(map[string]any{}), typeRef, stubRange())
+	s.Require().Error(err)
+	s.Contains(err.Error(), "is not exported")
+
+	ns.ShapeExports["User"] = &index.ExportedShape{Name: "User"}
+	err = validateAgainstShapeTypeRef(context.Background(), &ExecutionContext{}, exec, policy, box.FromAny(map[string]any{}), typeRef, stubRange())
+	s.Require().NoError(err)
+}
+
+func (s *RuntimeTestSuite) TestValidateAgainstShapeTypeRefConstraintBranches() {
+	typeRef := ast.NewShapeTypeRef(ast.NewFQN([]string{"UserShape"}, stubRange()).Ptr(), stubRange())
+	policy := &index.Policy{
+		Shapes: map[string]*index.Shape{
+			"UserShape": {
+				Model: &index.ShapeModel{
+					Fields: map[string]*index.ShapeModelField{},
+				},
+			},
+		},
+		Namespace: &index.Namespace{Shapes: map[string]*index.Shape{}},
+	}
+
+	err := validateAgainstShapeTypeRef(context.Background(), &ExecutionContext{}, &executorImpl{}, policy, box.Number(1), typeRef, stubRange())
+	s.Require().Error(err)
+	s.Contains(err.Error(), "is not a shape")
+}
+
+func (s *RuntimeTestSuite) TestExecRuleValidationErrorReturnsUnknownDecision() {
+	fact := ast.NewFactStatement("age", ast.NewNumberTypeRef(stubRange()), "age", nil, false, stubRange())
+	exec, _ := newExecutorAndPolicyWithFact(fact)
+	out, err := exec.ExecRule(context.Background(), "test/ns", "pol", "allow", map[string]any{"age": "bad"})
+	s.Require().Error(err)
+	s.Require().NotNil(out)
+	s.Require().NotNil(out.Decision)
+	s.Equal(trinary.Unknown, out.Decision.State)
+}
+
+func (s *RuntimeTestSuite) TestExecRuleInternalRuleLookupFailureBranch() {
+	p := newEvalTestPolicy()
+	ruleStmt := ast.NewRuleStatement("allow", nil, nil, ast.NewTrinaryLiteral(trinary.True, stubRange()), stubRange())
+	rule := &index.Rule{
+		Node:   ruleStmt,
+		Policy: p,
+		Name:   "allow",
+		FQN:    ast.CreateFQN(p.FQN, "allow"),
+		Body:   ruleStmt.Body,
+	}
+	p.Rules["allow"] = rule
+	p.RuleExports["allow"] = &index.ExportedRule{RuleName: "allow"}
+	idx := index.CreateIndex()
+	ns := p.Namespace
+	ns.Policies = map[string]*index.Policy{p.Name: p}
+	idx.Namespaces[ns.FQN.String()] = ns
+
+	exec := &executorImpl{index: idx}
+	ec := NewExecutionContext(p, exec)
+	_, _, _, err := exec.execRule(context.Background(), ec, ns.FQN.String(), p.Name, "missing")
+	s.Require().Error(err)
+	s.ErrorIs(err, xerr.NotFoundError{})
+}
+
+func (s *RuntimeTestSuite) TestEvaluateRuleOutcomeDefaultExpressionErrorKeepsDefaultUnknown() {
+	p := newEvalTestPolicy()
+	ruleStmt := ast.NewRuleStatement(
+		"r",
+		nil,
+		ast.NewTrinaryLiteral(trinary.False, stubRange()),
+		ast.NewTrinaryLiteral(trinary.True, stubRange()),
+		stubRange(),
+	)
+	rule := &index.Rule{
+		Node:    ruleStmt,
+		Policy:  p,
+		Name:    "r",
+		FQN:     ast.CreateFQN(p.FQN, "r"),
+		When:    ruleStmt.When,
+		Body:    ruleStmt.Body,
+		Default: ast.NewIdentifier("missing_default", stubRange()),
+	}
+	ec := NewExecutionContext(p, &executorImpl{})
+	decision, _, err := evaluateRuleOutcome(context.Background(), ec, &executorImpl{}, p, rule)
+	s.Require().NoError(err)
+	s.Require().NotNil(decision)
+	s.Equal(trinary.Unknown, decision.State)
+}
+
+func (s *RuntimeTestSuite) TestEvaluateRuleOutcomeWhenEvaluationFailureReturnsError() {
+	p := newEvalTestPolicy()
+	ruleStmt := ast.NewRuleStatement(
+		"r",
+		nil,
+		ast.NewIdentifier("missing_when", stubRange()),
+		ast.NewTrinaryLiteral(trinary.True, stubRange()),
+		stubRange(),
+	)
+	rule := &index.Rule{
+		Node: ruleStmt, Policy: p, Name: "r", FQN: ast.CreateFQN(p.FQN, "r"),
+		When: ruleStmt.When, Body: ruleStmt.Body,
+	}
+	ec := NewExecutionContext(p, &executorImpl{})
+	decision, _, err := evaluateRuleOutcome(context.Background(), ec, &executorImpl{}, p, rule)
+	s.Require().Error(err)
+	s.Nil(decision)
+}
+
+func (s *RuntimeTestSuite) TestWithCallMemoizeCacheSizeAndToTrinaryHelpers() {
+	exec := &executorImpl{}
+	WithCallMemoizeCacheSize(2)(exec)
+	s.NotNil(exec.callMemoizePerch)
+
+	out := &ExecutorOutput{Decision: DecisionOf(box.Trinary(trinary.True))}
+	s.Equal(trinary.True, out.ToTrinary())
+
+	s.Panics(func() {
+		_ = (&ExecutorOutput{}).ToTrinary()
+	})
+}
+
+func (s *RuntimeTestSuite) TestExecPolicyRecoversPanicFromExecRule() {
+	idx := index.CreateIndex()
+	nsFQN := ast.NewFQN([]string{"panic", "ns"}, stubRange())
+	ns := &index.Namespace{
+		FQN:          nsFQN,
+		Policies:     map[string]*index.Policy{},
+		Shapes:       map[string]*index.Shape{},
+		ShapeExports: map[string]*index.ExportedShape{},
+		Children:     []*index.Namespace{},
+	}
+	idx.Namespaces[nsFQN.String()] = ns
+
+	p := &index.Policy{
+		Namespace:   ns,
+		Name:        "pol",
+		FQN:         ast.CreateFQN(nsFQN, "pol"),
+		Facts:       map[string]*ast.FactStatement{},
+		Rules:       map[string]*index.Rule{},
+		RuleExports: map[string]*index.ExportedRule{},
+		Lets:        map[string]*ast.VarDeclaration{},
+		Uses:        map[string]*ast.UseStatement{},
+		Shapes:      map[string]*index.Shape{},
+	}
+	p.RuleExports["panicRule"] = nil
+	ns.Policies[p.Name] = p
+
+	exec := &executorImpl{index: idx}
+	_, err := exec.ExecPolicy(context.Background(), nsFQN.String(), p.Name, map[string]any{})
+	s.Require().Error(err)
+	s.Contains(err.Error(), "panic in ExecRule")
+}
