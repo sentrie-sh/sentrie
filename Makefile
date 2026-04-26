@@ -14,3 +14,6 @@ clean-git:
 	git branch -vv
 	git branch -vv | grep ': gone]' | awk '{print $$1}' | xargs -r git branch -D
 
+# Each recipe line runs in a fresh shell; env must be set on the same line as go generate.
+gen:
+	GIT_USER_NAME="$(shell git config user.name)" GIT_USER_EMAIL="$(shell git config user.email)" go generate ./...
