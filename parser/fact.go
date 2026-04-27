@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import (
 
 // 'fact' @ident ('?'?) ':' <type> ( 'as' @ident )? ( 'default' <expression> )?
 // ? = optional (sets optional=true)
-// Facts are always non-nullable
+// Type-level nullability is represented by <type>?.
 func parseFactStatement(ctx context.Context, p *Parser) ast.Statement {
 	start := p.head()
 
@@ -47,6 +47,10 @@ func parseFactStatement(ctx context.Context, p *Parser) ast.Statement {
 	optional := false
 
 	if !p.canExpectAnyOf(tokens.PunctColon, tokens.TokenQuestion) {
+		if p.canExpect(tokens.TokenBang) {
+			p.errorf("legacy '!' fact syntax is no longer supported; use 'fact %s: T' or 'fact %s?: T?'", name, name)
+			return nil
+		}
 		p.errorf("expected ':' or '?' after fact name at %s", rnge.String())
 		return nil
 	}

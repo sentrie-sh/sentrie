@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -99,8 +99,7 @@ func (s *IndexTestSuite) TestShapeDependency_ResolveDependency_UsesPolicyShape()
 				"id": {
 					Range:       tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 3, Column: 2, Offset: 0}, To: tokens.Pos{Line: 3, Column: 2, Offset: 0}},
 					Name:        "id",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 3, Column: 6, Offset: 0}, To: tokens.Pos{Line: 3, Column: 6, Offset: 0}}),
 				},
 			},
@@ -121,8 +120,7 @@ func (s *IndexTestSuite) TestShapeDependency_ResolveDependency_UsesPolicyShape()
 				"name": {
 					Range:       tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 6, Column: 2, Offset: 0}, To: tokens.Pos{Line: 6, Column: 2, Offset: 0}},
 					Name:        "name",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 6, Column: 8, Offset: 0}, To: tokens.Pos{Line: 6, Column: 8, Offset: 0}}),
 				},
 			},
@@ -169,8 +167,7 @@ func (s *IndexTestSuite) TestShapeDependency_ShapeWithMissingDependency() {
 				"field": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "field",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}}),
 				},
 			},
@@ -230,8 +227,7 @@ func (s *IndexTestSuite) TestShapeDependency_MissingDependencyAcrossNamespaces()
 				"name": {
 					Range:       tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "name",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "app.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}}),
 				},
 			},
@@ -275,8 +271,7 @@ func (s *IndexTestSuite) TestShapeDependency_ShapeWithCircularDependency() {
 				"fieldA": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "fieldA",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}}),
 				},
 			},
@@ -296,8 +291,7 @@ func (s *IndexTestSuite) TestShapeDependency_ShapeWithCircularDependency() {
 				"fieldB": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 4, Offset: 4}, To: tokens.Pos{Line: 6, Column: 4, Offset: 4}},
 					Name:        "fieldB",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 10, Offset: 10}, To: tokens.Pos{Line: 6, Column: 10, Offset: 10}}),
 				},
 			},
@@ -348,8 +342,7 @@ func (s *IndexTestSuite) TestShapeDependency_ShapeWithComplexDependencyChain() {
 				"id": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "id",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 8, Offset: 8}, To: tokens.Pos{Line: 2, Column: 8, Offset: 8}}),
 				},
 			},
@@ -368,8 +361,7 @@ func (s *IndexTestSuite) TestShapeDependency_ShapeWithComplexDependencyChain() {
 				"name": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 4, Offset: 4}, To: tokens.Pos{Line: 6, Column: 4, Offset: 4}},
 					Name:        "name",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 10, Offset: 10}, To: tokens.Pos{Line: 6, Column: 10, Offset: 10}}),
 				},
 			},
@@ -388,8 +380,7 @@ func (s *IndexTestSuite) TestShapeDependency_ShapeWithComplexDependencyChain() {
 				"role": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 10, Column: 4, Offset: 4}, To: tokens.Pos{Line: 10, Column: 4, Offset: 4}},
 					Name:        "role",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 10, Column: 10, Offset: 10}, To: tokens.Pos{Line: 10, Column: 10, Offset: 10}}),
 				},
 			},
@@ -455,8 +446,7 @@ func (s *IndexTestSuite) TestShapeDependency_ShapeWithSelfDependency() {
 				"field": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "field",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}}),
 				},
 			},
@@ -499,8 +489,7 @@ func (s *IndexTestSuite) TestShapeDependency_MultipleShapesDependingOnSameBase()
 				"id": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "id",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 8, Offset: 8}, To: tokens.Pos{Line: 2, Column: 8, Offset: 8}}),
 				},
 			},
@@ -519,8 +508,7 @@ func (s *IndexTestSuite) TestShapeDependency_MultipleShapesDependingOnSameBase()
 				"name": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 4, Offset: 4}, To: tokens.Pos{Line: 6, Column: 4, Offset: 4}},
 					Name:        "name",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 10, Offset: 10}, To: tokens.Pos{Line: 6, Column: 10, Offset: 10}}),
 				},
 			},
@@ -539,8 +527,7 @@ func (s *IndexTestSuite) TestShapeDependency_MultipleShapesDependingOnSameBase()
 				"title": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 10, Column: 4, Offset: 4}, To: tokens.Pos{Line: 10, Column: 4, Offset: 4}},
 					Name:        "title",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 10, Column: 10, Offset: 10}, To: tokens.Pos{Line: 10, Column: 10, Offset: 10}}),
 				},
 			},
@@ -627,8 +614,7 @@ func (s *IndexTestSuite) TestShapeDependency_DeepDependencyChain() {
 					shapeInfo.field: {
 						Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: shapeInfo.line + 1, Column: 4, Offset: 4}, To: tokens.Pos{Line: shapeInfo.line + 1, Column: 14, Offset: 14}},
 						Name:        shapeInfo.field,
-						NotNullable: true,
-						Required:    true,
+						Optional:    false,
 						Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: shapeInfo.line + 1, Column: 10, Offset: 10}, To: tokens.Pos{Line: shapeInfo.line + 1, Column: 20, Offset: 20}}),
 					},
 				},
@@ -679,8 +665,7 @@ func (s *IndexTestSuite) TestShapeDependency_ShapeWithEmptyWithFQN() {
 				"field": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "field",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}}),
 				},
 			},
@@ -768,8 +753,7 @@ func (s *IndexTestSuite) TestShapeDependency_ShapeWithDuplicateFieldNames() {
 				"id": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "id",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 8, Offset: 8}, To: tokens.Pos{Line: 2, Column: 8, Offset: 8}}),
 				},
 			},
@@ -788,8 +772,7 @@ func (s *IndexTestSuite) TestShapeDependency_ShapeWithDuplicateFieldNames() {
 				"id": { // This will conflict with the base shape's "id" field
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 4, Offset: 4}, To: tokens.Pos{Line: 6, Column: 4, Offset: 4}},
 					Name:        "id",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 8, Offset: 8}, To: tokens.Pos{Line: 6, Column: 8, Offset: 8}}),
 				},
 			},
@@ -923,22 +906,19 @@ func (s *IndexTestSuite) TestShapeDependency_ShapeWithMultipleFields() {
 				"id": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "id",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 8, Offset: 8}, To: tokens.Pos{Line: 2, Column: 8, Offset: 8}}),
 				},
 				"name": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 4, Offset: 4}, To: tokens.Pos{Line: 3, Column: 4, Offset: 4}},
 					Name:        "name",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}}),
 				},
 				"email": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 4, Offset: 4}, To: tokens.Pos{Line: 4, Column: 4, Offset: 4}},
 					Name:        "email",
-					NotNullable: false,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 10, Offset: 10}, To: tokens.Pos{Line: 4, Column: 10, Offset: 10}}),
 				},
 			},
@@ -965,12 +945,9 @@ func (s *IndexTestSuite) TestShapeDependency_ShapeWithMultipleFields() {
 	s.Contains(shape.Model.Fields, "email")
 
 	// Verify field properties
-	s.True(shape.Model.Fields["id"].NotNullable)
-	s.True(shape.Model.Fields["id"].Required)
-	s.True(shape.Model.Fields["name"].NotNullable)
-	s.True(shape.Model.Fields["name"].Required)
-	s.False(shape.Model.Fields["email"].NotNullable)
-	s.True(shape.Model.Fields["email"].Required)
+	s.False(shape.Model.Fields["id"].Optional)
+	s.False(shape.Model.Fields["name"].Optional)
+	s.False(shape.Model.Fields["email"].Optional)
 }
 
 // Shape with complex nested dependency - verify complex nested dependencies work correctly
@@ -997,8 +974,7 @@ func (s *IndexTestSuite) TestShapeDependency_ComplexNestedDependency() {
 				"id": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "id",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 8, Offset: 8}, To: tokens.Pos{Line: 2, Column: 8, Offset: 8}}),
 				},
 			},
@@ -1017,8 +993,7 @@ func (s *IndexTestSuite) TestShapeDependency_ComplexNestedDependency() {
 				"name": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 4, Offset: 4}, To: tokens.Pos{Line: 6, Column: 4, Offset: 4}},
 					Name:        "name",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 10, Offset: 10}, To: tokens.Pos{Line: 6, Column: 10, Offset: 10}}),
 				},
 			},
@@ -1037,8 +1012,7 @@ func (s *IndexTestSuite) TestShapeDependency_ComplexNestedDependency() {
 				"description": {
 					Range:       tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 10, Column: 4, Offset: 4}, To: tokens.Pos{Line: 10, Column: 4, Offset: 4}},
 					Name:        "description",
-					NotNullable: false,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 10, Column: 15, Offset: 15}, To: tokens.Pos{Line: 10, Column: 15, Offset: 15}}),
 				},
 			},
@@ -1112,8 +1086,7 @@ func (s *IndexTestSuite) TestShapeDependency_CompositionWithUnexportedShapeCross
 				"id": {
 					Range:       tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "id",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 2, Column: 8, Offset: 8}, To: tokens.Pos{Line: 2, Column: 8, Offset: 8}}),
 				},
 			},
@@ -1132,8 +1105,7 @@ func (s *IndexTestSuite) TestShapeDependency_CompositionWithUnexportedShapeCross
 				"name": {
 					Range:       tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "name",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}}),
 				},
 			},
@@ -1200,8 +1172,7 @@ func (s *IndexTestSuite) TestShapeDependency_CompositionWithExportedShapeCrossNa
 				"id": {
 					Range:       tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "id",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 2, Column: 8, Offset: 8}, To: tokens.Pos{Line: 2, Column: 8, Offset: 8}}),
 				},
 			},
@@ -1226,8 +1197,7 @@ func (s *IndexTestSuite) TestShapeDependency_CompositionWithExportedShapeCrossNa
 				"name": {
 					Range:       tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "name",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}}),
 				},
 			},
@@ -1298,8 +1268,7 @@ func (s *IndexTestSuite) TestShapeDependency_CompositionWithNonExistentShapeCros
 				"id": {
 					Range:       tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "id",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test1.sentra", From: tokens.Pos{Line: 2, Column: 8, Offset: 8}, To: tokens.Pos{Line: 2, Column: 8, Offset: 8}}),
 				},
 			},
@@ -1318,8 +1287,7 @@ func (s *IndexTestSuite) TestShapeDependency_CompositionWithNonExistentShapeCros
 				"name": {
 					Range:       tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 2, Column: 4, Offset: 4}, To: tokens.Pos{Line: 2, Column: 4, Offset: 4}},
 					Name:        "name",
-					NotNullable: true,
-					Required:    true,
+					Optional: false,
 					Type:        ast.NewStringTypeRef(tokens.Range{File: "test2.sentra", From: tokens.Pos{Line: 2, Column: 10, Offset: 10}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}}),
 				},
 			},

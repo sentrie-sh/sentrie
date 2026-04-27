@@ -53,5 +53,5 @@ When you modify a touched source file that already has a license header (includi
 
 Older files may use only `SPDX-License-Identifier` plus a `Copyright ...` paragraph and Apache license text.
 
-- If such a header exists in a touched source file, keep the header style, but update an outdated year.
-- Do **not** rewrite legacy headers to the two-line form as part of unrelated edits; only new files (or explicit migration tasks) should use the `SPDX-FileCopyrightText` + `SPDX-License-Identifier` pattern above.
+- If such a header exists in a touched source file, update it to the new format with the current year.
+- Rewrite legacy headers to the two-line form as part of unrelated edits; only new files (or explicit migration tasks) should use the `SPDX-FileCopyrightText` + `SPDX-License-Identifier` pattern above.

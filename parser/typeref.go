@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -66,7 +66,11 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		if !p.expect(tokens.PunctLeftBracket) {
 			return nil
 		}
-		r.ElemType = parseTypeRef(ctx, p)
+		elemType := parseTypeRef(ctx, p)
+		if elemType == nil {
+			return nil
+		}
+		r.ElemType = elemType
 		rBracket, found := p.advanceExpected(tokens.PunctRightBracket)
 		if !found {
 			return nil
@@ -76,7 +80,11 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		if !p.expect(tokens.PunctLeftBracket) {
 			return nil
 		}
-		r.ValueType = parseTypeRef(ctx, p)
+		valueType := parseTypeRef(ctx, p)
+		if valueType == nil {
+			return nil
+		}
+		r.ValueType = valueType
 		rBracket, found := p.advanceExpected(tokens.PunctRightBracket)
 		if !found {
 			return nil
@@ -87,7 +95,11 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 			return nil
 		}
 		for !p.head().IsOfKind(tokens.PunctRightBracket) {
-			r.Fields = append(r.Fields, parseTypeRef(ctx, p))
+			fieldType := parseTypeRef(ctx, p)
+			if fieldType == nil {
+				return nil
+			}
+			r.Fields = append(r.Fields, fieldType)
 			if p.head().IsOfKind(tokens.PunctComma) {
 				p.advance()
 			}
@@ -98,6 +110,13 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 			return nil
 		}
 		r.Rnge.To = rBracket.Range.To
+	}
+
+	if p.canExpect(tokens.TokenQuestion) {
+		question := p.advance()
+		rnge := ref.Span()
+		rnge.To = question.Range.To
+		ref = ast.NewNullableTypeRef(ref, rnge)
 	}
 
 	for p.head().IsOfKind(tokens.TokenAt) {

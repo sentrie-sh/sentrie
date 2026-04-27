@@ -116,12 +116,12 @@ mapEntry            ::= STRING ':' expr
 /* Type System */
 shapeDecl           ::= 'shape' IDENT ( typeRef | complexShape )
 complexShape        ::= ('with' typeName)? '{' shapeElement+ '}'
-shapeElement        ::= IDENT ('!'|'?')? ":" typeRef
+shapeElement        ::= IDENT ('?')? ":" typeRef
 typeRef             ::= (primitiveType
                           | typeName
                           | recordType
                           | listType
-                          | dictType) typeRefConstraint*
+                          | dictType) ('?')? typeRefConstraint*
 
 typeRefConstraint ::= '@' IDENT '(' commaSeparatedExpr? ')'
 primitiveType       ::= 'int' | 'float' | 'string' | 'bool' | 'document'

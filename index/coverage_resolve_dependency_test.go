@@ -46,7 +46,7 @@ func TestCreateShapeSkipsBlankFieldNameEntries(t *testing.T) {
 		With:  nil,
 		Fields: map[string]*ast.ShapeField{
 			"":   {Range: rng(3), Name: "", Type: ast.NewStringTypeRef(rng(3))},
-			"id": {Range: rng(4), Name: "id", NotNullable: true, Required: true, Type: ast.NewStringTypeRef(rng(4))},
+			"id": {Range: rng(4), Name: "id", Optional: false, Type: ast.NewStringTypeRef(rng(4))},
 		},
 	}
 	stmt := ast.NewShapeStatement("S", nil, cm, rng(2))
@@ -111,7 +111,7 @@ func TestShapeResolveDependency_ComposeFromAliasBaseErrors(t *testing.T) {
 			Range: rng(5),
 			With:  with,
 			Fields: map[string]*ast.ShapeField{
-				"x": {Range: rng(6), Name: "x", NotNullable: true, Required: true, Type: ast.NewStringTypeRef(rng(6))},
+				"x": {Range: rng(6), Name: "x", Optional: false, Type: ast.NewStringTypeRef(rng(6))},
 			},
 		},
 		rng(5),
@@ -160,7 +160,7 @@ func TestShapeResolveDependency_DuplicateFieldFromComposedBaseErrors(t *testing.
 			Range: rng(2),
 			With:  nil,
 			Fields: map[string]*ast.ShapeField{
-				"id": {Range: rng(3), Name: "id", NotNullable: true, Required: true, Type: ast.NewStringTypeRef(rng(3))},
+				"id": {Range: rng(3), Name: "id", Optional: false, Type: ast.NewStringTypeRef(rng(3))},
 			},
 		},
 		rng(2),
@@ -177,7 +177,7 @@ func TestShapeResolveDependency_DuplicateFieldFromComposedBaseErrors(t *testing.
 			Range: rng(10),
 			With:  with,
 			Fields: map[string]*ast.ShapeField{
-				"id": {Range: rng(11), Name: "id", NotNullable: true, Required: true, Type: ast.NewNumberTypeRef(rng(11))},
+				"id": {Range: rng(11), Name: "id", Optional: false, Type: ast.NewNumberTypeRef(rng(11))},
 			},
 		},
 		rng(10),
@@ -226,7 +226,7 @@ func TestShapeResolveDependency_PolicyLocalComposeUsesInPolicyShapes(t *testing.
 			Range: rng(2),
 			With:  nil,
 			Fields: map[string]*ast.ShapeField{
-				"n": {Range: rng(3), Name: "n", NotNullable: true, Required: true, Type: ast.NewStringTypeRef(rng(3))},
+				"n": {Range: rng(3), Name: "n", Optional: false, Type: ast.NewStringTypeRef(rng(3))},
 			},
 		},
 		rng(2),

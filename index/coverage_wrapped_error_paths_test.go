@@ -48,7 +48,7 @@ func (suite *IndexTestSuite) TestShapeResolveDependencyWrapsCrossNamespaceNotExp
 		Range: rng(11),
 		With:  withMissing,
 		Fields: map[string]*ast.ShapeField{
-			"name": {Range: rng(12), Name: "name", Required: true, NotNullable: true, Type: ast.NewStringTypeRef(rng(12))},
+			"name": {Range: rng(12), Name: "name", Optional: false, Type: ast.NewStringTypeRef(rng(12))},
 		},
 	}, rng(11))
 	user, err := createShape(appNS, nil, userStmt)

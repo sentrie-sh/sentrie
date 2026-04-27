@@ -26,6 +26,13 @@ import (
 )
 
 func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef ast.TypeRef, valueRange tokens.Range) error {
+	if ast.IsNullableTypeRef(typeRef) {
+		if v.IsNull() {
+			return nil
+		}
+		typeRef = ast.UnwrapNullableTypeRef(typeRef)
+	}
+
 	switch t := typeRef.(type) {
 	case *ast.StringTypeRef:
 		return validateAgainstStringTypeRef(ctx, ec, exec, p, v, t, valueRange)

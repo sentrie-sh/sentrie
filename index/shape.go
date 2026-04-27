@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50,11 +50,10 @@ type ExportedShape struct {
 }
 
 type ShapeModelField struct {
-	Node        *ast.ShapeField
-	Name        string
-	NotNullable bool
-	Required    bool
-	TypeRef     ast.TypeRef
+	Node     *ast.ShapeField
+	Name     string
+	Optional bool
+	TypeRef  ast.TypeRef
 }
 
 func (s *Shape) String() string {
@@ -186,11 +185,10 @@ func createShape(ns *Namespace, p *Policy, stmt *ast.ShapeStatement) (*Shape, er
 			}
 
 			shape.Model.Fields[field.Name] = &ShapeModelField{
-				Node:        field,
-				Name:        field.Name,
-				NotNullable: field.NotNullable,
-				Required:    field.Required,
-				TypeRef:     field.Type,
+				Node:     field,
+				Name:     field.Name,
+				Optional: field.Optional,
+				TypeRef:  field.Type,
 			}
 		}
 	} else {

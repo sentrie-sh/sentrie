@@ -116,8 +116,8 @@ MapEntry = STRING ":" Expr
 /* Type System */
 ShapeDecl = "shape" IDENT (TypeRef / ComplexShape)
 ComplexShape = ("with" TypeName)? "{" ShapeElement+ "}"
-ShapeElement = IDENT ("!" / "?")? ":" TypeRef
-TypeRef = (PrimitiveType / TypeName / ListType / DictType / RecordType) TypeRefConstraint*
+ShapeElement = IDENT ("?")? ":" TypeRef
+TypeRef = (PrimitiveType / TypeName / ListType / DictType / RecordType) ("?")? TypeRefConstraint*
 
 TypeRefConstraint = "@" IDENT "(" CommaSeparatedExpr? ")"
 PrimitiveType = "int" / "float" / "string" / "bool" / "document"

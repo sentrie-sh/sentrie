@@ -1,7 +1,7 @@
 namespace sh/sentrie/example/shapes
 
 shape User {
-  name!: string
+  name: string
   age?: int
   parent: User
 }
