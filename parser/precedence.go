@@ -49,7 +49,7 @@ var precedences = map[tokens.Kind]Precedence{
 	tokens.TokenMul:             PRODUCT,
 	tokens.TokenMod:             PRODUCT,
 	tokens.PunctLeftParentheses: CALL,
-	tokens.KeywordCast:          CALL,
+	tokens.KeywordAs:            UNARY,
 	tokens.TokenDot:             INDEX,
 	tokens.PunctLeftBracket:     INDEX,
 }
