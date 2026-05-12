@@ -51,7 +51,7 @@ policy var_test {
   shape Positive100 number @min(0) @max(100)
   rule w = { 
     let y = "99"
-    let x:Positive100 = cast y as number
+    let x:Positive100 = y as number
     yield x
   }
 
