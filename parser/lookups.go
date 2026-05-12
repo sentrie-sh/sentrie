@@ -18,7 +18,6 @@ func (p *Parser) registerParseFns() {
 	p.registerPrefix(tokens.KeywordUnknown, parseTrinaryLiteral)
 
 	p.registerPrefix(tokens.KeywordNull, parseNullLiteral)
-	p.registerPrefix(tokens.KeywordCast, parseCastExpression)
 
 	p.registerPrefix(tokens.Ident, parseIdentifier)
 	p.registerPrefix(tokens.TokenPipelineHole, parsePipelineHoleExpression)
@@ -46,6 +45,7 @@ func (p *Parser) registerParseFns() {
 	p.registerInfix(tokens.KeywordMatches, parseInfixExpression)
 	p.registerInfix(tokens.KeywordContains, parseInfixExpression)
 	p.registerInfix(tokens.KeywordIs, parseIsExpression)
+	p.registerInfix(tokens.KeywordAs, parseAsCastExpression)
 
 	p.registerInfix(tokens.PunctLeftBracket, parseIndexAccessExpression)
 	p.registerInfix(tokens.TokenDot, parseFieldAccessExpression)
