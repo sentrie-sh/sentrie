@@ -63,9 +63,10 @@ CmpOp = "==" / "!=" / "<=" / ">=" / "<" / ">" / "is" / "matches" / "contains"
 ListCmpOp = "in" / "not" "in"
 MapCmpOp = "in" / "not" "in"
 
-/* Arithmetic Expressions */
+/* Arithmetic Expressions — postfix `as TypeRef` binds tighter than + - * / in the Pratt parser. */
+PostfixCastExpr = PrimaryExpr ("as" TypeRef)*
 AddExpr = MulExpr (( "+" / "-" ) MulExpr)*
-MulExpr = PrimaryExpr (( "*" / "/" / "%" ) PrimaryExpr)*
+MulExpr = PostfixCastExpr (( "*" / "/" / "%" ) PostfixCastExpr)*
 
 PrimaryExpr = Literal
             / IDENT
@@ -91,7 +92,6 @@ InExpr = AddExpr ("not")? "in" AddExpr
 KvInExpr = MapLiteral "in" AddExpr
 
 /* Built-in collection helpers use ordinary calls, e.g. filter(list, (x) => { yield ... }). */
-CastExpr = "cast" AddExpr "as" PrimitiveType
 CountExpr = "count" AddExpr
 
 /* State Checking */
