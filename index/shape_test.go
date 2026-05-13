@@ -792,11 +792,15 @@ func (s *IndexTestSuite) TestShapeDependency_ShapeWithDuplicateFieldNames() {
 	err = ns.addShape(dependentShape)
 	s.Require().NoError(err)
 
-	// Validate the index - should pass (duplicate field names are handled during hydration, not validation)
+	// Validate the index - cycle detection passes, but commit-time hydration
+	// rejects the composition because the dependent shape redeclares a field
+	// ("id") already provided by BaseEntity. Validate now surfaces that commit
+	// error rather than silently dropping it.
 	err = idx.Validate(ctx)
-	s.Require().NoError(err)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "duplicate shape field 'id'")
 
-	// Verify both shapes are properly indexed
+	// Verify both shapes are still indexed (commit failure does not undo registration).
 	s.Contains(ns.Shapes, "BaseEntity")
 	s.Contains(ns.Shapes, "UserWithDuplicateField")
 
