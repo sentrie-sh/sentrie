@@ -271,3 +271,44 @@ func TestDetectShapeCyclePolicyBranchAddEdgeErrorDuplicateFQN(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestValidatePropagatesCommitError(t *testing.T) {
+	rng := testRange()
+	ns := testNamespace("n")
+
+	// alias shape: AliasOf is set, Model is nil.
+	// detectShapeCycle resolves it fine (no cycle), but
+	// resolveDependency rejects composition with an alias at commit time.
+	aliasStmt := ast.NewShapeStatement("Alias", ast.NewStringTypeRef(rng), nil, rng)
+	alias, err := createShape(ns, nil, aliasStmt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// complex shape that composes with the alias — valid structure, bad semantics
+	composedStmt := ast.NewShapeStatement("Composed", nil, &ast.Cmplx{
+		Range:  rng,
+		With:   ast.NewFQN([]string{"Alias"}, rng).Ptr(),
+		Fields: map[string]*ast.ShapeField{},
+	}, rng)
+	composed, err := createShape(ns, nil, composedStmt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ns.Shapes["Alias"] = alias
+	ns.Shapes["Composed"] = composed
+
+	idx := CreateIndex()
+	idx.Namespaces[ns.FQN.String()] = ns
+
+	// Before the fix: Validate returns nil even though Commit failed.
+	// After the fix: Validate returns the commit error.
+	err = idx.Validate(context.Background())
+	if err == nil {
+		t.Fatal("expected Validate to return an error when Commit fails, got nil")
+	}
+	if !strings.Contains(err.Error(), "commit error") {
+		t.Fatalf("expected error to contain 'commit error', got: %v", err)
+	}
+}

@@ -44,6 +44,7 @@ func (idx *Index) Validate(ctx context.Context) error {
 		}
 
 		if err := idx.Commit(ctx); err != nil {
+			idx.validationError = err
 			return
 		}
 	})
