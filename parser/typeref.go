@@ -58,10 +58,6 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		ref = ast.NewDocumentTypeRef(p.advance().Range)
 	}
 
-	if ref == nil {
-		return nil
-	}
-
 	if r, ok := ref.(*ast.ListTypeRef); ok {
 		if !p.expect(tokens.PunctLeftBracket) {
 			return nil

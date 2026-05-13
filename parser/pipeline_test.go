@@ -223,7 +223,7 @@ func (s *ParserTestSuite) TestPipelineHoleHelpers() {
 		{
 			name:     "cast",
 			input:    ast.NewCastExpression(ast.NewPipelineHoleExpression(rng), ast.NewNumberTypeRef(rng), rng),
-			expected: "cast x as number",
+			expected: "x as number",
 		},
 		{
 			name:     "is_defined",

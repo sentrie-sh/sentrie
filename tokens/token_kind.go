@@ -40,7 +40,6 @@ const (
 	KeywordWhen      Kind = "when"
 	KeywordDefault   Kind = "default"
 	KeywordAnd       Kind = "and"
-	KeywordCast      Kind = "cast"
 	KeywordOr        Kind = "or"
 	KeywordXor       Kind = "xor"
 	KeywordNot       Kind = "not"
@@ -132,7 +131,6 @@ var keywords = map[string]Kind{
 	"fact":      KeywordFact,
 	"export":    KeywordExport,
 	"use":       KeywordUse,
-	"cast":      KeywordCast,
 	"from":      KeywordFrom,
 	"as":        KeywordAs,
 	"with":      KeywordWith,

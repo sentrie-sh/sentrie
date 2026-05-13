@@ -16,7 +16,11 @@
 
 package parser
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/sentrie-sh/sentrie/ast"
+)
 
 // TestPrecedenceArithmetic tests arithmetic operator precedence.
 // Subtest closures take *testing.T because testing.T.Run requires that signature; assertions still go through the suite (s), not raw assert/require on t. The same pattern appears in other TestPrecedence* methods in this file.
@@ -847,5 +851,62 @@ func (s *ParserTestSuite) TestPrecedenceAssociativity() {
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.NotNil(expr, "Failed to parse: 1 >= 2 >= 3")
 		s.Equal("((1 >= 2) >= 3)", expr.String())
+	})
+}
+
+// TestPrecedencePostfixAs tests postfix expr as typeRef binding (issue #85).
+func (s *ParserTestSuite) TestPrecedencePostfixAs() {
+	s.T().Run("PlusCastBindsToRightOperand", func(t *testing.T) {
+		parser := NewParserFromString("a + b as number", "test.sentra")
+		expr := parser.parseExpression(s.T().Context(), LOWEST)
+		s.NotNil(expr)
+		s.Equal("(a + b as number)", expr.String())
+		infix, ok := expr.(*ast.InfixExpression)
+		s.True(ok)
+		cast, ok := infix.Right.(*ast.CastExpression)
+		s.True(ok)
+		s.Equal("b", cast.Expr.String())
+	})
+
+	s.T().Run("MulCastBindsToRightFactor", func(t *testing.T) {
+		parser := NewParserFromString("price * quantity as number", "test.sentra")
+		expr := parser.parseExpression(s.T().Context(), LOWEST)
+		s.NotNil(expr)
+		s.Equal("(price * quantity as number)", expr.String())
+		infix, ok := expr.(*ast.InfixExpression)
+		s.True(ok)
+		cast, ok := infix.Right.(*ast.CastExpression)
+		s.True(ok)
+		s.Equal("quantity", cast.Expr.String())
+	})
+
+	s.T().Run("IndexBeforeCast", func(t *testing.T) {
+		parser := NewParserFromString("arr[0] as number", "test.sentra")
+		expr := parser.parseExpression(s.T().Context(), LOWEST)
+		s.NotNil(expr)
+		s.Equal("arr[0] as number", expr.String())
+		_, ok := expr.(*ast.CastExpression)
+		s.True(ok)
+	})
+
+	s.T().Run("CallBeforeCast", func(t *testing.T) {
+		parser := NewParserFromString("f(x) as string", "test.sentra")
+		expr := parser.parseExpression(s.T().Context(), LOWEST)
+		s.NotNil(expr)
+		s.Equal("f(x) as string", expr.String())
+		_, ok := expr.(*ast.CastExpression)
+		s.True(ok)
+	})
+
+	s.T().Run("ChainedCastLeftAssociative", func(t *testing.T) {
+		parser := NewParserFromString(`1 as number as string`, "test.sentra")
+		expr := parser.parseExpression(s.T().Context(), LOWEST)
+		s.NotNil(expr)
+		s.Equal("1 as number as string", expr.String())
+		outer, ok := expr.(*ast.CastExpression)
+		s.True(ok)
+		inner, ok := outer.Expr.(*ast.CastExpression)
+		s.True(ok)
+		s.Equal("1", inner.Expr.String())
 	})
 }
