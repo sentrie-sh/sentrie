@@ -58,11 +58,6 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		ref = ast.NewDocumentTypeRef(p.advance().Range)
 	}
 
-	if ref == nil {
-		p.errorf("unsupported or incomplete type ref (kind %s)", p.head().Kind)
-		return nil
-	}
-
 	if r, ok := ref.(*ast.ListTypeRef); ok {
 		if !p.expect(tokens.PunctLeftBracket) {
 			return nil
