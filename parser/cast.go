@@ -18,9 +18,6 @@ func parseAsCastExpression(ctx context.Context, p *Parser, left ast.Expression, 
 
 	typeRef := parseTypeRef(ctx, p)
 	if typeRef == nil {
-		if p.err == nil {
-			p.errorf("expected type after 'as', got %s", p.head().Kind)
-		}
 		return nil
 	}
 

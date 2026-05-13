@@ -897,4 +897,16 @@ func (s *ParserTestSuite) TestPrecedencePostfixAs() {
 		_, ok := expr.(*ast.CastExpression)
 		s.True(ok)
 	})
+
+	s.T().Run("ChainedCastLeftAssociative", func(t *testing.T) {
+		parser := NewParserFromString(`1 as number as string`, "test.sentra")
+		expr := parser.parseExpression(s.T().Context(), LOWEST)
+		s.NotNil(expr)
+		s.Equal("1 as number as string", expr.String())
+		outer, ok := expr.(*ast.CastExpression)
+		s.True(ok)
+		inner, ok := outer.Expr.(*ast.CastExpression)
+		s.True(ok)
+		s.Equal("1", inner.Expr.String())
+	})
 }

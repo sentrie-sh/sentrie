@@ -101,6 +101,11 @@ func (s *AstTestSuite) TestExpressionInterface() {
 	s.Implements((*Expression)(nil), hole)
 	s.Implements((*Node)(nil), hole)
 	s.Equal("#", hole.String())
+
+	cast := NewCastExpression(NewIdentifier("x", r), NewNumberTypeRef(r), r)
+	s.Implements((*Expression)(nil), cast)
+	s.Implements((*Node)(nil), cast)
+	s.Equal("x as number", cast.String())
 }
 
 // TestNodePositioning tests position handling across different node types

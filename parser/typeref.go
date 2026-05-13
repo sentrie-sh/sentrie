@@ -59,6 +59,7 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 	}
 
 	if ref == nil {
+		p.errorf("unsupported or incomplete type ref (kind %s)", p.head().Kind)
 		return nil
 	}
 

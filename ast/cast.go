@@ -27,7 +27,5 @@ func (c *CastExpression) String() string {
 
 func (c *CastExpression) expressionNode() {}
 
-var (
-	_ Expression = (*CastExpression)(nil)
-	_ Node       = (*CastExpression)(nil)
-)
+var _ Expression = (*CastExpression)(nil)
+var _ Node = (*CastExpression)(nil)

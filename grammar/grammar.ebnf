@@ -63,9 +63,10 @@ cmpOp               ::= '==' | '!=' | '<=' | '>=' | '<' | '>' | 'is' | 'matches'
 listCmpOp           ::= 'in' | 'not in'
 mapCmpOp            ::= 'in' | 'not in'
 
-/* Arithmetic Expressions — postfix `as typeRef` binds tighter than + - * / in the Pratt parser. */
-postfixCastExpr     ::= primaryExpr ( 'as' typeRef )*
-mulExpr             ::= postfixCastExpr ( ( '*' | '/' | '%' ) postfixCastExpr )*
+/* Arithmetic Expressions — postfix `as typeRef` binds tighter than + - * / in the Pratt parser.
+   One-or-more repeats allow chained casts (e.g. `x as T1 as T2`); the Pratt parser resolves them left-associatively. */
+castExpr            ::= primaryExpr ( 'as' typeRef )+
+mulExpr             ::= castExpr ( ( '*' | '/' | '%' ) castExpr )*
 addExpr             ::= mulExpr ( ( '+' | '-' ) mulExpr )*
 
 primaryExpr         ::= literal
