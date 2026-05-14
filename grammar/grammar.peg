@@ -2,7 +2,7 @@
 
 /* Program Structure */
 Program = (Comment)* NamespaceDecl (TopLevelDecl / Comment)*
-TopLevelDecl = PolicyDecl / ShapeDecl / ExportShape
+TopLevelDecl = PolicyDecl / ShapeDecl / ExportShape / DeriveDecl / ExportDerive
 NamespaceDecl = "namespace" FQN
 FQN = IDENT ("/" IDENT)*
 
@@ -20,10 +20,14 @@ PolicyStatement = Comment
                 / VarDecl
                 / RuleDecl
                 / ExportRule
+                / DeriveDecl
 
 /* A shape can be exported from a namespace to allow visibility to other namespaces. 
    An unexported shape is visible to the containing namespace and its descendants only. */
 ExportShape = "export" "shape" IDENT
+
+DeriveDecl = "derive" IDENT "=" LambdaExpr
+ExportDerive = "export" "derive" IDENT
 
 VarDecl = "let" IDENT (":" TypeRef)? "=" Expr
 RuleDecl = "rule" IDENT "=" ("default" Expr)? ("when" Expr)? (BlockExpr / RuleImportClause)
@@ -37,7 +41,7 @@ WithClause = "with" IDENT "as" Expr
 
 /* Expressions - ordered by precedence (highest to lowest) */
 Expr = TernaryExpr
-TernaryExpr = OrExpr ("?" Expr ":" Expr)?
+TernaryExpr = OrExpr ("?" ":" OrExpr / "?" Expr ":" Expr)?
 OrExpr = XorExpr ("or" XorExpr)*
 XorExpr = AndExpr ("xor" AndExpr)*
 AndExpr = UnaryExpr ("and" UnaryExpr)*

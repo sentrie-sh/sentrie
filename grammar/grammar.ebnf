@@ -2,7 +2,7 @@
 
 /* Program Structure */
 program             ::= (comment)* namespaceDecl ( toplevelDecl | comment )*
-toplevelDecl        ::= policyDecl | shapeDecl | exportShape
+toplevelDecl        ::= policyDecl | shapeDecl | exportShape | deriveDecl | exportDerive
 namespaceDecl       ::= 'namespace' FQN
 FQN                 ::= IDENT ('/' IDENT)*
 
@@ -21,9 +21,13 @@ policyStatement     ::= comment
                         | varDecl
                         | ruleDecl
                         | exportRule
+                        | deriveDecl
 
 /* A shape can be exported from a namespace to allow visiblity to other namespaces. An unexported shape is visible to the containing namespace and it's descendants only. */
 exportShape         ::= 'export' 'shape' IDENT
+
+deriveDecl          ::= 'derive' IDENT '=' lambdaExpr
+exportDerive        ::= 'export' 'derive' IDENT
 
 varDecl             ::= 'let' IDENT '=' expr
 ruleDecl            ::= 'rule' IDENT '=' ('default' expr)? ('when' expr)? (blockExpr | ruleImportClause)
@@ -37,7 +41,7 @@ withClause          ::= 'with' IDENT 'as' expr
 
 /* Expressions */
 expr                ::= ternaryExpr
-ternaryExpr         ::= orExpr ( '?' expr ':' expr )?
+ternaryExpr         ::= orExpr ( '?' ':' orExpr | '?' expr ':' expr )?
 orExpr              ::= xorExpr ( 'or'  xorExpr )*
 xorExpr             ::= andExpr ( 'xor' andExpr )*
 andExpr             ::= unaryExpr ( 'and' unaryExpr )*
