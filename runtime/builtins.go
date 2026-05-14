@@ -288,6 +288,15 @@ func BuiltinNormaliseList(_ context.Context, _ *CallSite, args ...box.Value) (bo
 	return box.List(result), nil
 }
 
+// BuiltinNow returns the policy execution start time (CreatedAt) as epoch milliseconds.
+func BuiltinNow(_ context.Context, site *CallSite, args ...box.Value) (box.Value, error) {
+	if len(args) != 0 {
+		return box.Undefined(), fmt.Errorf("now requires 0 arguments")
+	}
+	t := site.EC.CreatedAt()
+	return box.Number(float64(t.UnixMilli())), nil
+}
+
 // Builtins is the registry of global built-in functions.
 var Builtins = map[string]Builtin{
 	"all":            BuiltinAll,
@@ -303,5 +312,6 @@ var Builtins = map[string]Builtin{
 	"collect":        BuiltinCollect,
 	"merge":          BuiltinMerge,
 	"normalise_list": BuiltinNormaliseList,
+	"now":            BuiltinNow,
 	"reduce":         BuiltinReduce,
 }
