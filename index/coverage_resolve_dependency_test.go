@@ -133,7 +133,7 @@ func TestShapeResolveDependency_ComposeFromAliasBaseErrors(t *testing.T) {
 			polStmt,
 		},
 	}
-	policy, err := createPolicy(ns, polStmt, prog)
+	policy, err := createPolicy(ns, polStmt, prog, nil, nil)
 	require.NoError(t, err)
 	child := policy.Shapes["Child"]
 	require.NotNil(t, child)
@@ -199,7 +199,7 @@ func TestShapeResolveDependency_DuplicateFieldFromComposedBaseErrors(t *testing.
 			polStmt,
 		},
 	}
-	policy, err := createPolicy(ns, polStmt, prog)
+	policy, err := createPolicy(ns, polStmt, prog, nil, nil)
 	require.NoError(t, err)
 	child := policy.Shapes["ChildDup"]
 	require.NotNil(t, child)
@@ -260,7 +260,7 @@ func TestShapeResolveDependency_PolicyLocalComposeUsesInPolicyShapes(t *testing.
 			polStmt,
 		},
 	}
-	policy, err := createPolicy(ns, polStmt, prog)
+	policy, err := createPolicy(ns, polStmt, prog, nil, nil)
 	require.NoError(t, err)
 	ext := policy.Shapes["PExt"]
 	require.NotNil(t, ext)

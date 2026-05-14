@@ -90,7 +90,7 @@ func (suite *IndexTestSuite) TestAddChildWithNameConflict() {
 		},
 	}
 
-	policy, err := createPolicy(suite.parentNs, policyStmt, program)
+	policy, err := createPolicy(suite.parentNs, policyStmt, program, nil, nil)
 	suite.NoError(err)
 
 	err = suite.parentNs.addPolicy(policy)
@@ -144,7 +144,7 @@ func (suite *IndexTestSuite) TestCheckNameAvailable() {
 		},
 	}
 
-	policy, err := createPolicy(suite.parentNs, policyStmt, program)
+	policy, err := createPolicy(suite.parentNs, policyStmt, program, nil, nil)
 	suite.NoError(err)
 
 	err = suite.parentNs.addPolicy(policy)
@@ -220,7 +220,7 @@ func (suite *IndexTestSuite) TestAddPolicy() {
 		},
 	}
 
-	policy, err := createPolicy(suite.parentNs, policyStmt, program)
+	policy, err := createPolicy(suite.parentNs, policyStmt, program, nil, nil)
 	suite.NoError(err)
 
 	err = suite.parentNs.addPolicy(policy)
@@ -268,7 +268,7 @@ func (suite *IndexTestSuite) TestAddPolicyWithNameConflict() {
 		},
 	}
 
-	policy1, err := createPolicy(suite.parentNs, policyStmt1, program1)
+	policy1, err := createPolicy(suite.parentNs, policyStmt1, program1, nil, nil)
 	suite.NoError(err)
 
 	err = suite.parentNs.addPolicy(policy1)
@@ -310,7 +310,7 @@ func (suite *IndexTestSuite) TestAddPolicyWithNameConflict() {
 		},
 	}
 
-	policy2, err := createPolicy(suite.parentNs, policyStmt2, program2)
+	policy2, err := createPolicy(suite.parentNs, policyStmt2, program2, nil, nil)
 	suite.NoError(err)
 
 	err = suite.parentNs.addPolicy(policy2)
