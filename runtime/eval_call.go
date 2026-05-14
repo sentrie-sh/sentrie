@@ -127,17 +127,96 @@ func calculateHashKey(node *ast.CallExpression, args []box.Value) string {
 	return fmt.Sprintf("%p:%d", node, arghash)
 }
 
-func getTarget(_ context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, c *ast.CallExpression) (func(context.Context, ...box.Value) (box.Value, error), error) {
-	callee := c.Callee.String()
+func lookupDeriveByIdentifier(ec *ExecutionContext, p *index.Policy, name string) *index.Derive {
+	if ec.evalDerive != nil {
+		if d, ok := ec.evalDerive.DefineShort[name]; ok {
+			return d
+		}
+		return nil
+	}
+	if p == nil {
+		return nil
+	}
+	if d, ok := p.Derives[name]; ok {
+		return d
+	}
+	if p.Namespace != nil {
+		if d, ok := p.Namespace.Derives[name]; ok {
+			return d
+		}
+	}
+	return nil
+}
 
-	if builtin, ok := Builtins[callee]; ok {
-		return func(ctx context.Context, args ...box.Value) (box.Value, error) {
-			site := &CallSite{EC: ec, Exec: exec, Policy: p}
-			return builtin(ctx, site, args...)
-		}, nil
+func lookupDeriveBySlashFQ(ec *ExecutionContext, exec *executorImpl, fqn string) (*index.Derive, error) {
+	parts := strings.Split(fqn, ast.FQNSeparator)
+	if len(parts) < 3 {
+		return nil, nil
+	}
+	if ec.evalDerive != nil {
+		if d := ec.evalDerive.DefineFQN[fqn]; d != nil {
+			return d, nil
+		}
+		if d, ok := exec.index.DerivesByFQN[fqn]; ok {
+			if d.Namespace.FQN.String() != ec.evalDerive.Namespace.FQN.String() {
+				if err := d.Namespace.VerifyDeriveExported(d.Name); err != nil {
+					return nil, err
+				}
+			}
+			return d, nil
+		}
+		return nil, fmt.Errorf("unknown derive %q", fqn)
+	}
+	d, err := exec.index.ResolveDerive(fqn)
+	if err != nil {
+		return nil, err
+	}
+	return d, nil
+}
+
+func getTarget(_ context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, c *ast.CallExpression) (func(context.Context, ...box.Value) (box.Value, error), error) {
+	if fqn := ast.SlashCalleeFQNS(c.Callee); fqn != "" {
+		parts := strings.Split(fqn, ast.FQNSeparator)
+		if len(parts) >= 3 {
+			d, err := lookupDeriveBySlashFQ(ec, exec, fqn)
+			if err != nil {
+				return nil, err
+			}
+			if d != nil {
+				return func(ctx context.Context, args ...box.Value) (box.Value, error) {
+					return invokeDerive(ctx, ec, exec, p, d, args)
+				}, nil
+			}
+		}
 	}
 
-	module, fn := splitAliasFn(callee)
+	calleeStr := c.Callee.String()
+
+	var nameForBuiltin string
+	if id, ok := c.Callee.(*ast.Identifier); ok {
+		if d := lookupDeriveByIdentifier(ec, p, id.Value); d != nil {
+			return func(ctx context.Context, args ...box.Value) (box.Value, error) {
+				return invokeDerive(ctx, ec, exec, p, d, args)
+			}, nil
+		}
+		nameForBuiltin = id.Value
+	} else {
+		nameForBuiltin = calleeStr
+	}
+
+	if nameForBuiltin != "" {
+		if builtin, ok := Builtins[nameForBuiltin]; ok {
+			if ec.evalDerive != nil && !isBuiltinAllowedInDerive(nameForBuiltin) {
+				return nil, fmt.Errorf("builtin %q is not permitted inside a derive — it cannot guarantee deterministic output within a single policy execution", nameForBuiltin)
+			}
+			return func(ctx context.Context, args ...box.Value) (box.Value, error) {
+				site := &CallSite{EC: ec, Exec: exec, Policy: p}
+				return builtin(ctx, site, args...)
+			}, nil
+		}
+	}
+
+	module, fn := splitAliasFn(calleeStr)
 
 	if module == "" || fn == "" {
 		e := xerr.ErrImportResolution(module, p.Namespace.FQN.String())

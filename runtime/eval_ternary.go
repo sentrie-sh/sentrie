@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -26,13 +13,30 @@ import (
 )
 
 func evalTernary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, t *ast.TernaryExpression) (box.Value, *trace.Node, error) {
-	ctx, n, done := trace.New(ctx, t, "ternary", map[string]any{})
+	ctx, n, done := trace.New(ctx, t, "ternary", map[string]any{"elvis": t.Elvis})
 	defer done()
+
+	if t.Elvis {
+		lhs, child, err := eval(ctx, ec, exec, p, t.Condition)
+		n.Attach(child)
+		if err != nil {
+			return box.Undefined(), n.SetErr(err), err
+		}
+		if lhs.IsUndefined() || lhs.IsNull() {
+			v, child2, err2 := eval(ctx, ec, exec, p, t.ElseBranch)
+			n.Attach(child2)
+			if err2 != nil {
+				return box.Undefined(), n.SetErr(err2), err2
+			}
+			return v, n.SetResult(v), nil
+		}
+		return lhs, n.SetResult(lhs), nil
+	}
 
 	c, cn, err := eval(ctx, ec, exec, p, t.Condition)
 	n.Attach(cn)
 	if err != nil {
-		return box.Value{}, n.SetErr(err), err
+		return box.Undefined(), n.SetErr(err), err
 	}
 	if box.TrinaryFrom(c).IsTrue() {
 		v, tn, err := eval(ctx, ec, exec, p, t.ThenBranch)

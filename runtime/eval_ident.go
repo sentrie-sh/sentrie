@@ -67,14 +67,16 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		return val, n.SetResult(val), nil
 	}
 
-	if r, found := p.Rules[i.Value]; found {
-		decision, _, node, err := exec.execRule(ctx, ec, p.Namespace.FQN.String(), p.Name, r.Name)
-		n.Attach(node)
-		if err != nil {
-			return box.Undefined(), n.SetErr(err), err
+	if ec.evalDerive == nil {
+		if r, found := p.Rules[i.Value]; found {
+			decision, _, node, err := exec.execRule(ctx, ec, p.Namespace.FQN.String(), p.Name, r.Name)
+			n.Attach(node)
+			if err != nil {
+				return box.Undefined(), n.SetErr(err), err
+			}
+			ec.SetLocal(i.Value, decision.Value, false)
+			return decision.Value, n.SetResult(decision.Value), nil
 		}
-		ec.SetLocal(i.Value, decision.Value, false)
-		return decision.Value, n.SetResult(decision.Value), nil
 	}
 
 	err := fmt.Errorf("identifier not found: %s", i.Value)

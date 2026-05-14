@@ -58,6 +58,9 @@ type ExecutionContext struct {
 	modules map[string]*ModuleBinding // alias -> module binding (for `use`)
 
 	executor Executor
+
+	// evalDerive is set while evaluating a derive body (including nested derive calls).
+	evalDerive *index.Derive
 }
 
 func (ec *ExecutionContext) IsLetInjected(name string) bool {
@@ -79,6 +82,19 @@ func NewExecutionContext(policy *index.Policy, executor Executor) *ExecutionCont
 		modules:   make(map[string]*ModuleBinding),
 		executor:  executor,
 	}
+}
+
+// DetachedChildContext returns an isolated execution context for derive evaluation:
+// no parent bubble, no facts/modules, fresh locals/lets, but same policy, executor,
+// refStack clone, and createdAt as the caller (so now() stays consistent).
+func (ec *ExecutionContext) DetachedChildContext() *ExecutionContext {
+	ec.rwmu.RLock()
+	defer ec.rwmu.RUnlock()
+
+	ec2 := NewExecutionContext(ec.policy, ec.executor)
+	ec2.createdAt = ec.createdAt
+	ec2.refStack = slices.Clone(ec.refStack)
+	return ec2
 }
 
 // Dispose frees the arena immediately. Do NOT reuse an EC after Dispose.
