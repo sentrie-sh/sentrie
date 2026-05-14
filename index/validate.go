@@ -68,6 +68,9 @@ func (idx *Index) validate(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	if err := idx.detectDeriveCycle(ctx); err != nil {
+		return err
+	}
 
 	idx.ruleDag = rg
 	idx.shapeDag = sg
@@ -148,7 +151,13 @@ func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Polic
 		case *ast.UnaryExpression:
 			addNodes(g, []ast.Node{n.Right}, referedBy, policy)
 		case *ast.TernaryExpression:
-			addNodes(g, []ast.Node{n.Condition, n.ThenBranch, n.ElseBranch}, referedBy, policy)
+			if n.Elvis {
+				addNodes(g, []ast.Node{n.Condition, n.ElseBranch}, referedBy, policy)
+			} else {
+				addNodes(g, []ast.Node{n.Condition, n.ThenBranch, n.ElseBranch}, referedBy, policy)
+			}
+		case *ast.LambdaExpression:
+			addNodes(g, []ast.Node{n.Body}, referedBy, policy)
 		case *ast.BlockExpression:
 			for _, stmt := range n.Statements {
 				addNodes(g, []ast.Node{stmt}, referedBy, policy)

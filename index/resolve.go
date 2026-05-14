@@ -17,6 +17,7 @@
 package index
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -76,6 +77,27 @@ func (ns Namespace) VerifyShapeExported(shape string) error {
 		return xerr.ErrNotExported(ShapeFQN(ns.FQN.String(), shape))
 	}
 	return nil
+}
+
+func (ns Namespace) VerifyDeriveExported(name string) error {
+	if _, ok := ns.DeriveExports[name]; !ok {
+		return xerr.ErrNotExported(DeriveFQN(ns.FQN.String(), name))
+	}
+	return nil
+}
+
+// DeriveFQN builds the canonical FQN string for a namespace-level derive.
+func DeriveFQN(ns, derive string) string {
+	return strings.Join([]string{ns, derive}, ast.FQNSeparator)
+}
+
+// ResolveDerive returns a derive by its full FQN string (namespace or policy path).
+func (idx *Index) ResolveDerive(fqn string) (*Derive, error) {
+	d, ok := idx.DerivesByFQN[fqn]
+	if !ok {
+		return nil, fmt.Errorf("derive %q not found: %w", fqn, xerr.ErrIndex)
+	}
+	return d, nil
 }
 
 // FQN utilities

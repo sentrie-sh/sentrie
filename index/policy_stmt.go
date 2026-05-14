@@ -44,7 +44,7 @@ func policyStmtKindOf(stmt ast.Statement) policyStmtKind {
 		return policyStmtFact
 	case *ast.UseStatement:
 		return policyStmtUse
-	case *ast.VarDeclaration, *ast.RuleStatement, *ast.RuleExportStatement, *ast.ShapeStatement:
+	case *ast.VarDeclaration, *ast.RuleStatement, *ast.RuleExportStatement, *ast.ShapeStatement, *ast.DeriveStatement:
 		return policyStmtBody
 	default:
 		return policyStmtUnknown
