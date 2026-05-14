@@ -106,3 +106,71 @@ policy p {
 	err = idx.AddProgram(ctx, prog)
 	require.Error(t, err)
 }
+
+func TestDeriveFatBodyWalkPassesValidation(t *testing.T) {
+	ctx := context.Background()
+	idx := CreateIndex()
+	src := `namespace com/ex
+derive leaf = () => { yield 1 }
+derive fat = () => {
+  let v = leaf()
+  yield v + (true ? 1 : 0) + (null ?: 2) + (-1) + [1, 2][0] + (1 as number) + (!false) + ({"a":1}["a"])
+}
+policy pol {
+  let _s = 0
+  rule allow = { yield fat() > 0 }
+  export decision of allow
+}
+`
+	prog, err := parser.NewParserFromString(src, "fat.sentra").ParseProgram(ctx)
+	require.NoError(t, err)
+	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(t, idx.Validate(ctx))
+}
+
+func TestResolveDeriveNotFound(t *testing.T) {
+	idx := CreateIndex()
+	_, err := idx.ResolveDerive("com/nope/never")
+	require.Error(t, err)
+}
+
+func TestAddProgramExportDeriveAndVerifyExported(t *testing.T) {
+	ctx := context.Background()
+	idx := CreateIndex()
+	src := `namespace com/ex
+derive published = () => { yield 1 }
+export derive published
+policy p {
+  let _s = 0
+  rule r = { yield true }
+  export decision of r
+}
+`
+	prog, err := parser.NewParserFromString(src, "exp.sentra").ParseProgram(ctx)
+	require.NoError(t, err)
+	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(t, idx.Validate(ctx))
+
+	ns := idx.Namespaces["com/ex"]
+	require.NoError(t, ns.VerifyDeriveExported("published"))
+	require.Error(t, ns.VerifyDeriveExported("unpublished"))
+}
+
+func TestAlphaSecretNotExportedInIndex(t *testing.T) {
+	ctx := context.Background()
+	idx := CreateIndex()
+	src := `namespace com/alpha
+derive secret = () => { yield 1 }
+policy pa {
+  let _s = 0
+  rule x = { yield true }
+  export decision of x
+}
+`
+	prog, err := parser.NewParserFromString(src, "a.sentra").ParseProgram(ctx)
+	require.NoError(t, err)
+	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(t, idx.Validate(ctx))
+	ns := idx.Namespaces["com/alpha"]
+	require.Error(t, ns.VerifyDeriveExported("secret"))
+}
