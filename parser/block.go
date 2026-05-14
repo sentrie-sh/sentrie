@@ -120,6 +120,15 @@ func parseGroupedExpression(ctx context.Context, p *Parser) ast.Expression {
 
 	p.current = p.lexer.NextToken()
 	p.next = p.lexer.NextToken()
+	if p.canExpect(tokens.PunctRightParentheses) ||
+		(p.current.Kind == tokens.Ident && (p.next.Kind == tokens.PunctColon || p.next.Kind == tokens.TokenQuestion)) {
+		if lam := parseTypedLambdaExpression(ctx, p, lparen.Range.From); lam != nil {
+			return lam
+		}
+		if p.err != nil {
+			return nil
+		}
+	}
 
 	expression := p.parseExpression(ctx, LOWEST)
 	if expression == nil {

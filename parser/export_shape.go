@@ -23,24 +23,48 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-// 'export shape @ident'
-func parseShapeExportStatement(ctx context.Context, p *Parser) ast.Statement {
+// 'export' ('shape' IDENT | 'derive' IDENT)
+func parseExportStatement(ctx context.Context, p *Parser) ast.Statement {
 	head := p.head()
-
 	p.advance() // consume 'export'
 
+	switch p.head().Kind {
+	case tokens.KeywordShape:
+		return parseShapeExportAfterExport(ctx, p, head)
+	case tokens.KeywordDerive:
+		return parseExportDeriveAfterExport(ctx, p, head)
+	default:
+		p.errorf("expected 'shape' or 'derive' after export")
+		return nil
+	}
+}
+
+func parseShapeExportAfterExport(ctx context.Context, p *Parser, exportHead tokens.Instance) ast.Statement {
 	if !p.expect(tokens.KeywordShape) {
 		return nil
 	}
-
 	name, found := p.advanceExpected(tokens.Ident)
 	if !found {
 		return nil
 	}
-
 	return ast.NewShapeExportStatement(name.Value, tokens.Range{
-		File: head.Range.File,
-		From: head.Range.From,
+		File: exportHead.Range.File,
+		From: exportHead.Range.From,
+		To:   name.Range.To,
+	})
+}
+
+func parseExportDeriveAfterExport(ctx context.Context, p *Parser, exportHead tokens.Instance) ast.Statement {
+	if !p.expect(tokens.KeywordDerive) {
+		return nil
+	}
+	name, found := p.advanceExpected(tokens.Ident)
+	if !found {
+		return nil
+	}
+	return ast.NewExportDeriveStatement(name.Value, tokens.Range{
+		File: exportHead.Range.File,
+		From: exportHead.Range.From,
 		To:   name.Range.To,
 	})
 }

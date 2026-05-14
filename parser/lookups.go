@@ -78,7 +78,8 @@ func (p *Parser) registerParseFns() {
 	p.registerStatementHandler(tokens.TrailingComment, parseCommentStatement)
 	p.registerStatementHandler(tokens.KeywordPolicy, parseThePolicyStatement)
 	p.registerStatementHandler(tokens.KeywordShape, parseShapeStatement)
-	p.registerStatementHandler(tokens.KeywordExport, parseShapeExportStatement)
+	p.registerStatementHandler(tokens.KeywordDerive, parseDeriveStatement)
+	p.registerStatementHandler(tokens.KeywordExport, parseExportStatement)
 
 	// policyStatementHandlers
 	p.policyStatementHandlers = make(map[tokens.Kind]statementParser)
@@ -94,6 +95,7 @@ func (p *Parser) registerParseFns() {
 	p.registerPolicyStatementHandler(tokens.KeywordLet, parseLetsStatement)
 	p.registerPolicyStatementHandler(tokens.KeywordUse, parseUseStatement)
 	p.registerPolicyStatementHandler(tokens.KeywordShape, parseShapeStatement)
+	p.registerPolicyStatementHandler(tokens.KeywordDerive, parseDeriveStatement)
 }
 
 type prefixParser func(ctx context.Context, parser *Parser) ast.Expression

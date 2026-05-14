@@ -348,7 +348,7 @@ func (s *ParserTestSuite) TestParseShapeExportStatement() {
 
 	for _, tc := range testCases {
 		parser := NewParserFromString(tc.input, "test.sentra")
-		stmt := parseShapeExportStatement(s.T().Context(), parser)
+		stmt := parseExportStatement(s.T().Context(), parser)
 		s.NoError(parser.err, "Expected no error for: %s", tc.input)
 		s.NotNil(stmt, "Expected statement for: %s", tc.input)
 
@@ -369,7 +369,7 @@ func (s *ParserTestSuite) TestParseShapeExportStatementInvalid() {
 
 	for _, tc := range testCases {
 		parser := NewParserFromString(tc, "test.sentra")
-		stmt := parseShapeExportStatement(s.T().Context(), parser)
+		stmt := parseExportStatement(s.T().Context(), parser)
 		s.Error(parser.err, "Expected error for: %s", tc)
 		s.Nil(stmt, "Expected nil statement for: %s", tc)
 	}
