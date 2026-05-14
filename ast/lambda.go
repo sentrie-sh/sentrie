@@ -25,18 +25,30 @@ import (
 // LambdaExpression is an inline block-bodied lambda: (a, b) => { yield ... }
 type LambdaExpression struct {
 	*baseNode
-	Params []string
-	Body   *BlockExpression
+	Params       []string
+	ParamTypes   []TypeRef // parallel; nil or index beyond slice => untyped
+	ParamOpts    []bool    // parallel; true => optional (?)
+	ReturnType   TypeRef   // nil => untyped return
+	Body         *BlockExpression
 }
 
+// NewLambdaExpression builds an untyped-parameter lambda (legacy helper).
 func NewLambdaExpression(params []string, body *BlockExpression, ssp tokens.Range) *LambdaExpression {
+	return NewLambdaExpressionFull(params, nil, nil, nil, body, ssp)
+}
+
+// NewLambdaExpressionFull builds a lambda with optional per-param types, optionality, and return type.
+func NewLambdaExpressionFull(params []string, paramTypes []TypeRef, paramOpts []bool, returnType TypeRef, body *BlockExpression, ssp tokens.Range) *LambdaExpression {
 	return &LambdaExpression{
 		baseNode: &baseNode{
 			Rnge:  ssp,
 			Kind_: "lambda",
 		},
-		Params: params,
-		Body:   body,
+		Params:     params,
+		ParamTypes: paramTypes,
+		ParamOpts:  paramOpts,
+		ReturnType: returnType,
+		Body:       body,
 	}
 }
 
@@ -50,8 +62,20 @@ func (l *LambdaExpression) String() string {
 			b.WriteString(", ")
 		}
 		b.WriteString(p)
+		if l.ParamOpts != nil && i < len(l.ParamOpts) && l.ParamOpts[i] {
+			b.WriteByte('?')
+		}
+		if l.ParamTypes != nil && i < len(l.ParamTypes) && l.ParamTypes[i] != nil {
+			b.WriteString(": ")
+			b.WriteString(l.ParamTypes[i].String())
+		}
 	}
-	b.WriteString(") => ")
+	b.WriteByte(')')
+	if l.ReturnType != nil {
+		b.WriteString(": ")
+		b.WriteString(l.ReturnType.String())
+	}
+	b.WriteString(" => ")
 	b.WriteString(l.Body.String())
 	return b.String()
 }
