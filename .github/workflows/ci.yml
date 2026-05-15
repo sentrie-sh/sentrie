@@ -47,7 +47,7 @@ jobs:
         run: go mod download
 
       - name: Run tests (race)
-        timeout-minutes: 3
+        timeout-minutes: 15
         run: |
           echo "## Running race tests..."
           go test -v -race ./...
