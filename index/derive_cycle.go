@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
 
+// Derive cycle detection shares expression walking with derive purity validation;
+// see derive_expr_walk.go — new expression kinds must update forEachDeriveExprChild.
 package index
 
 import (
@@ -46,72 +48,24 @@ func (idx *Index) detectDeriveCycle(ctx context.Context) error {
 
 func deriveCallees(idx *Index, d *Derive) []*Derive {
 	var out []*Derive
-	var walk func(ast.Expression)
-	walk = func(e ast.Expression) {
-		if e == nil {
-			return
+	_ = walkDeriveExprDFS(d.Lambda.Body, func(e ast.Expression) error {
+		ce, ok := e.(*ast.CallExpression)
+		if !ok {
+			return nil
 		}
-		switch n := e.(type) {
-		case *ast.CallExpression:
-			if id, ok := n.Callee.(*ast.Identifier); ok {
-				if t := d.DefineShort[id.Value]; t != nil {
-					out = append(out, t)
-				}
+		if id, ok := ce.Callee.(*ast.Identifier); ok {
+			if t := d.DefineShort[id.Value]; t != nil {
+				out = append(out, t)
 			}
-			if fqn := ast.SlashCalleeFQNS(n.Callee); fqn != "" {
-				if t := d.DefineFQN[fqn]; t != nil {
-					out = append(out, t)
-				} else if t2, ok := idx.DerivesByFQN[fqn]; ok {
-					out = append(out, t2)
-				}
-			}
-			for _, a := range n.Arguments {
-				walk(a)
-			}
-		case *ast.InfixExpression:
-			walk(n.Left)
-			walk(n.Right)
-		case *ast.UnaryExpression:
-			walk(n.Right)
-		case *ast.TernaryExpression:
-			if n.Elvis {
-				walk(n.Condition)
-				walk(n.ElseBranch)
-			} else {
-				walk(n.Condition)
-				walk(n.ThenBranch)
-				walk(n.ElseBranch)
-			}
-		case *ast.BlockExpression:
-			for _, st := range n.Statements {
-				if vd, ok := st.(*ast.VarDeclaration); ok {
-					walk(vd.Value)
-				}
-			}
-			walk(n.Yield)
-		case *ast.LambdaExpression:
-			walk(n.Body)
-		case *ast.FieldAccessExpression:
-			walk(n.Left)
-		case *ast.IndexAccessExpression:
-			walk(n.Left)
-			walk(n.Index)
-		case *ast.ListLiteral:
-			for _, v := range n.Values {
-				walk(v)
-			}
-		case *ast.MapLiteral:
-			for _, kv := range n.Entries {
-				walk(kv.Key)
-				walk(kv.Value)
-			}
-		case *ast.CastExpression:
-			walk(n.Expr)
-		case *ast.TransformExpression:
-			walk(n.Argument)
-		default:
 		}
-	}
-	walk(d.Lambda.Body)
+		if fqn := ast.SlashCalleeFQNS(ce.Callee); fqn != "" {
+			if t := d.DefineFQN[fqn]; t != nil {
+				out = append(out, t)
+			} else if t2, ok := idx.DerivesByFQN[fqn]; ok {
+				out = append(out, t2)
+			}
+		}
+		return nil
+	})
 	return out
 }

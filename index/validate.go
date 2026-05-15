@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -69,6 +69,9 @@ func (idx *Index) validate(ctx context.Context) error {
 		return err
 	}
 	if err := idx.detectDeriveCycle(ctx); err != nil {
+		return err
+	}
+	if err := idx.validateDerivePurity(); err != nil {
 		return err
 	}
 

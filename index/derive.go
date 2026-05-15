@@ -18,9 +18,11 @@ type Derive struct {
 	Policy    *Policy // nil when declared at namespace scope
 	Statement ast.Statement
 
-	// DefineShort is a snapshot of derive names visible at bind time (policy overrides namespace).
+	// DefineShort and DefineFQN are bind-time snapshots (immutable after indexing): they record
+	// which derives were visible when this derive was registered. Later programs that add derives
+	// to the same namespace or policy do not retroactively update older entries; load dependent
+	// programs after their helpers when using AddProgram, or keep helpers in the same file.
 	DefineShort map[string]*Derive
-	// DefineFQN maps full derive FQN strings for slash callees to the same entries as DefineShort.
 	DefineFQN map[string]*Derive
 }
 
