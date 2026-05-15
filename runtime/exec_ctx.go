@@ -59,7 +59,8 @@ type ExecutionContext struct {
 
 	executor Executor
 
-	// evalDerive is set while evaluating a derive body (including nested derive calls).
+	// evalDerive marks evaluation inside a derive body: blocks fact reads, rule dispatch by
+	// identifier, TypeScript module calls, and impure builtins (see getTarget / evalIdent).
 	evalDerive *index.Derive
 }
 
@@ -110,15 +111,16 @@ func (ec *ExecutionContext) AttachedChildContext() *ExecutionContext {
 	copy(stack, ec.refStack)
 
 	return &ExecutionContext{
-		parent:    ec,
-		createdAt: ec.createdAt,
-		refStack:  stack,                                // inherit the call stack from the parent
-		policy:    ec.policy,                            // inherit the policy from the parent
-		modules:   ec.modules,                           // inherit the module bindings from the parent
-		executor:  ec.executor,                          // inherit the executor from the parent
-		facts:     nil,                                  // a child context should not have facts at all
-		locals:    make(map[string]box.Value),           // local values
-		lets:      make(map[string]*ast.VarDeclaration), // local let declarations
+		parent:     ec,
+		createdAt:  ec.createdAt,
+		refStack:   stack,                                // inherit the call stack from the parent
+		policy:     ec.policy,                            // inherit the policy from the parent
+		modules:    ec.modules,                           // inherit the module bindings from the parent
+		executor:   ec.executor,                          // inherit the executor from the parent
+		evalDerive: ec.evalDerive,                        // inherit derive evaluation mode (evalBlock uses AttachedChildContext)
+		facts:      nil,                                  // a child context should not have facts at all
+		locals:     make(map[string]box.Value),           // local values
+		lets:       make(map[string]*ast.VarDeclaration), // local let declarations
 	}
 }
 
