@@ -22,6 +22,7 @@ import (
 	"slices"
 
 	"github.com/sentrie-sh/sentrie/box"
+	"github.com/sentrie-sh/sentrie/internal/derivepure"
 	"github.com/sentrie-sh/sentrie/xerr"
 )
 
@@ -295,6 +296,10 @@ func BuiltinNow(_ context.Context, site *CallSite, args ...box.Value) (box.Value
 	}
 	t := site.EC.CreatedAt()
 	return box.Number(float64(t.UnixMilli())), nil
+}
+
+func isBuiltinAllowedInDerive(name string) bool {
+	return derivepure.IsPureBuiltin(name)
 }
 
 // Builtins is the registry of global built-in functions.
