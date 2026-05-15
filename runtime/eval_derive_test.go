@@ -16,11 +16,13 @@ import (
 )
 
 func (s *RuntimeTestSuite) TestIsBuiltinAllowedInDerive() {
+	s.T().Parallel()
 	s.True(isBuiltinAllowedInDerive("now"))
 	s.False(isBuiltinAllowedInDerive("not_a_builtin"))
 }
 
 func (s *RuntimeTestSuite) TestExecRuleInvokesNamespaceDerive() {
+	s.T().Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 
@@ -52,6 +54,7 @@ policy pol {
 }
 
 func (s *RuntimeTestSuite) TestExecRuleDeriveTooManyArgsErrors() {
+	s.T().Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 
@@ -81,6 +84,7 @@ policy pol {
 }
 
 func (s *RuntimeTestSuite) TestExecRuleDeriveReturnTypeMismatchErrors() {
+	s.T().Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 
@@ -110,6 +114,7 @@ policy pol {
 }
 
 func (s *RuntimeTestSuite) TestExecRuleUnknownSlashDeriveErrors() {
+	s.T().Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 derive x = () => { yield com/ex/missing() }
@@ -132,6 +137,7 @@ policy pol {
 }
 
 func (s *RuntimeTestSuite) TestExecRuleDeriveTooFewArgsErrors() {
+	s.T().Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 derive sum2 = (a: number, b: number): number => { yield a + b }
@@ -159,6 +165,7 @@ policy pol {
 }
 
 func (s *RuntimeTestSuite) TestExecRuleDeriveArgTypeMismatchErrors() {
+	s.T().Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 derive needStr = (a: string): string => { yield a }
@@ -186,6 +193,7 @@ policy pol {
 }
 
 func (s *RuntimeTestSuite) TestExecRuleCallsNamespaceDeriveViaSlashFQN() {
+	s.T().Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 derive ns = () => { yield 1 }
@@ -213,6 +221,7 @@ policy pol {
 }
 
 func (s *RuntimeTestSuite) TestGetTargetSlashCrossNamespaceDeriveRequiresExport() {
+	s.T().Parallel()
 	ctx := context.Background()
 	srcAlpha := `namespace com/alpha
 derive secret = () => { yield 1 }
@@ -265,6 +274,7 @@ policy pol {
 }
 
 func (s *RuntimeTestSuite) TestExecRuleSlashCrossNamespaceDeriveRequiresExport() {
+	s.T().Parallel()
 	ctx := context.Background()
 	srcAlpha := `namespace com/alpha
 derive secret = () => { yield 1 }
@@ -304,6 +314,7 @@ policy pol {
 }
 
 func (s *RuntimeTestSuite) TestGetTargetFieldAccessCallBlockedInDerive() {
+	s.T().Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 derive d = () => { yield 1 }

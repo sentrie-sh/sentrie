@@ -11,6 +11,7 @@ import (
 )
 
 func TestDerivePureBuiltinNamesAreRegistered(t *testing.T) {
+	t.Parallel()
 	for _, name := range derivepure.PureBuiltinNames() {
 		_, ok := Builtins[name]
 		require.True(t, ok, "pure builtin %q must exist in Builtins", name)
