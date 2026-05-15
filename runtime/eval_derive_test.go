@@ -126,13 +126,9 @@ policy pol {
 	idx := index.CreateIndex()
 	s.Require().NoError(idx.SetPack(ctx, &pack.PackFile{Location: "."}))
 	s.Require().NoError(idx.AddProgram(ctx, prog))
-	s.Require().NoError(idx.Validate(ctx))
-
-	exec, err := NewExecutor(idx)
-	s.Require().NoError(err)
-
-	_, err = exec.ExecRule(ctx, "com/ex", "pol", "allow", nil)
+	err = idx.Validate(ctx)
 	s.Require().Error(err)
+	s.Contains(err.Error(), "unknown derive")
 }
 
 func (s *RuntimeTestSuite) TestExecRuleDeriveTooFewArgsErrors() {
@@ -266,4 +262,78 @@ policy pol {
 	s.Require().Error(err)
 	var ne xerr.NotExportedError
 	s.Require().True(errors.As(err, &ne), "expected not-exported error, got %v", err)
+}
+
+func (s *RuntimeTestSuite) TestExecRuleSlashCrossNamespaceDeriveRequiresExport() {
+	ctx := context.Background()
+	srcAlpha := `namespace com/alpha
+derive secret = () => { yield 1 }
+policy pa {
+  let _s = 0
+  rule x = { yield true }
+  export decision of x
+}
+`
+	srcEx := `namespace com/ex
+policy pol {
+  let _seed = 0
+  rule gate = { yield com/alpha/secret() == 1 }
+  export decision of gate
+}
+`
+	p1 := parser.NewParserFromString(srcAlpha, "alpha.sentra")
+	prog1, err := p1.ParseProgram(ctx)
+	s.Require().NoError(err)
+	p2 := parser.NewParserFromString(srcEx, "ex.sentra")
+	prog2, err := p2.ParseProgram(ctx)
+	s.Require().NoError(err)
+
+	idx := index.CreateIndex()
+	s.Require().NoError(idx.SetPack(ctx, &pack.PackFile{Location: "."}))
+	s.Require().NoError(idx.AddProgram(ctx, prog1))
+	s.Require().NoError(idx.AddProgram(ctx, prog2))
+	s.Require().NoError(idx.Validate(ctx))
+
+	exec, err := NewExecutor(idx)
+	s.Require().NoError(err)
+
+	_, err = exec.ExecRule(ctx, "com/ex", "pol", "gate", nil)
+	s.Require().Error(err)
+	var ne xerr.NotExportedError
+	s.Require().True(errors.As(err, &ne), "expected not-exported error, got %v", err)
+}
+
+func (s *RuntimeTestSuite) TestGetTargetFieldAccessCallBlockedInDerive() {
+	ctx := context.Background()
+	src := `namespace com/ex
+derive d = () => { yield 1 }
+policy pol {
+  let _s = 0
+  rule r = { yield true }
+  export decision of r
+}
+`
+	p := parser.NewParserFromString(src, "d.sentra")
+	prog, err := p.ParseProgram(ctx)
+	s.Require().NoError(err)
+
+	idx := index.CreateIndex()
+	s.Require().NoError(idx.SetPack(ctx, &pack.PackFile{Location: "."}))
+	s.Require().NoError(idx.AddProgram(ctx, prog))
+	s.Require().NoError(idx.Validate(ctx))
+
+	pol := idx.Namespaces["com/ex"].Policies["pol"]
+	exec := &executorImpl{index: idx}
+	ec := NewExecutionContext(pol, exec)
+	d := idx.DerivesByFQN["com/ex/d"]
+	s.Require().NotNil(d)
+	ec.evalDerive = d
+
+	rng := stubRange()
+	callee := ast.NewFieldAccessExpression(ast.NewIdentifier("mod", rng), "fn", rng)
+	call := ast.NewCallExpression(callee, nil, false, nil, rng)
+
+	_, err = getTarget(ctx, ec, exec, pol, call)
+	s.Require().Error(err)
+	s.Require().Contains(err.Error(), "TypeScript module calls")
 }
