@@ -6,11 +6,6 @@ on:
   pull_request:
     branches: ["main"]
 
-env:
-  # Tests added on the derive / typed-lambda / Elvis branch (see git diff vs main).
-  # Kept in one job so the default race+coverage path stays closer to pre-branch CI time.
-  DERIVE_FEATURE_TEST_RUN: Derive|Purity|DefineSite|ResolveDerive|Elvis|TypedLambda|SlashCallee|FlattenSlash|LambdaExpressionFull|TernaryElvis|NewTernary|BuiltinAllowedInDerive|PureBuiltin
-
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -53,16 +48,16 @@ jobs:
         run: go mod download
 
       - name: Run tests (race)
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: |
-          echo "## Running race tests (excluding derive-feature tests; see test-derive-feature job)..."
-          go test -v -count=1 -race -timeout=10m ./... -skip "${{ env.DERIVE_FEATURE_TEST_RUN }}"
+          echo "## Running race tests..."
+          go test -v -race ./...
 
       - name: Run tests (coverage)
         if: success()
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: |
-          echo "## Running coverage tests (excluding derive-feature tests)..."
+          echo "## Running coverage tests..."
           # Disable exit on error so we can capture and handle exit codes
           set +e
           # Ensure pipeline failures are reflected in PIPESTATUS
@@ -71,8 +66,7 @@ jobs:
           # Run coverage tests and capture both output and exit code
           # Note: covdata errors for packages without tests are harmless warnings
           # They occur when Go tries to merge coverage but the tool isn't available in the toolchain
-          go test -count=1 -covermode=atomic -coverprofile=coverage.out -timeout=10m ./... \
-            -skip "${{ env.DERIVE_FEATURE_TEST_RUN }}" 2>&1 | tee test_output.log | grep -v "go: no such tool \"covdata\"" || true
+          go test -v -covermode=atomic -coverprofile=coverage.out ./... 2>&1 | tee test_output.log | grep -v "go: no such tool \"covdata\"" || true
           TEST_EXIT_CODE=${PIPESTATUS[0]}
 
           # Re-enable exit on error for the rest of the script
@@ -115,91 +109,4 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.out
-          fail_ci_if_error: false
-
-  # Branch-introduced derive / typed-lambda / Elvis tests (heavy under -race, especially runtime).
-  # Packages: ast, index, parser, runtime — see DERIVE_FEATURE_TEST_RUN.
-  test-derive-feature:
-    name: Test derive feature
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.25"
-          cache: true
-
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Run derive-feature tests (race)
-        timeout-minutes: 10
-        run: |
-          echo "## Running derive-feature race tests..."
-          go test -v -count=1 -race -timeout=10m \
-            ./ast ./index ./parser ./runtime \
-            -run "${{ env.DERIVE_FEATURE_TEST_RUN }}"
-
-      - name: Run derive-feature tests (coverage)
-        if: success()
-        timeout-minutes: 10
-        run: |
-          echo "## Running derive-feature coverage tests..."
-          # Disable exit on error so we can capture and handle exit codes
-          set +e
-          # Ensure pipeline failures are reflected in PIPESTATUS
-          set -o pipefail
-
-          # Run coverage tests and capture both output and exit code
-          # Note: covdata errors for packages without tests are harmless warnings
-          # They occur when Go tries to merge coverage but the tool isn't available in the toolchain
-          go test -count=1 -covermode=atomic -coverprofile=derive_feature_coverage.out -timeout=10m \
-            ./ast ./index ./parser ./runtime \
-            -run "${{ env.DERIVE_FEATURE_TEST_RUN }}" 2>&1 | tee derive_feature_test_output.log | grep -v "go: no such tool \"covdata\"" || true
-          TEST_EXIT_CODE=${PIPESTATUS[0]}
-
-          # Re-enable exit on error for the rest of the script
-          set -e
-
-          echo "## go test (derive-feature coverage) exit code: $TEST_EXIT_CODE"
-          echo
-
-          # Look for actual test failures
-          if grep -q "^FAIL" derive_feature_test_output.log; then
-            echo "## Actual FAIL lines detected in test output"
-            echo "❌ Real test failures found. Failing CI."
-            exit 1
-          else
-            echo "## No FAIL lines detected in test output"
-          fi
-
-          # If exit code is 0, all good
-          if [ "$TEST_EXIT_CODE" -eq 0 ]; then
-            echo "✅ Derive-feature coverage tests passed cleanly"
-            exit 0
-          fi
-
-          # Exit code 1, but no FAIL and derive_feature_coverage.out exists & is non-empty
-          if [ -f derive_feature_coverage.out ] && [ -s derive_feature_coverage.out ]; then
-            echo "⚠ go test returned exit code 1, but:"
-            echo "   - No FAIL lines in output"
-            echo "   - derive_feature_coverage.out exists and is non-empty"
-            echo "   Treating this as a known go test -coverprofile false positive."
-            exit 0
-          fi
-
-          # Anything else is a genuine failure
-          echo "❌ go test exited with code $TEST_EXIT_CODE and no valid coverage file."
-          exit "$TEST_EXIT_CODE"
-
-      - name: Upload derive-feature coverage to Codecov
-        if: success()
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: derive_feature_coverage.out
           fail_ci_if_error: false
