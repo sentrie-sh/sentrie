@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/sentrie-sh/sentrie/ast"
-	"github.com/sentrie-sh/sentrie/internal/derivepure"
+	"github.com/sentrie-sh/sentrie/runtime/derivepure"
 )
 
 func (idx *Index) validateDerivePurity() error {

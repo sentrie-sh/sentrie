@@ -22,7 +22,7 @@ import (
 	"slices"
 
 	"github.com/sentrie-sh/sentrie/box"
-	"github.com/sentrie-sh/sentrie/internal/derivepure"
+	"github.com/sentrie-sh/sentrie/runtime/derivepure"
 	"github.com/sentrie-sh/sentrie/xerr"
 )
 

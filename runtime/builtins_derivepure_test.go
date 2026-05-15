@@ -6,7 +6,7 @@ package runtime
 import (
 	"testing"
 
-	"github.com/sentrie-sh/sentrie/internal/derivepure"
+	"github.com/sentrie-sh/sentrie/runtime/derivepure"
 	"github.com/stretchr/testify/require"
 )
 
