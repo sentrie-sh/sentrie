@@ -42,18 +42,21 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.25"
+          cache: true
 
       - name: Download dependencies
         run: go mod download
 
+      # runtime derive tests use t.Parallel(); -race is slower — allow 15m for the step.
       - name: Run tests (race)
         timeout-minutes: 15
         run: |
           echo "## Running race tests..."
-          go test -v -race ./...
+          go test -v -count=1 -race -timeout=10m ./...
 
       - name: Run tests (coverage)
         if: success()
+        timeout-minutes: 15
         run: |
           echo "## Running coverage tests..."
           # Disable exit on error so we can capture and handle exit codes
@@ -64,7 +67,7 @@ jobs:
           # Run coverage tests and capture both output and exit code
           # Note: covdata errors for packages without tests are harmless warnings
           # They occur when Go tries to merge coverage but the tool isn't available in the toolchain
-          go test -v -covermode=atomic -coverprofile=coverage.out ./... 2>&1 | tee test_output.log | grep -v "go: no such tool \"covdata\"" || true
+          go test -count=1 -covermode=atomic -coverprofile=coverage.out -timeout=10m ./... 2>&1 | tee test_output.log | grep -v "go: no such tool \"covdata\"" || true
           TEST_EXIT_CODE=${PIPESTATUS[0]}
 
           # Re-enable exit on error for the rest of the script
