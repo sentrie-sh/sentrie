@@ -148,27 +148,59 @@ func lookupDeriveByIdentifier(ec *ExecutionContext, p *index.Policy, name string
 	return nil
 }
 
-func lookupDeriveBySlashFQ(ec *ExecutionContext, exec *executorImpl, fqn string) (*index.Derive, error) {
+func callerNamespaceFQNForDeriveExport(ec *ExecutionContext, p *index.Policy) string {
+	if ec.evalDerive != nil && ec.evalDerive.Namespace != nil {
+		return ec.evalDerive.Namespace.FQN.String()
+	}
+	if p != nil && p.Namespace != nil {
+		return p.Namespace.FQN.String()
+	}
+	return ""
+}
+
+func enforceDeriveExportForCaller(ec *ExecutionContext, p *index.Policy, d *index.Derive) error {
+	if d == nil || d.Namespace == nil {
+		return nil
+	}
+	caller := callerNamespaceFQNForDeriveExport(ec, p)
+	if caller == "" {
+		return nil
+	}
+	if d.Namespace.FQN.String() != caller {
+		return d.Namespace.VerifyDeriveExported(d.Name)
+	}
+	return nil
+}
+
+func lookupDeriveBySlashFQ(ec *ExecutionContext, exec *executorImpl, p *index.Policy, fqn string) (*index.Derive, error) {
 	parts := strings.Split(fqn, ast.FQNSeparator)
 	if len(parts) < 3 {
 		return nil, nil
 	}
+	var d *index.Derive
 	if ec.evalDerive != nil {
-		if d := ec.evalDerive.DefineFQN[fqn]; d != nil {
-			return d, nil
-		}
-		if d, ok := exec.index.DerivesByFQN[fqn]; ok {
-			if d.Namespace.FQN.String() != ec.evalDerive.Namespace.FQN.String() {
-				if err := d.Namespace.VerifyDeriveExported(d.Name); err != nil {
-					return nil, err
-				}
+		if d = ec.evalDerive.DefineFQN[fqn]; d != nil {
+			if err := enforceDeriveExportForCaller(ec, p, d); err != nil {
+				return nil, err
 			}
 			return d, nil
 		}
-		return nil, fmt.Errorf("unknown derive %q", fqn)
+		var ok bool
+		d, ok = exec.index.DerivesByFQN[fqn]
+		if !ok {
+			return nil, fmt.Errorf("unknown derive %q", fqn)
+		}
+		if err := enforceDeriveExportForCaller(ec, p, d); err != nil {
+			return nil, err
+		}
+		return d, nil
 	}
-	d, err := exec.index.ResolveDerive(fqn)
+	var err error
+	d, err = exec.index.ResolveDerive(fqn)
 	if err != nil {
+		return nil, err
+	}
+	if err := enforceDeriveExportForCaller(ec, p, d); err != nil {
 		return nil, err
 	}
 	return d, nil
@@ -177,8 +209,10 @@ func lookupDeriveBySlashFQ(ec *ExecutionContext, exec *executorImpl, fqn string)
 func getTarget(_ context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, c *ast.CallExpression) (func(context.Context, ...box.Value) (box.Value, error), error) {
 	if fqn := ast.SlashCalleeFQNS(c.Callee); fqn != "" {
 		parts := strings.Split(fqn, ast.FQNSeparator)
+		// Require at least three segments (e.g. com/ex/name) so a two-segment slash chain
+		// is not mistaken for a derive FQN (see division vs slash-callee ambiguity).
 		if len(parts) >= 3 {
-			d, err := lookupDeriveBySlashFQ(ec, exec, fqn)
+			d, err := lookupDeriveBySlashFQ(ec, exec, p, fqn)
 			if err != nil {
 				return nil, err
 			}
@@ -217,6 +251,9 @@ func getTarget(_ context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 	}
 
 	module, fn := splitAliasFn(calleeStr)
+	if ec.evalDerive != nil && module != "" && fn != "" {
+		return nil, fmt.Errorf("TypeScript module calls like %q are not permitted inside a derive — they cannot guarantee deterministic output within a single policy execution", calleeStr)
+	}
 
 	if module == "" || fn == "" {
 		e := xerr.ErrImportResolution(module, p.Namespace.FQN.String())

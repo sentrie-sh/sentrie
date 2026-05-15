@@ -52,9 +52,7 @@ func invokeDerive(ctx context.Context, callerEC *ExecutionContext, exec *executo
 	child := callerEC.DetachedChildContext()
 	defer child.Dispose()
 
-	prev := child.evalDerive
 	child.evalDerive = d
-	defer func() { child.evalDerive = prev }()
 
 	if err := child.PushRefStack(d.FQN.String()); err != nil {
 		return box.Undefined(), err
@@ -68,6 +66,9 @@ func invokeDerive(ctx context.Context, callerEC *ExecutionContext, exec *executo
 	val, _, err := evalBlock(ctx, child, exec, callerPolicy, lam.Body)
 	if err != nil {
 		return box.Undefined(), err
+	}
+	if val.IsCallable() {
+		return box.Undefined(), fmt.Errorf("derive cannot yield a callable value")
 	}
 	if lam.ReturnType != nil {
 		if err := validateValueAgainstTypeRef(ctx, child, exec, callerPolicy, val, lam.ReturnType, lam.Body.Span()); err != nil {

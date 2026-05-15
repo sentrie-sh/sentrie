@@ -35,6 +35,13 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		return v, n.SetResult(v), nil
 	}
 
+	if ec.evalDerive != nil && p != nil && p.Facts != nil {
+		if _, ok := p.Facts[i.Value]; ok {
+			err := fmt.Errorf("facts are not available inside a derive (%q)", i.Value)
+			return box.Undefined(), n.SetErr(err), err
+		}
+	}
+
 	// check whether this has been passed in as a FACT
 	if v, ok := ec.GetFact(i.Value); ok {
 		return v, n.SetResult(v), nil
