@@ -66,7 +66,7 @@ func TestExecRuleElvisParsedShortCircuitsDivideByZero(t *testing.T) {
 	src := `namespace n
 policy p {
   let _seed = 0
-  rule r = { yield 0 ?: (1 / 0) == 0 }
+  rule r = { yield _seed ?: (1 / 0) == 0 }
   export decision of r
 }
 `
