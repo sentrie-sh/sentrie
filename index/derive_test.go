@@ -326,3 +326,21 @@ policy pol {
 	require.NoError(t, idx.AddProgram(ctx, p2))
 	require.NoError(t, idx.Validate(ctx))
 }
+
+func TestDerivePuritySlashCalleeInRuleYieldCompletes(t *testing.T) {
+	ctx := context.Background()
+	idx := CreateIndex()
+	src := `namespace com/ex
+derive ns = () => { yield 1 }
+policy pol {
+  let _seed = 0
+  rule gate = { yield com/ex/ns() == 1 }
+  export decision of gate
+}
+`
+	p := parser.NewParserFromString(src, "slash.sentra")
+	prog, err := p.ParseProgram(ctx)
+	require.NoError(t, err)
+	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(t, idx.Validate(ctx))
+}
