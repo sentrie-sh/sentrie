@@ -344,3 +344,83 @@ policy pol {
 	require.NoError(t, idx.AddProgram(ctx, prog))
 	require.NoError(t, idx.Validate(ctx))
 }
+
+func TestDerivePurityRejectsBareDefineShortDerive(t *testing.T) {
+	ctx := context.Background()
+	idx := CreateIndex()
+	src := `namespace com/ex
+derive helper = () => { yield 1 }
+derive bad = () => { yield helper }
+policy pol {
+  let _s = 0
+  rule r = { yield true }
+  export decision of r
+}
+`
+	prog, err := parser.NewParserFromString(src, "bare.sentra").ParseProgram(ctx)
+	require.NoError(t, err)
+	require.NoError(t, idx.AddProgram(ctx, prog))
+	err = idx.Validate(ctx)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "must be called as helper(...)")
+}
+
+func TestDerivePurityRejectsRuleIdentifier(t *testing.T) {
+	ctx := context.Background()
+	idx := CreateIndex()
+	src := `namespace com/ex
+policy pol {
+  let _s = 0
+  rule gate = { yield true }
+  derive d = () => { yield gate }
+  export decision of gate
+}
+`
+	prog, err := parser.NewParserFromString(src, "rule.sentra").ParseProgram(ctx)
+	require.NoError(t, err)
+	require.NoError(t, idx.AddProgram(ctx, prog))
+	err = idx.Validate(ctx)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "rules cannot be referenced inside a derive")
+}
+
+func TestDerivePurityRejectsUnknownIdentifier(t *testing.T) {
+	ctx := context.Background()
+	idx := CreateIndex()
+	src := `namespace com/ex
+derive d = () => { yield mystery }
+policy pol {
+  let _s = 0
+  rule r = { yield true }
+  export decision of r
+}
+`
+	prog, err := parser.NewParserFromString(src, "unkid.sentra").ParseProgram(ctx)
+	require.NoError(t, err)
+	require.NoError(t, idx.AddProgram(ctx, prog))
+	err = idx.Validate(ctx)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "identifier \"mystery\" is not available")
+}
+
+func TestDerivePurityRejectsDisallowedCall(t *testing.T) {
+	ctx := context.Background()
+	idx := CreateIndex()
+	src := `namespace com/ex
+derive d = () => {
+  let items = [1]
+  yield items[0](1)
+}
+policy pol {
+  let _s = 0
+  rule r = { yield true }
+  export decision of r
+}
+`
+	prog, err := parser.NewParserFromString(src, "call.sentra").ParseProgram(ctx)
+	require.NoError(t, err)
+	require.NoError(t, idx.AddProgram(ctx, prog))
+	err = idx.Validate(ctx)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "call is not permitted inside a derive")
+}
