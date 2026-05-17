@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -27,19 +14,18 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// RuntimeTestSuite is the single suite for all runtime package tests.
+// RuntimeTestSuite is the shared testify suite for runtime package tests.
+//
+// Suite methods run sequentially under suite.Run (one shared *RuntimeTestSuite).
+// Do not call s.T().Parallel() from suite methods: testify updates SetT on the
+// shared suite and parallel subtests race. Heavy integration tests that need
+// parallelism live as standalone Test* functions (see eval_derive_test.go).
 type RuntimeTestSuite struct {
 	suite.Suite
-	ctx    context.Context
-	ec     *ExecutionContext
-	exec   *executorImpl
 	policy *index.Policy
 }
 
 func (s *RuntimeTestSuite) SetupSuite() {
-	s.ctx = context.Background()
-	s.ec = &ExecutionContext{}
-	s.exec = &executorImpl{}
 	s.policy = &index.Policy{
 		Namespace: &index.Namespace{
 			FQN: ast.NewFQN([]string{"test", "namespace"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}),
@@ -47,13 +33,14 @@ func (s *RuntimeTestSuite) SetupSuite() {
 	}
 }
 
-func (s *RuntimeTestSuite) SetupTest() {
-	s.ctx = context.Background()
+func (s *RuntimeTestSuite) testCtx() context.Context {
+	return context.Background()
 }
 
 // builtinSite is used by builtin unit tests that need a CallSite frame.
 func (s *RuntimeTestSuite) builtinSite() *CallSite {
-	return &CallSite{EC: s.ec, Exec: s.exec, Policy: s.policy}
+	ec := NewExecutionContext(s.policy, &executorImpl{})
+	return &CallSite{EC: ec, Exec: &executorImpl{}, Policy: s.policy}
 }
 
 func (s *RuntimeTestSuite) builtinArgs(parts ...any) []box.Value {

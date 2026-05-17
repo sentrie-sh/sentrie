@@ -6,6 +6,7 @@ package runtime
 import (
 	"context"
 	"errors"
+	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/index"
@@ -13,16 +14,21 @@ import (
 	"github.com/sentrie-sh/sentrie/parser"
 	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/sentrie-sh/sentrie/xerr"
+	"github.com/stretchr/testify/require"
 )
 
-func (s *RuntimeTestSuite) TestIsBuiltinAllowedInDerive() {
-	s.T().Parallel()
-	s.True(isBuiltinAllowedInDerive("now"))
-	s.False(isBuiltinAllowedInDerive("not_a_builtin"))
+// Derive integration tests are standalone *testing.T functions (not suite methods) so
+// they can call t.Parallel() safely. testify/suite.Run uses one shared suite value;
+// parallel suite methods race on SetT even when test bodies use only local state.
+
+func TestIsBuiltinAllowedInDerive(t *testing.T) {
+	t.Parallel()
+	require.True(t, isBuiltinAllowedInDerive("now"))
+	require.False(t, isBuiltinAllowedInDerive("not_a_builtin"))
 }
 
-func (s *RuntimeTestSuite) TestExecRuleInvokesNamespaceDerive() {
-	s.T().Parallel()
+func TestExecRuleInvokesNamespaceDerive(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 
@@ -38,23 +44,23 @@ policy pol {
 `
 	p := parser.NewParserFromString(src, "drv.sentra")
 	prog, err := p.ParseProgram(ctx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	idx := index.CreateIndex()
-	s.Require().NoError(idx.SetPack(ctx, &pack.PackFile{Location: "."}))
-	s.Require().NoError(idx.AddProgram(ctx, prog))
-	s.Require().NoError(idx.Validate(ctx))
+	require.NoError(t, idx.SetPack(ctx, &pack.PackFile{Location: "."}))
+	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(t, idx.Validate(ctx))
 
 	exec, err := NewExecutor(idx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	out, err := exec.ExecRule(ctx, "com/ex", "pol", "allow", nil)
-	s.Require().NoError(err)
-	s.Equal(trinary.True, out.Decision.State)
+	require.NoError(t, err)
+	require.Equal(t, trinary.True, out.Decision.State)
 }
 
-func (s *RuntimeTestSuite) TestExecRuleDeriveTooManyArgsErrors() {
-	s.T().Parallel()
+func TestExecRuleDeriveTooManyArgsErrors(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 
@@ -68,23 +74,23 @@ policy pol {
 `
 	p := parser.NewParserFromString(src, "args.sentra")
 	prog, err := p.ParseProgram(ctx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	idx := index.CreateIndex()
-	s.Require().NoError(idx.SetPack(ctx, &pack.PackFile{Location: "."}))
-	s.Require().NoError(idx.AddProgram(ctx, prog))
-	s.Require().NoError(idx.Validate(ctx))
+	require.NoError(t, idx.SetPack(ctx, &pack.PackFile{Location: "."}))
+	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(t, idx.Validate(ctx))
 
 	exec, err := NewExecutor(idx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	_, err = exec.ExecRule(ctx, "com/ex", "pol", "allow", nil)
-	s.Require().Error(err)
-	s.Contains(err.Error(), "too many arguments")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "too many arguments")
 }
 
-func (s *RuntimeTestSuite) TestExecRuleDeriveReturnTypeMismatchErrors() {
-	s.T().Parallel()
+func TestExecRuleDeriveReturnTypeMismatchErrors(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 
@@ -98,23 +104,23 @@ policy pol {
 `
 	p := parser.NewParserFromString(src, "ret.sentra")
 	prog, err := p.ParseProgram(ctx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	idx := index.CreateIndex()
-	s.Require().NoError(idx.SetPack(ctx, &pack.PackFile{Location: "."}))
-	s.Require().NoError(idx.AddProgram(ctx, prog))
-	s.Require().NoError(idx.Validate(ctx))
+	require.NoError(t, idx.SetPack(ctx, &pack.PackFile{Location: "."}))
+	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(t, idx.Validate(ctx))
 
 	exec, err := NewExecutor(idx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	_, err = exec.ExecRule(ctx, "com/ex", "pol", "allow", nil)
-	s.Require().Error(err)
-	s.Contains(err.Error(), "derive return")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "derive return")
 }
 
-func (s *RuntimeTestSuite) TestExecRuleUnknownSlashDeriveErrors() {
-	s.T().Parallel()
+func TestExecRuleUnknownSlashDeriveErrors(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 derive x = () => { yield com/ex/missing() }
@@ -126,18 +132,18 @@ policy pol {
 `
 	p := parser.NewParserFromString(src, "unk.sentra")
 	prog, err := p.ParseProgram(ctx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	idx := index.CreateIndex()
-	s.Require().NoError(idx.SetPack(ctx, &pack.PackFile{Location: "."}))
-	s.Require().NoError(idx.AddProgram(ctx, prog))
+	require.NoError(t, idx.SetPack(ctx, &pack.PackFile{Location: "."}))
+	require.NoError(t, idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
-	s.Require().Error(err)
-	s.Contains(err.Error(), "unknown derive")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "unknown derive")
 }
 
-func (s *RuntimeTestSuite) TestExecRuleDeriveTooFewArgsErrors() {
-	s.T().Parallel()
+func TestExecRuleDeriveTooFewArgsErrors(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 derive sum2 = (a: number, b: number): number => { yield a + b }
@@ -149,23 +155,23 @@ policy pol {
 `
 	p := parser.NewParserFromString(src, "few.sentra")
 	prog, err := p.ParseProgram(ctx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	idx := index.CreateIndex()
-	s.Require().NoError(idx.SetPack(ctx, &pack.PackFile{Location: "."}))
-	s.Require().NoError(idx.AddProgram(ctx, prog))
-	s.Require().NoError(idx.Validate(ctx))
+	require.NoError(t, idx.SetPack(ctx, &pack.PackFile{Location: "."}))
+	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(t, idx.Validate(ctx))
 
 	exec, err := NewExecutor(idx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	_, err = exec.ExecRule(ctx, "com/ex", "pol", "allow", nil)
-	s.Require().Error(err)
-	s.Contains(err.Error(), "not enough arguments")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not enough arguments")
 }
 
-func (s *RuntimeTestSuite) TestExecRuleDeriveArgTypeMismatchErrors() {
-	s.T().Parallel()
+func TestExecRuleDeriveArgTypeMismatchErrors(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 derive needStr = (a: string): string => { yield a }
@@ -177,23 +183,23 @@ policy pol {
 `
 	p := parser.NewParserFromString(src, "atype.sentra")
 	prog, err := p.ParseProgram(ctx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	idx := index.CreateIndex()
-	s.Require().NoError(idx.SetPack(ctx, &pack.PackFile{Location: "."}))
-	s.Require().NoError(idx.AddProgram(ctx, prog))
-	s.Require().NoError(idx.Validate(ctx))
+	require.NoError(t, idx.SetPack(ctx, &pack.PackFile{Location: "."}))
+	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(t, idx.Validate(ctx))
 
 	exec, err := NewExecutor(idx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	_, err = exec.ExecRule(ctx, "com/ex", "pol", "allow", nil)
-	s.Require().Error(err)
-	s.Contains(err.Error(), "derive argument")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "derive argument")
 }
 
-func (s *RuntimeTestSuite) TestExecRuleCallsNamespaceDeriveViaSlashFQN() {
-	s.T().Parallel()
+func TestExecRuleCallsNamespaceDeriveViaSlashFQN(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 derive ns = () => { yield 1 }
@@ -205,23 +211,23 @@ policy pol {
 `
 	p := parser.NewParserFromString(src, "slash.sentra")
 	prog, err := p.ParseProgram(ctx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	idx := index.CreateIndex()
-	s.Require().NoError(idx.SetPack(ctx, &pack.PackFile{Location: "."}))
-	s.Require().NoError(idx.AddProgram(ctx, prog))
-	s.Require().NoError(idx.Validate(ctx))
+	require.NoError(t, idx.SetPack(ctx, &pack.PackFile{Location: "."}))
+	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(t, idx.Validate(ctx))
 
 	exec, err := NewExecutor(idx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	out, err := exec.ExecRule(ctx, "com/ex", "pol", "gate", nil)
-	s.Require().NoError(err)
-	s.Equal(trinary.True, out.Decision.State)
+	require.NoError(t, err)
+	require.Equal(t, trinary.True, out.Decision.State)
 }
 
-func (s *RuntimeTestSuite) TestGetTargetSlashCrossNamespaceDeriveRequiresExport() {
-	s.T().Parallel()
+func TestGetTargetSlashCrossNamespaceDeriveRequiresExport(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	srcAlpha := `namespace com/alpha
 derive secret = () => { yield 1 }
@@ -241,22 +247,22 @@ policy pol {
 `
 	p1 := parser.NewParserFromString(srcAlpha, "alpha.sentra")
 	prog1, err := p1.ParseProgram(ctx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 	p2 := parser.NewParserFromString(srcEx, "ex.sentra")
 	prog2, err := p2.ParseProgram(ctx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	idx := index.CreateIndex()
-	s.Require().NoError(idx.SetPack(ctx, &pack.PackFile{Location: "."}))
-	s.Require().NoError(idx.AddProgram(ctx, prog1))
-	s.Require().NoError(idx.AddProgram(ctx, prog2))
-	s.Require().NoError(idx.Validate(ctx))
+	require.NoError(t, idx.SetPack(ctx, &pack.PackFile{Location: "."}))
+	require.NoError(t, idx.AddProgram(ctx, prog1))
+	require.NoError(t, idx.AddProgram(ctx, prog2))
+	require.NoError(t, idx.Validate(ctx))
 
 	pol := idx.Namespaces["com/ex"].Policies["pol"]
 	exec := &executorImpl{index: idx}
 	ec := NewExecutionContext(pol, exec)
 	bridge := idx.DerivesByFQN["com/ex/bridge"]
-	s.Require().NotNil(bridge)
+	require.NotNil(t, bridge)
 	ec.evalDerive = bridge
 
 	rng := stubRange()
@@ -268,13 +274,13 @@ policy pol {
 	call := ast.NewCallExpression(callee, nil, false, nil, rng)
 
 	_, err = getTarget(ctx, ec, exec, pol, call)
-	s.Require().Error(err)
+	require.Error(t, err)
 	var ne xerr.NotExportedError
-	s.Require().True(errors.As(err, &ne), "expected not-exported error, got %v", err)
+	require.True(t, errors.As(err, &ne), "expected not-exported error, got %v", err)
 }
 
-func (s *RuntimeTestSuite) TestExecRuleSlashCrossNamespaceDeriveRequiresExport() {
-	s.T().Parallel()
+func TestExecRuleSlashCrossNamespaceDeriveRequiresExport(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	srcAlpha := `namespace com/alpha
 derive secret = () => { yield 1 }
@@ -293,28 +299,28 @@ policy pol {
 `
 	p1 := parser.NewParserFromString(srcAlpha, "alpha.sentra")
 	prog1, err := p1.ParseProgram(ctx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 	p2 := parser.NewParserFromString(srcEx, "ex.sentra")
 	prog2, err := p2.ParseProgram(ctx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	idx := index.CreateIndex()
-	s.Require().NoError(idx.SetPack(ctx, &pack.PackFile{Location: "."}))
-	s.Require().NoError(idx.AddProgram(ctx, prog1))
-	s.Require().NoError(idx.AddProgram(ctx, prog2))
-	s.Require().NoError(idx.Validate(ctx))
+	require.NoError(t, idx.SetPack(ctx, &pack.PackFile{Location: "."}))
+	require.NoError(t, idx.AddProgram(ctx, prog1))
+	require.NoError(t, idx.AddProgram(ctx, prog2))
+	require.NoError(t, idx.Validate(ctx))
 
 	exec, err := NewExecutor(idx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	_, err = exec.ExecRule(ctx, "com/ex", "pol", "gate", nil)
-	s.Require().Error(err)
+	require.Error(t, err)
 	var ne xerr.NotExportedError
-	s.Require().True(errors.As(err, &ne), "expected not-exported error, got %v", err)
+	require.True(t, errors.As(err, &ne), "expected not-exported error, got %v", err)
 }
 
-func (s *RuntimeTestSuite) TestGetTargetFieldAccessCallBlockedInDerive() {
-	s.T().Parallel()
+func TestGetTargetFieldAccessCallBlockedInDerive(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 derive d = () => { yield 1 }
@@ -326,18 +332,18 @@ policy pol {
 `
 	p := parser.NewParserFromString(src, "d.sentra")
 	prog, err := p.ParseProgram(ctx)
-	s.Require().NoError(err)
+	require.NoError(t, err)
 
 	idx := index.CreateIndex()
-	s.Require().NoError(idx.SetPack(ctx, &pack.PackFile{Location: "."}))
-	s.Require().NoError(idx.AddProgram(ctx, prog))
-	s.Require().NoError(idx.Validate(ctx))
+	require.NoError(t, idx.SetPack(ctx, &pack.PackFile{Location: "."}))
+	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(t, idx.Validate(ctx))
 
 	pol := idx.Namespaces["com/ex"].Policies["pol"]
 	exec := &executorImpl{index: idx}
 	ec := NewExecutionContext(pol, exec)
 	d := idx.DerivesByFQN["com/ex/d"]
-	s.Require().NotNil(d)
+	require.NotNil(t, d)
 	ec.evalDerive = d
 
 	rng := stubRange()
@@ -345,6 +351,6 @@ policy pol {
 	call := ast.NewCallExpression(callee, nil, false, nil, rng)
 
 	_, err = getTarget(ctx, ec, exec, pol, call)
-	s.Require().Error(err)
-	s.Require().Contains(err.Error(), "TypeScript module calls")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "TypeScript module calls")
 }
