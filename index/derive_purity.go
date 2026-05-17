@@ -162,14 +162,22 @@ func scanLambdasOutsideCalls(e ast.Expression, underCall bool) error {
 }
 
 func walkDeriveExpr(idx *Index, d *Derive, e ast.Expression, scope map[string]struct{}) error {
+	return walkDeriveExprSeen(idx, d, e, scope, make(map[ast.Expression]struct{}))
+}
+
+func walkDeriveExprSeen(idx *Index, d *Derive, e ast.Expression, scope map[string]struct{}, seen map[ast.Expression]struct{}) error {
 	if e == nil {
 		return nil
 	}
+	if _, cyclic := seen[e]; cyclic {
+		return fmt.Errorf("derive purity: cyclic expression graph")
+	}
+	seen[e] = struct{}{}
 	switch n := e.(type) {
 	case *ast.Identifier:
 		return checkDeriveIdentifier(d, n.Value, scope)
 	case *ast.CallExpression:
-		return checkDeriveCall(idx, d, n, scope)
+		return checkDeriveCall(idx, d, n, scope, seen)
 	case *ast.LambdaExpression:
 		inner := cloneScope(scope)
 		for _, p := range n.Params {
@@ -184,7 +192,7 @@ func walkDeriveExpr(idx *Index, d *Derive, e ast.Expression, scope map[string]st
 		*ast.IntegerLiteral, *ast.FloatLiteral, *ast.StringLiteral, *ast.NullLiteral, *ast.TrinaryLiteral,
 		*ast.PipelineHoleExpression, *ast.TrailingCommentExpression, *ast.PrecedingCommentExpression:
 		return forEachDeriveExprChild(e, func(child ast.Expression) error {
-			return walkDeriveExpr(idx, d, child, scope)
+			return walkDeriveExprSeen(idx, d, child, scope, seen)
 		})
 	default:
 		return fmt.Errorf("derive purity: unsupported expression %T", e)
@@ -213,7 +221,7 @@ func checkDeriveIdentifier(d *Derive, name string, scope map[string]struct{}) er
 	return fmt.Errorf("identifier %q is not available in this derive (params, lets, pure builtins, and visible derives only)", name)
 }
 
-func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[string]struct{}) error {
+func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[string]struct{}, seen map[ast.Expression]struct{}) error {
 	if _, ok := c.Callee.(*ast.FieldAccessExpression); ok {
 		return fmt.Errorf("TypeScript module calls are not permitted inside a derive")
 	}
@@ -222,7 +230,7 @@ func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[str
 		if len(parts) >= 3 {
 			if d.DefineFQN[fqn] != nil {
 				for _, a := range c.Arguments {
-					if err := walkDeriveExpr(idx, d, a, scope); err != nil {
+					if err := walkDeriveExprSeen(idx, d, a, scope, seen); err != nil {
 						return err
 					}
 				}
@@ -230,7 +238,7 @@ func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[str
 			}
 			if _, ok := idx.DerivesByFQN[fqn]; ok {
 				for _, a := range c.Arguments {
-					if err := walkDeriveExpr(idx, d, a, scope); err != nil {
+					if err := walkDeriveExprSeen(idx, d, a, scope, seen); err != nil {
 						return err
 					}
 				}
@@ -243,7 +251,7 @@ func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[str
 		name := id.Value
 		if _, ok := scope[name]; ok {
 			for _, a := range c.Arguments {
-				if err := walkDeriveExpr(idx, d, a, scope); err != nil {
+				if err := walkDeriveExprSeen(idx, d, a, scope, seen); err != nil {
 					return err
 				}
 			}
@@ -251,7 +259,7 @@ func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[str
 		}
 		if d.DefineShort != nil && d.DefineShort[name] != nil {
 			for _, a := range c.Arguments {
-				if err := walkDeriveExpr(idx, d, a, scope); err != nil {
+				if err := walkDeriveExprSeen(idx, d, a, scope, seen); err != nil {
 					return err
 				}
 			}
@@ -259,18 +267,18 @@ func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[str
 		}
 		if derivepure.IsPureBuiltin(name) {
 			for _, a := range c.Arguments {
-				if err := walkDeriveExpr(idx, d, a, scope); err != nil {
+				if err := walkDeriveExprSeen(idx, d, a, scope, seen); err != nil {
 					return err
 				}
 			}
 			return nil
 		}
 	}
-	if err := walkDeriveExpr(idx, d, c.Callee, scope); err != nil {
+	if err := walkDeriveExprSeen(idx, d, c.Callee, scope, seen); err != nil {
 		return err
 	}
 	for _, a := range c.Arguments {
-		if err := walkDeriveExpr(idx, d, a, scope); err != nil {
+		if err := walkDeriveExprSeen(idx, d, a, scope, seen); err != nil {
 			return err
 		}
 	}
