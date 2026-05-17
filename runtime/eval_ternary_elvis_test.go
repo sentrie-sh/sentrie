@@ -22,7 +22,6 @@ func elvisTestRange() tokens.Range {
 }
 
 func TestEvalElvisFiveCases(t *testing.T) {
-	t.Parallel()
 	ctx := context.Background()
 	p := &index.Policy{}
 	ec := NewExecutionContext(p, &executorImpl{})
@@ -63,7 +62,6 @@ func TestEvalElvisFiveCases(t *testing.T) {
 }
 
 func TestExecRuleElvisParsedShortCircuitsDivideByZero(t *testing.T) {
-	t.Parallel()
 	ctx := context.Background()
 	src := `namespace n
 policy p {

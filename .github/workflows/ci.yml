@@ -33,6 +33,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
 
     steps:
       - name: Checkout code
@@ -47,11 +48,22 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Run tests (race)
-        timeout-minutes: 15
+      - name: Run tests (race, non-runtime)
+        timeout-minutes: 8
         run: |
-          echo "## Running race tests..."
-          go test -v -race -timeout=10m ./...
+          set -euo pipefail
+          echo "## Running race tests (non-runtime packages)..."
+          mapfile -t pkgs < <(go list ./... | grep -v '/runtime')
+          timeout --signal=KILL --kill-after=1m 7m \
+            go test -count=1 -race -timeout=5m -p=2 "${pkgs[@]}"
+
+      - name: Run tests (race, runtime)
+        timeout-minutes: 12
+        run: |
+          set -euo pipefail
+          echo "## Running race tests (runtime)..."
+          timeout --signal=KILL --kill-after=2m 10m \
+            go test -count=1 -race -timeout=8m -p=1 -parallel=1 ./runtime/...
 
       - name: Run tests (coverage)
         if: success()
@@ -66,7 +78,8 @@ jobs:
           # Run coverage tests and capture both output and exit code
           # Note: covdata errors for packages without tests are harmless warnings
           # They occur when Go tries to merge coverage but the tool isn't available in the toolchain
-          go test -v -covermode=atomic -coverprofile=coverage.out -timeout=10m ./... 2>&1 | tee test_output.log | grep -v "go: no such tool \"covdata\"" || true
+          timeout --signal=KILL --kill-after=1m 14m \
+            go test -count=1 -covermode=atomic -coverprofile=coverage.out -timeout=10m -p=1 ./... 2>&1 | tee test_output.log | grep -v "go: no such tool \"covdata\"" || true
           TEST_EXIT_CODE=${PIPESTATUS[0]}
 
           # Re-enable exit on error for the rest of the script

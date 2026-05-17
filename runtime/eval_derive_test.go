@@ -17,18 +17,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Derive integration tests are standalone *testing.T functions (not suite methods) so
-// they can call t.Parallel() safely. testify/suite.Run uses one shared suite value;
-// parallel suite methods race on SetT even when test bodies use only local state.
+// Derive integration tests are standalone *testing.T functions (not suite methods).
+// testify/suite.Run uses one shared suite value; do not call s.T().Parallel() there.
 
 func TestIsBuiltinAllowedInDerive(t *testing.T) {
-	t.Parallel()
 	require.True(t, isBuiltinAllowedInDerive("now"))
 	require.False(t, isBuiltinAllowedInDerive("not_a_builtin"))
 }
 
 func TestExecRuleInvokesNamespaceDerive(t *testing.T) {
-	t.Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 
@@ -60,7 +57,6 @@ policy pol {
 }
 
 func TestExecRuleDeriveTooManyArgsErrors(t *testing.T) {
-	t.Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 
@@ -90,7 +86,6 @@ policy pol {
 }
 
 func TestExecRuleDeriveReturnTypeMismatchErrors(t *testing.T) {
-	t.Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 
@@ -120,7 +115,6 @@ policy pol {
 }
 
 func TestExecRuleUnknownSlashDeriveErrors(t *testing.T) {
-	t.Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 derive x = () => { yield com/ex/missing() }
@@ -143,7 +137,6 @@ policy pol {
 }
 
 func TestExecRuleDeriveTooFewArgsErrors(t *testing.T) {
-	t.Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 derive sum2 = (a: number, b: number): number => { yield a + b }
@@ -171,7 +164,6 @@ policy pol {
 }
 
 func TestExecRuleDeriveArgTypeMismatchErrors(t *testing.T) {
-	t.Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 derive needStr = (a: string): string => { yield a }
@@ -199,7 +191,6 @@ policy pol {
 }
 
 func TestExecRuleCallsNamespaceDeriveViaSlashFQN(t *testing.T) {
-	t.Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 derive ns = () => { yield 1 }
@@ -227,7 +218,6 @@ policy pol {
 }
 
 func TestGetTargetSlashCrossNamespaceDeriveRequiresExport(t *testing.T) {
-	t.Parallel()
 	ctx := context.Background()
 	srcAlpha := `namespace com/alpha
 derive secret = () => { yield 1 }
@@ -280,7 +270,6 @@ policy pol {
 }
 
 func TestExecRuleSlashCrossNamespaceDeriveRequiresExport(t *testing.T) {
-	t.Parallel()
 	ctx := context.Background()
 	srcAlpha := `namespace com/alpha
 derive secret = () => { yield 1 }
@@ -320,7 +309,6 @@ policy pol {
 }
 
 func TestGetTargetFieldAccessCallBlockedInDerive(t *testing.T) {
-	t.Parallel()
 	ctx := context.Background()
 	src := `namespace com/ex
 derive d = () => { yield 1 }
