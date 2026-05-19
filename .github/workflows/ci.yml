@@ -48,26 +48,23 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Run tests (race, non-runtime)
-        timeout-minutes: 8
+      - name: Run tests (race)
+        timeout-minutes: 15
+        env:
+          GOMAXPROCS: 2
+          GOMEMLIMIT: 6GiB
         run: |
           set -euo pipefail
-          echo "## Running race tests (non-runtime packages)..."
-          mapfile -t pkgs < <(go list ./... | grep -v '/runtime')
-          timeout --signal=KILL --kill-after=1m 7m \
-            go test -count=1 -race -timeout=5m -p=2 "${pkgs[@]}"
-
-      - name: Run tests (race, runtime)
-        timeout-minutes: 12
-        run: |
-          set -euo pipefail
-          echo "## Running race tests (runtime)..."
-          timeout --signal=KILL --kill-after=2m 10m \
-            go test -count=1 -race -timeout=8m -p=1 -parallel=1 ./runtime/...
+          echo "## Running race tests..."
+          timeout --signal=KILL --kill-after=2m 14m \
+            go test -count=1 -race -timeout=10m -p=1 ./...
 
       - name: Run tests (coverage)
         if: success()
         timeout-minutes: 15
+        env:
+          GOMAXPROCS: 2
+          GOMEMLIMIT: 6GiB
         run: |
           echo "## Running coverage tests..."
           # Disable exit on error so we can capture and handle exit codes

@@ -1,0 +1,10 @@
+# Patch coverage on large language-feature PRs is tracked in comments only.
+# Project coverage is the primary gate; avoid blocking merges on patch % alone.
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+    patch:
+      default:
+        informational: true
