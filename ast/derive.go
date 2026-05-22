@@ -33,9 +33,6 @@ func (d *DeriveStatement) String() string {
 	return fmt.Sprintf("derive %s = %s", d.Name, d.Value.String())
 }
 
-var _ Statement = &DeriveStatement{}
-var _ Node = &DeriveStatement{}
-
 // ExportDeriveStatement exports a namespace-level derive.
 type ExportDeriveStatement struct {
 	*baseNode
@@ -58,5 +55,9 @@ func (e *ExportDeriveStatement) String() string {
 	return "export derive " + e.Name
 }
 
-var _ Statement = &ExportDeriveStatement{}
-var _ Node = &ExportDeriveStatement{}
+var (
+	_ Statement = (*ExportDeriveStatement)(nil)
+	_ Statement = (*DeriveStatement)(nil)
+	_ Node      = (*ExportDeriveStatement)(nil)
+	_ Node      = (*DeriveStatement)(nil)
+)

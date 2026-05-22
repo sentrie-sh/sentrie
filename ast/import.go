@@ -67,14 +67,15 @@ func (i ImportClause) String() string {
 
 func (i ImportClause) expressionNode() {}
 
-var _ Expression = &ImportClause{}
-var _ Node = &ImportClause{}
-
 func (w WithClause) String() string {
 	return fmt.Sprintf("with %s as %s", w.Name, w.Expr.String())
 }
 
 func (w WithClause) expressionNode() {}
 
-var _ Expression = &WithClause{}
-var _ Node = &WithClause{}
+var (
+	_ Expression = (*ImportClause)(nil)
+	_ Node       = (*ImportClause)(nil)
+	_ Expression = (*WithClause)(nil)
+	_ Node       = (*WithClause)(nil)
+)
