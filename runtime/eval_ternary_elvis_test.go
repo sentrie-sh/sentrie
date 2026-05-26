@@ -7,8 +7,6 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
-	"github.com/sentrie-sh/sentrie/pack"
-	"github.com/sentrie-sh/sentrie/parser"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/sentrie-sh/sentrie/trinary"
 )
@@ -55,32 +53,6 @@ func (s *RuntimeTestSuite) TestEvalElvisFiveCases() {
 		s.NoError(err)
 		s.True(box.EqualValues(v, box.Trinary(trinary.False)))
 	})
-}
-
-func (s *RuntimeTestSuite) TestExecRuleElvisParsedShortCircuitsDivideByZero() {
-	ctx := s.T().Context()
-	src := `namespace n
-policy p {
-  let _seed = 0
-  rule r = { yield _seed ?: (1 / 0) == 0 }
-  export decision of r
-}
-`
-	p := parser.NewParserFromString(src, "elvis_exec.sentra")
-	prog, err := p.ParseProgram(ctx)
-	s.Require().NoError(err)
-
-	idx := index.CreateIndex()
-	s.Require().NoError(idx.SetPack(ctx, &pack.PackFile{Location: "."}))
-	s.Require().NoError(idx.AddProgram(ctx, prog))
-	s.Require().NoError(idx.Validate(ctx))
-
-	exec, err := NewExecutor(idx)
-	s.Require().NoError(err)
-
-	out, err := exec.ExecRule(ctx, "n", "p", "r", nil)
-	s.NoError(err)
-	s.Equal(trinary.True, out.Decision.State)
 }
 
 func requireNoErrorNum(s *RuntimeTestSuite, err error, v box.Value, want float64) {
