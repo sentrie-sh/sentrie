@@ -4,15 +4,12 @@
 package runtime
 
 import (
-	"testing"
-
 	"github.com/sentrie-sh/sentrie/runtime/derivepure"
-	"github.com/stretchr/testify/require"
 )
 
-func TestDerivePureBuiltinNamesAreRegistered(t *testing.T) {
+func (s *RuntimeTestSuite) TestDerivePureBuiltinNamesAreRegistered() {
 	for _, name := range derivepure.PureBuiltinNames() {
 		_, ok := Builtins[name]
-		require.True(t, ok, "pure builtin %q must exist in Builtins", name)
+		s.True(ok, "pure builtin %q must exist in Builtins", name)
 	}
 }

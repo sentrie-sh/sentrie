@@ -4,7 +4,6 @@
 package runtime
 
 import (
-	"context"
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
@@ -16,10 +15,11 @@ import (
 
 // RuntimeTestSuite is the shared testify suite for runtime package tests.
 //
-// Suite methods run sequentially under suite.Run (one shared *RuntimeTestSuite).
-// Do not call s.T().Parallel() from suite methods: testify updates SetT on the
-// shared suite and parallel subtests race. Heavy integration tests that need
-// parallelism live as standalone Test* functions (see eval_derive_test.go).
+// Feature-specific runtime tests should be added as methods on this suite, even
+// when they live in separate *_test.go files. Suite methods run sequentially
+// under suite.Run (one shared *RuntimeTestSuite), so do not call s.T().Parallel()
+// from suite methods: testify updates SetT on the shared suite and parallel
+// subtests race.
 type RuntimeTestSuite struct {
 	suite.Suite
 	policy *index.Policy
@@ -31,10 +31,6 @@ func (s *RuntimeTestSuite) SetupSuite() {
 			FQN: ast.NewFQN([]string{"test", "namespace"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}),
 		},
 	}
-}
-
-func (s *RuntimeTestSuite) testCtx() context.Context {
-	return context.Background()
 }
 
 // builtinSite is used by builtin unit tests that need a CallSite frame.

@@ -17,8 +17,6 @@
 package parser
 
 import (
-	"context"
-
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/stretchr/testify/require"
 )
@@ -434,7 +432,7 @@ func (s *ParserTestSuite) TestParsePolicyMetadataKeywordOutsidePolicyBody() {
 	src := `namespace com/example
 title "x"`
 	parser := NewParserFromString(src, "test.sentra")
-	_, err := parser.ParseProgram(context.Background())
+	_, err := parser.ParseProgram(s.T().Context())
 	s.Error(err)
 	s.Contains(err.Error(), "only allowed inside a policy")
 }
@@ -454,7 +452,7 @@ policy p {
   export decision of allow
 }`
 	parser := NewParserFromString(src, "test.sentra")
-	prg, err := parser.ParseProgram(context.Background())
+	prg, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(prg)
 	var pol *ast.PolicyStatement
@@ -489,7 +487,7 @@ policy p {
 
 func (s *ParserTestSuite) TestParseTagStatementInvalid() {
 	parser := NewParserFromString(`policy p { tag "a" "b" }`, "test.sentra")
-	_, err := parser.ParseProgram(context.Background())
+	_, err := parser.ParseProgram(s.T().Context())
 	s.Error(err)
 }
 
@@ -503,7 +501,7 @@ policy p {
   }
 }`
 	parser := NewParserFromString(src, "test.sentra")
-	_, err := parser.ParseProgram(context.Background())
+	_, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 }
 
@@ -514,7 +512,7 @@ policy p {
   rule allow = { yield true }
 }`
 	parser := NewParserFromString(src, "test.sentra")
-	_, err := parser.ParseProgram(context.Background())
+	_, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 }
 
@@ -525,6 +523,6 @@ policy p {
   rule allow = { yield true }
 }`
 	parser := NewParserFromString(src, "test.sentra")
-	_, err := parser.ParseProgram(context.Background())
+	_, err := parser.ParseProgram(s.T().Context())
 	s.Error(err)
 }

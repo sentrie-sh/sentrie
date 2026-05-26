@@ -17,7 +17,6 @@
 package index
 
 import (
-	"context"
 	"sync/atomic"
 	"testing"
 
@@ -84,7 +83,7 @@ func TestShapeResolveDependency_AlreadyHydratedShortCircuits(t *testing.T) {
 }
 
 func TestShapeResolveDependency_ComposeFromAliasBaseErrors(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	nsStmt := ast.NewNamespaceStatement(
 		ast.NewFQN([]string{"com", "example"}, rng(1)),
@@ -144,7 +143,7 @@ func TestShapeResolveDependency_ComposeFromAliasBaseErrors(t *testing.T) {
 }
 
 func TestShapeResolveDependency_DuplicateFieldFromComposedBaseErrors(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	nsStmt := ast.NewNamespaceStatement(
 		ast.NewFQN([]string{"com", "example"}, rng(1)),
@@ -210,7 +209,7 @@ func TestShapeResolveDependency_DuplicateFieldFromComposedBaseErrors(t *testing.
 }
 
 func TestShapeResolveDependency_PolicyLocalComposeUsesInPolicyShapes(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	nsStmt := ast.NewNamespaceStatement(
 		ast.NewFQN([]string{"com", "example"}, rng(1)),

@@ -16,8 +16,6 @@
 
 package loader
 
-import "context"
-
 func (s *LoaderTestSuite) TestLoadPack_ValidMinimal() {
 	dir := s.writePackDir(`[schema]
 version = 1
@@ -26,7 +24,7 @@ version = 1
 name = "test_pack"
 version = "0.1.0"
 `)
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p, err := LoadPack(ctx, dir)
 	s.Require().NoError(err)
 	s.NotNil(p)
@@ -62,7 +60,7 @@ env = ["AWS_REGION", "AWS_PROFILE"]
 category = "cloud"
 maturity = "beta"
 `)
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p, err := LoadPack(ctx, dir)
 	s.Require().NoError(err)
 	s.NotNil(p)
@@ -84,7 +82,7 @@ func (s *LoaderTestSuite) TestLoadPack_MissingSchema() {
 name = "test_pack"
 version = "0.1.0"
 `)
-	ctx := context.Background()
+	ctx := s.T().Context()
 	_, err := LoadPack(ctx, dir)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "schema version is required")
@@ -94,7 +92,7 @@ func (s *LoaderTestSuite) TestLoadPack_MissingPack() {
 	dir := s.writePackDir(`[schema]
 version = 1
 `)
-	ctx := context.Background()
+	ctx := s.T().Context()
 	_, err := LoadPack(ctx, dir)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "name is required")
@@ -107,7 +105,7 @@ version = 1
 [pack]
 name = "test_pack"
 `)
-	ctx := context.Background()
+	ctx := s.T().Context()
 	_, err := LoadPack(ctx, dir)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "schema validation failed")
@@ -122,7 +120,7 @@ version = 2
 name = "test_pack"
 version = "0.1.0"
 `)
-	ctx := context.Background()
+	ctx := s.T().Context()
 	_, err := LoadPack(ctx, dir)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "schema validation failed")
@@ -139,7 +137,7 @@ version = "0.1.0"
 [unknown_table]
 field = "value"
 `)
-	ctx := context.Background()
+	ctx := s.T().Context()
 	_, err := LoadPack(ctx, dir)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "unknown top-level table '[unknown_table]'")
@@ -153,7 +151,7 @@ version = 1
 name = "123invalid"
 version = "0.1.0"
 `)
-	ctx := context.Background()
+	ctx := s.T().Context()
 	_, err := LoadPack(ctx, dir)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "name must be a valid identity")
@@ -167,7 +165,7 @@ version = 1
 name = "test_pack"
 version = "not-a-version"
 `)
-	ctx := context.Background()
+	ctx := s.T().Context()
 	_, err := LoadPack(ctx, dir)
 	s.Require().Error(err)
 	s.NotNil(err)
@@ -182,7 +180,7 @@ name = "test_pack"
 version = "0.1.0"
 repository = "not-a-valid-uri"
 `)
-	ctx := context.Background()
+	ctx := s.T().Context()
 	_, err := LoadPack(ctx, dir)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "schema validation failed")
@@ -199,7 +197,7 @@ version = "0.1.0"
 [permissions]
 env = ["invalid-env-var", "also_invalid"]
 `)
-	ctx := context.Background()
+	ctx := s.T().Context()
 	_, err := LoadPack(ctx, dir)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "schema validation failed")
@@ -216,7 +214,7 @@ version = "0.1.0"
 [permissions]
 env = ["AWS_REGION", "AWS_PROFILE", "HOME"]
 `)
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p, err := LoadPack(ctx, dir)
 	s.Require().NoError(err)
 	s.NotNil(p)
@@ -234,7 +232,7 @@ version = "0.1.0"
 
 [engine]
 `)
-	ctx := context.Background()
+	ctx := s.T().Context()
 	_, err := LoadPack(ctx, dir)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "sentrie")
@@ -253,7 +251,7 @@ custom_field = "value"
 nested = { key = "value" }
 array = [1, 2, 3]
 `)
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p, err := LoadPack(ctx, dir)
 	s.Require().NoError(err)
 	s.NotNil(p)

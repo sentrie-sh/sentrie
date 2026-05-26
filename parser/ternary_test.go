@@ -4,7 +4,6 @@
 package parser
 
 import (
-	"context"
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
@@ -12,7 +11,7 @@ import (
 )
 
 func TestParseElvisInRuleYield(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	src := `namespace n; policy p { export decision of r; rule r = { yield null ?: 7 } }`
 	prog, err := NewParserFromString(src, "elvis.sentra").ParseProgram(ctx)
 	require.NoError(t, err)
@@ -25,7 +24,7 @@ func TestParseElvisInRuleYield(t *testing.T) {
 }
 
 func TestParseClassicTernaryInRuleYield(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	src := `namespace n; policy p { export decision of r; rule r = { yield true ? 1 : 2 } }`
 	prog, err := NewParserFromString(src, "tern.sentra").ParseProgram(ctx)
 	require.NoError(t, err)

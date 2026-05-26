@@ -17,7 +17,6 @@
 package trace
 
 import (
-	"context"
 	"errors"
 
 	"github.com/sentrie-sh/sentrie/ast"
@@ -27,7 +26,7 @@ import (
 
 func (s *TraceTestSuite) TestNewAndDoneSetsDuration() {
 	ident := ast.NewIdentifier("x", tokens.Range{File: "test.sentra"})
-	_, node, done := New(context.Background(), ident, "ident", map[string]any{"key": "value"})
+	_, node, done := New(s.T().Context(), ident, "ident", map[string]any{"key": "value"})
 	s.Equal(ident.Kind(), node.Kind)
 	s.Equal("ident", node.Op)
 	s.Equal("value", node.Meta["key"])

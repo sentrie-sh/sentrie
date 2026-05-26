@@ -61,6 +61,8 @@ type ExecutionContext struct {
 
 	// evalDerive marks evaluation inside a derive body: blocks fact reads, rule dispatch by
 	// identifier, TypeScript module calls, and impure builtins (see getTarget / evalIdent).
+	// Set only on the detached child EC during invokeDerive; not guarded by rwmu because
+	// derive evaluation is single-goroutine per caller EC (no concurrent derive on one EC).
 	evalDerive *index.Derive
 }
 
@@ -86,16 +88,20 @@ func NewExecutionContext(policy *index.Policy, executor Executor) *ExecutionCont
 }
 
 // DetachedChildContext returns an isolated execution context for derive evaluation:
-// no parent bubble, no facts/modules, fresh locals/lets, but same policy, executor,
-// refStack clone, and createdAt as the caller (so now() stays consistent).
+// no parent bubble, no facts/modules/lets (derive bodies use locals and DefineShort/FQN only),
+// fresh locals map, same policy and executor, refStack clone (derive→derive cycle detection
+// across the detached boundary), and inherited createdAt (so now() stays policy-stable).
 func (ec *ExecutionContext) DetachedChildContext() *ExecutionContext {
 	ec.rwmu.RLock()
 	defer ec.rwmu.RUnlock()
 
-	ec2 := NewExecutionContext(ec.policy, ec.executor)
-	ec2.createdAt = ec.createdAt
-	ec2.refStack = slices.Clone(ec.refStack)
-	return ec2
+	return &ExecutionContext{
+		policy:    ec.policy,
+		executor:  ec.executor,
+		createdAt: ec.createdAt,
+		refStack:  slices.Clone(ec.refStack),
+		locals:    make(map[string]box.Value),
+	}
 }
 
 // Dispose frees the arena immediately. Do NOT reuse an EC after Dispose.
@@ -107,13 +113,10 @@ func (ec *ExecutionContext) AttachedChildContext() *ExecutionContext {
 	ec.rwmu.RLock()
 	defer ec.rwmu.RUnlock()
 
-	stack := make([]string, len(ec.refStack))
-	copy(stack, ec.refStack)
-
 	return &ExecutionContext{
 		parent:     ec,
 		createdAt:  ec.createdAt,
-		refStack:   stack,                                // inherit the call stack from the parent
+		refStack:   slices.Clone(ec.refStack),            // inherit the call stack from the parent
 		policy:     ec.policy,                            // inherit the policy from the parent
 		modules:    ec.modules,                           // inherit the module bindings from the parent
 		executor:   ec.executor,                          // inherit the executor from the parent

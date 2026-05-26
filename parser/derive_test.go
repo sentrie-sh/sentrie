@@ -4,7 +4,6 @@
 package parser
 
 import (
-	"context"
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
@@ -12,7 +11,7 @@ import (
 )
 
 func TestParseNamespaceDeriveAndExportDerive(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	src := `namespace com/ex
 
 derive dup = (n: number): number => { yield n + n }
@@ -35,7 +34,7 @@ policy pol {
 }
 
 func TestParseDeriveRequiresLambda(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	p := NewParserFromString(`namespace com/x
 derive bad = 1
 policy p { export decision of r; rule r = { yield true } }
@@ -45,7 +44,7 @@ policy p { export decision of r; rule r = { yield true } }
 }
 
 func TestParseTypedLambdaRequiredAfterOptionalIsRejected(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	p := NewParserFromString(`namespace com/x
 policy p {
   export decision of r

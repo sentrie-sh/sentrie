@@ -17,7 +17,6 @@
 package index
 
 import (
-	"context"
 	"errors"
 	"path/filepath"
 	"testing"
@@ -47,7 +46,7 @@ func TestResolveNamespace_NotFound(t *testing.T) {
 }
 
 func TestResolveNamespace_OK(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	rn := resolveRn(1)
 	nsStmt := ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, rn), rn)
@@ -69,7 +68,7 @@ func TestResolvePolicy_NotFoundNamespace(t *testing.T) {
 }
 
 func TestResolvePolicy_NotFoundPolicy(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	rn := resolveRn(1)
 	nsStmt := ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, rn), rn)
@@ -84,7 +83,7 @@ func TestResolvePolicy_NotFoundPolicy(t *testing.T) {
 }
 
 func TestResolvePolicy_OK(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	rn0 := resolveRn(1)
 	program := &ast.Program{
@@ -120,7 +119,7 @@ func TestResolveShape_NotFoundNamespace(t *testing.T) {
 }
 
 func TestResolveShape_NotFoundShape(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	rn := resolveRn(1)
 	nsStmt := ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, rn), rn)
@@ -135,7 +134,7 @@ func TestResolveShape_NotFoundShape(t *testing.T) {
 }
 
 func TestResolveShape_OK(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	rn0 := resolveRn(1)
 	program := &ast.Program{
@@ -164,7 +163,7 @@ func TestResolveShape_OK(t *testing.T) {
 }
 
 func TestVerifyRuleExported_OK(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	rn0 := resolveRn(1)
 	program := &ast.Program{
@@ -190,7 +189,7 @@ func TestVerifyRuleExported_OK(t *testing.T) {
 }
 
 func TestVerifyRuleExported_NotExported(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	rn0 := resolveRn(1)
 	program := &ast.Program{
@@ -220,7 +219,7 @@ func TestVerifyRuleExported_NotExported(t *testing.T) {
 }
 
 func TestVerifyShapeExported_OK(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	rn0 := resolveRn(1)
 	program := &ast.Program{
@@ -248,7 +247,7 @@ func TestVerifyShapeExported_OK(t *testing.T) {
 }
 
 func TestVerifyShapeExported_NotExported(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	rn0 := resolveRn(1)
 	program := &ast.Program{

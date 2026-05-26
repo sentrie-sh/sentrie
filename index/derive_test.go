@@ -4,7 +4,6 @@
 package index
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -13,7 +12,7 @@ import (
 )
 
 func TestDeriveAddProgramResolveAndSpan(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 
@@ -39,7 +38,7 @@ policy pol {
 }
 
 func TestDeriveCycleViaSlashFQNDetected(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 
@@ -62,7 +61,7 @@ policy pol {
 }
 
 func TestDeriveDuplicateFQNRejected(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src1 := `namespace com/ex
 derive dup = () => { yield 1 }
@@ -90,7 +89,7 @@ policy p2 {
 }
 
 func TestExportDeriveUnknownNameRejected(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 export derive missing
@@ -108,7 +107,7 @@ policy p {
 }
 
 func TestDeriveFatBodyWalkPassesValidation(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive leaf = () => { yield 1 }
@@ -135,7 +134,7 @@ func TestResolveDeriveNotFound(t *testing.T) {
 }
 
 func TestAddProgramExportDeriveAndVerifyExported(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive published = () => { yield 1 }
@@ -157,7 +156,7 @@ policy p {
 }
 
 func TestAlphaSecretNotExportedInIndex(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src := `namespace com/alpha
 derive secret = () => { yield 1 }
@@ -176,7 +175,7 @@ policy pa {
 }
 
 func TestDerivePurityRejectsFieldAccessModuleCall(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive d = () => { yield mod.fn(1) }
@@ -195,7 +194,7 @@ policy pol {
 }
 
 func TestDerivePurityRejectsFactIdentifier(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 policy pol {
@@ -215,7 +214,7 @@ policy pol {
 }
 
 func TestDerivePurityRejectsYieldLambda(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive d = () => { yield (x: number): number => { yield x } }
@@ -234,7 +233,7 @@ policy pol {
 }
 
 func TestDerivePurityLetArithmeticPasses(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive d = (x: number): number => {
@@ -254,7 +253,7 @@ policy pol {
 }
 
 func TestDerivePurityAllowsLambdaInsidePureBuiltinCall(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive d = () => { yield count(filter([1, 2], (a: number): trinary => { yield a == 1 })) }
@@ -271,7 +270,7 @@ policy pol {
 }
 
 func TestDeriveDefineSiteOrderHelperAfterCallerFails(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	srcCaller := `namespace com/ex
 derive caller = () => { yield helper() }
@@ -300,7 +299,7 @@ policy pol2 {
 }
 
 func TestDeriveDefineSiteOrderHelperFirstPasses(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	srcHelper := `namespace com/ex
 derive helper = () => { yield 1 }
@@ -328,7 +327,7 @@ policy pol {
 }
 
 func TestDerivePuritySlashCalleeInRuleYieldCompletes(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive ns = () => { yield 1 }
@@ -346,7 +345,7 @@ policy pol {
 }
 
 func TestDerivePurityRejectsBareDefineShortDerive(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive helper = () => { yield 1 }
@@ -366,7 +365,7 @@ policy pol {
 }
 
 func TestDerivePurityRejectsRuleIdentifier(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 policy pol {
@@ -385,7 +384,7 @@ policy pol {
 }
 
 func TestDerivePurityRejectsUnknownIdentifier(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive d = () => { yield mystery }
@@ -404,7 +403,7 @@ policy pol {
 }
 
 func TestDerivePurityRejectsDisallowedCall(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive d = () => {

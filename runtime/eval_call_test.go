@@ -4,7 +4,6 @@
 package runtime
 
 import (
-	"context"
 	"math"
 
 	"github.com/sentrie-sh/sentrie/ast"
@@ -37,10 +36,10 @@ func (s *RuntimeTestSuite) TestGetTargetBuiltinPreservesUndefined() {
 		stubRange(),
 	)
 
-	target, err := getTarget(context.Background(), ec, &executorImpl{}, &index.Policy{}, call)
+	target, err := getTarget(s.T().Context(), ec, &executorImpl{}, &index.Policy{}, call)
 	s.Require().NoError(err)
 
-	out, err := target(context.Background(), box.Undefined())
+	out, err := target(s.T().Context(), box.Undefined())
 	s.Require().NoError(err)
 	s.Require().True(out.IsUndefined())
 }
@@ -55,7 +54,7 @@ func (s *RuntimeTestSuite) TestGetTargetBuiltinPreservesNestedUndefined() {
 		stubRange(),
 	)
 
-	target, err := getTarget(context.Background(), ec, &executorImpl{}, &index.Policy{}, call)
+	target, err := getTarget(s.T().Context(), ec, &executorImpl{}, &index.Policy{}, call)
 	s.Require().NoError(err)
 
 	arg := box.List([]box.Value{
@@ -64,7 +63,7 @@ func (s *RuntimeTestSuite) TestGetTargetBuiltinPreservesNestedUndefined() {
 			box.Undefined(),
 		}),
 	})
-	out, err := target(context.Background(), arg)
+	out, err := target(s.T().Context(), arg)
 	s.Require().NoError(err)
 	s.Require().True(out.IsUndefined())
 }

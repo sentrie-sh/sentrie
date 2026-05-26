@@ -17,7 +17,6 @@
 package runtime
 
 import (
-	"context"
 	"path/filepath"
 	"runtime"
 
@@ -46,12 +45,12 @@ func (s *RuntimeTestSuite) TestEvaluateRuleOutcomeWhenFalseDefaultBranches() {
 		Default: nil,
 	}
 	ec := NewExecutionContext(p, &executorImpl{})
-	decision, _, err := evaluateRuleOutcome(context.Background(), ec, &executorImpl{}, p, rule)
+	decision, _, err := evaluateRuleOutcome(s.T().Context(), ec, &executorImpl{}, p, rule)
 	s.Require().NoError(err)
 	s.Require().Equal(trinary.Unknown, decision.State)
 
 	rule.Default = ast.NewTrinaryLiteral(trinary.True, stubRange())
-	decision, _, err = evaluateRuleOutcome(context.Background(), ec, &executorImpl{}, p, rule)
+	decision, _, err = evaluateRuleOutcome(s.T().Context(), ec, &executorImpl{}, p, rule)
 	s.Require().NoError(err)
 	s.Require().Equal(trinary.True, decision.State)
 }
@@ -97,7 +96,7 @@ func newExecutorAndPolicyWithFact(fact *ast.FactStatement) (*executorImpl, *inde
 func (s *RuntimeTestSuite) TestExecRuleFactNullBranchesWrapInvalidInvocation() {
 	fact := ast.NewFactStatement("user", ast.NewStringTypeRef(stubRange()), "user", nil, false, stubRange())
 	exec, _ := newExecutorAndPolicyWithFact(fact)
-	_, err := exec.ExecRule(context.Background(), "test/ns", "pol", "allow", map[string]any{"user": nil})
+	_, err := exec.ExecRule(s.T().Context(), "test/ns", "pol", "allow", map[string]any{"user": nil})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "fact 'user' cannot be null")
 	s.ErrorIs(err, xerr.InvalidInvocationError{})
@@ -113,14 +112,14 @@ func (s *RuntimeTestSuite) TestExecRuleNullableFactAcceptsNull() {
 		stubRange(),
 	)
 	exec, _ := newExecutorAndPolicyWithFact(fact)
-	_, err := exec.ExecRule(context.Background(), "test/ns", "pol", "allow", map[string]any{"user": nil})
+	_, err := exec.ExecRule(s.T().Context(), "test/ns", "pol", "allow", map[string]any{"user": nil})
 	s.Require().NoError(err)
 }
 
 func (s *RuntimeTestSuite) TestExecRuleDefaultFactEvalErrorWrapsUnresolvableFact() {
 	fact := ast.NewFactStatement("user", ast.NewStringTypeRef(stubRange()), "user", ast.NewIdentifier("missing", stubRange()), true, stubRange())
 	exec, _ := newExecutorAndPolicyWithFact(fact)
-	_, err := exec.ExecRule(context.Background(), "test/ns", "pol", "allow", map[string]any{})
+	_, err := exec.ExecRule(s.T().Context(), "test/ns", "pol", "allow", map[string]any{})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "unresolvable fact: user")
 	s.ErrorIs(err, xerr.InvalidInvocationError{})
@@ -129,7 +128,7 @@ func (s *RuntimeTestSuite) TestExecRuleDefaultFactEvalErrorWrapsUnresolvableFact
 func (s *RuntimeTestSuite) TestExecRuleDefaultFactNullWrapsInvalidInvocation() {
 	fact := ast.NewFactStatement("user", ast.NewStringTypeRef(stubRange()), "user", ast.NewNullLiteral(stubRange()), true, stubRange())
 	exec, _ := newExecutorAndPolicyWithFact(fact)
-	_, err := exec.ExecRule(context.Background(), "test/ns", "pol", "allow", map[string]any{})
+	_, err := exec.ExecRule(s.T().Context(), "test/ns", "pol", "allow", map[string]any{})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "fact 'user' cannot have null default value")
 	s.ErrorIs(err, xerr.InvalidInvocationError{})
@@ -145,14 +144,14 @@ func (s *RuntimeTestSuite) TestExecRuleNullableFactDefaultAcceptsNull() {
 		stubRange(),
 	)
 	exec, _ := newExecutorAndPolicyWithFact(fact)
-	_, err := exec.ExecRule(context.Background(), "test/ns", "pol", "allow", map[string]any{})
+	_, err := exec.ExecRule(s.T().Context(), "test/ns", "pol", "allow", map[string]any{})
 	s.Require().NoError(err)
 }
 
 func (s *RuntimeTestSuite) TestExecRuleValidationErrorReturnsUnknownDecision() {
 	fact := ast.NewFactStatement("age", ast.NewNumberTypeRef(stubRange()), "age", nil, false, stubRange())
 	exec, _ := newExecutorAndPolicyWithFact(fact)
-	out, err := exec.ExecRule(context.Background(), "test/ns", "pol", "allow", map[string]any{"age": "bad"})
+	out, err := exec.ExecRule(s.T().Context(), "test/ns", "pol", "allow", map[string]any{"age": "bad"})
 	s.Require().Error(err)
 	s.Require().NotNil(out)
 	s.Require().NotNil(out.Decision)
@@ -178,7 +177,7 @@ func (s *RuntimeTestSuite) TestExecRuleInternalRuleLookupFailureBranch() {
 
 	exec := &executorImpl{index: idx}
 	ec := NewExecutionContext(p, exec)
-	_, _, _, err := exec.execRule(context.Background(), ec, ns.FQN.String(), p.Name, "missing")
+	_, _, _, err := exec.execRule(s.T().Context(), ec, ns.FQN.String(), p.Name, "missing")
 	s.Require().Error(err)
 	s.ErrorIs(err, xerr.NotFoundError{})
 }
@@ -202,7 +201,7 @@ func (s *RuntimeTestSuite) TestEvaluateRuleOutcomeDefaultExpressionErrorKeepsDef
 		Default: ast.NewIdentifier("missing_default", stubRange()),
 	}
 	ec := NewExecutionContext(p, &executorImpl{})
-	decision, _, err := evaluateRuleOutcome(context.Background(), ec, &executorImpl{}, p, rule)
+	decision, _, err := evaluateRuleOutcome(s.T().Context(), ec, &executorImpl{}, p, rule)
 	s.Require().NoError(err)
 	s.Require().NotNil(decision)
 	s.Equal(trinary.Unknown, decision.State)
@@ -222,7 +221,7 @@ func (s *RuntimeTestSuite) TestEvaluateRuleOutcomeWhenEvaluationFailureReturnsEr
 		When: ruleStmt.When, Body: ruleStmt.Body,
 	}
 	ec := NewExecutionContext(p, &executorImpl{})
-	decision, _, err := evaluateRuleOutcome(context.Background(), ec, &executorImpl{}, p, rule)
+	decision, _, err := evaluateRuleOutcome(s.T().Context(), ec, &executorImpl{}, p, rule)
 	s.Require().Error(err)
 	s.Nil(decision)
 }
@@ -267,7 +266,7 @@ func (s *RuntimeTestSuite) TestExecPolicyRecoversPanicFromExecRule() {
 	ns.Policies[p.Name] = p
 
 	exec := &executorImpl{index: idx}
-	_, err := exec.ExecPolicy(context.Background(), nsFQN.String(), p.Name, map[string]any{})
+	_, err := exec.ExecPolicy(s.T().Context(), nsFQN.String(), p.Name, map[string]any{})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "panic in ExecRule")
 }
@@ -293,14 +292,14 @@ func (s *RuntimeTestSuite) TestGetModuleBindingCachesBindings() {
 	ms, err := exec.jsRegistry.PrepareUse(use.RelativeFrom, use.LibFrom, ".")
 	s.Require().NoError(err)
 
-	first, loaded, err := exec.getModuleBinding(context.Background(), use, ms)
+	first, loaded, err := exec.getModuleBinding(s.T().Context(), use, ms)
 	s.Require().NoError(err)
 	_ = loaded
 	s.NotNil(first)
 	s.Equal(ms.KeyOrPath(), first.CanonicalKey)
 	s.Equal(use.As, first.Alias)
 
-	second, loaded, err := exec.getModuleBinding(context.Background(), use, ms)
+	second, loaded, err := exec.getModuleBinding(s.T().Context(), use, ms)
 	s.Require().NoError(err)
 	_ = loaded
 	s.NotNil(second)
@@ -314,7 +313,7 @@ func (s *RuntimeTestSuite) TestJSBindingConstructorRejectsMissingRequestedExport
 	ms, err := exec.jsRegistry.PrepareUse(use.RelativeFrom, use.LibFrom, ".")
 	s.Require().NoError(err)
 
-	_, err = exec.jsBindingConstructor(context.Background(), use, ms)
+	_, err = exec.jsBindingConstructor(s.T().Context(), use, ms)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "missing required export")
 }
@@ -328,7 +327,7 @@ func (s *RuntimeTestSuite) TestBindUsesBindsPreparedModule() {
 	}
 	ec := NewExecutionContext(policy, exec)
 
-	err := exec.bindUses(context.Background(), ec, policy)
+	err := exec.bindUses(s.T().Context(), ec, policy)
 	s.Require().NoError(err)
 	binding, ok := ec.Module("hash")
 	s.True(ok)
@@ -341,7 +340,7 @@ func examplePackDir() string {
 }
 
 func (s *RuntimeTestSuite) TestExamplePackExecPolicySmoke() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 
 	packFile, err := loader.LoadPack(ctx, examplePackDir())
 	s.Require().NoError(err)

@@ -17,8 +17,6 @@
 package runtime
 
 import (
-	"context"
-
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/trinary"
@@ -134,7 +132,7 @@ func (s *RuntimeTestSuite) TestEqualValuesDeepAndKindSensitiveBranches() {
 }
 
 func (s *RuntimeTestSuite) TestEvalInfixArithmeticComparisonAndTrinaryMatrix() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 
@@ -266,7 +264,7 @@ func (s *RuntimeTestSuite) TestEvalInfixArithmeticComparisonAndTrinaryMatrix() {
 }
 
 func (s *RuntimeTestSuite) TestEvalInfixOperatorSpecificErrorBranches() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 
@@ -331,7 +329,7 @@ func (s *RuntimeTestSuite) TestEvalInfixOperatorSpecificErrorBranches() {
 }
 
 func (s *RuntimeTestSuite) TestEvalInfixMembershipAndComparisonAliases() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 

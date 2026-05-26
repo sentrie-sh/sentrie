@@ -4,7 +4,6 @@
 package parser
 
 import (
-	"context"
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
@@ -14,7 +13,7 @@ import (
 // Qualified slash callee vs division: `a / b` is division; `com/example/ns/name(x)` is a call
 // whose callee is a slash chain (FQN), not `(a/b)*c`.
 func TestSlashCalleeVsDivisionSpike(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	div := NewParserFromString(`namespace n; policy p { export decision of r; rule r = { yield a / b } }`, "t.sentra")
 	prog, err := div.ParseProgram(ctx)
@@ -39,7 +38,7 @@ func TestSlashCalleeVsDivisionSpike(t *testing.T) {
 }
 
 func TestTypedLambdaParamSpike(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	p := NewParserFromString(`namespace n; policy p { export decision of r; rule r = { yield (a: number, b?: string) => { yield 1 } } }`, "tl.sentra")
 	prog, err := p.ParseProgram(ctx)
 	require.NoError(t, err)

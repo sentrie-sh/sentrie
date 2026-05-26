@@ -17,8 +17,6 @@
 package runtime
 
 import (
-	"context"
-
 	"github.com/sentrie-sh/sentrie/box"
 )
 
@@ -26,14 +24,14 @@ func (s *RuntimeTestSuite) TestAccessFieldPreservesBoxedUndefined() {
 	obj := box.Dict(map[string]box.Value{
 		"nested": box.Undefined(),
 	})
-	out, err := accessField(context.Background(), obj, "nested")
+	out, err := accessField(s.T().Context(), obj, "nested")
 	s.Require().NoError(err)
 	s.Require().True(out.IsUndefined())
 }
 
 func (s *RuntimeTestSuite) TestAccessIndexPreservesBoxedUndefined() {
 	col := box.List([]box.Value{box.Undefined()})
-	out, err := accessIndex(context.Background(), col, box.Number(0))
+	out, err := accessIndex(s.T().Context(), col, box.Number(0))
 	s.Require().NoError(err)
 	s.Require().True(out.IsUndefined())
 }
@@ -42,7 +40,7 @@ func (s *RuntimeTestSuite) TestAccessIndexMapAnyMissingKeyReturnsUndefined() {
 	col := box.Object(map[string]any{
 		"present": 1,
 	})
-	out, err := accessIndex(context.Background(), col, box.String("missing"))
+	out, err := accessIndex(s.T().Context(), col, box.String("missing"))
 	s.Require().NoError(err)
 	s.Require().True(out.IsUndefined())
 }

@@ -74,6 +74,8 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		return val, n.SetResult(val), nil
 	}
 
+	// Derive bodies must not dispatch rules by identifier — that would break the purity
+	// contract (non-deterministic rule evaluation). Only rule/policy evaluation may do this.
 	if ec.evalDerive == nil {
 		if r, found := p.Rules[i.Value]; found {
 			decision, _, node, err := exec.execRule(ctx, ec, p.Namespace.FQN.String(), p.Name, r.Name)

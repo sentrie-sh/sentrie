@@ -103,7 +103,7 @@ func TestDetectReferenceCycleCancelledBeforeRulesLoop(t *testing.T) {
 	ns.Policies[p.Name] = p
 	idx.Namespaces[ns.FQN.String()] = ns
 
-	ctx := &scriptedCtx{Context: context.Background(), at: map[int]error{1: errors.New("cancelled")}}
+	ctx := &scriptedCtx{Context: t.Context(), at: map[int]error{1: errors.New("cancelled")}}
 	err := idx.detectReferenceCycle(ctx)
 	if err == nil {
 		t.Fatalf("expected canceled reference cycle detection, got %v", err)
@@ -119,7 +119,7 @@ func TestDetectReferenceCycleCancelledInsideRulesLoop(t *testing.T) {
 	ns.Policies[p.Name] = p
 	idx.Namespaces[ns.FQN.String()] = ns
 
-	ctx := &scriptedCtx{Context: context.Background(), at: map[int]error{2: errors.New("cancelled")}}
+	ctx := &scriptedCtx{Context: t.Context(), at: map[int]error{2: errors.New("cancelled")}}
 	err := idx.detectReferenceCycle(ctx)
 	if err == nil {
 		t.Fatalf("expected canceled reference cycle detection in rules loop, got %v", err)
@@ -131,7 +131,7 @@ func TestDetectRuleCycleCancelledAtNamespaceLoop(t *testing.T) {
 	ns := testNamespace("n")
 	idx.Namespaces[ns.FQN.String()] = ns
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	_, err := idx.detectRuleCycle(ctx)
 	if err == nil {
@@ -147,7 +147,7 @@ func TestDetectRuleCycleCancelledAtPolicyLoop(t *testing.T) {
 	ns.Policies[p.Name] = p
 	idx.Namespaces[ns.FQN.String()] = ns
 
-	ctx := &scriptedCtx{Context: context.Background(), at: map[int]error{1: errors.New("cancelled")}}
+	ctx := &scriptedCtx{Context: t.Context(), at: map[int]error{1: errors.New("cancelled")}}
 	_, err := idx.detectRuleCycle(ctx)
 	if err == nil {
 		t.Fatalf("expected canceled rule cycle detection at policy loop, got %v", err)
@@ -166,13 +166,13 @@ func TestDetectRuleCycleCancelledInSecondPassChecks(t *testing.T) {
 		return idx
 	}
 
-	if _, err := makeIdx().detectRuleCycle(&scriptedCtx{Context: context.Background(), at: map[int]error{2: errors.New("cancelled")}}); err == nil {
+	if _, err := makeIdx().detectRuleCycle(&scriptedCtx{Context: t.Context(), at: map[int]error{2: errors.New("cancelled")}}); err == nil {
 		t.Fatal("expected cancellation at second-pass namespace check")
 	}
-	if _, err := makeIdx().detectRuleCycle(&scriptedCtx{Context: context.Background(), at: map[int]error{3: errors.New("cancelled")}}); err == nil {
+	if _, err := makeIdx().detectRuleCycle(&scriptedCtx{Context: t.Context(), at: map[int]error{3: errors.New("cancelled")}}); err == nil {
 		t.Fatal("expected cancellation at second-pass policy check")
 	}
-	if _, err := makeIdx().detectRuleCycle(&scriptedCtx{Context: context.Background(), at: map[int]error{4: errors.New("cancelled")}}); err == nil {
+	if _, err := makeIdx().detectRuleCycle(&scriptedCtx{Context: t.Context(), at: map[int]error{4: errors.New("cancelled")}}); err == nil {
 		t.Fatal("expected cancellation at second-pass rule check")
 	}
 }
@@ -182,7 +182,7 @@ func TestDetectShapeCycleCancelledAtNamespaceLoop(t *testing.T) {
 	ns := testNamespace("n")
 	idx.Namespaces[ns.FQN.String()] = ns
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	_, err := idx.detectShapeCycle(ctx)
 	if err == nil {
@@ -203,7 +203,7 @@ func TestDetectShapeCycleCancelledInChecks(t *testing.T) {
 		return idx
 	}
 	for _, call := range []int{1, 2, 3, 4, 5} {
-		if _, err := makeIdx().detectShapeCycle(&scriptedCtx{Context: context.Background(), at: map[int]error{call: errors.New("cancelled")}}); err == nil {
+		if _, err := makeIdx().detectShapeCycle(&scriptedCtx{Context: t.Context(), at: map[int]error{call: errors.New("cancelled")}}); err == nil {
 			t.Fatalf("expected cancellation at detectShapeCycle err-check call %d", call)
 		}
 	}
@@ -219,7 +219,7 @@ func TestDetectShapeCyclePolicyShapeSelfReferenceAddEdgeError(t *testing.T) {
 	ns.Shapes["self"] = shape
 	idx.Namespaces[ns.FQN.String()] = ns
 
-	_, err := idx.detectShapeCycle(context.Background())
+	_, err := idx.detectShapeCycle(t.Context())
 	if err == nil {
 		t.Fatal("expected self-loop add edge error")
 	}
@@ -263,7 +263,7 @@ func TestDetectShapeCyclePolicyBranchAddEdgeErrorDuplicateFQN(t *testing.T) {
 	idx := CreateIndex()
 	idx.Namespaces[ns.FQN.String()] = ns
 
-	_, err = idx.detectShapeCycle(context.Background())
+	_, err = idx.detectShapeCycle(t.Context())
 	if err == nil {
 		t.Fatal("expected policy-branch add-edge error")
 	}
@@ -304,7 +304,7 @@ func TestValidatePropagatesCommitError(t *testing.T) {
 
 	// Before the fix: Validate returns nil even though Commit failed.
 	// After the fix: Validate returns the commit error.
-	err = idx.Validate(context.Background())
+	err = idx.Validate(t.Context())
 	if err == nil {
 		t.Fatal("expected Validate to return an error when Commit fails, got nil")
 	}

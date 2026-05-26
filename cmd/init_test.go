@@ -29,7 +29,7 @@ func runInitCLI(ctx context.Context, args []string) error {
 
 func (s *CmdTestSuite) TestInitCmdRejectsInvalidPackNameMessage() {
 	dir := s.T().TempDir()
-	err := runInitCLI(context.Background(), []string{"--directory", dir, "1bad-name"})
+	err := runInitCLI(s.T().Context(), []string{"--directory", dir, "1bad-name"})
 	s.Require().Error(err)
 	s.Equal("name needs to be a valid identity. It must start with a letter and can only contain letters, numbers, underscores and `dot`", err.Error())
 }
@@ -39,14 +39,14 @@ func (s *CmdTestSuite) TestInitCmdWrapsCreatePackFileError() {
 	s.Require().NoError(os.Chmod(dir, 0o500))
 	defer func() { _ = os.Chmod(dir, 0o700) }()
 
-	err := runInitCLI(context.Background(), []string{"--directory", dir, "valid.pack"})
+	err := runInitCLI(s.T().Context(), []string{"--directory", dir, "valid.pack"})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "could not create pack file")
 }
 
 func (s *CmdTestSuite) TestInitCmdCreatesPackFileOnSuccess() {
 	dir := s.T().TempDir()
-	err := runInitCLI(context.Background(), []string{"--directory", dir, "valid.pack"})
+	err := runInitCLI(s.T().Context(), []string{"--directory", dir, "valid.pack"})
 	s.Require().NoError(err)
 
 	_, statErr := os.Stat(filepath.Join(dir, "sentrie.pack.toml"))

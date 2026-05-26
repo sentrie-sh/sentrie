@@ -17,8 +17,6 @@
 package runtime
 
 import (
-	"context"
-
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
@@ -50,9 +48,9 @@ func (s *RuntimeTestSuite) TestExecutionContextBranchCoverage() {
 	ec := NewExecutionContext(p, &executorImpl{})
 	child := ec.AttachedChildContext()
 
-	s.Require().ErrorIs(child.InjectFact(context.Background(), "f", box.Number(1), false, nil), ErrIllegalFactInjection)
+	s.Require().ErrorIs(child.InjectFact(s.T().Context(), "f", box.Number(1), false, nil), ErrIllegalFactInjection)
 
-	s.Require().NoError(ec.InjectFact(context.Background(), "factA", box.Number(10), false, nil))
+	s.Require().NoError(ec.InjectFact(s.T().Context(), "factA", box.Number(10), false, nil))
 	s.Require().NoError(ec.InjectLet("letA", ast.NewVarDeclaration("letA", nil, ast.NewIntegerLiteral(1, stubRange()), stubRange())))
 	s.Require().Error(ec.InjectLet("letA", ast.NewVarDeclaration("letA", nil, ast.NewIntegerLiteral(2, stubRange()), stubRange())))
 
@@ -73,7 +71,7 @@ func (s *RuntimeTestSuite) TestExecutionContextBranchCoverage() {
 }
 
 func (s *RuntimeTestSuite) TestEvalQuantifiersAndMapBranches() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 	exec := &executorImpl{}
@@ -125,7 +123,7 @@ func (s *RuntimeTestSuite) TestEvalQuantifiersAndMapBranches() {
 }
 
 func (s *RuntimeTestSuite) TestEvalReduceTransformTernaryUnaryBlockCastBranches() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 	exec := &executorImpl{}

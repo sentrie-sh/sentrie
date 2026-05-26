@@ -1,0 +1,15 @@
+---
+description: Go test context and suite conventions
+globs: **/*_test.go
+alwaysApply: false
+---
+
+# Go test conventions
+
+- In tests, prefer test-scoped contexts over `context.Background()`.
+- Plain tests should use `t.Context()`.
+- Testify suite methods should use `s.T().Context()` or `suite.T().Context()`, matching the local receiver/helper style.
+- Only use `context.Background()` in a test when a real root context is required, and document that reason in a nearby comment.
+- When a package already has a documented shared testify suite, extend that suite instead of adding new standalone `Test...` functions unless the file is the suite entrypoint.
+- In `runtime/`, feature-specific tests should be methods on `RuntimeTestSuite` even when split across separate `*_test.go` files. The standalone `TestRuntimeTestSuite` entrypoint in `runtime/runtime_test.go` is the expected exception.
+- Do not force the `RuntimeTestSuite` pattern onto packages that intentionally use a different test structure; follow each package's local convention unless guidance says otherwise.

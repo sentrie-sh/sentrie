@@ -26,9 +26,9 @@ import (
 
 func (suite *IndexTestSuite) TestValidateWrapsTopLevelValidationError() {
 	idx := CreateIndex()
-	suite.Require().NoError(idx.AddProgram(context.Background(), programWithRichRuleGraph(false)))
+	suite.Require().NoError(idx.AddProgram(suite.T().Context(), programWithRichRuleGraph(false)))
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(suite.T().Context())
 	cancel()
 	err := idx.Validate(ctx)
 	suite.Require().Error(err)
@@ -37,7 +37,7 @@ func (suite *IndexTestSuite) TestValidateWrapsTopLevelValidationError() {
 }
 
 func (suite *IndexTestSuite) TestShapeResolveDependencyWrapsCrossNamespaceNotExportedAsIndexError() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 	idx := CreateIndex()
 
 	appStmt := ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example", "app"}, rng(10)), rng(10))

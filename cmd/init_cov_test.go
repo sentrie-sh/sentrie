@@ -5,7 +5,6 @@
 package cmd
 
 import (
-	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -26,7 +25,7 @@ func (s *CmdTestSuite) TestInitCmdReadDirFailure() {
 	s.Require().NoError(os.Chmod(target, 0o000))
 	defer func() { _ = os.Chmod(target, 0o700) }()
 
-	err := runInitCLI(context.Background(), []string{"--directory", target, "valid_name"})
+	err := runInitCLI(s.T().Context(), []string{"--directory", target, "valid_name"})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "could not read directory")
 }
@@ -39,7 +38,7 @@ func (s *CmdTestSuite) TestInitCmdWrapsEncodePackFileError() {
 	}
 	defer func() { encodePackFile = prev }()
 
-	err := runInitCLI(context.Background(), []string{"--directory", dir, "valid.pack"})
+	err := runInitCLI(s.T().Context(), []string{"--directory", dir, "valid.pack"})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "could not encode pack file")
 	s.Contains(err.Error(), "encode failed")

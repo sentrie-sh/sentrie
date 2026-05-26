@@ -17,7 +17,6 @@
 package runtime
 
 import (
-	"context"
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
@@ -28,7 +27,7 @@ import (
 )
 
 func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	exec := &executorImpl{}
 
@@ -256,7 +255,7 @@ func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
 }
 
 func (s *RuntimeTestSuite) TestEvalCallJSBoundaryContracts() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	exec := &executorImpl{}
 
@@ -304,7 +303,7 @@ func (s *RuntimeTestSuite) TestEvalCallJSBoundaryContracts() {
 }
 
 func (s *RuntimeTestSuite) TestEvalImportDispatchBoundaryFailure() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := &index.Policy{}
 	exec := &executorImpl{}
 	ec := NewExecutionContext(newEvalTestPolicy(), exec)

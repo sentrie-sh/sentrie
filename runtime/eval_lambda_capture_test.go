@@ -17,8 +17,6 @@
 package runtime
 
 import (
-	"context"
-
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 )
@@ -26,7 +24,7 @@ import (
 // TestLambdaCapture_LateBoundLexicalFollowsParentContextByReference ensures closure
 // capture uses the live parent execution context (v1), not a snapshot at creation time.
 func (s *RuntimeTestSuite) TestLambdaCapture_LateBoundLexicalFollowsParentContextByReference() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 	exec := &executorImpl{}

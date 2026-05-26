@@ -4,14 +4,12 @@
 package parser
 
 import (
-	"context"
-
 	"github.com/sentrie-sh/sentrie/ast"
 )
 
 func (s *ParserTestSuite) TestParseFactNullableTypeRef() {
 	parser := NewParserFromString("fact input?: string?", "test.sentra")
-	stmt := parseFactStatement(context.Background(), parser)
+	stmt := parseFactStatement(s.T().Context(), parser)
 	s.Require().NoError(parser.err)
 	s.Require().NotNil(stmt)
 
