@@ -5,14 +5,13 @@ package index
 
 import (
 	"strings"
-	"testing"
 
 	"github.com/sentrie-sh/sentrie/parser"
 	"github.com/stretchr/testify/require"
 )
 
-func TestDeriveAddProgramResolveAndSpan(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestDeriveAddProgramResolveAndSpan() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 
@@ -27,18 +26,18 @@ policy pol {
 `
 	p := parser.NewParserFromString(src, "one.sentra")
 	prog, err := p.ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, prog))
-	require.NoError(t, idx.Validate(ctx))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), idx.Validate(ctx))
 
 	d, err := idx.ResolveDerive("com/ex/pol/inner")
-	require.NoError(t, err)
-	require.NotEmpty(t, d.String())
+	require.NoError(s.T(), err)
+	require.NotEmpty(s.T(), d.String())
 	_ = d.Span()
 }
 
-func TestDeriveCycleViaSlashFQNDetected(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestDeriveCycleViaSlashFQNDetected() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 
@@ -53,15 +52,15 @@ policy pol {
 `
 	p := parser.NewParserFromString(src, "cyc.sentra")
 	prog, err := p.ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
-	require.Error(t, err)
-	require.True(t, strings.Contains(err.Error(), "cyclic derive") || strings.Contains(err.Error(), "derive dependency"))
+	require.Error(s.T(), err)
+	require.True(s.T(), strings.Contains(err.Error(), "cyclic derive") || strings.Contains(err.Error(), "derive dependency"))
 }
 
-func TestDeriveDuplicateFQNRejected(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestDeriveDuplicateFQNRejected() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src1 := `namespace com/ex
 derive dup = () => { yield 1 }
@@ -80,16 +79,16 @@ policy p2 {
 }
 `
 	prog1, err := parser.NewParserFromString(src1, "a.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, prog1))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog1))
 	prog2, err := parser.NewParserFromString(src2, "b.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
+	require.NoError(s.T(), err)
 	err = idx.AddProgram(ctx, prog2)
-	require.Error(t, err)
+	require.Error(s.T(), err)
 }
 
-func TestExportDeriveUnknownNameRejected(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestExportDeriveUnknownNameRejected() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 export derive missing
@@ -101,13 +100,13 @@ policy p {
 }
 `
 	prog, err := parser.NewParserFromString(src, "e.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
+	require.NoError(s.T(), err)
 	err = idx.AddProgram(ctx, prog)
-	require.Error(t, err)
+	require.Error(s.T(), err)
 }
 
-func TestDeriveFatBodyWalkPassesValidation(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestDeriveFatBodyWalkPassesValidation() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive leaf = () => { yield 1 }
@@ -122,19 +121,19 @@ policy pol {
 }
 `
 	prog, err := parser.NewParserFromString(src, "fat.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, prog))
-	require.NoError(t, idx.Validate(ctx))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), idx.Validate(ctx))
 }
 
-func TestResolveDeriveNotFound(t *testing.T) {
+func (s *IndexTestSuite) TestResolveDeriveNotFound() {
 	idx := CreateIndex()
 	_, err := idx.ResolveDerive("com/nope/never")
-	require.Error(t, err)
+	require.Error(s.T(), err)
 }
 
-func TestAddProgramExportDeriveAndVerifyExported(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestAddProgramExportDeriveAndVerifyExported() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive published = () => { yield 1 }
@@ -146,17 +145,17 @@ policy p {
 }
 `
 	prog, err := parser.NewParserFromString(src, "exp.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, prog))
-	require.NoError(t, idx.Validate(ctx))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), idx.Validate(ctx))
 
 	ns := idx.Namespaces["com/ex"]
-	require.NoError(t, ns.VerifyDeriveExported("published"))
-	require.Error(t, ns.VerifyDeriveExported("unpublished"))
+	require.NoError(s.T(), ns.VerifyDeriveExported("published"))
+	require.Error(s.T(), ns.VerifyDeriveExported("unpublished"))
 }
 
-func TestAlphaSecretNotExportedInIndex(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestAlphaSecretNotExportedInIndex() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/alpha
 derive secret = () => { yield 1 }
@@ -167,15 +166,15 @@ policy pa {
 }
 `
 	prog, err := parser.NewParserFromString(src, "a.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, prog))
-	require.NoError(t, idx.Validate(ctx))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), idx.Validate(ctx))
 	ns := idx.Namespaces["com/alpha"]
-	require.Error(t, ns.VerifyDeriveExported("secret"))
+	require.Error(s.T(), ns.VerifyDeriveExported("secret"))
 }
 
-func TestDerivePurityRejectsFieldAccessModuleCall(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestDerivePurityRejectsFieldAccessModuleCall() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive d = () => { yield mod.fn(1) }
@@ -186,15 +185,15 @@ policy pol {
 }
 `
 	prog, err := parser.NewParserFromString(src, "mod.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "TypeScript module calls are not permitted")
+	require.Error(s.T(), err)
+	require.Contains(s.T(), err.Error(), "TypeScript module calls are not permitted")
 }
 
-func TestDerivePurityRejectsFactIdentifier(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestDerivePurityRejectsFactIdentifier() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 policy pol {
@@ -206,15 +205,15 @@ policy pol {
 }
 `
 	prog, err := parser.NewParserFromString(src, "fact.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "facts are not available inside a derive")
+	require.Error(s.T(), err)
+	require.Contains(s.T(), err.Error(), "facts are not available inside a derive")
 }
 
-func TestDerivePurityRejectsYieldLambda(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestDerivePurityRejectsYieldLambda() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive d = () => { yield (x: number): number => { yield x } }
@@ -225,15 +224,15 @@ policy pol {
 }
 `
 	prog, err := parser.NewParserFromString(src, "lam.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "derive cannot yield a lambda value")
+	require.Error(s.T(), err)
+	require.Contains(s.T(), err.Error(), "derive cannot yield a lambda value")
 }
 
-func TestDerivePurityLetArithmeticPasses(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestDerivePurityLetArithmeticPasses() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive d = (x: number): number => {
@@ -247,13 +246,13 @@ policy pol {
 }
 `
 	prog, err := parser.NewParserFromString(src, "let.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, prog))
-	require.NoError(t, idx.Validate(ctx))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), idx.Validate(ctx))
 }
 
-func TestDerivePurityAllowsLambdaInsidePureBuiltinCall(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestDerivePurityAllowsLambdaInsidePureBuiltinCall() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive d = () => { yield count(filter([1, 2], (a: number): trinary => { yield a == 1 })) }
@@ -264,13 +263,13 @@ policy pol {
 }
 `
 	prog, err := parser.NewParserFromString(src, "filt.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, prog))
-	require.NoError(t, idx.Validate(ctx))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), idx.Validate(ctx))
 }
 
-func TestDeriveDefineSiteOrderHelperAfterCallerFails(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestDeriveDefineSiteOrderHelperAfterCallerFails() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	srcCaller := `namespace com/ex
 derive caller = () => { yield helper() }
@@ -289,17 +288,17 @@ policy pol2 {
 }
 `
 	p1, err := parser.NewParserFromString(srcCaller, "caller.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, p1))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, p1))
 	p2, err := parser.NewParserFromString(srcHelper, "helper.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, p2))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, p2))
 	err = idx.Validate(ctx)
-	require.Error(t, err)
+	require.Error(s.T(), err)
 }
 
-func TestDeriveDefineSiteOrderHelperFirstPasses(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestDeriveDefineSiteOrderHelperFirstPasses() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	srcHelper := `namespace com/ex
 derive helper = () => { yield 1 }
@@ -318,16 +317,16 @@ policy pol {
 }
 `
 	p1, err := parser.NewParserFromString(srcHelper, "h.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, p1))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, p1))
 	p2, err := parser.NewParserFromString(srcCaller, "c.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, p2))
-	require.NoError(t, idx.Validate(ctx))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, p2))
+	require.NoError(s.T(), idx.Validate(ctx))
 }
 
-func TestDerivePuritySlashCalleeInRuleYieldCompletes(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestDerivePuritySlashCalleeInRuleYieldCompletes() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive ns = () => { yield 1 }
@@ -339,13 +338,13 @@ policy pol {
 `
 	p := parser.NewParserFromString(src, "slash.sentra")
 	prog, err := p.ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, prog))
-	require.NoError(t, idx.Validate(ctx))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), idx.Validate(ctx))
 }
 
-func TestDerivePurityRejectsBareDefineShortDerive(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestDerivePurityRejectsBareDefineShortDerive() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive helper = () => { yield 1 }
@@ -357,15 +356,15 @@ policy pol {
 }
 `
 	prog, err := parser.NewParserFromString(src, "bare.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "must be called as helper(...)")
+	require.Error(s.T(), err)
+	require.Contains(s.T(), err.Error(), "must be called as helper(...)")
 }
 
-func TestDerivePurityRejectsRuleIdentifier(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestDerivePurityRejectsRuleIdentifier() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 policy pol {
@@ -376,15 +375,15 @@ policy pol {
 }
 `
 	prog, err := parser.NewParserFromString(src, "rule.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "rules cannot be referenced inside a derive")
+	require.Error(s.T(), err)
+	require.Contains(s.T(), err.Error(), "rules cannot be referenced inside a derive")
 }
 
-func TestDerivePurityRejectsUnknownIdentifier(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestDerivePurityRejectsUnknownIdentifier() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive d = () => { yield mystery }
@@ -395,15 +394,15 @@ policy pol {
 }
 `
 	prog, err := parser.NewParserFromString(src, "unkid.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "identifier \"mystery\" is not available")
+	require.Error(s.T(), err)
+	require.Contains(s.T(), err.Error(), "identifier \"mystery\" is not available")
 }
 
-func TestDerivePurityRejectsDisallowedCall(t *testing.T) {
-	ctx := t.Context()
+func (s *IndexTestSuite) TestDerivePurityRejectsDisallowedCall() {
+	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
 derive d = () => {
@@ -417,9 +416,9 @@ policy pol {
 }
 `
 	prog, err := parser.NewParserFromString(src, "call.sentra").ParseProgram(ctx)
-	require.NoError(t, err)
-	require.NoError(t, idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "call is not permitted inside a derive")
+	require.Error(s.T(), err)
+	require.Contains(s.T(), err.Error(), "call is not permitted inside a derive")
 }
