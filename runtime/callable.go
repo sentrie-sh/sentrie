@@ -22,6 +22,7 @@ import (
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
+	"github.com/sentrie-sh/sentrie/index"
 )
 
 // Callable is a boxed runtime callable (lambda closure). v1 capture keeps a
@@ -37,12 +38,38 @@ type lambdaCallable struct {
 	capture *ExecutionContext
 }
 
+type deriveCallable struct {
+	derive *index.Derive
+}
+
 func newLambdaCallable(lambda *ast.LambdaExpression, capture *ExecutionContext) *lambdaCallable {
 	return &lambdaCallable{lambda: lambda, capture: capture}
 }
 
 func (c *lambdaCallable) Arity() int {
 	return len(c.lambda.Params)
+}
+
+func requiredLambdaArity(lam *ast.LambdaExpression) int {
+	if lam == nil {
+		return 0
+	}
+	n := len(lam.Params)
+	required := 0
+	for i := 0; i < n; i++ {
+		opt := lam.ParamOpts != nil && i < len(lam.ParamOpts) && lam.ParamOpts[i]
+		if !opt {
+			required++
+		}
+	}
+	return required
+}
+
+func (c *deriveCallable) Arity() int {
+	if c == nil || c.derive == nil {
+		return 0
+	}
+	return requiredLambdaArity(c.derive.Lambda)
 }
 
 func (c *lambdaCallable) Invoke(ctx context.Context, site *CallSite, args []box.Value) (box.Value, error) {
@@ -53,6 +80,13 @@ func (c *lambdaCallable) Invoke(ctx context.Context, site *CallSite, args []box.
 	}
 	v, _, err := evalBlock(ctx, child, site.Exec, site.Policy, c.lambda.Body)
 	return v, err
+}
+
+func (c *deriveCallable) Invoke(ctx context.Context, site *CallSite, args []box.Value) (box.Value, error) {
+	if c == nil || c.derive == nil {
+		return box.Undefined(), fmt.Errorf("internal error: missing derive")
+	}
+	return invokeDerive(ctx, site.EC, site.Exec, site.Policy, c.derive, args)
 }
 
 // callableFromValue unwraps a boxed callable.

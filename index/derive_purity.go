@@ -266,7 +266,20 @@ func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[str
 			return nil
 		}
 		if derivepure.IsPureBuiltin(name) {
-			for _, a := range c.Arguments {
+			for i, a := range c.Arguments {
+				// Allow single-param derives to be passed directly as callbacks to the
+				// higher-order pure builtins (e.g. filter(items, predDerive)).
+				if isAllowedDeriveCallbackArg(name, i) {
+					if ident, ok := a.(*ast.Identifier); ok {
+						if d.DefineShort != nil {
+							if cand := d.DefineShort[ident.Value]; cand != nil {
+								if cand.Lambda != nil && len(cand.Lambda.Params) == 1 {
+									continue
+								}
+							}
+						}
+					}
+				}
 				if err := walkDeriveExprSeen(idx, d, a, scope, seen); err != nil {
 					return err
 				}
@@ -283,4 +296,15 @@ func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[str
 		}
 	}
 	return fmt.Errorf("call is not permitted inside a derive (only visible derives and pure builtins)")
+}
+
+func isAllowedDeriveCallbackArg(builtin string, argIdx int) bool {
+	switch builtin {
+	case "filter", "collect", "any", "all", "first":
+		return argIdx == 1
+	case "distinct":
+		return argIdx == 1
+	default:
+		return false
+	}
 }

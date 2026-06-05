@@ -16,6 +16,7 @@ func parseTypedLambdaExpression(ctx context.Context, p *Parser, lparenFrom token
 	file := p.current.Range.File
 
 	var names []string
+	seen := make(map[string]struct{})
 	var types []ast.TypeRef
 	var opts []bool
 	anyPriorOptional := false
@@ -46,6 +47,11 @@ func parseTypedLambdaExpression(ctx context.Context, p *Parser, lparenFrom token
 			if optional {
 				anyPriorOptional = true
 			}
+			if _, dup := seen[nameTok.Value]; dup {
+				p.errorf("duplicate lambda parameter %q", nameTok.Value)
+				return nil
+			}
+			seen[nameTok.Value] = struct{}{}
 			names = append(names, nameTok.Value)
 			types = append(types, typ)
 			opts = append(opts, optional)

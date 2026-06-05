@@ -88,6 +88,14 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		}
 	}
 
+	// Allow passing derives as higher-order callbacks by identifier (e.g. filter(items, pred)).
+	// The derive itself is invoked via invokeDerive at call time, and only its required
+	// parameter count is exposed as arity so optional params can be omitted.
+	if d := lookupDeriveByIdentifier(ec, p, i.Value); d != nil {
+		v := box.Callable(&deriveCallable{derive: d})
+		return v, n.SetResult(v), nil
+	}
+
 	err := fmt.Errorf("identifier not found: %s", i.Value)
 	return box.Undefined(), n.SetErr(err), err
 }

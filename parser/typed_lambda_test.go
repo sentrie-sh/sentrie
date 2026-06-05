@@ -36,3 +36,45 @@ func TestParseTypedLambdaOptionalBeforeRequiredRejected(t *testing.T) {
 	_, err := NewParserFromString(src, "tl4.sentra").ParseProgram(ctx)
 	require.Error(t, err)
 }
+
+func TestParseTypedLambdaDuplicateParamsRejected(t *testing.T) {
+	ctx := t.Context()
+	cases := []struct {
+		name string
+		src  string
+	}{
+		{
+			name: "adjacent typed duplicate",
+			src:  `namespace n; policy p { export decision of r; rule r = { yield (a: number, a: number): number => { yield a } } }`,
+		},
+		{
+			name: "non-adjacent typed duplicate",
+			src:  `namespace n; policy p { export decision of r; rule r = { yield (a: number, b: number, a: number): number => { yield a } } }`,
+		},
+		{
+			name: "duplicate optional params",
+			src:  `namespace n; policy p { export decision of r; rule r = { yield (a?, a?: number): number => { yield a } } }`,
+		},
+		{
+			name: "mixed typed and untyped duplicate",
+			src:  `namespace n; policy p { export decision of r; rule r = { yield (a: number, a): number => { yield a } } }`,
+		},
+		{
+			name: "duplicate in derive typed lambda",
+			src: `namespace n
+derive bad = (x: number, x: number): number => { yield x }
+policy p {
+  let _s = 0
+  rule r = { yield true }
+  export decision of r
+}`,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := NewParserFromString(tc.src, tc.name+".sentra").ParseProgram(ctx)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "duplicate lambda parameter")
+		})
+	}
+}

@@ -59,6 +59,7 @@ derive bad = (n: number): string => { yield n }
 derive sum2 = (a: number, b: number): number => { yield a + b }
 derive needStr = (a: string): string => { yield a }
 derive ns = () => { yield 1 }
+derive isOne = (a: number): trinary => { yield a == 1 }
 
 policy pol {
   let _seed = 0
@@ -70,6 +71,8 @@ policy pol {
   rule too_few = { yield sum2(1) == 1 }
   rule arg_type = { yield needStr(1) == "1" }
   rule slash_ok = { yield com/ex/ns() == 1 }
+  rule derive_callback_any = { yield any([1, 2], isOne) }
+  rule derive_callback_filter = { yield count(filter([1, 2], isOne)) == 1 }
   rule elvis_short = { yield _seed ?: (1 / 0) == 0 }
   export decision of bump_ok
   export decision of too_many
@@ -77,14 +80,15 @@ policy pol {
   export decision of too_few
   export decision of arg_type
   export decision of slash_ok
+  export decision of derive_callback_any
+  export decision of derive_callback_filter
   export decision of elvis_short
 }
 `
 	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "derive_exec.sentrie", src: src})
 
-	successRules := []string{"bump_ok", "slash_ok", "elvis_short"}
+	successRules := []string{"bump_ok", "slash_ok", "derive_callback_any", "derive_callback_filter", "elvis_short"}
 	for _, ruleName := range successRules {
-		ruleName := ruleName
 		s.Run(ruleName, func() {
 			out, err := exec.ExecRule(ctx, "com/ex", "pol", ruleName, nil)
 			s.Require().NoError(err)
@@ -99,7 +103,7 @@ policy pol {
 		{rule: "too_many", msg: "too many arguments"},
 		{rule: "return_mismatch", msg: "derive return"},
 		{rule: "too_few", msg: "not enough arguments"},
-		{rule: "arg_type", msg: "derive argument"},
+		{rule: "arg_type", msg: `derive argument "a"`},
 	}
 	for _, tc := range errorCases {
 		tc := tc

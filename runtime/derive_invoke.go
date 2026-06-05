@@ -32,10 +32,14 @@ func padAndValidateDeriveArgs(ctx context.Context, ec *ExecutionContext, exec *e
 	for i := len(args); i < n; i++ {
 		out[i] = box.Undefined()
 	}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if lam.ParamTypes != nil && i < len(lam.ParamTypes) && lam.ParamTypes[i] != nil {
 			if err := validateValueAgainstTypeRef(ctx, ec, exec, p, out[i], lam.ParamTypes[i], lam.Span()); err != nil {
-				return nil, fmt.Errorf("derive argument %d: %w", i, err)
+				name := fmt.Sprintf("argument %d", i)
+				if i < len(lam.Params) {
+					name = lam.Params[i]
+				}
+				return nil, fmt.Errorf("derive argument %q: %w", name, err)
 			}
 		}
 	}

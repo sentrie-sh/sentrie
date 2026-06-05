@@ -268,6 +268,24 @@ policy pol {
 	require.NoError(s.T(), idx.Validate(ctx))
 }
 
+func (s *IndexTestSuite) TestDerivePurityAllowsDeriveAsCallbackToPureBuiltin() {
+	ctx := s.T().Context()
+	idx := CreateIndex()
+	src := `namespace com/ex
+derive pred = (a: number): trinary => { yield a == 1 }
+derive d = () => { yield count(filter([1, 2], pred)) }
+policy pol {
+  let _s = 0
+  rule r = { yield d() == 1 }
+  export decision of r
+}
+`
+	prog, err := parser.NewParserFromString(src, "filt_derive_cb.sentra").ParseProgram(ctx)
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), idx.Validate(ctx))
+}
+
 func (s *IndexTestSuite) TestDeriveDefineSiteOrderHelperAfterCallerFails() {
 	ctx := s.T().Context()
 	idx := CreateIndex()
