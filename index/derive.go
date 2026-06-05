@@ -4,6 +4,8 @@
 package index
 
 import (
+	"fmt"
+
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/sentrie-sh/sentrie/xerr"
@@ -35,6 +37,32 @@ func (d *Derive) Span() tokens.Range {
 		return d.Statement.Span()
 	}
 	return d.Lambda.Span()
+}
+
+// VisibleFromPolicy reports whether a policy-scoped derive may be referenced from caller.
+// Namespace-scoped derives are always visible here; export rules apply separately at runtime.
+func (d *Derive) VisibleFromPolicy(caller *Policy) error {
+	if d == nil || d.Policy == nil {
+		return nil
+	}
+	if caller == nil {
+		return fmt.Errorf("derive %q is policy-scoped and not visible outside its policy", d.FQN.String())
+	}
+	if caller.FQN.String() != d.Policy.FQN.String() {
+		return fmt.Errorf("derive %q is not visible from policy %q", d.FQN.String(), caller.FQN.String())
+	}
+	return nil
+}
+
+// VisibleFromDeriveCaller reports whether target may be referenced from inside caller's derive body.
+func (d *Derive) VisibleFromDeriveCaller(caller *Derive) error {
+	if d == nil || d.Policy == nil {
+		return nil
+	}
+	if caller == nil || caller.Policy == nil {
+		return fmt.Errorf("derive %q is policy-scoped and not visible outside its policy", d.FQN.String())
+	}
+	return d.VisibleFromPolicy(caller.Policy)
 }
 
 // ExportedDerive records a namespace-level export of a derive.

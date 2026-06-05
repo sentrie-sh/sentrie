@@ -29,6 +29,11 @@ func parseRuleExportStatement(ctx context.Context, p *Parser) ast.Statement {
 
 	p.advance() // consume 'export'
 
+	if p.head().Kind == tokens.KeywordDerive {
+		p.errorf("policy-level derives cannot be exported; only namespace-level derives may use export derive")
+		return nil
+	}
+
 	if !p.expect(tokens.KeywordDecision) {
 		return nil
 	}

@@ -158,9 +158,23 @@ func callerNamespaceFQNForDeriveExport(ec *ExecutionContext, p *index.Policy) st
 	return ""
 }
 
+func callerPolicyForDeriveScope(ec *ExecutionContext, p *index.Policy) *index.Policy {
+	if ec.evalDerive != nil && ec.evalDerive.Policy != nil {
+		return ec.evalDerive.Policy
+	}
+	return p
+}
+
+func enforceDerivePolicyScopeForCaller(ec *ExecutionContext, p *index.Policy, d *index.Derive) error {
+	return d.VisibleFromPolicy(callerPolicyForDeriveScope(ec, p))
+}
+
 func enforceDeriveExportForCaller(ec *ExecutionContext, p *index.Policy, d *index.Derive) error {
 	if d == nil || d.Namespace == nil {
 		return nil
+	}
+	if err := enforceDerivePolicyScopeForCaller(ec, p, d); err != nil {
+		return err
 	}
 	caller := callerNamespaceFQNForDeriveExport(ec, p)
 	if caller == "" {

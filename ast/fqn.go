@@ -18,6 +18,7 @@ package ast
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/sentrie-sh/sentrie/tokens"
@@ -59,7 +60,7 @@ func CreateFQN(base FQN, lastSegment string) FQN {
 	if len(base.Parts) == 0 {
 		return NewFQN([]string{lastSegment}, base.Rnge)
 	}
-	return NewFQN(append(base.Parts, lastSegment), base.Rnge)
+	return NewFQN(append(slices.Clone(base.Parts), lastSegment), base.Rnge)
 }
 
 // LastSegment returns the last segment of the FQN

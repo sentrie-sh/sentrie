@@ -526,3 +526,11 @@ policy p {
 	_, err := parser.ParseProgram(s.T().Context())
 	s.Error(err)
 }
+
+func (s *ParserTestSuite) TestParsePolicyExportDeriveRejected() {
+	parser := NewParserFromString("export derive helper", "policy_export.sentra")
+	stmt := parseRuleExportStatement(s.T().Context(), parser)
+	s.Nil(stmt)
+	s.Error(parser.err)
+	s.Contains(parser.err.Error(), "policy-level derives cannot be exported")
+}

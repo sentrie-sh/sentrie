@@ -440,3 +440,66 @@ policy pol {
 	require.Error(s.T(), err)
 	require.Contains(s.T(), err.Error(), "call is not permitted inside a derive")
 }
+
+func (s *IndexTestSuite) TestDerivePurityRejectsCrossPolicySlashFQN() {
+	ctx := s.T().Context()
+	idx := CreateIndex()
+	src := `namespace com/ex
+policy polA {
+  let _s = 0
+  derive secret = () => { yield 1 }
+  rule ra = { yield true }
+  export decision of ra
+}
+policy polB {
+  let _s = 0
+  derive caller = () => { yield com/ex/polA/secret() }
+  rule rb = { yield caller() == 1 }
+  export decision of rb
+}
+`
+	prog, err := parser.NewParserFromString(src, "crosspol.sentra").ParseProgram(ctx)
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
+	err = idx.Validate(ctx)
+	require.Error(s.T(), err)
+	require.Contains(s.T(), err.Error(), "not visible from policy")
+}
+
+func (s *IndexTestSuite) TestDerivePurityRejectsNamespaceDeriveCallingPolicyDerive() {
+	ctx := s.T().Context()
+	idx := CreateIndex()
+	src := `namespace com/ex
+derive nsCaller = () => { yield com/ex/polA/secret() }
+policy polA {
+  let _s = 0
+  derive secret = () => { yield 1 }
+  rule ra = { yield true }
+  export decision of ra
+}
+`
+	prog, err := parser.NewParserFromString(src, "nspol.sentra").ParseProgram(ctx)
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
+	err = idx.Validate(ctx)
+	require.Error(s.T(), err)
+	require.Contains(s.T(), err.Error(), "policy-scoped and not visible outside its policy")
+}
+
+func (s *IndexTestSuite) TestDerivePurityAllowsSamePolicySlashFQN() {
+	ctx := s.T().Context()
+	idx := CreateIndex()
+	src := `namespace com/ex
+policy polA {
+  let _s = 0
+  derive secret = () => { yield 1 }
+  derive caller = () => { yield com/ex/polA/secret() }
+  rule gate = { yield caller() == 1 }
+  export decision of gate
+}
+`
+	prog, err := parser.NewParserFromString(src, "samepol.sentra").ParseProgram(ctx)
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), idx.Validate(ctx))
+}

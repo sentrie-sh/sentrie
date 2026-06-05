@@ -193,3 +193,40 @@ policy pol {
 	s.Error(err)
 	s.Contains(err.Error(), "TypeScript module calls")
 }
+
+func (s *RuntimeTestSuite) TestExecRuleRejectsCrossPolicyDeriveSlashFQN() {
+	ctx := s.T().Context()
+	src := `namespace com/ex
+policy polA {
+  let _s = 0
+  derive secret = () => { yield 1 }
+  rule x = { yield true }
+  export decision of x
+}
+policy polB {
+  let _s = 0
+  rule gate = { yield com/ex/polA/secret() == 1 }
+  export decision of gate
+}
+`
+	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "crosspol.sentrie", src: src})
+	_, err := exec.ExecRule(ctx, "com/ex", "polB", "gate", nil)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "not visible from policy")
+}
+
+func (s *RuntimeTestSuite) TestExecRuleAllowsSamePolicyDeriveSlashFQN() {
+	ctx := s.T().Context()
+	src := `namespace com/ex
+policy polA {
+  let _s = 0
+  derive secret = () => { yield 1 }
+  rule ok_gate = { yield com/ex/polA/secret() == 1 }
+  export decision of ok_gate
+}
+`
+	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "samepol.sentrie", src: src})
+	out, err := exec.ExecRule(ctx, "com/ex", "polA", "ok_gate", nil)
+	s.Require().NoError(err)
+	s.Equal(trinary.True, out.Decision.State)
+}

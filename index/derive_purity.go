@@ -228,7 +228,10 @@ func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[str
 	if fqn := ast.SlashCalleeFQNS(c.Callee); fqn != "" {
 		parts := strings.Split(fqn, ast.FQNSeparator)
 		if len(parts) >= 3 {
-			if d.DefineFQN[fqn] != nil {
+			if target := d.DefineFQN[fqn]; target != nil {
+				if err := target.VisibleFromDeriveCaller(d); err != nil {
+					return err
+				}
 				for _, a := range c.Arguments {
 					if err := walkDeriveExprSeen(idx, d, a, scope, seen); err != nil {
 						return err
@@ -236,7 +239,10 @@ func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[str
 				}
 				return nil
 			}
-			if _, ok := idx.DerivesByFQN[fqn]; ok {
+			if target, ok := idx.DerivesByFQN[fqn]; ok {
+				if err := target.VisibleFromDeriveCaller(d); err != nil {
+					return err
+				}
 				for _, a := range c.Arguments {
 					if err := walkDeriveExprSeen(idx, d, a, scope, seen); err != nil {
 						return err
