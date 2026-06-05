@@ -13,17 +13,17 @@ import (
 )
 
 func padAndValidateDeriveArgs(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, lam *ast.LambdaExpression, args []box.Value) ([]box.Value, error) {
+	return padAndValidateCallableArgs(ctx, ec, exec, p, lam, args, "derive")
+}
+
+// padAndValidateCallableArgs pads optional parameters with undefined and validates typed
+// parameters for derive and anonymous lambda invocation.
+func padAndValidateCallableArgs(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, lam *ast.LambdaExpression, args []box.Value, argKind string) ([]box.Value, error) {
 	n := len(lam.Params)
 	if len(args) > n {
 		return nil, fmt.Errorf("too many arguments: want at most %d, got %d", n, len(args))
 	}
-	required := 0
-	for i := 0; i < n; i++ {
-		opt := lam.ParamOpts != nil && i < len(lam.ParamOpts) && lam.ParamOpts[i]
-		if !opt {
-			required++
-		}
-	}
+	required := requiredLambdaArity(lam)
 	if len(args) < required {
 		return nil, fmt.Errorf("not enough arguments: want at least %d, got %d", required, len(args))
 	}
@@ -33,14 +33,19 @@ func padAndValidateDeriveArgs(ctx context.Context, ec *ExecutionContext, exec *e
 		out[i] = box.Undefined()
 	}
 	for i := range n {
-		if lam.ParamTypes != nil && i < len(lam.ParamTypes) && lam.ParamTypes[i] != nil {
-			if err := validateValueAgainstTypeRef(ctx, ec, exec, p, out[i], lam.ParamTypes[i], lam.Span()); err != nil {
-				name := fmt.Sprintf("argument %d", i)
-				if i < len(lam.Params) {
-					name = lam.Params[i]
-				}
-				return nil, fmt.Errorf("derive argument %q: %w", name, err)
+		if lam.ParamTypes == nil || i >= len(lam.ParamTypes) || lam.ParamTypes[i] == nil {
+			continue
+		}
+		opt := lam.ParamOpts != nil && i < len(lam.ParamOpts) && lam.ParamOpts[i]
+		if opt && out[i].IsUndefined() {
+			continue
+		}
+		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, out[i], lam.ParamTypes[i], lam.Span()); err != nil {
+			name := fmt.Sprintf("argument %d", i)
+			if i < len(lam.Params) {
+				name = lam.Params[i]
 			}
+			return nil, fmt.Errorf("%s argument %q: %w", argKind, name, err)
 		}
 	}
 	return out, nil

@@ -47,7 +47,7 @@ func newLambdaCallable(lambda *ast.LambdaExpression, capture *ExecutionContext) 
 }
 
 func (c *lambdaCallable) Arity() int {
-	return len(c.lambda.Params)
+	return requiredLambdaArity(c.lambda)
 }
 
 func requiredLambdaArity(lam *ast.LambdaExpression) int {
@@ -73,13 +73,26 @@ func (c *deriveCallable) Arity() int {
 }
 
 func (c *lambdaCallable) Invoke(ctx context.Context, site *CallSite, args []box.Value) (box.Value, error) {
+	args, err := padAndValidateCallableArgs(ctx, site.EC, site.Exec, site.Policy, c.lambda, args, "lambda")
+	if err != nil {
+		return box.Undefined(), err
+	}
+
 	child := c.capture.AttachedChildContext()
 	defer child.Dispose()
 	for i, name := range c.lambda.Params {
 		child.SetLocal(name, args[i], true)
 	}
 	v, _, err := evalBlock(ctx, child, site.Exec, site.Policy, c.lambda.Body)
-	return v, err
+	if err != nil {
+		return box.Undefined(), err
+	}
+	if c.lambda.ReturnType != nil {
+		if err := validateValueAgainstTypeRef(ctx, child, site.Exec, site.Policy, v, c.lambda.ReturnType, c.lambda.Body.Span()); err != nil {
+			return box.Undefined(), fmt.Errorf("lambda return: %w", err)
+		}
+	}
+	return v, nil
 }
 
 func (c *deriveCallable) Invoke(ctx context.Context, site *CallSite, args []box.Value) (box.Value, error) {
