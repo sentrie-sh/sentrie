@@ -33,6 +33,7 @@ const (
 	KeywordAttach    Kind = "attach"
 	KeywordUse       Kind = "use"
 	KeywordShape     Kind = "shape"
+	KeywordDerive    Kind = "derive"
 	KeywordFrom      Kind = "from"
 	KeywordAs        Kind = "as"
 	KeywordWith      Kind = "with"
@@ -120,6 +121,7 @@ var keywords = map[string]Kind{
 	"yield":     KeywordYield,
 	"transform": KeywordTransform,
 	"shape":     KeywordShape,
+	"derive":    KeywordDerive,
 	"of":        KeywordOf,
 	"attach":    KeywordAttach,
 	"namespace": KeywordNamespace,

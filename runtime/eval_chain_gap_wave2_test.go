@@ -29,7 +29,7 @@ import (
 )
 
 func (s *RuntimeTestSuite) TestEvalLiteralBranchesAndMapKeyTypeError() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 
@@ -54,7 +54,7 @@ func (s *RuntimeTestSuite) TestEvalLiteralBranchesAndMapKeyTypeError() {
 }
 
 func (s *RuntimeTestSuite) TestEvalIdentLetLocalAndMissingPaths() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 
@@ -88,7 +88,7 @@ func (s *RuntimeTestSuite) TestEvalIdentLetLocalAndMissingPaths() {
 }
 
 func (s *RuntimeTestSuite) TestEvalIdentTypedLetErrorWrapsUnderlyingValidationError() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 
@@ -111,7 +111,7 @@ func (s *RuntimeTestSuite) TestEvalIdentTypedLetErrorWrapsUnderlyingValidationEr
 }
 
 func (s *RuntimeTestSuite) TestEvalCallMemoizedHitAndMiss() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	exec := &executorImpl{
 		callMemoizePerch: perch.New[any](1 << 20),
@@ -165,7 +165,7 @@ func (s *RuntimeTestSuite) TestEvalCallMemoizedHitAndMiss() {
 }
 
 func (s *RuntimeTestSuite) TestEvalCallInjectedErrorPassthrough() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	exec := &executorImpl{
 		callMemoizePerch: perch.New[any](1 << 20),
@@ -188,7 +188,7 @@ func (s *RuntimeTestSuite) TestEvalCallInjectedErrorPassthrough() {
 }
 
 func (s *RuntimeTestSuite) TestEvalInfixAndUnaryUnsupportedAndInvalidOperands() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 
@@ -229,7 +229,7 @@ func (s *RuntimeTestSuite) TestEvalInfixAndUnaryUnsupportedAndInvalidOperands() 
 }
 
 func (s *RuntimeTestSuite) TestImportDecisionSuccessWithWithInjection() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	idx := index.CreateIndex()
 	exec := &executorImpl{
 		index: idx,

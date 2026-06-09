@@ -53,7 +53,7 @@ func (s *ParserTestSuite) TestParseErrorIncompleteStatement() {
 		{"rule", "unexpected token"},
 		{"fact", "unexpected token"},
 		{"shape", "expected Ident, got EOF"},
-		{"export", "expected 'shape', got EOF"},
+		{"export", "expected 'shape' or 'derive'"},
 		{"import", "unexpected token"},
 		{"use", "unexpected token"},
 		{"when", "unexpected token"},

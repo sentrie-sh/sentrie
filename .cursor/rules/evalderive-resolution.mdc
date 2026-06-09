@@ -1,0 +1,12 @@
+---
+description: Derive mode (evalDerive) resolution hygiene for runtime evaluators
+globs: runtime/eval_call.go runtime/eval_ident.go
+---
+
+# `evalDerive` resolution
+
+When `ec.evalDerive != nil`, the execution context is inside a derive body. Every resolution path in `eval_call.go` and `eval_ident.go` must **explicitly** allow or deny that case.
+
+Falling through to an unrestricted path (for example TypeScript module invocation) without a derive check is a bug: derive evaluation must stay deterministic and isolated from rules, facts, and impure builtins.
+
+When adding a new branch that resolves a callee, identifier, or builtin, decide how it behaves under `evalDerive` and document it in code if non-obvious.

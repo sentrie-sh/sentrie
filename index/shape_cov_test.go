@@ -5,8 +5,6 @@
 package index
 
 import (
-	"context"
-
 	"github.com/sentrie-sh/sentrie/ast"
 )
 
@@ -59,5 +57,5 @@ func (s *IndexTestSuite) TestShapeResolveDependencyInValidationFlow_Cov() {
 	sourceNS.Shapes["base"] = testShape(sourceNS, nil, "base", nil)
 	currentNS.Shapes["derived"] = testShape(currentNS, nil, "derived", ast.NewFQN([]string{"base"}, testRange()).Ptr())
 
-	s.Require().Error(idx.Validate(context.Background()))
+	s.Require().Error(idx.Validate(s.T().Context()))
 }

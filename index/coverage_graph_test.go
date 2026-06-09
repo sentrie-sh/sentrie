@@ -40,23 +40,23 @@ func (suite *IndexTestSuite) TestValidate_StringTypeStringMethod() {
 }
 
 func (suite *IndexTestSuite) TestValidate_IsValidSameAsValidate() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 	suite.Require().NoError(suite.idx.AddProgram(ctx, programWithRichRuleGraph(false)))
 	err := suite.idx.IsValid(ctx)
 	suite.NoError(err)
 }
 
 func (suite *IndexTestSuite) TestValidate_ContextCancelledInDetectReference() {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(suite.T().Context())
 	cancel()
-	suite.Require().NoError(suite.idx.AddProgram(context.Background(), programWithRichRuleGraph(false)))
+	suite.Require().NoError(suite.idx.AddProgram(suite.T().Context(), programWithRichRuleGraph(false)))
 	err := suite.idx.Validate(ctx)
 	suite.Error(err)
 	suite.Contains(err.Error(), "validation cancelled")
 }
 
 func (suite *IndexTestSuite) TestValidate_ReferenceCycleSelfIdentifier() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 	suite.Require().NoError(suite.idx.AddProgram(ctx, programWithSelfReferencingRule()))
 	err := suite.idx.Validate(ctx)
 	suite.Error(err)
@@ -64,7 +64,7 @@ func (suite *IndexTestSuite) TestValidate_ReferenceCycleSelfIdentifier() {
 }
 
 func (suite *IndexTestSuite) TestValidate_RuleImportCycleTwoPolicies() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 	suite.Require().NoError(suite.idx.AddProgram(ctx, programWithCyclicRuleImports()))
 	err := suite.idx.Validate(ctx)
 	suite.Error(err)
@@ -72,7 +72,7 @@ func (suite *IndexTestSuite) TestValidate_RuleImportCycleTwoPolicies() {
 }
 
 func (suite *IndexTestSuite) TestValidate_RuleImportMissingPolicy() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 	suite.Require().NoError(suite.idx.AddProgram(ctx, programWithBrokenRuleImport()))
 	err := suite.idx.Validate(ctx)
 	suite.Error(err)
@@ -80,7 +80,7 @@ func (suite *IndexTestSuite) TestValidate_RuleImportMissingPolicy() {
 }
 
 func (suite *IndexTestSuite) TestValidate_RuleImportQualifiedFQN() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 	suite.Require().NoError(suite.idx.AddProgram(ctx, programTargetPolForQualifiedImport()))
 	suite.Require().NoError(suite.idx.AddProgram(ctx, programConsumerQualifiedImport()))
 	err := suite.idx.Validate(ctx)
@@ -88,7 +88,7 @@ func (suite *IndexTestSuite) TestValidate_RuleImportQualifiedFQN() {
 }
 
 func (suite *IndexTestSuite) TestValidate_ShapePolicyLocalMissingBase() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 	suite.Require().NoError(suite.idx.AddProgram(ctx, programWithPolicyShapeMissingNamespaceBase()))
 	err := suite.idx.Validate(ctx)
 	suite.Error(err)
@@ -96,7 +96,7 @@ func (suite *IndexTestSuite) TestValidate_ShapePolicyLocalMissingBase() {
 }
 
 func (suite *IndexTestSuite) TestValidate_DetectShapeCycleNamespaceWith() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 	suite.Require().NoError(suite.idx.AddProgram(ctx, programWithNamespaceShapesCycleViaWith()))
 	err := suite.idx.Validate(ctx)
 	suite.Error(err)
@@ -104,7 +104,7 @@ func (suite *IndexTestSuite) TestValidate_DetectShapeCycleNamespaceWith() {
 }
 
 func (suite *IndexTestSuite) TestValidate_RuleImportSelfLoopAddEdgeError() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 	suite.Require().NoError(suite.idx.AddProgram(ctx, programWithRuleImportSelfLoop()))
 	err := suite.idx.Validate(ctx)
 	suite.Error(err)
@@ -112,7 +112,7 @@ func (suite *IndexTestSuite) TestValidate_RuleImportSelfLoopAddEdgeError() {
 }
 
 func (suite *IndexTestSuite) TestValidate_ShapeComposeSelfLoopAddEdgeError() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 	suite.Require().NoError(suite.idx.AddProgram(ctx, programWithShapeComposeSelfLoop()))
 	err := suite.idx.Validate(ctx)
 	suite.Error(err)
@@ -120,7 +120,7 @@ func (suite *IndexTestSuite) TestValidate_ShapeComposeSelfLoopAddEdgeError() {
 }
 
 func (suite *IndexTestSuite) TestValidate_ChildNamespaceShapeComposesParentShape() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 	suite.Require().NoError(suite.idx.AddProgram(ctx, programParentShapeOnly()))
 	suite.Require().NoError(suite.idx.AddProgram(ctx, programChildNamespaceComposesParentShape()))
 	err := suite.idx.Validate(ctx)
@@ -185,6 +185,21 @@ func programWithRichRuleGraph(selfCycle bool) *ast.Program {
 	complexBody = ast.NewInfixExpression(complexBody, call, "and", pr(96))
 	complexBody = ast.NewInfixExpression(complexBody, blockYield, "and", pr(97))
 	complexBody = ast.NewInfixExpression(complexBody, body, "and", pr(99))
+	lambdaInRule := ast.NewCallExpression(
+		id("any", 100),
+		[]ast.Expression{
+			ast.NewListLiteral([]ast.Expression{ast.NewIntegerLiteral(1, pr(101))}, pr(101)),
+			ast.NewLambdaExpression(
+				[]string{"x"},
+				ast.NewBlockExpression(nil, ast.NewTrinaryLiteral(trinary.True, pr(102)), pr(102)),
+				pr(102),
+			),
+		},
+		false,
+		nil,
+		pr(100),
+	)
+	complexBody = ast.NewInfixExpression(complexBody, lambdaInRule, "and", pr(103))
 
 	pol := ast.NewPolicyStatement(
 		"GraphPol",

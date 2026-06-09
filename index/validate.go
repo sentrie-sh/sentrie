@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Copyright 2025 Binaek Sarkar
+// Copyright 2026 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -66,6 +66,12 @@ func (idx *Index) validate(ctx context.Context) error {
 	}
 	sg, err := idx.detectShapeCycle(ctx)
 	if err != nil {
+		return err
+	}
+	if err := idx.detectDeriveCycle(ctx); err != nil {
+		return err
+	}
+	if err := idx.validateDerivePurity(); err != nil {
 		return err
 	}
 
@@ -148,7 +154,13 @@ func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Polic
 		case *ast.UnaryExpression:
 			addNodes(g, []ast.Node{n.Right}, referedBy, policy)
 		case *ast.TernaryExpression:
-			addNodes(g, []ast.Node{n.Condition, n.ThenBranch, n.ElseBranch}, referedBy, policy)
+			if n.Elvis {
+				addNodes(g, []ast.Node{n.Condition, n.ElseBranch}, referedBy, policy)
+			} else {
+				addNodes(g, []ast.Node{n.Condition, n.ThenBranch, n.ElseBranch}, referedBy, policy)
+			}
+		case *ast.LambdaExpression:
+			addNodes(g, []ast.Node{n.Body}, referedBy, policy)
 		case *ast.BlockExpression:
 			for _, stmt := range n.Statements {
 				addNodes(g, []ast.Node{stmt}, referedBy, policy)

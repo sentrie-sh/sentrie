@@ -5,7 +5,6 @@
 package loader
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 )
@@ -19,7 +18,7 @@ func (s *LoaderTestSuite) TestLocatePackFileAbsPathFailure_Cov() {
 	s.Require().NoError(os.RemoveAll(dir))
 	defer func() { _ = os.Chdir(cwd) }()
 
-	_, err = locatePackFile(context.Background(), "relative/path")
+	_, err = locatePackFile(s.T().Context(), "relative/path")
 	s.Require().Error(err)
 }
 
@@ -28,7 +27,7 @@ func (s *LoaderTestSuite) TestLoadPackFailsForInvalidToml_Cov() {
 	packPath := filepath.Join(dir, PackFileName)
 	s.Require().NoError(os.WriteFile(packPath, []byte("[pack\nname=\"bad\""), 0o644))
 
-	_, err := LoadPack(context.Background(), dir)
+	_, err := LoadPack(s.T().Context(), dir)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "failed to parse pack file")
 }

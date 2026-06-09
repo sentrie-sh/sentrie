@@ -65,7 +65,7 @@ func (suite *IndexTestSuite) TestCreatePolicy() {
 		},
 	}
 
-	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 
 	suite.NoError(err)
 	suite.NotNil(policy)
@@ -126,7 +126,7 @@ func (suite *IndexTestSuite) TestCreatePolicyWithoutExports() {
 		},
 	}
 
-	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 
 	suite.Error(err)
 	suite.Nil(policy)
@@ -152,7 +152,7 @@ func (suite *IndexTestSuite) TestCreatePolicyWithInvalidFactPosition() {
 		},
 	}
 
-	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 
 	suite.Error(err)
 	suite.Nil(policy)
@@ -179,7 +179,7 @@ func (suite *IndexTestSuite) TestCreatePolicyWithInvalidUsePosition() {
 		},
 	}
 
-	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 
 	suite.Error(err)
 	suite.Nil(policy)
@@ -205,7 +205,7 @@ func (suite *IndexTestSuite) TestCreatePolicyWithUnknownRuleExport() {
 		},
 	}
 
-	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 
 	suite.Error(err)
 	suite.Nil(policy)
@@ -232,7 +232,7 @@ func (suite *IndexTestSuite) TestCreatePolicyWithDuplicateRuleExport() {
 		},
 	}
 
-	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 
 	suite.Error(err)
 	suite.Nil(policy)
@@ -706,7 +706,7 @@ func (suite *IndexTestSuite) TestCreatePolicyWithComments() {
 		},
 	}
 
-	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 
 	suite.NoError(err)
 	suite.NotNil(policy)
@@ -736,7 +736,7 @@ func (suite *IndexTestSuite) TestCreatePolicyWithValidUseStatement() {
 		},
 	}
 
-	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 
 	suite.NoError(err)
 	suite.NotNil(policy)
@@ -772,7 +772,7 @@ func (suite *IndexTestSuite) TestCreatePolicyWithMetadataAndPhases() {
 			policyStmt,
 		},
 	}
-	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.NoError(err)
 	require.NotNil(suite.T(), policy)
 	suite.Equal("Hello", *policy.Title)
@@ -810,7 +810,7 @@ func (suite *IndexTestSuite) TestCreatePolicyUseWithoutFacts() {
 			policyStmt,
 		},
 	}
-	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.NoError(err)
 	suite.Len(policy.Uses, 1)
 }
@@ -836,7 +836,7 @@ func (suite *IndexTestSuite) TestCreatePolicyMetadataThenUseWithoutFacts() {
 			policyStmt,
 		},
 	}
-	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.NoError(err)
 	require.Equal(suite.T(), "T", *policy.Title)
 }
@@ -862,7 +862,7 @@ func (suite *IndexTestSuite) TestCreatePolicyVersionVPrefixAccepted() {
 			policyStmt,
 		},
 	}
-	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.NoError(err)
 	suite.Equal("v1.2.3", policy.VersionLiteral)
 	suite.NotNil(policy.Version)
@@ -889,7 +889,7 @@ func (suite *IndexTestSuite) TestCreatePolicyVersionWhitespacePaddedLiteralAccep
 			policyStmt,
 		},
 	}
-	policy, err := createPolicy(suite.policyNs, policyStmt, program)
+	policy, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.NoError(err)
 	suite.Equal("  v1.2.3  ", policy.VersionLiteral)
 	suite.NotNil(policy.Version)
@@ -919,7 +919,7 @@ func (suite *IndexTestSuite) TestCreatePolicyFactAfterUseErrors() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "fact statements must appear before any use statements")
 }
@@ -945,7 +945,7 @@ func (suite *IndexTestSuite) TestCreatePolicyMetadataAfterFactErrors() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "title, description, version, and tag may only appear in one contiguous block")
 }
@@ -977,7 +977,7 @@ func (suite *IndexTestSuite) TestCreatePolicyShapeBeforeFactErrors() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "'fact' must appear before rules, exports, lets, and shapes")
 }
@@ -1004,7 +1004,7 @@ func (suite *IndexTestSuite) TestCreatePolicyDuplicateTitle() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "conflict: policy title")
 }
@@ -1030,7 +1030,7 @@ func (suite *IndexTestSuite) TestCreatePolicyInvalidSemVer() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), `Invalid policy version: expected SemVer string (e.g., "1.2.3")`)
 }
@@ -1056,7 +1056,7 @@ func (suite *IndexTestSuite) TestCreatePolicyEmptyTitle() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "policy title must not be empty or whitespace-only")
 }
@@ -1082,7 +1082,7 @@ func (suite *IndexTestSuite) TestCreatePolicyEmptyTagKey() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "tag key must not be empty or whitespace-only")
 }
@@ -1108,7 +1108,7 @@ func (suite *IndexTestSuite) TestCreatePolicyUnsupportedShapeExportInBody() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "unsupported statement in policy")
 }
@@ -1137,7 +1137,7 @@ func (suite *IndexTestSuite) TestCreatePolicyDuplicateUseAliasRebind() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "cannot rebind to existing alias")
 }
@@ -1164,7 +1164,7 @@ func (suite *IndexTestSuite) TestCreatePolicyDuplicateRuleExportAttachmentName()
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "conflict: rule export attachment")
 }
@@ -1226,7 +1226,7 @@ func (suite *IndexTestSuite) TestCreatePolicyTitleAfterRuleLateHeader() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "'title' must appear before rules, exports, lets, and shapes")
 }
@@ -1253,7 +1253,7 @@ func (suite *IndexTestSuite) TestCreatePolicyDuplicateDescription() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "conflict: policy description")
 }
@@ -1280,7 +1280,7 @@ func (suite *IndexTestSuite) TestCreatePolicyDuplicateVersion() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "conflict: policy version")
 }
@@ -1307,7 +1307,7 @@ func (suite *IndexTestSuite) TestCreatePolicyTagAfterUseMetadataContiguous() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "title, description, version, and tag may only appear in one contiguous block")
 }
@@ -1333,7 +1333,7 @@ func (suite *IndexTestSuite) TestCreatePolicyTwoFactsSecondPhaseFactsCase() {
 			policyStmt,
 		},
 	}
-	p, err := createPolicy(suite.policyNs, policyStmt, program)
+	p, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.NoError(err)
 	suite.Len(p.Facts, 2)
 }
@@ -1365,7 +1365,7 @@ func (suite *IndexTestSuite) TestCreatePolicyRequiredFactWithDefaultAddFactError
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "cannot have a default value")
 }
@@ -1392,7 +1392,7 @@ func (suite *IndexTestSuite) TestCreatePolicyDuplicateLetName() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "conflict: let declaration")
 }
@@ -1418,7 +1418,7 @@ func (suite *IndexTestSuite) TestCreatePolicyDescriptionAfterFactContiguousMetad
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "title, description, version, and tag may only appear in one contiguous block")
 }
@@ -1444,7 +1444,7 @@ func (suite *IndexTestSuite) TestCreatePolicyVersionAfterFactContiguousMetadata(
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "title, description, version, and tag may only appear in one contiguous block")
 }
@@ -1470,7 +1470,7 @@ func (suite *IndexTestSuite) TestCreatePolicyDescriptionAfterRuleLateHeader() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "'description' must appear before rules, exports, lets, and shapes")
 }
@@ -1496,7 +1496,7 @@ func (suite *IndexTestSuite) TestCreatePolicyVersionAfterRuleLateHeader() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "'version' must appear before rules, exports, lets, and shapes")
 }
@@ -1522,7 +1522,7 @@ func (suite *IndexTestSuite) TestCreatePolicyTagAfterRuleLateHeader() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "'tag' must appear before rules, exports, lets, and shapes")
 }
@@ -1548,7 +1548,7 @@ func (suite *IndexTestSuite) TestCreatePolicyExportAfterUseBeforeRule() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "cannot export unknown rule")
 }
@@ -1588,7 +1588,7 @@ func (suite *IndexTestSuite) TestCreatePolicyShapeBodyDuplicateFieldErrors() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "failed to create shape")
 }
@@ -1614,7 +1614,7 @@ func (suite *IndexTestSuite) TestCreatePolicyDuplicateRuleName() {
 			policyStmt,
 		},
 	}
-	_, err := createPolicy(suite.policyNs, policyStmt, program)
+	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
 	suite.Contains(err.Error(), "conflict: rule declaration")
 }

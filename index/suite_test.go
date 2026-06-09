@@ -38,13 +38,13 @@ type IndexTestSuite struct {
 }
 
 func (suite *IndexTestSuite) SetupSuite() {
-	suite.ctx = context.Background()
+	suite.ctx = suite.T().Context()
 }
 
 // BeforeTest dispatches per-method fixtures (segments index graph, policy namespace,
 // namespace hierarchy, or a fresh CreateIndex for integration tests).
 func (suite *IndexTestSuite) BeforeTest(suiteName, testName string) {
-	suite.ctx = context.Background()
+	suite.ctx = suite.T().Context()
 	suite.idx = nil
 	suite.policyNs = nil
 	suite.parentNs = nil

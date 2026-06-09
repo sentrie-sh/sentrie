@@ -17,13 +17,11 @@
 package runtime
 
 import (
-	"context"
-
 	"github.com/sentrie-sh/sentrie/ast"
 )
 
 func (s *RuntimeTestSuite) TestEvalDistinctDirectScalars() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 	exec := &executorImpl{}
@@ -42,7 +40,7 @@ func (s *RuntimeTestSuite) TestEvalDistinctDirectScalars() {
 }
 
 func (s *RuntimeTestSuite) TestEvalDistinctSelectorKey() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 	exec := &executorImpl{}
@@ -62,7 +60,7 @@ func (s *RuntimeTestSuite) TestEvalDistinctSelectorKey() {
 }
 
 func (s *RuntimeTestSuite) TestEvalDistinctNonListErrors() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 	exec := &executorImpl{}

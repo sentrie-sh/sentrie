@@ -4,8 +4,6 @@
 package runtime
 
 import (
-	"context"
-
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
@@ -132,7 +130,7 @@ func (s *RuntimeTestSuite) TestValidateAgainstShapeTypeRefFieldErrorBranches() {
 		Namespace: &index.Namespace{Shapes: map[string]*index.Shape{}},
 	}
 
-	err := validateAgainstShapeTypeRef(context.Background(), &ExecutionContext{}, &executorImpl{}, policy, box.FromAny(map[string]any{}), typeRef, stubRange())
+	err := validateAgainstShapeTypeRef(s.T().Context(), &ExecutionContext{}, &executorImpl{}, policy, box.FromAny(map[string]any{}), typeRef, stubRange())
 	s.Require().Error(err)
 	s.Contains(err.Error(), "field name is required")
 
@@ -143,11 +141,11 @@ func (s *RuntimeTestSuite) TestValidateAgainstShapeTypeRefFieldErrorBranches() {
 			},
 		},
 	}
-	err = validateAgainstShapeTypeRef(context.Background(), &ExecutionContext{}, &executorImpl{}, policy, box.FromAny(map[string]any{"name": nil}), typeRef, stubRange())
+	err = validateAgainstShapeTypeRef(s.T().Context(), &ExecutionContext{}, &executorImpl{}, policy, box.FromAny(map[string]any{"name": nil}), typeRef, stubRange())
 	s.Require().Error(err)
 	s.Contains(err.Error(), "field 'name' is not valid")
 
-	err = validateAgainstShapeTypeRef(context.Background(), &ExecutionContext{}, &executorImpl{}, policy, box.FromAny(map[string]box.Value{"name": box.Undefined()}), typeRef, stubRange())
+	err = validateAgainstShapeTypeRef(s.T().Context(), &ExecutionContext{}, &executorImpl{}, policy, box.FromAny(map[string]box.Value{"name": box.Undefined()}), typeRef, stubRange())
 	s.Require().Error(err)
 	s.Contains(err.Error(), "cannot be undefined")
 
@@ -158,7 +156,7 @@ func (s *RuntimeTestSuite) TestValidateAgainstShapeTypeRefFieldErrorBranches() {
 			},
 		},
 	}
-	err = validateAgainstShapeTypeRef(context.Background(), &ExecutionContext{}, &executorImpl{}, policy, box.FromAny(map[string]any{"age": "bad"}), typeRef, stubRange())
+	err = validateAgainstShapeTypeRef(s.T().Context(), &ExecutionContext{}, &executorImpl{}, policy, box.FromAny(map[string]any{"age": "bad"}), typeRef, stubRange())
 	s.Require().Error(err)
 	s.Contains(err.Error(), "field 'age' is not valid")
 }
@@ -172,7 +170,7 @@ func (s *RuntimeTestSuite) TestValidateAgainstShapeTypeRefGlobalResolutionBranch
 	idx := index.CreateIndex()
 	exec := &executorImpl{index: idx}
 
-	err := validateAgainstShapeTypeRef(context.Background(), &ExecutionContext{}, exec, policy, box.FromAny(map[string]any{}), typeRef, stubRange())
+	err := validateAgainstShapeTypeRef(s.T().Context(), &ExecutionContext{}, exec, policy, box.FromAny(map[string]any{}), typeRef, stubRange())
 	s.Require().Error(err)
 	s.Contains(err.Error(), "not found")
 
@@ -186,12 +184,12 @@ func (s *RuntimeTestSuite) TestValidateAgainstShapeTypeRefGlobalResolutionBranch
 	}
 	idx.Namespaces[nsFQN.String()] = ns
 
-	err = validateAgainstShapeTypeRef(context.Background(), &ExecutionContext{}, exec, policy, box.FromAny(map[string]any{}), typeRef, stubRange())
+	err = validateAgainstShapeTypeRef(s.T().Context(), &ExecutionContext{}, exec, policy, box.FromAny(map[string]any{}), typeRef, stubRange())
 	s.Require().Error(err)
 	s.Contains(err.Error(), "is not exported")
 
 	ns.ShapeExports["User"] = &index.ExportedShape{Name: "User"}
-	err = validateAgainstShapeTypeRef(context.Background(), &ExecutionContext{}, exec, policy, box.FromAny(map[string]any{}), typeRef, stubRange())
+	err = validateAgainstShapeTypeRef(s.T().Context(), &ExecutionContext{}, exec, policy, box.FromAny(map[string]any{}), typeRef, stubRange())
 	s.Require().NoError(err)
 }
 
@@ -208,7 +206,7 @@ func (s *RuntimeTestSuite) TestValidateAgainstShapeTypeRefConstraintBranches() {
 		Namespace: &index.Namespace{Shapes: map[string]*index.Shape{}},
 	}
 
-	err := validateAgainstShapeTypeRef(context.Background(), &ExecutionContext{}, &executorImpl{}, policy, box.Number(1), typeRef, stubRange())
+	err := validateAgainstShapeTypeRef(s.T().Context(), &ExecutionContext{}, &executorImpl{}, policy, box.Number(1), typeRef, stubRange())
 	s.Require().Error(err)
 	s.Contains(err.Error(), "is not a shape")
 }

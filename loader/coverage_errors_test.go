@@ -17,7 +17,6 @@
 package loader
 
 import (
-	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -28,7 +27,7 @@ import (
 )
 
 func (s *LoaderTestSuite) TestLoadPackWrapsLocateError() {
-	_, err := LoadPack(context.Background(), "/")
+	_, err := LoadPack(s.T().Context(), "/")
 	s.Require().Error(err)
 	s.Contains(err.Error(), "locate pack file")
 	s.Contains(err.Error(), "cannot search from filesystem root")
@@ -39,7 +38,7 @@ func (s *LoaderTestSuite) TestLoadPackRejectsEmptyFile() {
 	path := filepath.Join(dir, PackFileName)
 	s.Require().NoError(os.WriteFile(path, nil, 0o644))
 
-	_, err := LoadPack(context.Background(), dir)
+	_, err := LoadPack(s.T().Context(), dir)
 	s.Require().Error(err)
 	s.Equal("pack file is empty", err.Error())
 }
@@ -55,13 +54,13 @@ version = "0.1.0"
 [engine]
 sentrie = ""
 `)
-	_, err := LoadPack(context.Background(), dir)
+	_, err := LoadPack(s.T().Context(), dir)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "engine table exists but 'sentrie' field is required")
 }
 
 func (s *LoaderTestSuite) TestLocatePackFileRejectsWhitespaceRoot() {
-	_, err := locatePackFile(context.Background(), "   \t  ")
+	_, err := locatePackFile(s.T().Context(), "   \t  ")
 	s.Require().Error(err)
 	s.Equal("root is empty", err.Error())
 }
@@ -78,7 +77,7 @@ version = "0.1.0"
 	s.Require().NoError(os.Chmod(packPath, 0o000))
 	defer func() { _ = os.Chmod(packPath, 0o600) }()
 
-	_, err := LoadPack(context.Background(), dir)
+	_, err := LoadPack(s.T().Context(), dir)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "read pack file")
 }
@@ -92,13 +91,13 @@ name = "ok.pack"
 version = "0.1.0"
 `)
 
-	_, err := LoadPack(context.Background(), dir)
+	_, err := LoadPack(s.T().Context(), dir)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "failed to parse pack file")
 }
 
 func (s *LoaderTestSuite) TestLocatePackFileWrapsStatLookupError() {
-	_, err := locatePackFile(context.Background(), filepath.Join(s.T().TempDir(), "missing"))
+	_, err := locatePackFile(s.T().Context(), filepath.Join(s.T().TempDir(), "missing"))
 	s.Require().Error(err)
 	s.Contains(err.Error(), "failed to locate pack file")
 }
@@ -129,7 +128,7 @@ version = "0.1.0"
 	}
 	defer func() { statPackFile = prev }()
 
-	_, err := LoadPack(context.Background(), dir)
+	_, err := LoadPack(s.T().Context(), dir)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "stat pack file")
 	s.Contains(err.Error(), "stat failed")
@@ -142,7 +141,7 @@ func (s *LoaderTestSuite) TestLocatePackFileWrapsFilepathAbsError() {
 	}
 	defer func() { filepathAbs = prev }()
 
-	_, err := locatePackFile(context.Background(), s.T().TempDir())
+	_, err := locatePackFile(s.T().Context(), s.T().TempDir())
 	s.Require().Error(err)
 	s.Contains(err.Error(), "failed to get absolute path to root")
 	s.Contains(err.Error(), "abs failed")

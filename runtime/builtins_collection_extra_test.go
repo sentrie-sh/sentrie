@@ -35,55 +35,57 @@ func (s *RuntimeTestSuite) TestBuiltinsCollection_ArityAndTypeErrors() {
 		fn   func() (box.Value, error)
 		msg  string
 	}{
-		{"any wrong count", func() (box.Value, error) { return BuiltinAny(s.ctx, site, list) }, "requires 2 arguments"},
-		{"all wrong count", func() (box.Value, error) { return BuiltinAll(s.ctx, site, list) }, "requires 2 arguments"},
-		{"first wrong count", func() (box.Value, error) { return BuiltinFirst(s.ctx, site, list) }, "requires 2 arguments"},
-		{"filter wrong count", func() (box.Value, error) { return BuiltinFilter(s.ctx, site, list) }, "requires 2 arguments"},
-		{"collect wrong count", func() (box.Value, error) { return BuiltinCollect(s.ctx, site, list) }, "requires 2 arguments"},
-		{"reduce wrong count", func() (box.Value, error) { return BuiltinReduce(s.ctx, site, list, box.Number(0)) }, "requires 3 arguments"},
-		{"distinct wrong count", func() (box.Value, error) { return BuiltinDistinct(s.ctx, site, list, box.Number(1), box.Number(2)) }, "requires 1 or 2 arguments"},
+		{"any wrong count", func() (box.Value, error) { return BuiltinAny(s.T().Context(), site, list) }, "requires 2 arguments"},
+		{"all wrong count", func() (box.Value, error) { return BuiltinAll(s.T().Context(), site, list) }, "requires 2 arguments"},
+		{"first wrong count", func() (box.Value, error) { return BuiltinFirst(s.T().Context(), site, list) }, "requires 2 arguments"},
+		{"filter wrong count", func() (box.Value, error) { return BuiltinFilter(s.T().Context(), site, list) }, "requires 2 arguments"},
+		{"collect wrong count", func() (box.Value, error) { return BuiltinCollect(s.T().Context(), site, list) }, "requires 2 arguments"},
+		{"reduce wrong count", func() (box.Value, error) { return BuiltinReduce(s.T().Context(), site, list, box.Number(0)) }, "requires 3 arguments"},
+		{"distinct wrong count", func() (box.Value, error) {
+			return BuiltinDistinct(s.T().Context(), site, list, box.Number(1), box.Number(2))
+		}, "requires 1 or 2 arguments"},
 		{"any non-list", func() (box.Value, error) {
-			return BuiltinAny(s.ctx, site, box.Number(1), box.Callable(stubCallable{arity: 1}))
+			return BuiltinAny(s.T().Context(), site, box.Number(1), box.Callable(stubCallable{arity: 1}))
 		}, "first argument must be a list"},
-		{"collect non-callable", func() (box.Value, error) { return BuiltinCollect(s.ctx, site, list, box.Number(9)) }, "expected callable"},
+		{"collect non-callable", func() (box.Value, error) { return BuiltinCollect(s.T().Context(), site, list, box.Number(9)) }, "expected callable"},
 		{"reduce bad callable arity", func() (box.Value, error) {
-			return BuiltinReduce(s.ctx, site, list, box.Number(0), box.Callable(stubCallable{arity: 1}))
+			return BuiltinReduce(s.T().Context(), site, list, box.Number(0), box.Callable(stubCallable{arity: 1}))
 		}, "arity 2 or 3"},
 		{"distinct bad selector arity", func() (box.Value, error) {
-			return BuiltinDistinct(s.ctx, site, list, box.Callable(stubCallable{arity: 3}))
+			return BuiltinDistinct(s.T().Context(), site, list, box.Callable(stubCallable{arity: 3}))
 		}, "arity 1 or 2"},
 		{"all non-list", func() (box.Value, error) {
-			return BuiltinAll(s.ctx, site, box.Number(1), box.Callable(stubCallable{arity: 1}))
+			return BuiltinAll(s.T().Context(), site, box.Number(1), box.Callable(stubCallable{arity: 1}))
 		}, "first argument must be a list"},
 		{"first non-list", func() (box.Value, error) {
-			return BuiltinFirst(s.ctx, site, box.Number(1), box.Callable(stubCallable{arity: 1}))
+			return BuiltinFirst(s.T().Context(), site, box.Number(1), box.Callable(stubCallable{arity: 1}))
 		}, "first argument must be a list"},
 		{"filter non-list", func() (box.Value, error) {
-			return BuiltinFilter(s.ctx, site, box.Number(1), box.Callable(stubCallable{arity: 1}))
+			return BuiltinFilter(s.T().Context(), site, box.Number(1), box.Callable(stubCallable{arity: 1}))
 		}, "first argument must be a list"},
 		{"collect non-list", func() (box.Value, error) {
-			return BuiltinCollect(s.ctx, site, box.Number(3), box.Callable(stubCallable{arity: 1}))
+			return BuiltinCollect(s.T().Context(), site, box.Number(3), box.Callable(stubCallable{arity: 1}))
 		}, "first argument must be a list"},
 		{"distinct direct non-list", func() (box.Value, error) {
-			return BuiltinDistinct(s.ctx, site, box.Number(1))
+			return BuiltinDistinct(s.T().Context(), site, box.Number(1))
 		}, "first argument must be a list"},
 		{"distinct selector non-list", func() (box.Value, error) {
-			return BuiltinDistinct(s.ctx, site, box.Number(1), box.Callable(stubCallable{arity: 1}))
+			return BuiltinDistinct(s.T().Context(), site, box.Number(1), box.Callable(stubCallable{arity: 1}))
 		}, "first argument must be a list"},
 		{"any bad callable arity", func() (box.Value, error) {
-			return BuiltinAny(s.ctx, site, list, box.Callable(stubCallable{arity: 0}))
+			return BuiltinAny(s.T().Context(), site, list, box.Callable(stubCallable{arity: 0}))
 		}, "arity 1 or 2"},
 		{"first bad callable arity", func() (box.Value, error) {
-			return BuiltinFirst(s.ctx, site, list, box.Callable(stubCallable{arity: 3}))
+			return BuiltinFirst(s.T().Context(), site, list, box.Callable(stubCallable{arity: 3}))
 		}, "arity 1 or 2"},
 		{"filter bad callable arity", func() (box.Value, error) {
-			return BuiltinFilter(s.ctx, site, list, box.Callable(stubCallable{arity: 3}))
+			return BuiltinFilter(s.T().Context(), site, list, box.Callable(stubCallable{arity: 3}))
 		}, "arity 1 or 2"},
 		{"collect bad callable arity", func() (box.Value, error) {
-			return BuiltinCollect(s.ctx, site, list, box.Callable(stubCallable{arity: 3}))
+			return BuiltinCollect(s.T().Context(), site, list, box.Callable(stubCallable{arity: 3}))
 		}, "arity 1 or 2"},
 		{"reduce non-list", func() (box.Value, error) {
-			return BuiltinReduce(s.ctx, site, box.Number(9), box.Number(0), box.Callable(stubCallable{arity: 2}))
+			return BuiltinReduce(s.T().Context(), site, box.Number(9), box.Number(0), box.Callable(stubCallable{arity: 2}))
 		}, "first argument must be a list"},
 	}
 
@@ -111,14 +113,14 @@ func (s *RuntimeTestSuite) TestBuiltinsCollection_DistinctBranches() {
 			return args[0], nil
 		},
 	})
-	out, err := BuiltinDistinct(s.ctx, site, list, selector)
+	out, err := BuiltinDistinct(s.T().Context(), site, list, selector)
 	s.Require().NoError(err)
 	vals, ok := out.ListValue()
 	s.Require().True(ok)
 	s.Require().Len(vals, 2)
 
 	// unsupported key kind branch
-	_, err = BuiltinDistinct(s.ctx, site, list, box.Callable(stubCallable{
+	_, err = BuiltinDistinct(s.T().Context(), site, list, box.Callable(stubCallable{
 		arity: 1,
 		fn: func(args []box.Value) (box.Value, error) {
 			return box.List([]box.Value{args[0]}), nil
@@ -142,19 +144,19 @@ func (s *RuntimeTestSuite) TestBuiltinsCollection_UndefinedEmptyAndPredicates() 
 		},
 	})
 
-	out, err := BuiltinAny(s.ctx, site, undef, isEven)
+	out, err := BuiltinAny(s.T().Context(), site, undef, isEven)
 	s.Require().NoError(err)
 	s.False(box.TrinaryFrom(out).IsTrue())
 
-	out, err = BuiltinAll(s.ctx, site, undef, isEven)
+	out, err = BuiltinAll(s.T().Context(), site, undef, isEven)
 	s.Require().NoError(err)
 	s.False(box.TrinaryFrom(out).IsTrue())
 
-	out, err = BuiltinFirst(s.ctx, site, undef, isEven)
+	out, err = BuiltinFirst(s.T().Context(), site, undef, isEven)
 	s.Require().NoError(err)
 	s.True(out.IsUndefined())
 
-	out, err = BuiltinFilter(s.ctx, site, undef, isEven)
+	out, err = BuiltinFilter(s.T().Context(), site, undef, isEven)
 	s.Require().NoError(err)
 	lst, ok := out.ListValue()
 	s.Require().True(ok)
@@ -167,16 +169,16 @@ func (s *RuntimeTestSuite) TestBuiltinsCollection_UndefinedEmptyAndPredicates() 
 			return box.Undefined(), nil
 		},
 	})
-	out, err = BuiltinReduce(s.ctx, site, undef, box.Number(10), never)
+	out, err = BuiltinReduce(s.T().Context(), site, undef, box.Number(10), never)
 	s.Require().NoError(err)
 	s.True(out.IsUndefined())
 
 	nums := box.List([]box.Value{box.Number(1), box.Number(2), box.Number(3)})
-	out, err = BuiltinAny(s.ctx, site, nums, isEven)
+	out, err = BuiltinAny(s.T().Context(), site, nums, isEven)
 	s.Require().NoError(err)
 	s.True(box.TrinaryFrom(out).IsTrue())
 
-	out, err = BuiltinAny(s.ctx, site, box.List([]box.Value{box.Number(1), box.Number(3)}), isEven)
+	out, err = BuiltinAny(s.T().Context(), site, box.List([]box.Value{box.Number(1), box.Number(3)}), isEven)
 	s.Require().NoError(err)
 	s.False(box.TrinaryFrom(out).IsTrue())
 
@@ -188,29 +190,29 @@ func (s *RuntimeTestSuite) TestBuiltinsCollection_UndefinedEmptyAndPredicates() 
 			return box.Bool(int(n)%2 == 0 && idx == 1), nil
 		},
 	})
-	out, err = BuiltinAny(s.ctx, site, nums, withIdx)
+	out, err = BuiltinAny(s.T().Context(), site, nums, withIdx)
 	s.Require().NoError(err)
 	s.True(box.TrinaryFrom(out).IsTrue())
 
-	out, err = BuiltinAll(s.ctx, site, box.List([]box.Value{box.Number(2), box.Number(4)}), isEven)
+	out, err = BuiltinAll(s.T().Context(), site, box.List([]box.Value{box.Number(2), box.Number(4)}), isEven)
 	s.Require().NoError(err)
 	s.True(box.TrinaryFrom(out).IsTrue())
 
-	out, err = BuiltinAll(s.ctx, site, nums, isEven)
+	out, err = BuiltinAll(s.T().Context(), site, nums, isEven)
 	s.Require().NoError(err)
 	s.False(box.TrinaryFrom(out).IsTrue())
 
-	out, err = BuiltinFirst(s.ctx, site, nums, isEven)
+	out, err = BuiltinFirst(s.T().Context(), site, nums, isEven)
 	s.Require().NoError(err)
 	n, ok := out.NumberValue()
 	s.Require().True(ok)
 	s.Equal(2.0, n)
 
-	out, err = BuiltinFirst(s.ctx, site, box.List([]box.Value{box.Number(1)}), isEven)
+	out, err = BuiltinFirst(s.T().Context(), site, box.List([]box.Value{box.Number(1)}), isEven)
 	s.Require().NoError(err)
 	s.True(out.IsUndefined())
 
-	out, err = BuiltinFilter(s.ctx, site, nums, isEven)
+	out, err = BuiltinFilter(s.T().Context(), site, nums, isEven)
 	s.Require().NoError(err)
 	lst, ok = out.ListValue()
 	s.Require().True(ok)
@@ -230,13 +232,13 @@ func (s *RuntimeTestSuite) TestBuiltinsCollection_CollectReduceAndDistinct() {
 			return box.Number(n * 2), nil
 		},
 	})
-	out, err := BuiltinCollect(s.ctx, site, box.List(nil), double)
+	out, err := BuiltinCollect(s.T().Context(), site, box.List(nil), double)
 	s.Require().NoError(err)
 	empty, ok := out.ListValue()
 	s.Require().True(ok)
 	s.Empty(empty)
 
-	out, err = BuiltinCollect(s.ctx, site, nums, double)
+	out, err = BuiltinCollect(s.T().Context(), site, nums, double)
 	s.Require().NoError(err)
 	doubled, ok := out.ListValue()
 	s.Require().True(ok)
@@ -252,12 +254,12 @@ func (s *RuntimeTestSuite) TestBuiltinsCollection_CollectReduceAndDistinct() {
 			return box.Number(a + b), nil
 		},
 	})
-	out, err = BuiltinReduce(s.ctx, site, box.List(nil), box.Number(5), sum2)
+	out, err = BuiltinReduce(s.T().Context(), site, box.List(nil), box.Number(5), sum2)
 	s.Require().NoError(err)
 	v, _ := out.NumberValue()
 	s.Equal(5.0, v)
 
-	out, err = BuiltinReduce(s.ctx, site, nums, box.Number(0), sum2)
+	out, err = BuiltinReduce(s.T().Context(), site, nums, box.Number(0), sum2)
 	s.Require().NoError(err)
 	v, _ = out.NumberValue()
 	s.Equal(6.0, v)
@@ -271,12 +273,12 @@ func (s *RuntimeTestSuite) TestBuiltinsCollection_CollectReduceAndDistinct() {
 			return box.Number(acc + el + idx), nil
 		},
 	})
-	out, err = BuiltinReduce(s.ctx, site, box.List([]box.Value{box.Number(10), box.Number(20)}), box.Number(0), sumIdx)
+	out, err = BuiltinReduce(s.T().Context(), site, box.List([]box.Value{box.Number(10), box.Number(20)}), box.Number(0), sumIdx)
 	s.Require().NoError(err)
 	v, _ = out.NumberValue()
 	s.Equal(31.0, v)
 
-	out, err = BuiltinDistinct(s.ctx, site, box.List([]box.Value{box.Number(7)}))
+	out, err = BuiltinDistinct(s.T().Context(), site, box.List([]box.Value{box.Number(7)}))
 	s.Require().NoError(err)
 	one, ok := out.ListValue()
 	s.Require().True(ok)
@@ -292,13 +294,13 @@ func (s *RuntimeTestSuite) TestBuiltinsCollection_CollectReduceAndDistinct() {
 		box.String("x"),
 		box.Trinary(trinary.Unknown),
 	})
-	out, err = BuiltinDistinct(s.ctx, site, mix)
+	out, err = BuiltinDistinct(s.T().Context(), site, mix)
 	s.Require().NoError(err)
 	uniq, ok := out.ListValue()
 	s.Require().True(ok)
 	s.Len(uniq, 7)
 
-	_, err = BuiltinDistinct(s.ctx, site, box.List([]box.Value{
+	_, err = BuiltinDistinct(s.T().Context(), site, box.List([]box.Value{
 		box.Dict(map[string]box.Value{"k": box.Number(1)}),
 		box.Dict(map[string]box.Value{"k": box.Number(2)}),
 	}))
@@ -306,7 +308,7 @@ func (s *RuntimeTestSuite) TestBuiltinsCollection_CollectReduceAndDistinct() {
 	s.Require().ErrorContains(err, "unsupported key kind")
 
 	// Selector path: len < 2 returns without invoking callable.
-	out, err = BuiltinDistinct(s.ctx, site, box.List([]box.Value{box.Number(42)}), box.Callable(stubCallable{
+	out, err = BuiltinDistinct(s.T().Context(), site, box.List([]box.Value{box.Number(42)}), box.Callable(stubCallable{
 		arity: 1,
 		fn: func([]box.Value) (box.Value, error) {
 			s.Fail("selector must not run when list has fewer than 2 elements")
@@ -319,7 +321,7 @@ func (s *RuntimeTestSuite) TestBuiltinsCollection_CollectReduceAndDistinct() {
 	s.Len(short, 1)
 
 	dupKeys := box.List([]box.Value{box.String("a"), box.String("b")})
-	out, err = BuiltinDistinct(s.ctx, site, dupKeys, box.Callable(stubCallable{
+	out, err = BuiltinDistinct(s.T().Context(), site, dupKeys, box.Callable(stubCallable{
 		arity: 1,
 		fn: func(args []box.Value) (box.Value, error) {
 			return box.String("same"), nil
@@ -341,22 +343,22 @@ func (s *RuntimeTestSuite) TestBuiltinsCollection_PredicateInvokeErrors() {
 		},
 	})
 
-	_, err := BuiltinAny(s.ctx, site, nums, boom)
+	_, err := BuiltinAny(s.T().Context(), site, nums, boom)
 	s.Require().ErrorContains(err, "predicate failed")
 
-	_, err = BuiltinAll(s.ctx, site, nums, boom)
+	_, err = BuiltinAll(s.T().Context(), site, nums, boom)
 	s.Require().ErrorContains(err, "predicate failed")
 
-	_, err = BuiltinFirst(s.ctx, site, nums, boom)
+	_, err = BuiltinFirst(s.T().Context(), site, nums, boom)
 	s.Require().ErrorContains(err, "predicate failed")
 
-	_, err = BuiltinFilter(s.ctx, site, nums, boom)
+	_, err = BuiltinFilter(s.T().Context(), site, nums, boom)
 	s.Require().ErrorContains(err, "predicate failed")
 
-	_, err = BuiltinCollect(s.ctx, site, nums, boom)
+	_, err = BuiltinCollect(s.T().Context(), site, nums, boom)
 	s.Require().ErrorContains(err, "predicate failed")
 
-	_, err = BuiltinReduce(s.ctx, site, nums, box.Number(0), box.Callable(stubCallable{
+	_, err = BuiltinReduce(s.T().Context(), site, nums, box.Number(0), box.Callable(stubCallable{
 		arity: 2,
 		fn: func([]box.Value) (box.Value, error) {
 			return box.Undefined(), errors.New("reduce failed")
@@ -364,7 +366,7 @@ func (s *RuntimeTestSuite) TestBuiltinsCollection_PredicateInvokeErrors() {
 	}))
 	s.Require().ErrorContains(err, "reduce failed")
 
-	_, err = BuiltinDistinct(s.ctx, site, nums, box.Callable(stubCallable{
+	_, err = BuiltinDistinct(s.T().Context(), site, nums, box.Callable(stubCallable{
 		arity: 1,
 		fn: func([]box.Value) (box.Value, error) {
 			return box.Undefined(), errors.New("distinct key fn failed")
@@ -372,7 +374,7 @@ func (s *RuntimeTestSuite) TestBuiltinsCollection_PredicateInvokeErrors() {
 	}))
 	s.Require().ErrorContains(err, "distinct key fn failed")
 
-	_, err = BuiltinDistinct(s.ctx, site, nums, box.Callable(stubCallable{
+	_, err = BuiltinDistinct(s.T().Context(), site, nums, box.Callable(stubCallable{
 		arity: 1,
 		fn: func(args []box.Value) (box.Value, error) {
 			return box.Dict(map[string]box.Value{"k": args[0]}), nil
@@ -384,7 +386,7 @@ func (s *RuntimeTestSuite) TestBuiltinsCollection_PredicateInvokeErrors() {
 
 func (s *RuntimeTestSuite) TestCallableHelpers_ErrorBranches() {
 	site := s.builtinSite()
-	ctx := context.Background()
+	ctx := s.T().Context()
 
 	// callable payload not implementing Callable
 	_, err := callableFromValue(box.Callable(struct{}{}))
@@ -408,7 +410,7 @@ func (s *RuntimeTestSuite) TestCallableHelpers_ErrorBranches() {
 }
 
 func (s *RuntimeTestSuite) TestEvalCallBoundaryBranches() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 	ec.BindModule("mod", &ModuleBinding{Alias: "mod"})

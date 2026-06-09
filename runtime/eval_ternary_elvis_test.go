@@ -1,0 +1,131 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+// SPDX-License-Identifier: Apache-2.0
+
+package runtime
+
+import (
+	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
+	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/tokens"
+	"github.com/sentrie-sh/sentrie/trinary"
+)
+
+func elvisTestRange() tokens.Range {
+	return tokens.Range{File: "elvis_test.sentra", From: tokens.Pos{}, To: tokens.Pos{}}
+}
+
+func (s *RuntimeTestSuite) TestEvalElvisFiveCases() {
+	ctx := s.T().Context()
+	p := &index.Policy{}
+	ec := NewExecutionContext(p, &executorImpl{})
+	defer ec.Dispose()
+	exec := &executorImpl{}
+	ec.SetLocal("undefLocal", box.Undefined(), true)
+
+	rng := elvisTestRange()
+	s.Run("null", func() {
+		el := ast.NewTernaryElvis(ast.NewNullLiteral(rng), ast.NewIntegerLiteral(99, rng), rng)
+		v, _, err := eval(ctx, ec, exec, p, el)
+		requireNoErrorNum(s, err, v, 99)
+	})
+	s.Run("undefined", func() {
+		el := ast.NewTernaryElvis(ast.NewIdentifier("undefLocal", rng), ast.NewIntegerLiteral(99, rng), rng)
+		v, _, err := eval(ctx, ec, exec, p, el)
+		requireNoErrorNum(s, err, v, 99)
+	})
+	s.Run("zero", func() {
+		el := ast.NewTernaryElvis(ast.NewIntegerLiteral(0, rng), ast.NewIntegerLiteral(99, rng), rng)
+		v, _, err := eval(ctx, ec, exec, p, el)
+		requireNoErrorNum(s, err, v, 0)
+	})
+	s.Run("empty_string", func() {
+		el := ast.NewTernaryElvis(ast.NewStringLiteral("", rng), ast.NewIntegerLiteral(99, rng), rng)
+		v, _, err := eval(ctx, ec, exec, p, el)
+		s.NoError(err)
+		str, ok := v.StringValue()
+		s.True(ok)
+		s.Equal("", str)
+	})
+	s.Run("false", func() {
+		el := ast.NewTernaryElvis(ast.NewTrinaryLiteral(trinary.False, rng), ast.NewIntegerLiteral(99, rng), rng)
+		v, _, err := eval(ctx, ec, exec, p, el)
+		s.NoError(err)
+		s.True(box.EqualValues(v, box.Trinary(trinary.False)))
+	})
+}
+
+func (s *RuntimeTestSuite) TestEvalElvisConditionEvalError() {
+	ctx := s.T().Context()
+	p := &index.Policy{}
+	ec := NewExecutionContext(p, &executorImpl{})
+	defer ec.Dispose()
+	exec := &executorImpl{}
+	rng := elvisTestRange()
+	el := ast.NewTernaryElvis(
+		ast.NewIdentifier("missing", rng),
+		ast.NewIntegerLiteral(99, rng),
+		rng,
+	)
+	_, _, err := eval(ctx, ec, exec, p, el)
+	s.Require().Error(err)
+}
+
+func (s *RuntimeTestSuite) TestEvalTernaryNonElvisFalseBranch() {
+	ctx := s.T().Context()
+	p := &index.Policy{}
+	ec := NewExecutionContext(p, &executorImpl{})
+	defer ec.Dispose()
+	exec := &executorImpl{}
+	rng := elvisTestRange()
+	tern := ast.NewTernaryExpression(
+		ast.NewTrinaryLiteral(trinary.False, rng),
+		ast.NewIntegerLiteral(1, rng),
+		ast.NewIntegerLiteral(2, rng),
+		rng,
+	)
+	v, _, err := eval(ctx, ec, exec, p, tern)
+	s.Require().NoError(err)
+	requireNoErrorNum(s, err, v, 2)
+}
+
+func (s *RuntimeTestSuite) TestEvalElvisElseBranchEvalError() {
+	ctx := s.T().Context()
+	p := &index.Policy{}
+	ec := NewExecutionContext(p, &executorImpl{})
+	defer ec.Dispose()
+	exec := &executorImpl{}
+	rng := elvisTestRange()
+	el := ast.NewTernaryElvis(
+		ast.NewNullLiteral(rng),
+		ast.NewIdentifier("missing", rng),
+		rng,
+	)
+	_, _, err := eval(ctx, ec, exec, p, el)
+	s.Require().Error(err)
+}
+
+func (s *RuntimeTestSuite) TestEvalTernaryNonElvisConditionError() {
+	ctx := s.T().Context()
+	p := &index.Policy{}
+	ec := NewExecutionContext(p, &executorImpl{})
+	defer ec.Dispose()
+	exec := &executorImpl{}
+	rng := elvisTestRange()
+	tern := ast.NewTernaryExpression(
+		ast.NewIdentifier("missing", rng),
+		ast.NewIntegerLiteral(1, rng),
+		ast.NewIntegerLiteral(2, rng),
+		rng,
+	)
+	_, _, err := eval(ctx, ec, exec, p, tern)
+	s.Require().Error(err)
+}
+
+func requireNoErrorNum(s *RuntimeTestSuite, err error, v box.Value, want float64) {
+	s.T().Helper()
+	s.Require().NoError(err)
+	n, ok := v.NumberValue()
+	s.True(ok)
+	s.Equal(want, n)
+}

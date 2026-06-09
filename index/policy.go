@@ -63,6 +63,7 @@ type Policy struct {
 	Lets        map[string]*ast.VarDeclaration
 	Facts       map[string]*ast.FactStatement
 	Rules       map[string]*Rule
+	Derives     map[string]*Derive
 	RuleExports map[string]*ExportedRule
 	Uses        map[string]*ast.UseStatement // alias -> use statement
 	Shapes      map[string]*Shape            // policy-local shapes
@@ -88,7 +89,10 @@ const (
 	policyPhaseBody
 )
 
-func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Program) (*Policy, error) {
+func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Program, idx *Index, nsDerives map[string]*Derive) (*Policy, error) {
+	if nsDerives == nil {
+		nsDerives = map[string]*Derive{}
+	}
 	p := &Policy{
 		Statement:       policy,
 		Namespace:       ns,
@@ -99,6 +103,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 		Lets:            make(map[string]*ast.VarDeclaration),
 		Facts:           make(map[string]*ast.FactStatement),
 		Rules:           make(map[string]*Rule),
+		Derives:         make(map[string]*Derive),
 		RuleExports:     make(map[string]*ExportedRule),
 		Uses:            make(map[string]*ast.UseStatement),
 		Shapes:          make(map[string]*Shape),
@@ -255,6 +260,16 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 				phase = policyPhaseBody
 			}
 			if err := p.AddShape(stmt); err != nil {
+				return nil, err
+			}
+
+		case *ast.DeriveStatement:
+			switch phase {
+			case policyPhaseMeta, policyPhaseFacts, policyPhaseUses:
+				return nil, latePolicyHeaderErr("derive", stmt.Span().String())
+			case policyPhaseBody:
+			}
+			if _, err := p.addDerive(idx, stmt, nsDerives, p.Derives); err != nil {
 				return nil, err
 			}
 

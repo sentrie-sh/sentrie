@@ -25,7 +25,7 @@ func runServeCLI(ctx context.Context, args []string) error {
 
 func (s *CmdTestSuite) TestServeCmdHelpUsesHTTPScopedFlags() {
 	out := s.captureStdout(func() {
-		err := runServeCLI(context.Background(), []string{"--help"})
+		err := runServeCLI(s.T().Context(), []string{"--help"})
 		s.Require().NoError(err)
 	})
 
@@ -36,13 +36,13 @@ func (s *CmdTestSuite) TestServeCmdHelpUsesHTTPScopedFlags() {
 }
 
 func (s *CmdTestSuite) TestServeCmdRejectsLegacyPortFlag() {
-	err := runServeCLI(context.Background(), []string{"--port", "9999"})
+	err := runServeCLI(s.T().Context(), []string{"--port", "9999"})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "flag '--port' is not defined for command 'serve'")
 }
 
 func (s *CmdTestSuite) TestServeCmdRejectsLegacyListenFlag() {
-	err := runServeCLI(context.Background(), []string{"--listen", "0.0.0.0"})
+	err := runServeCLI(s.T().Context(), []string{"--listen", "0.0.0.0"})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "flag '--listen' is not defined for command 'serve'")
 }

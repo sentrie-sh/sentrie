@@ -29,7 +29,9 @@ type Namespace struct {
 	Children     []*Namespace
 	Policies     map[string]*Policy
 	Shapes       map[string]*Shape // namespace-level shapes
+	Derives      map[string]*Derive
 	ShapeExports map[string]*ExportedShape
+	DeriveExports map[string]*ExportedDerive
 }
 
 func (ns *Namespace) addChild(child *Namespace) error {
@@ -58,18 +60,23 @@ func (ns *Namespace) checkNameAvailable(name string) error {
 			return xerr.ErrConflict("namespace declaration", ns.Statement.Span(), child.Statement.Span())
 		}
 	}
+	if other, ok := ns.Derives[name]; ok {
+		return xerr.ErrConflict("derive declaration", ns.Statement.Span(), other.Span())
+	}
 	return nil
 }
 
 func createNamespace(node *ast.NamespaceStatement) *Namespace {
 	return &Namespace{
-		Statement:    node,
-		FQN:          node.Name,
-		Parent:       nil,
-		Children:     make([]*Namespace, 0),
-		Policies:     make(map[string]*Policy),
-		Shapes:       make(map[string]*Shape),
-		ShapeExports: make(map[string]*ExportedShape),
+		Statement:     node,
+		FQN:           node.Name,
+		Parent:        nil,
+		Children:      make([]*Namespace, 0),
+		Policies:      make(map[string]*Policy),
+		Shapes:        make(map[string]*Shape),
+		Derives:       make(map[string]*Derive),
+		ShapeExports:  make(map[string]*ExportedShape),
+		DeriveExports: make(map[string]*ExportedDerive),
 	}
 }
 
@@ -107,6 +114,14 @@ func (n *Namespace) addShapeExport(export *ExportedShape) error {
 	}
 
 	n.ShapeExports[export.Name] = export
+	return nil
+}
+
+func (n *Namespace) addDeriveExport(export *ExportedDerive) error {
+	if other, ok := n.DeriveExports[export.Name]; ok {
+		return xerr.ErrConflict("derive export", export.Statement.Span(), other.Statement.Span())
+	}
+	n.DeriveExports[export.Name] = export
 	return nil
 }
 

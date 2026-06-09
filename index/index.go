@@ -18,6 +18,7 @@ package index
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/sentrie-sh/sentrie/ast"
@@ -30,6 +31,8 @@ type Index struct {
 	Pack       *pack.PackFile
 	Namespaces map[string]*Namespace
 	Programs   map[string]*Program
+
+	DerivesByFQN map[string]*Derive
 
 	ruleDag  dag.G[*Rule]
 	shapeDag dag.G[*Shape]
@@ -48,6 +51,7 @@ func CreateIndex() *Index {
 		theLock:        &sync.RWMutex{},
 		Namespaces:     make(map[string]*Namespace),
 		Programs:       make(map[string]*Program),
+		DerivesByFQN:   make(map[string]*Derive),
 		validated:      0,
 		validationOnce: &sync.Once{},
 		committed:      0,
@@ -79,31 +83,50 @@ func (idx *Index) AddProgram(ctx context.Context, astProgram *ast.Program) error
 		return err
 	}
 
-	for _, shape := range program.Shapes {
-		shape, err := createShape(ns, nil, shape)
-		if err != nil {
-			return err
-		}
+	for i := 1; i < len(astProgram.Statements); i++ {
+		stmt := astProgram.Statements[i]
+		switch s := stmt.(type) {
+		case *ast.CommentStatement:
+			continue
 
-		if err := ns.addShape(shape); err != nil {
-			return err
-		}
-	}
+		case *ast.ShapeStatement:
+			shape, err := createShape(ns, nil, s)
+			if err != nil {
+				return err
+			}
+			if err := ns.addShape(shape); err != nil {
+				return err
+			}
 
-	for _, policy := range program.Policies {
-		p, err := createPolicy(ns, policy, astProgram)
-		if err != nil {
-			return err
-		}
+		case *ast.PolicyStatement:
+			p, err := createPolicy(ns, s, astProgram, idx, cloneDeriveMap(ns.Derives))
+			if err != nil {
+				return err
+			}
+			if err := ns.addPolicy(p); err != nil {
+				return err
+			}
 
-		if err := ns.addPolicy(p); err != nil {
-			return err
-		}
-	}
+		case *ast.DeriveStatement:
+			if _, err := ns.addDerive(idx, s, cloneDeriveMap(ns.Derives)); err != nil {
+				return err
+			}
 
-	for _, export := range program.ShapeExports {
-		if err := ns.addShapeExport(&ExportedShape{Name: export.Name, Statement: export}); err != nil {
-			return err
+		case *ast.ShapeExportStatement:
+			if err := ns.addShapeExport(&ExportedShape{Name: s.Name, Statement: s}); err != nil {
+				return err
+			}
+
+		case *ast.ExportDeriveStatement:
+			if _, ok := ns.Derives[s.Name]; !ok {
+				return fmt.Errorf("cannot export unknown derive %q at %s", s.Name, s.Span())
+			}
+			if err := ns.addDeriveExport(&ExportedDerive{Name: s.Name, Statement: s}); err != nil {
+				return err
+			}
+
+		default:
+			return fmt.Errorf("unsupported top-level statement %T at %s", stmt, stmt.Span())
 		}
 	}
 

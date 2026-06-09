@@ -17,7 +17,6 @@
 package index
 
 import (
-	"context"
 	"sync/atomic"
 	"testing"
 
@@ -84,7 +83,7 @@ func TestShapeResolveDependency_AlreadyHydratedShortCircuits(t *testing.T) {
 }
 
 func TestShapeResolveDependency_ComposeFromAliasBaseErrors(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	nsStmt := ast.NewNamespaceStatement(
 		ast.NewFQN([]string{"com", "example"}, rng(1)),
@@ -133,7 +132,7 @@ func TestShapeResolveDependency_ComposeFromAliasBaseErrors(t *testing.T) {
 			polStmt,
 		},
 	}
-	policy, err := createPolicy(ns, polStmt, prog)
+	policy, err := createPolicy(ns, polStmt, prog, nil, nil)
 	require.NoError(t, err)
 	child := policy.Shapes["Child"]
 	require.NotNil(t, child)
@@ -144,7 +143,7 @@ func TestShapeResolveDependency_ComposeFromAliasBaseErrors(t *testing.T) {
 }
 
 func TestShapeResolveDependency_DuplicateFieldFromComposedBaseErrors(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	nsStmt := ast.NewNamespaceStatement(
 		ast.NewFQN([]string{"com", "example"}, rng(1)),
@@ -199,7 +198,7 @@ func TestShapeResolveDependency_DuplicateFieldFromComposedBaseErrors(t *testing.
 			polStmt,
 		},
 	}
-	policy, err := createPolicy(ns, polStmt, prog)
+	policy, err := createPolicy(ns, polStmt, prog, nil, nil)
 	require.NoError(t, err)
 	child := policy.Shapes["ChildDup"]
 	require.NotNil(t, child)
@@ -210,7 +209,7 @@ func TestShapeResolveDependency_DuplicateFieldFromComposedBaseErrors(t *testing.
 }
 
 func TestShapeResolveDependency_PolicyLocalComposeUsesInPolicyShapes(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	idx := CreateIndex()
 	nsStmt := ast.NewNamespaceStatement(
 		ast.NewFQN([]string{"com", "example"}, rng(1)),
@@ -260,7 +259,7 @@ func TestShapeResolveDependency_PolicyLocalComposeUsesInPolicyShapes(t *testing.
 			polStmt,
 		},
 	}
-	policy, err := createPolicy(ns, polStmt, prog)
+	policy, err := createPolicy(ns, polStmt, prog, nil, nil)
 	require.NoError(t, err)
 	ext := policy.Shapes["PExt"]
 	require.NotNil(t, ext)

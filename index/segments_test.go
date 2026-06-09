@@ -17,7 +17,6 @@
 package index
 
 import (
-	"context"
 	"errors"
 
 	"github.com/sentrie-sh/sentrie/ast"
@@ -32,7 +31,7 @@ func (suite *IndexTestSuite) setupSegmentsIndexFixture() {
 		ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
 		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
-	_, err := suite.idx.ensureNamespace(context.Background(), nsStmt)
+	_, err := suite.idx.ensureNamespace(suite.T().Context(), nsStmt)
 	suite.Require().NoError(err)
 
 	// Create policy: com/example/auth
@@ -63,7 +62,7 @@ func (suite *IndexTestSuite) setupSegmentsIndexFixture() {
 		},
 	}
 
-	err = suite.idx.AddProgram(context.Background(), program)
+	err = suite.idx.AddProgram(suite.T().Context(), program)
 	suite.Require().NoError(err)
 
 	// Create nested namespace: com/example/sub
@@ -71,7 +70,7 @@ func (suite *IndexTestSuite) setupSegmentsIndexFixture() {
 		ast.NewFQN([]string{"com", "example", "sub"}, tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
 		tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
-	_, err = suite.idx.ensureNamespace(context.Background(), subNsStmt)
+	_, err = suite.idx.ensureNamespace(suite.T().Context(), subNsStmt)
 	suite.Require().NoError(err)
 
 	// Create policy in sub namespace: com/example/sub/admin
@@ -93,7 +92,7 @@ func (suite *IndexTestSuite) setupSegmentsIndexFixture() {
 		},
 	}
 
-	err = suite.idx.AddProgram(context.Background(), subProgram)
+	err = suite.idx.AddProgram(suite.T().Context(), subProgram)
 	suite.Require().NoError(err)
 }
 
@@ -266,7 +265,7 @@ func (suite *IndexTestSuite) TestResolveSegmentsWithSingleCharacterSegments() {
 		ast.NewFQN([]string{"a", "b"}, tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
 		tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
-	_, err := suite.idx.ensureNamespace(context.Background(), singleCharNsStmt)
+	_, err := suite.idx.ensureNamespace(suite.T().Context(), singleCharNsStmt)
 	suite.Require().NoError(err)
 
 	// Create policy in single char namespace
@@ -288,7 +287,7 @@ func (suite *IndexTestSuite) TestResolveSegmentsWithSingleCharacterSegments() {
 		},
 	}
 
-	err = suite.idx.AddProgram(context.Background(), singleCharProgram)
+	err = suite.idx.AddProgram(suite.T().Context(), singleCharProgram)
 	suite.Require().NoError(err)
 
 	// Test resolving single character segments

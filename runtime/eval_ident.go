@@ -35,6 +35,13 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		return v, n.SetResult(v), nil
 	}
 
+	if ec.evalDerive != nil && p != nil && p.Facts != nil {
+		if _, ok := p.Facts[i.Value]; ok {
+			err := fmt.Errorf("facts are not available inside a derive (%q)", i.Value)
+			return box.Undefined(), n.SetErr(err), err
+		}
+	}
+
 	// check whether this has been passed in as a FACT
 	if v, ok := ec.GetFact(i.Value); ok {
 		return v, n.SetResult(v), nil
@@ -67,14 +74,26 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		return val, n.SetResult(val), nil
 	}
 
-	if r, found := p.Rules[i.Value]; found {
-		decision, _, node, err := exec.execRule(ctx, ec, p.Namespace.FQN.String(), p.Name, r.Name)
-		n.Attach(node)
-		if err != nil {
-			return box.Undefined(), n.SetErr(err), err
+	// Derive bodies must not dispatch rules by identifier — that would break the purity
+	// contract (non-deterministic rule evaluation). Only rule/policy evaluation may do this.
+	if ec.evalDerive == nil {
+		if r, found := p.Rules[i.Value]; found {
+			decision, _, node, err := exec.execRule(ctx, ec, p.Namespace.FQN.String(), p.Name, r.Name)
+			n.Attach(node)
+			if err != nil {
+				return box.Undefined(), n.SetErr(err), err
+			}
+			ec.SetLocal(i.Value, decision.Value, false)
+			return decision.Value, n.SetResult(decision.Value), nil
 		}
-		ec.SetLocal(i.Value, decision.Value, false)
-		return decision.Value, n.SetResult(decision.Value), nil
+	}
+
+	// Allow passing derives as higher-order callbacks by identifier (e.g. filter(items, pred)).
+	// The derive itself is invoked via invokeDerive at call time, and only its required
+	// parameter count is exposed as arity so optional params can be omitted.
+	if d := lookupDeriveByIdentifier(ec, p, i.Value); d != nil {
+		v := box.Callable(&deriveCallable{derive: d})
+		return v, n.SetResult(v), nil
 	}
 
 	err := fmt.Errorf("identifier not found: %s", i.Value)

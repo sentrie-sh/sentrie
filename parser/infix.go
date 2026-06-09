@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package parser
 
@@ -26,7 +13,13 @@ import (
 // <expression> <operator> <expression>
 func parseInfixExpression(ctx context.Context, p *Parser, left ast.Expression, precedence Precedence) ast.Expression {
 	operatorToken := p.advance()
-	right := p.parseExpression(ctx, precedence)
+	rhsPrec := precedence
+	// Slash division must bind tighter than a following call so `com/ex/f(x)` is a call on the
+	// slash chain `(com/ex/f)(x)`, not `com/ex/(f(x))`.
+	if operatorToken.Kind == tokens.TokenDiv {
+		rhsPrec = INDEX
+	}
+	right := p.parseExpression(ctx, rhsPrec)
 
 	// Check if right operand parsing failed
 	if right == nil || p.err != nil {

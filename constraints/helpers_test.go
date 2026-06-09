@@ -17,8 +17,6 @@
 package constraints_test
 
 import (
-	"context"
-
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/constraints"
 	"github.com/sentrie-sh/sentrie/index"
@@ -26,7 +24,7 @@ import (
 
 func (s *ConstraintsTestSuite) runChecker(c constraints.ConstraintDefinition, val box.Value, args []box.Value, wantErr bool) {
 	s.T().Helper()
-	err := c.Checker(context.Background(), (*index.Policy)(nil), val, args)
+	err := c.Checker(s.T().Context(), (*index.Policy)(nil), val, args)
 	if wantErr {
 		s.Error(err, "expected error, got nil")
 	} else {
