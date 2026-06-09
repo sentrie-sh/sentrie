@@ -43,6 +43,39 @@ policy p { export decision of r; rule r = { yield true } }
 	require.Error(t, err)
 }
 
+func TestParseDeriveMissingAssignErrors(t *testing.T) {
+	ctx := t.Context()
+	_, err := NewParserFromString(`namespace com/x
+derive bad (n: number): number => { yield n }
+policy p { export decision of r; rule r = { yield true } }
+`, "noassign.sentra").ParseProgram(ctx)
+	require.Error(t, err)
+}
+
+func TestParseRuleElvisExpression(t *testing.T) {
+	ctx := t.Context()
+	_, err := NewParserFromString(`namespace com/x
+policy p {
+  let _s = 0
+  export decision of r
+  rule r = { yield _s ?: 1 == 1 }
+}
+`, "elvis.sentra").ParseProgram(ctx)
+	require.NoError(t, err)
+}
+
+func TestParseRuleFullTernaryExpression(t *testing.T) {
+	ctx := t.Context()
+	_, err := NewParserFromString(`namespace com/x
+policy p {
+  let _s = 0
+  export decision of r
+  rule r = { yield true ? 1 : 0 == 0 }
+}
+`, "ternary.sentra").ParseProgram(ctx)
+	require.NoError(t, err)
+}
+
 func TestParseTypedLambdaRequiredAfterOptionalIsRejected(t *testing.T) {
 	ctx := t.Context()
 	p := NewParserFromString(`namespace com/x

@@ -6,6 +6,7 @@ package runtime
 import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
+	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
@@ -103,4 +104,85 @@ func (s *RuntimeTestSuite) TestLambdaCallableDirectInvokeValidatesTypedArgs() {
 	_, err := c.Invoke(ctx, site, []box.Value{box.Number(1)})
 	s.Require().Error(err)
 	s.Contains(err.Error(), `lambda argument "x"`)
+}
+
+func (s *RuntimeTestSuite) TestRequiredLambdaArityNilAndDeriveCallableNilGuards() {
+	s.Equal(0, requiredLambdaArity(nil))
+
+	var nilDerive *deriveCallable
+	s.Equal(0, nilDerive.Arity())
+	ctx := s.T().Context()
+	site := &CallSite{EC: NewExecutionContext(newEvalTestPolicy(), &executorImpl{}), Exec: &executorImpl{}, Policy: newEvalTestPolicy()}
+	_, err := nilDerive.Invoke(ctx, site, nil)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "missing derive")
+}
+
+func (s *RuntimeTestSuite) TestPadAndValidateCallableArgsArityErrors() {
+	ctx := s.T().Context()
+	p := newEvalTestPolicy()
+	ec := NewExecutionContext(p, &executorImpl{})
+	exec := &executorImpl{}
+
+	lam := ast.NewLambdaExpressionFull(
+		[]string{"a", "b"},
+		[]ast.TypeRef{ast.NewNumberTypeRef(stubRange()), ast.NewNumberTypeRef(stubRange())},
+		[]bool{false, true},
+		nil,
+		ast.NewBlockExpression(nil, ast.NewIntegerLiteral(1, stubRange()), stubRange()),
+		stubRange(),
+	)
+
+	_, err := padAndValidateCallableArgs(ctx, ec, exec, p, lam, []box.Value{box.Number(1), box.Number(2), box.Number(3)}, "lambda")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "too many arguments")
+
+	_, err = padAndValidateCallableArgs(ctx, ec, exec, p, lam, nil, "derive")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "not enough arguments")
+}
+
+func (s *RuntimeTestSuite) TestLambdaCallableDirectInvokeSuccessWithReturnType() {
+	ctx := s.T().Context()
+	p := newEvalTestPolicy()
+	ec := NewExecutionContext(p, &executorImpl{})
+	exec := &executorImpl{}
+	site := &CallSite{EC: ec, Exec: exec, Policy: p}
+
+	lam := ast.NewLambdaExpressionFull(
+		[]string{"x"},
+		[]ast.TypeRef{ast.NewNumberTypeRef(stubRange())},
+		nil,
+		ast.NewTrinaryTypeRef(stubRange()),
+		ast.NewBlockExpression(nil, ast.NewTrinaryLiteral(trinary.True, stubRange()), stubRange()),
+		stubRange(),
+	)
+	c := newLambdaCallable(lam, ec)
+
+	out, err := c.Invoke(ctx, site, []box.Value{box.Number(1)})
+	s.Require().NoError(err)
+	s.Equal(trinary.True, box.TrinaryFrom(out))
+}
+
+func (s *RuntimeTestSuite) TestInvokeDeriveRejectsCallableYield() {
+	ctx := s.T().Context()
+	p := newEvalTestPolicy()
+	ec := NewExecutionContext(p, &executorImpl{})
+	exec := &executorImpl{}
+
+	inner := ast.NewLambdaExpression(
+		[]string{"x"},
+		ast.NewBlockExpression(nil, ast.NewIdentifier("x", stubRange()), stubRange()),
+		stubRange(),
+	)
+	derive := &index.Derive{
+		Name:      "bad",
+		FQN:       ast.CreateFQN(p.Namespace.FQN, "bad"),
+		Lambda:    stubNumberDeriveLambda([]string{}, nil, inner),
+		Namespace: p.Namespace,
+	}
+
+	_, err := invokeDerive(ctx, ec, exec, p, derive, nil)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "derive cannot yield a callable value")
 }

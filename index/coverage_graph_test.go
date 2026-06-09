@@ -185,6 +185,21 @@ func programWithRichRuleGraph(selfCycle bool) *ast.Program {
 	complexBody = ast.NewInfixExpression(complexBody, call, "and", pr(96))
 	complexBody = ast.NewInfixExpression(complexBody, blockYield, "and", pr(97))
 	complexBody = ast.NewInfixExpression(complexBody, body, "and", pr(99))
+	lambdaInRule := ast.NewCallExpression(
+		id("any", 100),
+		[]ast.Expression{
+			ast.NewListLiteral([]ast.Expression{ast.NewIntegerLiteral(1, pr(101))}, pr(101)),
+			ast.NewLambdaExpression(
+				[]string{"x"},
+				ast.NewBlockExpression(nil, ast.NewTrinaryLiteral(trinary.True, pr(102)), pr(102)),
+				pr(102),
+			),
+		},
+		false,
+		nil,
+		pr(100),
+	)
+	complexBody = ast.NewInfixExpression(complexBody, lambdaInRule, "and", pr(103))
 
 	pol := ast.NewPolicyStatement(
 		"GraphPol",

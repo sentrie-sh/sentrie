@@ -55,6 +55,73 @@ func (s *RuntimeTestSuite) TestEvalElvisFiveCases() {
 	})
 }
 
+func (s *RuntimeTestSuite) TestEvalElvisConditionEvalError() {
+	ctx := s.T().Context()
+	p := &index.Policy{}
+	ec := NewExecutionContext(p, &executorImpl{})
+	defer ec.Dispose()
+	exec := &executorImpl{}
+	rng := elvisTestRange()
+	el := ast.NewTernaryElvis(
+		ast.NewIdentifier("missing", rng),
+		ast.NewIntegerLiteral(99, rng),
+		rng,
+	)
+	_, _, err := eval(ctx, ec, exec, p, el)
+	s.Require().Error(err)
+}
+
+func (s *RuntimeTestSuite) TestEvalTernaryNonElvisFalseBranch() {
+	ctx := s.T().Context()
+	p := &index.Policy{}
+	ec := NewExecutionContext(p, &executorImpl{})
+	defer ec.Dispose()
+	exec := &executorImpl{}
+	rng := elvisTestRange()
+	tern := ast.NewTernaryExpression(
+		ast.NewTrinaryLiteral(trinary.False, rng),
+		ast.NewIntegerLiteral(1, rng),
+		ast.NewIntegerLiteral(2, rng),
+		rng,
+	)
+	v, _, err := eval(ctx, ec, exec, p, tern)
+	s.Require().NoError(err)
+	requireNoErrorNum(s, err, v, 2)
+}
+
+func (s *RuntimeTestSuite) TestEvalElvisElseBranchEvalError() {
+	ctx := s.T().Context()
+	p := &index.Policy{}
+	ec := NewExecutionContext(p, &executorImpl{})
+	defer ec.Dispose()
+	exec := &executorImpl{}
+	rng := elvisTestRange()
+	el := ast.NewTernaryElvis(
+		ast.NewNullLiteral(rng),
+		ast.NewIdentifier("missing", rng),
+		rng,
+	)
+	_, _, err := eval(ctx, ec, exec, p, el)
+	s.Require().Error(err)
+}
+
+func (s *RuntimeTestSuite) TestEvalTernaryNonElvisConditionError() {
+	ctx := s.T().Context()
+	p := &index.Policy{}
+	ec := NewExecutionContext(p, &executorImpl{})
+	defer ec.Dispose()
+	exec := &executorImpl{}
+	rng := elvisTestRange()
+	tern := ast.NewTernaryExpression(
+		ast.NewIdentifier("missing", rng),
+		ast.NewIntegerLiteral(1, rng),
+		ast.NewIntegerLiteral(2, rng),
+		rng,
+	)
+	_, _, err := eval(ctx, ec, exec, p, tern)
+	s.Require().Error(err)
+}
+
 func requireNoErrorNum(s *RuntimeTestSuite, err error, v box.Value, want float64) {
 	s.T().Helper()
 	s.Require().NoError(err)

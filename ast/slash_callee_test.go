@@ -33,6 +33,19 @@ func TestFlattenSlashIdentChain(t *testing.T) {
 
 	_, ok = FlattenSlashIdentChain(NewIntegerLiteral(1, stubRng()))
 	require.False(t, ok)
+
+	badLeft := NewInfixExpression(
+		NewInfixExpression(a, NewIntegerLiteral(1, stubRng()), "/", stubRng()),
+		b,
+		"/",
+		stubRng(),
+	)
+	_, ok = FlattenSlashIdentChain(badLeft)
+	require.False(t, ok)
+
+	badRight := NewInfixExpression(a, NewInfixExpression(b, c, "/", stubRng()), "/", stubRng())
+	_, ok = FlattenSlashIdentChain(badRight)
+	require.False(t, ok)
 }
 
 func TestSlashCalleeFQNS(t *testing.T) {
