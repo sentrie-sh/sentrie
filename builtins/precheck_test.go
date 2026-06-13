@@ -73,3 +73,31 @@ func TestPrecheckVariadicTail(t *testing.T) {
 	require.False(t, handled)
 	require.NoError(t, err)
 }
+
+func TestParamSigAtFixedArityOnly(t *testing.T) {
+	t.Parallel()
+	sig := Sig{Params: []ParamSig{{Name: "only"}}}
+	got, ok := paramSigAt(sig, 0)
+	require.True(t, ok)
+	require.Equal(t, "only", got.Name)
+	_, ok = paramSigAt(sig, 1)
+	require.False(t, ok)
+}
+
+func TestPrecheckTooManyUsesTooFewWhenTooManyEmpty(t *testing.T) {
+	t.Parallel()
+	decl := &Decl{
+		Name: "synthetic",
+		Sig: Sig{
+			Params:      []ParamSig{{Name: "x"}},
+			TooFewError: "synthetic requires 1 argument",
+			TooManyError: "",
+		},
+		Impl: func(_ context.Context, _ Env, _ ...box.Value) (box.Value, error) {
+			return box.Undefined(), nil
+		},
+	}
+	_, _, err := decl.Precheck(noopEnv(), []box.Value{box.Number(1), box.Number(2)})
+	require.Error(t, err)
+	require.ErrorContains(t, err, "synthetic requires 1 argument")
+}

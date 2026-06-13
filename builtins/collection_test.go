@@ -6,6 +6,7 @@ package builtins
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/box"
@@ -13,6 +14,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type arityFailAfterPrecheckEnv struct {
+	*testEnv
+	calls int
+}
+
+func (e *arityFailAfterPrecheckEnv) CallableArity(fn box.Value) (int, error) {
+	e.calls++
+	if e.calls > 1 {
+		return 0, fmt.Errorf("callable arity unavailable")
+	}
+	return e.testEnv.CallableArity(fn)
+}
 
 func TestBuiltinsCollection_ArityAndTypeErrors(t *testing.T) {
 	t.Parallel()
@@ -85,6 +98,96 @@ func TestBuiltinsCollection_ArityAndTypeErrors(t *testing.T) {
 			require.ErrorContains(t, err, tc.msg)
 		})
 	}
+}
+
+func TestBuiltinsCollection_NullCollectionImplErrors(t *testing.T) {
+	t.Parallel()
+	site := noopEnv()
+	fn := box.Callable(stubCallable{arity: 1})
+	null := box.Null()
+
+	cases := []struct {
+		name string
+		run  func() (box.Value, error)
+		msg  string
+	}{
+		{"any", func() (box.Value, error) { return invoke(t, "any", site, null, fn) }, "first argument must be a list"},
+		{"all", func() (box.Value, error) { return invoke(t, "all", site, null, fn) }, "first argument must be a list"},
+		{"first", func() (box.Value, error) { return invoke(t, "first", site, null, fn) }, "first argument must be a list"},
+		{"filter", func() (box.Value, error) { return invoke(t, "filter", site, null, fn) }, "first argument must be a list"},
+		{"collect", func() (box.Value, error) { return invoke(t, "collect", site, null, fn) }, "first argument must be a list"},
+		{"reduce", func() (box.Value, error) {
+			return invoke(t, "reduce", site, null, box.Number(0), box.Callable(stubCallable{arity: 2}))
+		}, "first argument must be a list"},
+		{"distinct selector", func() (box.Value, error) {
+			return invoke(t, "distinct", site, null, fn)
+		}, "first argument must be a list"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := tc.run()
+			require.Error(t, err)
+			require.ErrorContains(t, err, tc.msg)
+		})
+	}
+}
+
+func TestReduceArgsInvalidArity(t *testing.T) {
+	t.Parallel()
+	_, err := reduceArgs(1, box.Number(0), box.Number(1), 0)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "arity 2 or 3")
+}
+
+func TestBuiltinsCollection_ImplCallableArityFailsAfterPrecheck(t *testing.T) {
+	t.Parallel()
+	list := box.List([]box.Value{box.Number(1)})
+	fn := box.Callable(stubCallable{arity: 1, fn: func([]box.Value) (box.Value, error) {
+		return box.Bool(true), nil
+	}})
+
+	hofs := []string{"any", "all", "first", "filter", "collect", "reduce", "distinct"}
+	for _, name := range hofs {
+		name := name
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			site := &arityFailAfterPrecheckEnv{testEnv: noopEnv()}
+			var err error
+			switch name {
+			case "reduce":
+				_, err = invoke(t, name, site, list, box.Number(0), box.Callable(stubCallable{arity: 2}))
+			case "distinct":
+				_, err = invoke(t, name, site, list, fn)
+			default:
+				_, err = invoke(t, name, site, list, fn)
+			}
+			require.Error(t, err)
+			require.ErrorContains(t, err, "callable arity unavailable")
+		})
+	}
+}
+
+type flipArityEnv struct {
+	*testEnv
+	calls int
+}
+
+func (e *flipArityEnv) CallableArity(_ box.Value) (int, error) {
+	e.calls++
+	if e.calls == 1 {
+		return 2, nil
+	}
+	return 1, nil
+}
+
+func TestBuiltinsCollection_ReduceReduceArgsErrorAfterPrecheck(t *testing.T) {
+	t.Parallel()
+	site := &flipArityEnv{testEnv: noopEnv()}
+	list := box.List([]box.Value{box.Number(1), box.Number(2)})
+	_, err := invoke(t, "reduce", site, list, box.Number(0), box.Callable(stubCallable{arity: 2}))
+	require.Error(t, err)
+	require.ErrorContains(t, err, "arity 2 or 3")
 }
 
 func TestBuiltinsCollection_DistinctBranches(t *testing.T) {
