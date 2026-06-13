@@ -23,6 +23,7 @@ import (
 	"github.com/binaek/perch"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
+	"github.com/sentrie-sh/sentrie/builtins"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/sentrie-sh/sentrie/xerr"
@@ -119,22 +120,31 @@ func (s *RuntimeTestSuite) TestEvalCallMemoizedHitAndMiss() {
 	exec.callMemoizePerch.Reserve()
 
 	const builtinName = "test_wave2_memoized_builtin"
-	original, hadOriginal := Builtins[builtinName]
+	original, hadOriginal := builtins.Table[builtinName]
 	defer func() {
 		if hadOriginal {
-			Builtins[builtinName] = original
+			builtins.Table[builtinName] = original
 			return
 		}
-		delete(Builtins, builtinName)
+		delete(builtins.Table, builtinName)
 	}()
 
 	callCount := 0
-	Builtins[builtinName] = func(_ context.Context, _ *CallSite, args ...box.Value) (box.Value, error) {
-		callCount++
-		if len(args) > 0 {
-			return args[0], nil
-		}
-		return box.Undefined(), nil
+	builtins.Table[builtinName] = &builtins.Decl{
+		Name:        builtinName,
+		Description: "test memoization builtin",
+		DeriveSafe:  true,
+		Sig: builtins.Sig{
+			Variadic:    &builtins.ParamSig{Name: "args"},
+			TooFewError: "",
+		},
+		Impl: func(_ context.Context, _ builtins.Env, args ...box.Value) (box.Value, error) {
+			callCount++
+			if len(args) > 0 {
+				return args[0], nil
+			}
+			return box.Undefined(), nil
+		},
 	}
 
 	ec := NewExecutionContext(p, exec)

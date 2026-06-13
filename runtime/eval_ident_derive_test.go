@@ -289,7 +289,7 @@ func (s *RuntimeTestSuite) TestEvalIdentDeriveCallableInvokeViaHOF() {
 	c := s.requireDeriveCallable(val, isOne, 1)
 
 	site := &CallSite{EC: ec, Exec: exec, Policy: p}
-	out, err := BuiltinFilter(ctx, site, box.List([]box.Value{box.Number(1), box.Number(2)}), box.Callable(c))
+	out, err := invokeTestBuiltin(ctx, site, "filter", box.List([]box.Value{box.Number(1), box.Number(2)}), box.Callable(c))
 	s.Require().NoError(err)
 	list, ok := out.ListValue()
 	s.Require().True(ok)
