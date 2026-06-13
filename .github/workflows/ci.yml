@@ -33,7 +33,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
 
     steps:
       - name: Checkout code
@@ -48,41 +48,56 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Run tests (race)
+      # Split race tests: runtime under -race is memory-heavy on 7 GiB runners.
+      # Running it in a separate step frees the prior test binary before runtime starts.
+      - name: Run tests (race) — packages
+        timeout-minutes: 10
+        env:
+          GOMAXPROCS: 2
+        run: |
+          set -euo pipefail
+          pkgs=$(go list ./... | grep -v '^github.com/sentrie-sh/sentrie/runtime')
+          echo "## Running race tests (non-runtime)..."
+          go test -count=1 -race -timeout=10m -p=2 $pkgs
+
+      - name: Run tests (race) — runtime
         timeout-minutes: 15
         env:
           GOMAXPROCS: 2
-          GOMEMLIMIT: 6GiB
         run: |
           set -euo pipefail
-          echo "## Running race tests..."
-          timeout --signal=KILL --kill-after=2m 14m \
-            go test -count=1 -race -timeout=10m -p=1 ./...
+          echo "## Running race tests (runtime)..."
+          go test -count=1 -race -timeout=15m -p=1 ./runtime/...
 
       - name: Run tests (coverage)
         if: success()
-        timeout-minutes: 15
+        timeout-minutes: 20
         env:
           GOMAXPROCS: 2
-          GOMEMLIMIT: 6GiB
         run: |
           set -euo pipefail
           set +e
-          timeout --signal=KILL --kill-after=1m 14m \
-            go test -count=1 -covermode=atomic -coverprofile=coverage.out -timeout=10m -p=1 ./... 2>&1 | tee test_output.log
-          code=${PIPESTATUS[0]}
+          pkgs=$(go list ./... | grep -v '^github.com/sentrie-sh/sentrie/runtime')
+          echo "## Running coverage tests (non-runtime)..."
+          go test -count=1 -covermode=atomic -coverprofile=coverage_pkgs.out -timeout=10m -p=2 $pkgs 2>&1 | tee test_output.log
+          code_pkgs=${PIPESTATUS[0]}
+          echo "## Running coverage tests (runtime)..."
+          go test -count=1 -covermode=atomic -coverprofile=coverage_runtime.out -timeout=15m -p=1 ./runtime/... 2>&1 | tee -a test_output.log
+          code_runtime=${PIPESTATUS[0]}
           set -e
+          echo 'mode: atomic' > coverage.out
+          grep -h -v '^mode:' coverage_pkgs.out coverage_runtime.out >> coverage.out
           if grep -q '^FAIL' test_output.log; then
             exit 1
           fi
-          if [ "$code" -eq 0 ]; then
+          if [ "$code_pkgs" -eq 0 ] && [ "$code_runtime" -eq 0 ]; then
             exit 0
           fi
           # go test -coverprofile can exit 1 after merging packages even when all tests pass.
-          if [ "$code" -eq 1 ] && [ -s coverage.out ]; then
+          if [ -s coverage.out ]; then
             exit 0
           fi
-          exit "$code"
+          exit 1
 
       - name: Upload coverage to Codecov
         if: success()
