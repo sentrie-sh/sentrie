@@ -101,3 +101,12 @@ func TestPrecheckTooManyUsesTooFewWhenTooManyEmpty(t *testing.T) {
 	require.Error(t, err)
 	require.ErrorContains(t, err, "synthetic requires 1 argument")
 }
+
+func TestPrecheckArgKindsStopsAtUnknownParamIndex(t *testing.T) {
+	t.Parallel()
+	sig := Sig{Params: []ParamSig{{Name: "only", Kinds: kindNumber}}}
+	handled, v, err := precheckArgKinds(sig, noopEnv(), []box.Value{box.Number(1), box.Number(2)})
+	require.False(t, handled)
+	require.NoError(t, err)
+	require.True(t, v.IsUndefined())
+}

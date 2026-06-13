@@ -142,6 +142,12 @@ func (d *Decl) Precheck(env Env, args []box.Value) (handled bool, val box.Value,
 		return false, box.Undefined(), fmt.Errorf("%s", sig.TooFewError)
 	}
 
+	return precheckArgKinds(sig, env, args)
+}
+
+// precheckArgKinds validates per-argument kinds and callable arities.
+// The caller must have already enforced arity bounds (see Precheck).
+func precheckArgKinds(sig Sig, env Env, args []box.Value) (handled bool, val box.Value, err error) {
 	for i, arg := range args {
 		ps, ok := paramSigAt(sig, i)
 		if !ok {
