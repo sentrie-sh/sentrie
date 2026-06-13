@@ -175,7 +175,7 @@ func mergeValueDicts(map1, map2 map[string]box.Value) map[string]box.Value {
 	return result
 }
 
-func implMerge(_ context.Context, _ Env, args ...box.Value) (box.Value, error) {
+func implMerge(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
 	m1, ok := args[0].DictValue()
 	if !ok {
 		return box.Undefined(), fmt.Errorf("first argument is not a dict")
@@ -187,7 +187,7 @@ func implMerge(_ context.Context, _ Env, args ...box.Value) (box.Value, error) {
 	return box.Dict(mergeValueDicts(m1, m2)), nil
 }
 
-func implCount(_ context.Context, _ Env, args ...box.Value) (box.Value, error) {
+func implCount(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
 	if xs, ok := args[0].ListValue(); ok {
 		return box.Number(len(xs)), nil
 	}
@@ -200,7 +200,7 @@ func implCount(_ context.Context, _ Env, args ...box.Value) (box.Value, error) {
 	return box.Undefined(), nil
 }
 
-func implError(_ context.Context, _ Env, args ...box.Value) (box.Value, error) {
+func implError(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
 	fa := args
 	if len(fa) == 1 {
 		fa = append([]box.Value{box.String("%v")}, fa...)
@@ -220,7 +220,7 @@ func implError(_ context.Context, _ Env, args ...box.Value) (box.Value, error) {
 	return box.Undefined(), xerr.ErrInjected(format, rest...)
 }
 
-func implFlatten(_ context.Context, _ Env, args ...box.Value) (box.Value, error) {
+func implFlatten(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
 	if isUndefinedV(args[0]) {
 		return box.Undefined(), nil
 	}
@@ -279,7 +279,7 @@ func flattenListBox(x []box.Value, depth int64) (box.Value, error) {
 	return box.List(result), nil
 }
 
-func implFlattenDeep(_ context.Context, _ Env, args ...box.Value) (box.Value, error) {
+func implFlattenDeep(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
 	if isUndefinedV(args[0]) {
 		return box.Undefined(), nil
 	}
@@ -313,7 +313,7 @@ func flattenDeepBox(x []box.Value) (box.Value, error) {
 	return box.List(result), nil
 }
 
-func implAsList(_ context.Context, _ Env, args ...box.Value) (box.Value, error) {
+func implAsList(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
 	if isUndefinedV(args[0]) {
 		return box.Undefined(), nil
 	}
@@ -329,7 +329,7 @@ func implAsList(_ context.Context, _ Env, args ...box.Value) (box.Value, error) 
 	return box.List([]box.Value{v}), nil
 }
 
-func implNormaliseList(_ context.Context, _ Env, args ...box.Value) (box.Value, error) {
+func implNormaliseList(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
 	if isUndefinedV(args[0]) {
 		return box.Undefined(), nil
 	}
@@ -366,7 +366,7 @@ func implNormaliseList(_ context.Context, _ Env, args ...box.Value) (box.Value, 
 	return box.List(result), nil
 }
 
-func implNow(_ context.Context, env Env, _ ...box.Value) (box.Value, error) {
+func implNow(ctx context.Context, env Env, _ ...box.Value) (box.Value, error) {
 	t := env.ExecutionStart()
 	return box.Number(float64(t.UnixMilli())), nil
 }

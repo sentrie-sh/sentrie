@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
 
+// Package builtins is the single registry of Sentrie built-in functions.
+//
+// To add or change a builtin, read ADDING_BUILTINS.md in this directory.
 package builtins
 
 import (
@@ -25,7 +28,9 @@ type Env interface {
 	ExecutionStart() time.Time
 }
 
-// Fn is a builtin implementation. It may rely on the dispatcher having
+// Fn is a builtin implementation. The first parameter must be the call's
+// context.Context (passed through from runtime dispatch); higher-order
+// builtins must forward ctx to env.Call. Fn may rely on the dispatcher having
 // already enforced Decl.Sig arity and kind rules (see Precheck), with the
 // exception of undefined/null arguments, which are always passed through.
 type Fn func(ctx context.Context, env Env, args ...box.Value) (box.Value, error)
