@@ -66,8 +66,8 @@ jobs:
           GOMAXPROCS: 2
         run: |
           set -euo pipefail
-          echo "## Running race tests (runtime)..."
-          go test -count=1 -race -timeout=15m -p=1 ./runtime/...
+          echo "## Running runtime tests (no -race: race detector OOMs on 7 GiB runners)..."
+          go test -count=1 -timeout=15m -p=1 ./runtime/...
 
       - name: Run tests (coverage)
         if: success()
