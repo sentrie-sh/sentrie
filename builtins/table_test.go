@@ -68,6 +68,13 @@ func TestDeriveSafeNamesMatchTable(t *testing.T) {
 	}
 }
 
+func TestIsDeriveSafe(t *testing.T) {
+	t.Parallel()
+	require.True(t, IsDeriveSafe("count"))
+	require.True(t, IsDeriveSafe("now"))
+	require.False(t, IsDeriveSafe("not_a_builtin"))
+}
+
 func TestGoldenBehavior(t *testing.T) {
 	t.Parallel()
 	env := noopEnv()

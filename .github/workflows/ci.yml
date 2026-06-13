@@ -87,6 +87,7 @@ jobs:
           set -e
           echo 'mode: atomic' > coverage.out
           grep -h -v '^mode:' coverage_pkgs.out coverage_runtime.out >> coverage.out
+          rm -f coverage_pkgs.out coverage_runtime.out
           if grep -q '^FAIL' test_output.log; then
             exit 1
           fi

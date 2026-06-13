@@ -5,6 +5,7 @@ package builtins
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -35,4 +36,40 @@ func TestPrecheckCallableKindMismatchDoesNotRelyOnCallableArity(t *testing.T) {
 	_, _, err := decl.Precheck(&lenientEnv{}, []box.Value{list, box.Number(9)})
 	require.Error(t, err)
 	require.ErrorContains(t, err, "expected callable, got number")
+}
+
+type arityErrorEnv struct {
+	lenientEnv
+}
+
+func (e *arityErrorEnv) CallableArity(_ box.Value) (int, error) {
+	return 0, fmt.Errorf("arity probe failed")
+}
+
+func TestPrecheckCallableArityEnvError(t *testing.T) {
+	t.Parallel()
+	decl := Table["filter"]
+	list := box.List([]box.Value{box.Number(1)})
+	fn := box.Callable(stubCallable{arity: 1})
+	_, _, err := decl.Precheck(&arityErrorEnv{}, []box.Value{list, fn})
+	require.Error(t, err)
+	require.ErrorContains(t, err, "arity probe failed")
+}
+
+func TestPrecheckTooManyFixedArityArgs(t *testing.T) {
+	t.Parallel()
+	decl := Table["filter"]
+	list := box.List([]box.Value{box.Number(1)})
+	fn := box.Callable(stubCallable{arity: 1})
+	_, _, err := decl.Precheck(noopEnv(), []box.Value{list, fn, box.Number(9)})
+	require.Error(t, err)
+	require.ErrorContains(t, err, "requires 2 arguments")
+}
+
+func TestPrecheckVariadicTail(t *testing.T) {
+	t.Parallel()
+	decl := Table["error"]
+	handled, _, err := decl.Precheck(noopEnv(), []box.Value{box.String("%v"), box.Number(1), box.Number(2)})
+	require.False(t, handled)
+	require.NoError(t, err)
 }

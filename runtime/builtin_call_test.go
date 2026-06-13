@@ -4,6 +4,7 @@
 package runtime
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -30,4 +31,36 @@ func TestCallSiteEnvExecutionStartAndCallableArity(t *testing.T) {
 	_, err := site.CallableArity(box.Number(1))
 	require.Error(t, err)
 	require.ErrorContains(t, err, "expected callable, got number")
+}
+
+func TestCallSiteEnvCall(t *testing.T) {
+	t.Parallel()
+	p := newEvalTestPolicy()
+	ec := NewExecutionContext(p, &executorImpl{})
+	site := &CallSite{EC: ec, Exec: &executorImpl{}, Policy: p}
+
+	fn := box.Callable(callableStub{
+		arity: 1,
+		fn: func(_ context.Context, args []box.Value) (box.Value, error) {
+			return box.Number(len(args)), nil
+		},
+	})
+	out, err := site.Call(t.Context(), fn, []box.Value{box.Number(1)})
+	require.NoError(t, err)
+	require.Equal(t, 1.0, out.Any())
+
+	_, err = site.Call(t.Context(), box.Number(1), nil)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "expected callable, got number")
+}
+
+type callableStub struct {
+	arity int
+	fn    func(context.Context, []box.Value) (box.Value, error)
+}
+
+func (s callableStub) Arity() int { return s.arity }
+
+func (s callableStub) Invoke(ctx context.Context, _ *CallSite, args []box.Value) (box.Value, error) {
+	return s.fn(ctx, args)
 }
