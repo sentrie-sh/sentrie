@@ -12,11 +12,35 @@ import (
 
 func TestTableWellFormed(t *testing.T) {
 	t.Parallel()
+
+	// Issue §5 / Issue B: Result.Kinds must be populated (nil only where noted).
+	expectedResultKinds := map[string][]box.ValueKind{
+		"all":            kindBool,
+		"any":            kindBool,
+		"as_list":        kindList,
+		"collect":        kindList,
+		"count":          kindNumber,
+		"distinct":       kindList,
+		"error":          nil,
+		"filter":         kindList,
+		"first":          nil,
+		"flatten":        kindList,
+		"flatten_deep":   kindList,
+		"merge":          kindDict,
+		"normalise_list": kindList,
+		"now":            kindNumber,
+		"reduce":         nil,
+	}
+
 	for key, d := range Table {
 		require.Equal(t, key, d.Name, "map key must equal Decl.Name")
 		require.NotEmpty(t, d.Description)
 		require.NotNil(t, d.Impl)
 		require.True(t, d.DeriveSafe)
+
+		wantKinds, ok := expectedResultKinds[d.Name]
+		require.True(t, ok, "builtin %q missing from expectedResultKinds", d.Name)
+		require.Equal(t, wantKinds, d.Sig.Result.Kinds, "builtin %q Result.Kinds", d.Name)
 
 		optionalSeen := false
 		for _, p := range d.Sig.Params {
@@ -86,6 +110,18 @@ func TestGoldenBehavior(t *testing.T) {
 		v, err := invoke(t, "any", env, box.Undefined(), box.Callable(stubCallable{arity: 1}))
 		require.NoError(t, err)
 		require.Equal(t, false, v.Any())
+	})
+
+	t.Run("all undefined false", func(t *testing.T) {
+		v, err := invoke(t, "all", env, box.Undefined(), box.Callable(stubCallable{arity: 1}))
+		require.NoError(t, err)
+		require.Equal(t, false, v.Any())
+	})
+
+	t.Run("merge undefined second", func(t *testing.T) {
+		_, err := invoke(t, "merge", env, box.Dict(map[string]box.Value{}), box.Undefined())
+		require.Error(t, err)
+		require.ErrorContains(t, err, "second argument is not a dict")
 	})
 
 	t.Run("now milliseconds", func(t *testing.T) {

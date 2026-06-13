@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/sentrie-sh/sentrie/ast"
-	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/stretchr/testify/suite"
@@ -31,20 +30,6 @@ func (s *RuntimeTestSuite) SetupSuite() {
 			FQN: ast.NewFQN([]string{"test", "namespace"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}),
 		},
 	}
-}
-
-// builtinSite is used by builtin unit tests that need a CallSite frame.
-func (s *RuntimeTestSuite) builtinSite() *CallSite {
-	ec := NewExecutionContext(s.policy, &executorImpl{})
-	return &CallSite{EC: ec, Exec: &executorImpl{}, Policy: s.policy}
-}
-
-func (s *RuntimeTestSuite) builtinArgs(parts ...any) []box.Value {
-	out := make([]box.Value, len(parts))
-	for i := range parts {
-		out[i] = box.FromAny(parts[i])
-	}
-	return out
 }
 
 func TestRuntimeTestSuite(t *testing.T) {

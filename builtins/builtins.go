@@ -154,9 +154,8 @@ func (d *Decl) Precheck(env Env, args []box.Value) (handled bool, val box.Value,
 			if ps.KindError != "" {
 				return false, box.Undefined(), fmt.Errorf("%s", ps.KindError)
 			}
-			if slices.Contains(ps.Kinds, box.ValueCallable) {
-				_, err := env.CallableArity(arg)
-				return false, box.Undefined(), err
+			if slices.Contains(ps.Kinds, box.ValueCallable) && arg.Kind() != box.ValueCallable {
+				return false, box.Undefined(), fmt.Errorf("expected callable, got %s", arg.Kind())
 			}
 		}
 
