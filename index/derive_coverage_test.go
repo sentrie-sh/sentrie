@@ -223,7 +223,7 @@ func (s *IndexTestSuite) TestDerivePurityAllowsReduceWithLambdaCallback() {
 	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
-derive sumThree = () => { yield reduce([1, 2, 3], (acc: number, item: number): number => { yield acc + item }, 0) }
+derive sumThree = () => { yield reduce([1, 2, 3], 0, (acc: number, item: number): number => { yield acc + item }) }
 policy pol {
   let _s = 0
   rule r = { yield sumThree() == 6 }

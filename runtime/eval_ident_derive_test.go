@@ -7,6 +7,7 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/parser"
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
@@ -306,7 +307,6 @@ derive isIdxOne = (item: number, idx: number): trinary => { yield idx == 1 }
 derive double = (n: number): number => { yield n * 2 }
 derive alwaysTrue = (n: number): trinary => { yield true }
 derive keyNum = (n: number): number => { yield n }
-derive zeroArity = (): trinary => { yield true }
 
 policy pol {
   let _seed = 0
@@ -317,7 +317,6 @@ policy pol {
   rule collect_cb = { yield collect([1, 2], double) == [2, 4] }
   rule distinct_cb = { yield count(distinct([1, 1, 2, 2], keyNum)) == 2 }
   rule idx_cb = { yield count(filter([9, 8, 7], isIdxOne)) == 1 }
-  rule zero_arity_cb = { yield any([1], zeroArity) }
   export decision of any_cb
   export decision of all_cb
   export decision of first_cb
@@ -325,7 +324,6 @@ policy pol {
   export decision of collect_cb
   export decision of distinct_cb
   export decision of idx_cb
-  export decision of zero_arity_cb
 }
 `
 	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "derive_cb.sentrie", src: src})
@@ -341,12 +339,25 @@ policy pol {
 			s.Equal(trinary.True, out.Decision.State)
 		})
 	}
+}
 
-	s.Run("zero_arity_cb", func() {
-		_, err := exec.ExecRule(ctx, "com/ex", "pol", "zero_arity_cb", nil)
-		s.Require().Error(err)
-		s.Contains(err.Error(), "any: callable must have arity 1 or 2")
-	})
+func (s *RuntimeTestSuite) TestExecRuleDeriveZeroArityCallableFailsValidate() {
+	ctx := s.T().Context()
+	src := `namespace com/ex
+derive zeroArity = (): trinary => { yield true }
+policy pol {
+  let _seed = 0
+  rule zero_arity_cb = { yield any([1], zeroArity) }
+  export decision of zero_arity_cb
+}
+`
+	idx := index.CreateIndex()
+	prog, err := parser.NewParserFromString(src, "zero_arity.sentrie").ParseProgram(ctx)
+	s.Require().NoError(err)
+	s.Require().NoError(idx.AddProgram(ctx, prog))
+	err = idx.Validate(ctx)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "any: callable must have arity 1 or 2")
 }
 
 func (s *RuntimeTestSuite) TestExecRuleDeriveCallbackArgTypeUsesParamName() {

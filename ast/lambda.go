@@ -82,3 +82,19 @@ func (l *LambdaExpression) String() string {
 
 var _ Expression = &LambdaExpression{}
 var _ Node = &LambdaExpression{}
+
+// RequiredLambdaArity returns the count of non-optional parameters (runtime Precheck callable arity).
+func RequiredLambdaArity(lam *LambdaExpression) int {
+	if lam == nil {
+		return 0
+	}
+	n := len(lam.Params)
+	required := 0
+	for i := 0; i < n; i++ {
+		opt := lam.ParamOpts != nil && i < len(lam.ParamOpts) && lam.ParamOpts[i]
+		if !opt {
+			required++
+		}
+	}
+	return required
+}
