@@ -107,13 +107,9 @@ func (k *kindCheckCtx) checkBuiltinCall(c *ast.CallExpression) []error {
 	max := len(sig.Params)
 
 	if sig.Variadic == nil {
-		if len(c.Arguments) > max {
-			msg := sig.TooManyError
-			if msg == "" {
-				msg = sig.TooFewError
-			}
+		if len(c.Arguments) > max && sig.TooManyError != "" {
 			at := c.Arguments[max].Span()
-			errs = append(errs, xerr.ErrBuiltinCallArity(at, msg))
+			errs = append(errs, xerr.ErrBuiltinCallArity(at, sig.TooManyError))
 		}
 	}
 

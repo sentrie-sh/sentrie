@@ -423,6 +423,29 @@ func TestValidateAllRepoPacksUnchanged(t *testing.T) {
 	}
 }
 
+func TestCheckBuiltinCallsLetCycleDoesNotStackOverflow(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	src := `namespace com/ex
+policy p {
+  rule allow = {
+    let a = b
+    let b = a
+    yield filter(a, (x) => { yield x })
+  }
+  export decision of allow
+}
+`
+	idx := CreateIndex()
+	prog, err := parser.NewParserFromString(src, "cycle.sentrie").ParseProgram(ctx)
+	require.NoError(t, err)
+	require.NoError(t, idx.AddProgram(ctx, prog))
+
+	// Call checkBuiltinCalls directly — no detectReferenceCycle — must not stack-overflow.
+	err = idx.checkBuiltinCalls(ctx)
+	require.NoError(t, err)
+}
+
 func TestErrBuiltinKindsWrapIndex(t *testing.T) {
 	t.Parallel()
 	r := tokens.Range{File: "f.sentrie", From: tokens.Pos{Line: 0, Column: 0}, To: tokens.Pos{Line: 0, Column: 1}}

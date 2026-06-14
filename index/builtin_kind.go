@@ -172,6 +172,7 @@ func (k *kindCheckCtx) isBuiltinCall(c *ast.CallExpression) (*builtins.Decl, boo
 		return nil, false
 	}
 	name := id.Value
+	// Precedence: local binding > derive > builtin (matches runtime getTarget).
 	if k.isShadowed(name) {
 		return nil, false
 	}
@@ -227,10 +228,7 @@ func lookupShapeKind(idx *Index, policy *Policy, tr *ast.ShapeTypeRef) (box.Valu
 	if shape.AliasOf != nil {
 		return typeRefKind(idx, policy, shape.AliasOf)
 	}
-	if shape.Model != nil && len(shape.Model.Fields) > 0 {
-		return box.ValueDict, true
-	}
-	if shape.Model != nil && shape.Model.WithFQN != nil {
+	if shape.Model != nil && (len(shape.Model.Fields) > 0 || shape.Model.WithFQN != nil) {
 		return box.ValueDict, true
 	}
 	return 0, false
@@ -313,6 +311,10 @@ func fieldTypeRefHop(idx *Index, policy *Policy, ref ast.TypeRef, field string) 
 }
 
 func (k *kindCheckCtx) resolveKind(expr ast.Expression) (box.ValueKind, bool) {
+	return k.resolveKindGuarded(expr, nil)
+}
+
+func (k *kindCheckCtx) resolveKindGuarded(expr ast.Expression, seen map[string]struct{}) (box.ValueKind, bool) {
 	if expr == nil {
 		return 0, false
 	}
@@ -335,7 +337,7 @@ func (k *kindCheckCtx) resolveKind(expr ast.Expression) (box.ValueKind, bool) {
 	case *ast.CastExpression:
 		return typeRefKind(k.idx, k.policy, n.TargetType)
 	case *ast.Identifier:
-		return k.resolveIdentKind(n)
+		return k.resolveIdentKindGuarded(n, seen)
 	case *ast.FieldAccessExpression:
 		return k.resolveFieldAccessChain(n)
 	case *ast.CallExpression:
@@ -352,6 +354,15 @@ func (k *kindCheckCtx) resolveKind(expr ast.Expression) (box.ValueKind, bool) {
 }
 
 func (k *kindCheckCtx) resolveIdentKind(id *ast.Identifier) (box.ValueKind, bool) {
+	return k.resolveIdentKindGuarded(id, nil)
+}
+
+func (k *kindCheckCtx) resolveIdentKindGuarded(id *ast.Identifier, seen map[string]struct{}) (box.ValueKind, bool) {
+	if seen != nil {
+		if _, loop := seen[id.Value]; loop {
+			return 0, false
+		}
+	}
 	if info, ok := k.scope[id.Value]; ok {
 		if info.kindKnown {
 			return info.kind, true
@@ -366,7 +377,12 @@ func (k *kindCheckCtx) resolveIdentKind(id *ast.Identifier) (box.ValueKind, bool
 			return typeRefKind(k.idx, k.policy, info.typeRef)
 		}
 		if info.letInit != nil {
-			return k.resolveKind(info.letInit)
+			branch := make(map[string]struct{}, len(seen)+1)
+			for name := range seen {
+				branch[name] = struct{}{}
+			}
+			branch[id.Value] = struct{}{}
+			return k.resolveKindGuarded(info.letInit, branch)
 		}
 	}
 	if d := k.lookupDerive(id.Value); d != nil {
@@ -412,6 +428,8 @@ func (k *kindCheckCtx) resolveFieldChainRootTypeRef(root ast.Expression) (ast.Ty
 	if !ok {
 		return nil, false
 	}
+	// v1: only annotated roots (fact/let/param TypeRef). Unannotated lets whose
+	// initializer resolves to a shape are intentionally unknown here — safe, no false positive.
 	if info.typeRef != nil {
 		return info.typeRef, true
 	}
