@@ -16,9 +16,6 @@ import (
 )
 
 func (idx *Index) checkBuiltinCalls(ctx context.Context) error {
-	if ctx.Err() != nil {
-		return fmt.Errorf("validation cancelled: %w", xerr.ErrIndex)
-	}
 	var errs []error
 
 	for _, ns := range idx.Namespaces {
