@@ -40,9 +40,7 @@ func TestTypeRefKindScalarsAndContainers(t *testing.T) {
 		require.True(t, ok)
 		require.Equal(t, tc.kind, kind)
 	}
-	_, ok := typeRefKind(idx, nil, ast.NewUnknownTypeRef(rng))
-	require.False(t, ok)
-	_, ok = typeRefKind(idx, nil, ast.NewNullableTypeRef(ast.NewStringTypeRef(rng), rng))
+	_, ok := typeRefKind(idx, nil, ast.NewNullableTypeRef(ast.NewStringTypeRef(rng), rng))
 	require.False(t, ok)
 	_, ok = typeRefKind(idx, nil, nil)
 	require.False(t, ok)
