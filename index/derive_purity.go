@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/sentrie-sh/sentrie/ast"
-	"github.com/sentrie-sh/sentrie/runtime/derivepure"
+	"github.com/sentrie-sh/sentrie/builtins"
 )
 
 func (idx *Index) validateDerivePurity() error {
@@ -271,7 +271,7 @@ func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[str
 			}
 			return nil
 		}
-		if derivepure.IsPureBuiltin(name) {
+		if builtins.IsDeriveSafe(name) {
 			for i, a := range c.Arguments {
 				// Allow single-param derives to be passed directly as callbacks to the
 				// higher-order pure builtins (e.g. filter(items, predDerive)).

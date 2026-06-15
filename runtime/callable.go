@@ -114,32 +114,3 @@ func callableFromValue(v box.Value) (Callable, error) {
 	}
 	return c, nil
 }
-
-// invokeCallable invokes a callable value without re-unwrapping or extra arity checks.
-func invokeCallable(ctx context.Context, site *CallSite, c Callable, args []box.Value) (box.Value, error) {
-	return c.Invoke(ctx, site, args)
-}
-
-// --- helpers for higher-order builtins (arity contract) ---
-
-func iterArgs(_ *CallSite, c Callable, item box.Value, idx int) ([]box.Value, error) {
-	switch c.Arity() {
-	case 1:
-		return []box.Value{item}, nil
-	case 2:
-		return []box.Value{item, box.Number(idx)}, nil
-	default:
-		return nil, fmt.Errorf("iterator callable must have arity 1 or 2, got %d", c.Arity())
-	}
-}
-
-func reduceArgs(_ *CallSite, c Callable, acc, item box.Value, idx int) ([]box.Value, error) {
-	switch c.Arity() {
-	case 2:
-		return []box.Value{acc, item}, nil
-	case 3:
-		return []box.Value{acc, item, box.Number(idx)}, nil
-	default:
-		return nil, fmt.Errorf("reducer callable must have arity 2 or 3, got %d", c.Arity())
-	}
-}

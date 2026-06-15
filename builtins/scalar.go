@@ -1,20 +1,7 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-package runtime
+package builtins
 
 import (
 	"context"
@@ -22,8 +9,126 @@ import (
 	"slices"
 
 	"github.com/sentrie-sh/sentrie/box"
-	"github.com/sentrie-sh/sentrie/runtime/derivepure"
 	"github.com/sentrie-sh/sentrie/xerr"
+)
+
+var (
+	declMerge = &Decl{
+		Name:        "merge",
+		Description: "Recursively merges two dict values into a new dict.",
+		DeriveSafe:  true,
+		Sig: Sig{
+			Params: []ParamSig{
+				{Name: "first", Kinds: kindDict, KindError: "first argument is not a dict"},
+				{Name: "second", Kinds: kindDict, KindError: "second argument is not a dict"},
+			},
+			TooFewError:  "merge requires 2 arguments",
+			TooManyError: "merge requires 2 arguments",
+			Result:       ParamSig{Name: "result", Kinds: kindDict},
+		},
+		Impl: implMerge,
+	}
+
+	declCount = &Decl{
+		Name:        "count",
+		Description: "Returns the length of a list, string, or dict.",
+		DeriveSafe:  true,
+		Sig: Sig{
+			Params: []ParamSig{{
+				Name:       "collection",
+				Kinds:      kindCountable,
+				OnMismatch: MismatchUndefined,
+			}},
+			TooFewError:  "count requires 1 argument",
+			TooManyError: "count requires 1 argument",
+			Result:       ParamSig{Name: "result", Kinds: kindNumber},
+		},
+		Impl: implCount,
+	}
+
+	declError = &Decl{
+		Name:        "error",
+		Description: "Short-circuits execution with a formatted error.",
+		DeriveSafe:  true,
+		Sig: Sig{
+			Params: []ParamSig{{Name: "format"}},
+			Variadic: &ParamSig{Name: "args"},
+			TooFewError: "error requires at least 1 argument",
+			Result:      ParamSig{Name: "result"},
+		},
+		Impl: implError,
+	}
+
+	declFlatten = &Decl{
+		Name:        "flatten",
+		Description: "Flattens nested lists to a controlled depth.",
+		DeriveSafe:  true,
+		Sig: Sig{
+			Params: []ParamSig{
+				{Name: "collection", Kinds: kindList, KindError: "flatten: first argument must be a list"},
+				{Name: "depth", Optional: true},
+			},
+			TooFewError:  "flatten requires 1 or 2 arguments",
+			TooManyError: "flatten requires 1 or 2 arguments",
+			Result:       ParamSig{Name: "result", Kinds: kindList},
+		},
+		Impl: implFlatten,
+	}
+
+	declFlattenDeep = &Decl{
+		Name:        "flatten_deep",
+		Description: "Recursively flattens nested lists.",
+		DeriveSafe:  true,
+		Sig: Sig{
+			Params: []ParamSig{{
+				Name:      "collection",
+				Kinds:     kindList,
+				KindError: "flatten_deep: argument must be a list",
+			}},
+			TooFewError:  "flatten_deep requires 1 argument",
+			TooManyError: "flatten_deep requires 1 argument",
+			Result:       ParamSig{Name: "result", Kinds: kindList},
+		},
+		Impl: implFlattenDeep,
+	}
+
+	declAsList = &Decl{
+		Name:        "as_list",
+		Description: "Normalizes one-or-many inputs to a list.",
+		DeriveSafe:  true,
+		Sig: Sig{
+			Params:       []ParamSig{{Name: "value"}},
+			TooFewError:  "as_list requires 1 argument",
+			TooManyError: "as_list requires 1 argument",
+			Result:       ParamSig{Name: "result", Kinds: kindList},
+		},
+		Impl: implAsList,
+	}
+
+	declNormaliseList = &Decl{
+		Name:        "normalise_list",
+		Description: "Normalizes messy list inputs with one level of nesting.",
+		DeriveSafe:  true,
+		Sig: Sig{
+			Params:       []ParamSig{{Name: "value"}},
+			TooFewError:  "normalise_list requires 1 argument",
+			TooManyError: "normalise_list requires 1 argument",
+			Result:       ParamSig{Name: "result", Kinds: kindList},
+		},
+		Impl: implNormaliseList,
+	}
+
+	declNow = &Decl{
+		Name:        "now",
+		Description: "Returns the policy execution start time as epoch milliseconds.",
+		DeriveSafe:  true,
+		Sig: Sig{
+			TooFewError:  "now requires 0 arguments",
+			TooManyError: "now requires 0 arguments",
+			Result:       ParamSig{Name: "result", Kinds: kindNumber},
+		},
+		Impl: implNow,
+	}
 )
 
 func isUndefinedV(v box.Value) bool {
@@ -70,11 +175,7 @@ func mergeValueDicts(map1, map2 map[string]box.Value) map[string]box.Value {
 	return result
 }
 
-// BuiltinMerge merges two dict values into a new dict recursively.
-func BuiltinMerge(_ context.Context, _ *CallSite, args ...box.Value) (box.Value, error) {
-	if len(args) != 2 {
-		return box.Undefined(), fmt.Errorf("merge requires 2 arguments")
-	}
+func implMerge(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
 	m1, ok := args[0].DictValue()
 	if !ok {
 		return box.Undefined(), fmt.Errorf("first argument is not a dict")
@@ -86,11 +187,7 @@ func BuiltinMerge(_ context.Context, _ *CallSite, args ...box.Value) (box.Value,
 	return box.Dict(mergeValueDicts(m1, m2)), nil
 }
 
-// BuiltinCount returns the length of a list, string, or dict.
-func BuiltinCount(_ context.Context, _ *CallSite, args ...box.Value) (box.Value, error) {
-	if len(args) != 1 {
-		return box.Undefined(), fmt.Errorf("count requires 1 argument")
-	}
+func implCount(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
 	if xs, ok := args[0].ListValue(); ok {
 		return box.Number(len(xs)), nil
 	}
@@ -103,11 +200,7 @@ func BuiltinCount(_ context.Context, _ *CallSite, args ...box.Value) (box.Value,
 	return box.Undefined(), nil
 }
 
-// BuiltInError short-circuits execution with a formatted error.
-func BuiltInError(_ context.Context, _ *CallSite, args ...box.Value) (box.Value, error) {
-	if len(args) == 0 {
-		return box.Undefined(), fmt.Errorf("error requires at least 1 argument")
-	}
+func implError(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
 	fa := args
 	if len(fa) == 1 {
 		fa = append([]box.Value{box.String("%v")}, fa...)
@@ -127,11 +220,7 @@ func BuiltInError(_ context.Context, _ *CallSite, args ...box.Value) (box.Value,
 	return box.Undefined(), xerr.ErrInjected(format, rest...)
 }
 
-// BuiltinFlatten flattens nested lists to a controlled depth.
-func BuiltinFlatten(_ context.Context, _ *CallSite, args ...box.Value) (box.Value, error) {
-	if len(args) < 1 || len(args) > 2 {
-		return box.Undefined(), fmt.Errorf("flatten requires 1 or 2 arguments")
-	}
+func implFlatten(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
 	if isUndefinedV(args[0]) {
 		return box.Undefined(), nil
 	}
@@ -190,11 +279,7 @@ func flattenListBox(x []box.Value, depth int64) (box.Value, error) {
 	return box.List(result), nil
 }
 
-// BuiltinFlattenDeep recursively flattens nested lists.
-func BuiltinFlattenDeep(_ context.Context, _ *CallSite, args ...box.Value) (box.Value, error) {
-	if len(args) != 1 {
-		return box.Undefined(), fmt.Errorf("flatten_deep requires 1 argument")
-	}
+func implFlattenDeep(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
 	if isUndefinedV(args[0]) {
 		return box.Undefined(), nil
 	}
@@ -228,11 +313,7 @@ func flattenDeepBox(x []box.Value) (box.Value, error) {
 	return box.List(result), nil
 }
 
-// BuiltinAsList normalizes one-or-many inputs to a list.
-func BuiltinAsList(_ context.Context, _ *CallSite, args ...box.Value) (box.Value, error) {
-	if len(args) != 1 {
-		return box.Undefined(), fmt.Errorf("as_list requires 1 argument")
-	}
+func implAsList(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
 	if isUndefinedV(args[0]) {
 		return box.Undefined(), nil
 	}
@@ -248,11 +329,7 @@ func BuiltinAsList(_ context.Context, _ *CallSite, args ...box.Value) (box.Value
 	return box.List([]box.Value{v}), nil
 }
 
-// BuiltinNormaliseList normalizes messy list inputs with one level of nesting.
-func BuiltinNormaliseList(_ context.Context, _ *CallSite, args ...box.Value) (box.Value, error) {
-	if len(args) != 1 {
-		return box.Undefined(), fmt.Errorf("normalise_list requires 1 argument")
-	}
+func implNormaliseList(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
 	if isUndefinedV(args[0]) {
 		return box.Undefined(), nil
 	}
@@ -289,34 +366,7 @@ func BuiltinNormaliseList(_ context.Context, _ *CallSite, args ...box.Value) (bo
 	return box.List(result), nil
 }
 
-// BuiltinNow returns the policy execution start time (CreatedAt) as epoch milliseconds.
-func BuiltinNow(_ context.Context, site *CallSite, args ...box.Value) (box.Value, error) {
-	if len(args) != 0 {
-		return box.Undefined(), fmt.Errorf("now requires 0 arguments")
-	}
-	t := site.EC.CreatedAt()
+func implNow(ctx context.Context, env Env, _ ...box.Value) (box.Value, error) {
+	t := env.ExecutionStart()
 	return box.Number(float64(t.UnixMilli())), nil
-}
-
-func isBuiltinAllowedInDerive(name string) bool {
-	return derivepure.IsPureBuiltin(name)
-}
-
-// Builtins is the registry of global built-in functions.
-var Builtins = map[string]Builtin{
-	"all":            BuiltinAll,
-	"any":            BuiltinAny,
-	"as_list":        BuiltinAsList,
-	"count":          BuiltinCount,
-	"distinct":       BuiltinDistinct,
-	"error":          BuiltInError,
-	"filter":         BuiltinFilter,
-	"first":          BuiltinFirst,
-	"flatten":        BuiltinFlatten,
-	"flatten_deep":   BuiltinFlattenDeep,
-	"collect":        BuiltinCollect,
-	"merge":          BuiltinMerge,
-	"normalise_list": BuiltinNormaliseList,
-	"now":            BuiltinNow,
-	"reduce":         BuiltinReduce,
 }

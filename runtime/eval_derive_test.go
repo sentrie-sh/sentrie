@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/builtins"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/pack"
 	"github.com/sentrie-sh/sentrie/parser"
@@ -45,8 +46,8 @@ func (s *RuntimeTestSuite) mustBuildDeriveExecutor(ctx context.Context, programs
 }
 
 func (s *RuntimeTestSuite) TestIsBuiltinAllowedInDerive() {
-	s.True(isBuiltinAllowedInDerive("now"))
-	s.False(isBuiltinAllowedInDerive("not_a_builtin"))
+	s.True(builtins.IsDeriveSafe("now"))
+	s.False(builtins.IsDeriveSafe("not_a_builtin"))
 }
 
 func (s *RuntimeTestSuite) TestExecRuleDeriveIntegrationCases() {

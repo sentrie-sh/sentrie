@@ -311,7 +311,7 @@ func (s *RuntimeTestSuite) TestBuiltinNowRejectsExtraArgs() {
 	p := newEvalTestPolicy()
 	ec := NewExecutionContext(p, &executorImpl{})
 	site := &CallSite{EC: ec, Exec: &executorImpl{}, Policy: p}
-	_, err := BuiltinNow(ctx, site, box.Number(1))
+	_, err := invokeTestBuiltin(ctx, site, "now", box.Number(1))
 	s.Require().Error(err)
 	s.Contains(err.Error(), "now requires 0 arguments")
 }

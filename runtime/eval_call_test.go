@@ -4,12 +4,15 @@
 package runtime
 
 import (
+	"context"
 	"math"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
+	"github.com/sentrie-sh/sentrie/builtins"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 func stubRange() tokens.Range {
@@ -131,4 +134,165 @@ func (s *RuntimeTestSuite) TestPipelineHoleOutsidePipelineErrors() {
 	_, _, err := eval(s.T().Context(), ec, &executorImpl{}, p, hole)
 	s.Require().Error(err)
 	s.Require().Contains(err.Error(), "pipeline placeholder '#'")
+}
+
+func (s *RuntimeTestSuite) TestEvalCallMemoizedRejectsCallableArgument() {
+	ctx := s.T().Context()
+	p := newEvalTestPolicy()
+	exec := &executorImpl{}
+	ec := NewExecutionContext(p, exec)
+	lam := ast.NewLambdaExpression(
+		[]string{"x"},
+		ast.NewBlockExpression(nil, ast.NewTrinaryLiteral(trinary.True, stubRange()), stubRange()),
+		stubRange(),
+	)
+	call := ast.NewCallExpression(
+		ast.NewIdentifier("as_list", stubRange()),
+		[]ast.Expression{lam},
+		true,
+		nil,
+		stubRange(),
+	)
+
+	_, _, err := evalCall(ctx, ec, exec, p, call)
+	s.Require().Error(err)
+	s.Require().ErrorContains(err, "memoized call cannot take callable arguments")
+}
+
+func (s *RuntimeTestSuite) TestGetTargetRejectsImpureBuiltinInsideDerive() {
+	ctx := s.T().Context()
+	const name = "test_impure_builtin"
+	original, hadOriginal := builtins.Table[name]
+	defer func() {
+		if hadOriginal {
+			builtins.Table[name] = original
+			return
+		}
+		delete(builtins.Table, name)
+	}()
+
+	builtins.Table[name] = &builtins.Decl{
+		Name:        name,
+		Description: "test impure builtin",
+		DeriveSafe:  false,
+		Sig: builtins.Sig{
+			TooFewError:  name + " requires 0 arguments",
+			TooManyError: name + " requires 0 arguments",
+		},
+		Impl: func(_ context.Context, _ builtins.Env, _ ...box.Value) (box.Value, error) {
+			return box.Undefined(), nil
+		},
+	}
+
+	p := newEvalTestPolicy()
+	exec := &executorImpl{}
+	ec := NewExecutionContext(p, exec)
+	ec.evalDerive = attachNamespaceDerive(p, "caller", stubNumberDeriveLambda(
+		[]string{},
+		nil,
+		ast.NewIntegerLiteral(1, stubRange()),
+	))
+
+	call := ast.NewCallExpression(ast.NewIdentifier(name, stubRange()), nil, false, nil, stubRange())
+	_, err := getTarget(ctx, ec, exec, p, call)
+	s.Require().Error(err)
+	s.Require().ErrorContains(err, "not permitted inside a derive")
+}
+
+func (s *RuntimeTestSuite) TestGetTargetModuleCallRejectsCallableArgument() {
+	ctx := s.T().Context()
+	p := newEvalTestPolicy()
+	exec := &executorImpl{}
+	ec := NewExecutionContext(p, exec)
+	ec.BindModule("mod", &ModuleBinding{Alias: "mod"})
+
+	call := ast.NewCallExpression(ast.NewIdentifier("mod.fn", stubRange()), nil, false, nil, stubRange())
+	target, err := getTarget(ctx, ec, exec, p, call)
+	s.Require().NoError(err)
+
+	_, err = target(ctx, box.Callable(callableStub{
+		arity: 1,
+		fn: func(_ context.Context, _ []box.Value) (box.Value, error) {
+			return box.Undefined(), nil
+		},
+	}))
+	s.Require().Error(err)
+	s.Require().ErrorContains(err, "cannot pass callable value to module function")
+
+	_, err = target(ctx, box.List([]box.Value{box.Callable(callableStub{
+		arity: 1,
+		fn: func(_ context.Context, _ []box.Value) (box.Value, error) {
+			return box.Undefined(), nil
+		},
+	})}))
+	s.Require().Error(err)
+	s.Require().ErrorContains(err, "module call mod.fn")
+}
+
+func (s *RuntimeTestSuite) TestCalculateHashKeyCallableArgumentReturnsEmpty() {
+	node := &ast.CallExpression{}
+	hash := calculateHashKey(node, []box.Value{box.Callable(callableStub{
+		arity: 1,
+		fn: func(_ context.Context, _ []box.Value) (box.Value, error) {
+			return box.Undefined(), nil
+		},
+	})})
+	s.Require().Empty(hash)
+}
+
+func (s *RuntimeTestSuite) TestLookupDeriveBySlashFQResolveErrorWithoutEvalDerive() {
+	ctx := s.T().Context()
+	idx, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{
+		name: "slash_missing_no_eval_derive.sentrie",
+		src: `namespace com/ex
+derive helper = () => { yield 1 }
+policy pol {
+  let _s = 0
+  rule ok = { yield true }
+  export decision of ok
+}`,
+	})
+	pol := idx.Namespaces["com/ex"].Policies["pol"]
+	ec := NewExecutionContext(pol, exec)
+
+	_, err := lookupDeriveBySlashFQ(ec, exec, pol, "com/ex/missing")
+	s.Require().Error(err)
+	s.Require().ErrorContains(err, "not found")
+}
+
+func (s *RuntimeTestSuite) TestLookupDeriveBySlashFQDefineFQNExportRejected() {
+	ctx := s.T().Context()
+	idx, exec := s.mustBuildDeriveExecutor(ctx,
+		deriveTestProgram{
+			name: "alpha.secret.define_fqn.sentrie",
+			src: `namespace com/alpha
+derive secret = () => { yield 1 }
+policy pa {
+  let _s = 0
+  rule x = { yield true }
+  export decision of x
+}`,
+		},
+		deriveTestProgram{
+			name: "beta.caller.define_fqn.sentrie",
+			src: `namespace com/beta
+derive caller = () => { yield 1 }
+policy pol {
+  let _s = 0
+  rule r = { yield true }
+  export decision of r
+}`,
+		},
+	)
+	secret := idx.DerivesByFQN["com/alpha/secret"]
+	caller := idx.DerivesByFQN["com/beta/caller"]
+	s.Require().NotNil(secret)
+	s.Require().NotNil(caller)
+	caller.DefineFQN = map[string]*index.Derive{"com/alpha/secret": secret}
+	pol := idx.Namespaces["com/beta"].Policies["pol"]
+	ec := NewExecutionContext(pol, exec)
+	ec.evalDerive = caller
+
+	_, err := lookupDeriveBySlashFQ(ec, exec, pol, "com/alpha/secret")
+	s.Require().Error(err)
 }
