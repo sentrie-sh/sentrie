@@ -47,29 +47,14 @@ func newLambdaCallable(lambda *ast.LambdaExpression, capture *ExecutionContext) 
 }
 
 func (c *lambdaCallable) Arity() int {
-	return requiredLambdaArity(c.lambda)
-}
-
-func requiredLambdaArity(lam *ast.LambdaExpression) int {
-	if lam == nil {
-		return 0
-	}
-	n := len(lam.Params)
-	required := 0
-	for i := 0; i < n; i++ {
-		opt := lam.ParamOpts != nil && i < len(lam.ParamOpts) && lam.ParamOpts[i]
-		if !opt {
-			required++
-		}
-	}
-	return required
+	return ast.RequiredLambdaArity(c.lambda)
 }
 
 func (c *deriveCallable) Arity() int {
 	if c == nil || c.derive == nil {
 		return 0
 	}
-	return requiredLambdaArity(c.derive.Lambda)
+	return ast.RequiredLambdaArity(c.derive.Lambda)
 }
 
 func (c *lambdaCallable) Invoke(ctx context.Context, site *CallSite, args []box.Value) (box.Value, error) {

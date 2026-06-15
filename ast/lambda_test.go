@@ -45,3 +45,16 @@ func TestLambdaExpressionFullStringOptionalParamsAndReturn(t *testing.T) {
 		}
 	}
 }
+
+func TestRequiredLambdaArity(t *testing.T) {
+	t.Parallel()
+	r := tokens.Range{File: "test.sentra"}
+	body := NewBlockExpression(nil, NewIntegerLiteral(0, r), r)
+	lam := NewLambdaExpressionFull([]string{"a", "b", "c"}, nil, []bool{false, true, false}, nil, body, r)
+	if got := RequiredLambdaArity(lam); got != 2 {
+		t.Fatalf("expected required arity 2, got %d", got)
+	}
+	if RequiredLambdaArity(nil) != 0 {
+		t.Fatal("nil lambda should have required arity 0")
+	}
+}

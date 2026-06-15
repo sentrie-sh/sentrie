@@ -55,6 +55,10 @@ func TestTableWellFormed(t *testing.T) {
 		}
 		if d.Sig.Variadic != nil {
 			require.False(t, d.Sig.Variadic.Optional, "variadic param must not be optional")
+			require.NotEmpty(t, d.Sig.TooFewError, "builtin %q: variadic must set TooFewError", d.Name)
+		} else {
+			require.NotEmpty(t, d.Sig.TooFewError, "builtin %q: non-variadic must set TooFewError", d.Name)
+			require.NotEmpty(t, d.Sig.TooManyError, "builtin %q: non-variadic must set TooManyError", d.Name)
 		}
 	}
 }

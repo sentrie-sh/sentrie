@@ -23,7 +23,7 @@ func padAndValidateCallableArgs(ctx context.Context, ec *ExecutionContext, exec 
 	if len(args) > n {
 		return nil, fmt.Errorf("too many arguments: want at most %d, got %d", n, len(args))
 	}
-	required := requiredLambdaArity(lam)
+	required := ast.RequiredLambdaArity(lam)
 	if len(args) < required {
 		return nil, fmt.Errorf("not enough arguments: want at least %d, got %d", required, len(args))
 	}

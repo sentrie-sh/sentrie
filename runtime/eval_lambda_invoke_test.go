@@ -107,7 +107,7 @@ func (s *RuntimeTestSuite) TestLambdaCallableDirectInvokeValidatesTypedArgs() {
 }
 
 func (s *RuntimeTestSuite) TestRequiredLambdaArityNilAndDeriveCallableNilGuards() {
-	s.Equal(0, requiredLambdaArity(nil))
+	s.Equal(0, ast.RequiredLambdaArity(nil))
 
 	var nilDerive *deriveCallable
 	s.Equal(0, nilDerive.Arity())
