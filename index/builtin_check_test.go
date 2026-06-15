@@ -211,6 +211,18 @@ policy p {
 	s.Contains(err.Error(), "flatten requires 1 or 2 arguments")
 }
 
+func (s *IndexTestSuite) TestBuiltinCheckCallArityTooFew() {
+	err := s.parseAndValidate(`namespace com/ex
+policy p {
+  fact d: document as d
+  rule allow = { yield merge(d) }
+  export decision of allow
+}
+`, "f.sentrie")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "merge requires 2 arguments")
+}
+
 func (s *IndexTestSuite) TestBuiltinCheckCallArityNowTooMany() {
 	err := s.parseAndValidate(`namespace com/ex
 policy p {

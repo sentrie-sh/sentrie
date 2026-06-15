@@ -265,11 +265,6 @@ func resolveShapeReadOnly(idx *Index, policy *Policy, ref *ast.FQN) *Shape {
 		if err := namespace.VerifyShapeExported(name); err != nil {
 			return nil
 		}
-		s, err := idx.ResolveShape(nsFQN.String(), name)
-		if err != nil {
-			return nil
-		}
-		return s
 	}
 	return nil
 }
