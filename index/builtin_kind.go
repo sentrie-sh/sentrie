@@ -184,6 +184,7 @@ func (k *kindCheckCtx) isBuiltinCall(c *ast.CallExpression) (*builtins.Decl, boo
 }
 
 // typeRefKind maps a static TypeRef to a runtime ValueKind when certain.
+// The switch must list every ast.TypeRef implementation; the parser rejects unknown refs.
 // ShapeTypeRef delegates to lookupShapeKind (alias vs complex). NullableTypeRef is
 // unknown in v1 because runtime Precheck passes null through.
 // RecordTypeRef maps to ValueList (runtime requires ListValue).
@@ -210,9 +211,9 @@ func typeRefKind(idx *Index, policy *Policy, ref ast.TypeRef) (box.ValueKind, bo
 		return box.ValueList, true
 	case *ast.ShapeTypeRef:
 		return lookupShapeKind(idx, policy, tr)
-	default:
-		return 0, false
 	}
+	// Unreachable for parser-produced TypeRefs; satisfies the compiler for the interface switch.
+	return 0, false
 }
 
 // lookupShapeKind resolves a shape FQN to a ValueKind. Alias shapes recurse through
