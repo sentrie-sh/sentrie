@@ -9,7 +9,7 @@ tags: dispatch, memoization, derives, builtins, javascript, purity
 # Node: runtime.evalCall (Call Dispatch and Memoization)
 
 ## 1. Architectural Role & Intent
-The busiest node in the evaluator. It evaluates arguments, resolves the callee through a four-way precedence ladder — slash-qualified derive, local/short-name derive, native builtin, JavaScript module function — wraps the resolved target in the memoization layer when `!` was used, and invokes it. It is also where derive purity is enforced at dispatch: inside a derive body, impure builtins and all module calls are refused.
+The busiest node in the evaluator. It evaluates arguments, resolves the callee through a four-way precedence ladder - slash-qualified derive, local/short-name derive, native builtin, JavaScript module function - wraps the resolved target in the memoization layer when `!` was used, and invokes it. It is also where derive purity is enforced at dispatch: inside a derive body, impure builtins and all module calls are refused.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -29,7 +29,7 @@ The busiest node in the evaluator. It evaluates arguments, resolves the callee t
 
 - **Signature:** `evalCall(ctx, ec, exec, p, t *ast.CallExpression) -> (box.Value, *trace.Node, error)`
   - **Behavior:** Evaluates arguments left to right; rejects callable arguments on memoized calls; resolves the target; wraps it for caching; invokes. An `xerr.InjectedError` is passed through verbatim so user-raised errors keep their message, while everything else is wrapped as `failed to call function '%s'`.
-  - **Side Effects:** Arbitrary — builtins, derives, and JavaScript all run from here; the memoization cache is populated.
+  - **Side Effects:** Arbitrary - builtins, derives, and JavaScript all run from here; the memoization cache is populated.
   - **Exceptions:** `memoized call cannot take callable arguments`; target resolution failures; anything the callee raises.
 
 - **Signature:** `getTarget(_, ec, exec, p, c) -> (func(context.Context, ...box.Value) (box.Value, error), error)`
@@ -50,7 +50,7 @@ The busiest node in the evaluator. It evaluates arguments, resolves the callee t
 - **Signature:** `calculateHashKey(node *ast.CallExpression, args []box.Value) -> string`
   - **Behavior:** Marshals arguments to boundary values, hashes them, and prefixes the **AST node pointer** so the key is per-call-site. Returns `""` on any failure.
   - **Side Effects:** None.
-  - **Exceptions:** None — failures are encoded as the empty string.
+  - **Exceptions:** None - failures are encoded as the empty string.
 
 - **Signature:** `splitAliasFn(s string) -> (string, string)`
   - **Behavior:** Splits `alias.fn` on the first dot; returns `(s, "")` when there is no dot.
@@ -64,6 +64,6 @@ The busiest node in the evaluator. It evaluates arguments, resolves the callee t
   - **An unhashable memoized argument collapses onto the key `""`.** `calculateHashKey` returns the empty string on failure and the caller passes it straight to the cache, so unrelated calls become cache siblings and can receive each other's results. Filed as [#108](https://github.com/sentrie-sh/sentrie/issues/108).
   - **The precedence ladder must stay in sync with [[index.builtin_kind]]'s `isBuiltinCall`.** Static checking assumes local binding > derive > builtin; this function implements derive > builtin with locals handled earlier in [[runtime.eval_ident]]. Drift means checks are applied to a different callee than the one invoked.
   - **The three-segment floor for slash FQNs is a parser-ambiguity workaround.** `a/b` is division; `a/b/c` may be a derive. A genuinely two-segment derive FQN is therefore unreachable by slash syntax.
-  - **Module resolution errors are misleading when the callee has no dot.** A bare unknown identifier that is not a derive or builtin falls through to `splitAliasFn`, yields an empty module name, and reports `ErrImportResolution` — an import error for what is really an unknown-function error.
+  - **Module resolution errors are misleading when the callee has no dot.** A bare unknown identifier that is not a derive or builtin falls through to `splitAliasFn`, yields an empty module name, and reports `ErrImportResolution` - an import error for what is really an unknown-function error.
   - **Purity errors at dispatch are the last line, not the first.** [[index.derive_purity]] should have rejected these statically; reaching the runtime message means a static gap was found.
   - **Memoization keys embed a pointer**, which is stable only for the lifetime of the loaded index. The cache lives on the executor, which holds the index, so this is safe today by construction rather than by design.

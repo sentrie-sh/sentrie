@@ -9,7 +9,7 @@ tags: predicates, definedness, emptiness, infix-handler, undefined-semantics
 # Node: parser.parseIsExpression (Definedness and Emptiness Predicates)
 
 ## 1. Architectural Role & Intent
-Parses the `is` family: `x is defined`, `x is empty`, their negated forms with an optional `not`, and the general `a is b` comparison. The definedness predicate is architecturally significant — it is the syntax through which a policy can *ask* whether a fact was supplied rather than having its absence silently propagate as `Unknown` through [[trinary]] logic, which is the difference between an explicit "I cannot decide" and an accidental one.
+Parses the `is` family: `x is defined`, `x is empty`, their negated forms with an optional `not`, and the general `a is b` comparison. The definedness predicate is architecturally significant - it is the syntax through which a policy can *ask* whether a fact was supplied rather than having its absence silently propagate as `Unknown` through [[trinary]] logic, which is the difference between an explicit "I cannot decide" and an accidental one.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -40,5 +40,5 @@ Parses the `is` family: `x is defined`, `x is empty`, their negated forms with a
 - **Dependencies Risk:**
   - **Regression history.** The general-comparison branch previously called `right.Span()` with no nil check, so a malformed right operand (`x is` at end of input) **panicked** instead of reporting a parse error. Fixed and covered by `parser/not_test.go`; keep the nil guard when touching this branch.
   - **The predicate spans are truncated.** `IsDefinedExpression` and `IsEmptyExpression` are built with the range of the `is` token captured *before* the follower is consumed, so their spans cover neither the left operand nor the `defined`/`empty` keyword.
-  - **`defined` vs `null` are different questions.** `is defined` tests presence (the undefined sentinel in [[box.value]]), not nullness — a fact explicitly set to null **is** defined. Conflating them is the most common semantic mistake with this operator.
+  - **`defined` vs `null` are different questions.** `is defined` tests presence (the undefined sentinel in [[box.value]]), not nullness - a fact explicitly set to null **is** defined. Conflating them is the most common semantic mistake with this operator.
   - **`is not X` is desugared, not a distinct node**, so tooling cannot distinguish `x is not defined` from `not (x is defined)`.

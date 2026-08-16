@@ -18,7 +18,7 @@ Turns a `LineComment` or `TrailingComment` token into an `ast.CommentStatement`.
 | `parser.comment` | `CALLS` | [[ast]] | Emits `ast.NewCommentStatement(value, span)`. |
 | `parser.comment` | `CALLS` | [[parser.parser]] | Uses `head()` and `advance()`. |
 | [[parser.statement]] | `CALLS` | [[parser.comment]] | Registered for both `LineComment` and `TrailingComment` in the top-level table. |
-| [[parser.policy]] | `CALLS` | [[parser.comment]] | Registered for the same kinds in the policy-scope table — though the policy body loop discards comments before they reach it. |
+| [[parser.policy]] | `CALLS` | [[parser.comment]] | Registered for the same kinds in the policy-scope table - though the policy body loop discards comments before they reach it. |
 | [[parser.expression]] | `DEPENDS_ON` | [[parser.comment]] | Handles the expression-position case with `PrecedingCommentExpression`/`TrailingCommentExpression` wrappers instead. |
 | `parser.comment` | `DEPENDS_ON` | [[lexer]] | The lexer decides leading vs trailing by whether non-whitespace preceded the `--` on the line; this production trusts that classification rather than re-deriving it. |
 
@@ -27,12 +27,12 @@ Turns a `LineComment` or `TrailingComment` token into an `ast.CommentStatement`.
 - **Signature:** `parseCommentStatement(ctx, parser) -> ast.Statement`
   - **Behavior:** Consumes the comment token and wraps its already-trimmed text (the `--` marker and surrounding whitespace were stripped by [[lexer]]) in a `CommentStatement`.
   - **Side Effects:** Consumes a token.
-  - **Exceptions:** None — it cannot fail, and does not verify the token kind.
+  - **Exceptions:** None - it cannot fail, and does not verify the token kind.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless.
 - **Performance/Scale Notes:** Nothing notable.
 - **Dependencies Risk:**
-  - **The span is degenerate.** It is built from `head.Range.From` to `comment.Range.**From**` — both the same token's start position, since `head()` and the subsequent `advance()` return the same instance. Every `CommentStatement` therefore has a zero-width range that does not cover its own text.
+  - **The span is degenerate.** It is built from `head.Range.From` to `comment.Range.**From**` - both the same token's start position, since `head()` and the subsequent `advance()` return the same instance. Every `CommentStatement` therefore has a zero-width range that does not cover its own text.
   - **Comment retention is inconsistent across the tree.** Top-level comments become statements ([[parser.parse]]); policy-body comments are silently dropped ([[parser.policy]]); block-body comments are parsed as statements; expression comments become wrapper nodes. Any tool that needs all comments cannot rely on a single mechanism.
-  - **Leading vs trailing classification happens in the lexer**, not here, and both kinds map to the same AST node — so the distinction is lost at statement level even though it is preserved in expression position.
+  - **Leading vs trailing classification happens in the lexer**, not here, and both kinds map to the same AST node - so the distinction is lost at statement level even though it is preserved in expression position.

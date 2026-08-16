@@ -9,7 +9,7 @@ tags: pratt-parser, expression-parsing, comment-attachment, core-loop
 # Node: parser.parseExpression (Pratt Core Loop)
 
 ## 1. Architectural Role & Intent
-`parser/expression.go` contains `parseExpression`, the Pratt algorithm at the heart of the front-end: parse a prefix, then repeatedly extend it with infix handlers while the next operator binds tighter than the caller's precedence. Every expression in every Sentrie construct — rule bodies, fact defaults, `let` initialisers, constraint arguments, lambda bodies — flows through this one function. Its secondary responsibility is **comment attachment**: leading comments are wrapped around the finished expression and trailing comments are wrapped after each sub-expression, so formatting information survives into the AST.
+`parser/expression.go` contains `parseExpression`, the Pratt algorithm at the heart of the front-end: parse a prefix, then repeatedly extend it with infix handlers while the next operator binds tighter than the caller's precedence. Every expression in every Sentrie construct - rule bodies, fact defaults, `let` initialisers, constraint arguments, lambda bodies - flows through this one function. Its secondary responsibility is **comment attachment**: leading comments are wrapped around the finished expression and trailing comments are wrapped after each sub-expression, so formatting information survives into the AST.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -31,7 +31,7 @@ tags: pratt-parser, expression-parsing, comment-attachment, core-loop
     3. Runs the Pratt loop: while `precedences[current.Kind] > precedence`, dispatch the infix handler, passing the operator's own precedence as the new binding power. A token with a precedence entry but **no** registered infix handler breaks the loop cleanly rather than erroring.
     4. Wraps the result in `PrecedingCommentExpression` layers (buffer reversed first, so the innermost wrapper is the comment nearest the expression).
 
-    Every sub-result — prefix and each infix extension — passes through `wrapWithTrailingComment`, so a trailing comment can attach at any depth of the chain.
+    Every sub-result - prefix and each infix extension - passes through `wrapWithTrailingComment`, so a trailing comment can attach at any depth of the chain.
   - **Side Effects:** Consumes tokens; may record parse errors; emits two `slog.DebugContext` entries per invocation (entry and deferred exit).
   - **Exceptions:** Returns `nil` after `noPrefixParseFnError` (`no prefix parse function found for '<value>' at <range>`) when `current` cannot start an expression. Infix handlers may also return `nil`; the loop does not check, so a nil can propagate as `leftExp` into a subsequent handler.
 
@@ -41,7 +41,7 @@ tags: pratt-parser, expression-parsing, comment-attachment, core-loop
   - **Exceptions:** None.
 
 ## 4. Operational Context & Gotchas
-- **Statefulness:** Reentrant with respect to the `Parser` — it recurses through handlers that call it again with a higher precedence — but shares the single mutable token window, so it is neither concurrent nor backtrackable.
+- **Statefulness:** Reentrant with respect to the `Parser` - it recurses through handlers that call it again with a higher precedence - but shares the single mutable token window, so it is neither concurrent nor backtrackable.
 - **Performance/Scale Notes:** Two `slog.DebugContext` calls per expression node, including the deferred exit log, make debug-level logging extremely chatty and measurably slow on large policies; the arguments (`p.current`, precedence) are evaluated even when the level is disabled because they are passed as variadic values. Otherwise the loop is O(tokens) with a map probe per iteration.
 - **Dependencies Risk:**
   - **Nil propagation.** The loop does not verify that `prefix(...)` or an infix handler returned a non-nil expression before using it as `leftExp`. A failed sub-parse therefore yields a partially-nil tree, and the resulting error message often names a construct several tokens past the real problem. Always check `p.err` before touching the returned expression.

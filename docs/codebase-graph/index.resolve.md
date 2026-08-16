@@ -42,7 +42,7 @@ The read-side API of the index: exact-match lookups for namespaces, policies, sh
   - **Exceptions:** Namespace not found; `xerr.ErrShapeNotFound`.
 
 - **Signature:** `(*Index).ResolveDerive(fqn string) -> (*Derive, error)`
-  - **Behavior:** Flat lookup in `DerivesByFQN`, covering both namespace- and policy-scoped derives. **Does not check visibility** — that is the caller's job via `Derive.VisibleFromPolicy`.
+  - **Behavior:** Flat lookup in `DerivesByFQN`, covering both namespace- and policy-scoped derives. **Does not check visibility** - that is the caller's job via `Derive.VisibleFromPolicy`.
   - **Side Effects:** None.
   - **Exceptions:** `derive %q not found`, wrapped in `xerr.ErrIndex`.
 
@@ -58,7 +58,7 @@ The read-side API of the index: exact-match lookups for namespaces, policies, sh
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless reads over the index maps.
-- **Performance/Scale Notes:** All O(1) map probes. The value receivers on the three `Verify*` methods copy a `Policy` or `Namespace` struct — many maps and slices' worth of header copying — on every call; harmless for correctness since only maps are read, but wasteful on hot paths.
+- **Performance/Scale Notes:** All O(1) map probes. The value receivers on the three `Verify*` methods copy a `Policy` or `Namespace` struct - many maps and slices' worth of header copying - on every call; harmless for correctness since only maps are read, but wasteful on hot paths.
 - **Dependencies Risk:**
   - **No lock is taken.** These read the index maps directly while `AddProgram` writes under `theLock`. Resolving concurrently with population is a data race; finish building before sharing.
   - **Resolution is exact-match only.** There is no parent-namespace fallback anywhere, so a policy referenced by an unqualified or partially-qualified name will not be found. [[index.segments]] exists precisely to bridge that gap.

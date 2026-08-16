@@ -9,7 +9,7 @@ tags: field-access, indexing, null-safety, boundary-values
 # Node: runtime.evalAccess (Field and Index Access)
 
 ## 1. Architectural Role & Intent
-Implements `x.field` and `x[i]` over both native boxed containers and raw boundary values returned from JavaScript modules. Its defining behaviour is that **a missing member is `Undefined`, not an error** — access chains degrade gracefully rather than failing, which is what makes `x.a.b.c` usable against loosely-shaped external data without guards at every hop.
+Implements `x.field` and `x[i]` over both native boxed containers and raw boundary values returned from JavaScript modules. Its defining behaviour is that **a missing member is `Undefined`, not an error** - access chains degrade gracefully rather than failing, which is what makes `x.a.b.c` usable against loosely-shaped external data without guards at every hop.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -43,7 +43,7 @@ Implements `x.field` and `x[i]` over both native boxed containers and raw bounda
 - **Dependencies Risk:**
   - **A non-numeric index on a list is silently element zero.** `accessIndex` calls `idx.NumberValue()` and **discards the ok flag**, so a string or null index yields `0`, then `int(0)`, returning the **first element** instead of an error or `Undefined`. `list["key"]` quietly returns `list[0]`.
   - **Fractional indices truncate silently.** `int(n)` on a float means `list[1.9]` is `list[1]`, with no diagnostic.
-  - **A null receiver is not the same as an undefined receiver.** Only `IsUndefined` is checked, so `null.field` falls through to the error branch while `undefined.field` yields `Undefined` — an asymmetry that makes chain safety depend on which absence representation a value happens to carry.
+  - **A null receiver is not the same as an undefined receiver.** Only `IsUndefined` is checked, so `null.field` falls through to the error branch while `undefined.field` yields `Undefined` - an asymmetry that makes chain safety depend on which absence representation a value happens to carry.
   - **The error messages format `obj`, not the value's kind.** `%T` on a `box.Value` always prints `box.Value`, so `cannot access field 'x' on box.Value` tells a policy author nothing about what the receiver actually was. `obj.Kind()` would be the useful value.
-  - **There is no null-safe access operator** in the language, so this permissive behaviour *is* the null-safety mechanism — which means tightening it would break policies that rely on the degradation.
+  - **There is no null-safe access operator** in the language, so this permissive behaviour *is* the null-safety mechanism - which means tightening it would break policies that rely on the degradation.
   - **A missing field and a field explicitly set to undefined are indistinguishable**, so `is defined` cannot separate "absent" from "present but undefined".

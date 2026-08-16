@@ -9,7 +9,7 @@ tags: declaration, visibility, namespace-export, shape, derive
 # Node: parser.parseExportStatement (Namespace-Level Export)
 
 ## 1. Architectural Role & Intent
-Parses the **top-level** `export` form, dispatching on the following keyword into `export shape <ident>` or `export derive <ident>`. Sentrie's default visibility is namespace-private, so this production is the sole mechanism by which a shape or derive becomes visible to other namespaces — making it the front-end half of the visibility model that [[index.resolve]] enforces.
+Parses the **top-level** `export` form, dispatching on the following keyword into `export shape <ident>` or `export derive <ident>`. Sentrie's default visibility is namespace-private, so this production is the sole mechanism by which a shape or derive becomes visible to other namespaces - making it the front-end half of the visibility model that [[index.resolve]] enforces.
 
 The `export` keyword is context-sensitive: at top level it reaches this handler, while inside a policy block it dispatches to [[parser.export_rule]] instead. Reading either node alone gives half the picture.
 
@@ -45,7 +45,7 @@ The `export` keyword is context-sensitive: at top level it reaches this handler,
 - **Statefulness:** Stateless.
 - **Performance/Scale Notes:** Nothing notable.
 - **Dependencies Risk:**
-  - **Export is a separate statement, not a modifier.** `export shape Foo` does not declare `Foo` — it references a shape declared elsewhere in the namespace. Exporting a name that was never declared is not detected here; [[index]] must catch the dangling reference.
+  - **Export is a separate statement, not a modifier.** `export shape Foo` does not declare `Foo` - it references a shape declared elsewhere in the namespace. Exporting a name that was never declared is not detected here; [[index]] must catch the dangling reference.
   - **Only namespace-level derives are exportable.** The policy-scope counterpart in [[parser.export_rule]] rejects `export derive` explicitly. If you are tracing why an export was refused, check which scope the statement was written in.
-  - **Nothing prevents duplicate exports** of the same name, and nothing here associates the export with its declaration — the linkage is by string name, resolved later.
+  - **Nothing prevents duplicate exports** of the same name, and nothing here associates the export with its declaration - the linkage is by string name, resolved later.
   - **The file name understates its scope.** `export_shape.go` also owns the derive-export path; searching for "export derive" by filename will miss it.

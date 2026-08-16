@@ -9,7 +9,7 @@ tags: closures, first-class-functions, higher-order, late-binding
 # Node: runtime.Callable (Closure Abstraction)
 
 ## 1. Architectural Role & Intent
-Unifies the two things Sentrie can invoke — an anonymous lambda and a named derive — behind one `Callable` interface, so higher-order builtins like `filter` and `map` accept either without knowing the difference. Lambda closures capture a **reference** to their defining execution context rather than a snapshot, making lexical lookups late-bound against the live parent chain.
+Unifies the two things Sentrie can invoke - an anonymous lambda and a named derive - behind one `Callable` interface, so higher-order builtins like `filter` and `map` accept either without knowing the difference. Lambda closures capture a **reference** to their defining execution context rather than a snapshot, making lexical lookups late-bound against the live parent chain.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -27,7 +27,7 @@ Unifies the two things Sentrie can invoke — an anonymous lambda and a named de
 
 ## 3. Interface Contracts & Public Surface
 
-- **Signature:** `Callable` interface — `Arity() -> int`, `Invoke(ctx, site *CallSite, args []box.Value) -> (box.Value, error)`
+- **Signature:** `Callable` interface - `Arity() -> int`, `Invoke(ctx, site *CallSite, args []box.Value) -> (box.Value, error)`
   - **Behavior:** `Arity` reports the **required** parameter count, excluding optionals, which is what builtin callback-arity checks compare against.
   - **Side Effects:** Invocation evaluates a body.
   - **Exceptions:** Implementation-specific.
@@ -57,7 +57,7 @@ Unifies the two things Sentrie can invoke — an anonymous lambda and a named de
 - **Performance/Scale Notes:** Each invocation allocates a child context and an argument slice. Higher-order builtins invoking a callable per element make this the hottest allocation path in the evaluator.
 - **Dependencies Risk:**
   - **Late binding is a deliberate semantic choice with sharp edges.** Because the capture is a live reference, a lambda invoked after its defining scope has been mutated observes the **new** values, not those in effect at definition. Callbacks stored and invoked later can therefore see a different environment than the one they were written against.
-  - **The two `Invoke` implementations use different contexts.** Lambdas build from `c.capture` (lexical scoping); derives build from `site.EC` (the caller). That asymmetry is correct — derives are context-free by design — but means a derive and a lambda passed to the same builtin resolve free identifiers differently.
+  - **The two `Invoke` implementations use different contexts.** Lambdas build from `c.capture` (lexical scoping); derives build from `site.EC` (the caller). That asymmetry is correct - derives are context-free by design - but means a derive and a lambda passed to the same builtin resolve free identifiers differently.
   - **Lambdas escape derive purity only through the context they carry.** A lambda defined inside a derive body captures the detached context, so purity holds; a lambda defined outside and passed in would carry the full attached chain. Purity checking in [[index.derive_purity]] is what prevents that construction, not anything here.
   - **`lambdaCallable.Invoke` does not nil-check `c.lambda.Body`**, relying on the parser always producing a block. A lambda whose body failed to parse would panic rather than error.
   - **The derive `Arity()` nil-guard has no counterpart on the lambda side**, so the two implementations differ in robustness for no stated reason.

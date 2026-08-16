@@ -9,7 +9,7 @@ tags: metadata, documentation, policy-scope, declarative
 # Node: parser.policy_metadata (Policy Metadata Statements)
 
 ## 1. Architectural Role & Intent
-Four near-identical productions — `title "…"`, `description "…"`, `version "…"`, and `tag "k" = "v"` — that attach human-facing metadata to a policy. They are grouped into one graph node because they are structurally the same production with different keywords and node types. Their architectural significance is scope: they are legal **only inside a policy block**, and [[parser.statement]] carries a dedicated guard to say so rather than emitting a generic syntax error.
+Four near-identical productions - `title "…"`, `description "…"`, `version "…"`, and `tag "k" = "v"` - that attach human-facing metadata to a policy. They are grouped into one graph node because they are structurally the same production with different keywords and node types. Their architectural significance is scope: they are legal **only inside a policy block**, and [[parser.statement]] carries a dedicated guard to say so rather than emitting a generic syntax error.
 
 Not to be confused with pack metadata, which lives in the manifest and is modelled by [[pack]]. The two carry similar-sounding fields and are entirely unrelated.
 
@@ -51,5 +51,5 @@ Not to be confused with pack metadata, which lives in the manifest and is modell
 - **Dependencies Risk:**
   - **Duplicates are unconstrained.** Nothing prevents two `title` statements or two `tag` entries with the same key in one policy; the resolution rule (first wins, last wins, or error) is left to [[index.policy_stmt]] and is not visible from the syntax.
   - **`version` is an unvalidated string.** A policy may declare `version "not-a-version"` and parse cleanly. Do not assume it is semver-comparable without checking how the index treats it.
-  - **Tag keys must be quoted.** `tag env = "prod"` fails because a bare identifier is not a `String` token — an easy authoring mistake given that most configuration languages allow bare keys.
+  - **Tag keys must be quoted.** `tag env = "prod"` fails because a bare identifier is not a `String` token - an easy authoring mistake given that most configuration languages allow bare keys.
   - **Four files, one production shape.** Any change to metadata statement handling (span computation, duplicate detection, allowing identifiers) must be made in all four places; they share no helper.

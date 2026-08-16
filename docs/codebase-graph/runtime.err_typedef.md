@@ -9,7 +9,7 @@ tags: errors, diagnostics, type-validation, sentinels
 # Node: runtime.TypeRefErrors (Type and Constraint Error Sentinels)
 
 ## 1. Architectural Role & Intent
-The error vocabulary for runtime type validation. It defines one public sentinel, `ErrTypeRef`, and two private sub-sentinels for the two ways a type annotation can fail — an unrecognised constraint name, and a constraint that ran but rejected the value — along with constructors that attach the constraint name and source span, and predicates that let callers distinguish the cases without string matching.
+The error vocabulary for runtime type validation. It defines one public sentinel, `ErrTypeRef`, and two private sub-sentinels for the two ways a type annotation can fail - an unrecognised constraint name, and a constraint that ran but rejected the value - along with constructors that attach the constraint name and source span, and predicates that let callers distinguish the cases without string matching.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -31,7 +31,7 @@ The error vocabulary for runtime type validation. It defines one public sentinel
 - **Signature:** `ErrUnknownConstraint(c *ast.TypeRefConstraint) -> error`
   - **Behavior:** Reports a constraint name the runtime does not implement, with its source span.
   - **Side Effects:** None.
-  - **Exceptions:** Panics on a nil constraint — it dereferences `c.Name`.
+  - **Exceptions:** Panics on a nil constraint - it dereferences `c.Name`.
 
 - **Signature:** `ErrConstraintFailed(pos tokens.Range, c *ast.TypeRefConstraint, err error) -> error`
   - **Behavior:** Reports a constraint that rejected a value, joining any underlying cause so it remains inspectable.
@@ -47,7 +47,7 @@ The error vocabulary for runtime type validation. It defines one public sentinel
 - **Statefulness:** Package-level immutable sentinels.
 - **Performance/Scale Notes:** Negligible; construction only on the failure path.
 - **Dependencies Risk:**
-  - **The `pos` parameter of `ErrConstraintFailed` is never used.** The message takes its location from `c.Span()` instead, so callers passing a more precise position — the *value's* span rather than the *constraint's* — silently lose it. Every constraint failure therefore points at the type annotation, not at the offending data.
-  - **An unknown constraint is a runtime error, not an index error.** [[ast]] validates constraint arguments at parse time against generated tables, but whether the runtime actually *implements* a constraint is only discovered when a value is validated — so a constraint the parser accepts can still fail at request time.
+  - **The `pos` parameter of `ErrConstraintFailed` is never used.** The message takes its location from `c.Span()` instead, so callers passing a more precise position - the *value's* span rather than the *constraint's* - silently lose it. Every constraint failure therefore points at the type annotation, not at the offending data.
+  - **An unknown constraint is a runtime error, not an index error.** [[ast]] validates constraint arguments at parse time against generated tables, but whether the runtime actually *implements* a constraint is only discovered when a value is validated - so a constraint the parser accepts can still fail at request time.
   - **The sub-sentinels are unexported**, so external packages must use the two predicates; `errors.Is` against a locally declared equivalent will not match.
   - **This is a separate error family from [[xerr]].** Type failures do not carry `xerr.ErrIndex` or similar, so code that classifies errors by `xerr` sentinel alone will not recognise them.

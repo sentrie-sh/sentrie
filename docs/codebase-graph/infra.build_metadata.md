@@ -32,7 +32,7 @@ This is the only node in the graph whose data originates from the build system r
   - **Exceptions:** Absent under the same conditions as `vcs.revision`.
 
 - **Signature:** `vcs.modified`
-  - **Behavior:** `"true"` when the working tree had uncommitted changes at build time — the dirty-build marker.
+  - **Behavior:** `"true"` when the working tree had uncommitted changes at build time - the dirty-build marker.
   - **Side Effects:** None.
   - **Exceptions:** Absent under the same conditions as above.
 

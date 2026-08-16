@@ -9,7 +9,7 @@ tags: pipeline-operator, desugaring, ast-rewriting, hole-substitution
 # Node: parser.pipeline (Pipeline Operator and Hole Substitution)
 
 ## 1. Architectural Role & Intent
-`parser/pipeline.go` implements `|>` — the largest piece of **AST rewriting** in the front-end. A pipeline stage is not represented as a node; instead the left-hand value is folded into the right-hand call, either substituted at every explicit `#` hole or prepended as the first argument when no hole appears. The result is an ordinary `CallExpression`, so [[runtime.eval_call]] never learns that pipelines exist. The file also enforces a deliberately narrow right-hand-side grammar to keep that rewrite unambiguous.
+`parser/pipeline.go` implements `|>` - the largest piece of **AST rewriting** in the front-end. A pipeline stage is not represented as a node; instead the left-hand value is folded into the right-hand call, either substituted at every explicit `#` hole or prepended as the first argument when no hole appears. The result is an ordinary `CallExpression`, so [[runtime.eval_call]] never learns that pipelines exist. The file also enforces a deliberately narrow right-hand-side grammar to keep that rewrite unambiguous.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -35,7 +35,7 @@ tags: pipeline-operator, desugaring, ast-rewriting, hole-substitution
   - **Exceptions:** None.
 
 - **Signature:** `containsPipelineHole(expr) -> bool` / `containsPipelineHoleInExprs(exprs) -> bool`
-  - **Behavior:** Exhaustive structural search for `#` across every composite expression kind — calls, accesses, list/map literals, infix, unary, ternary, cast, `is defined`/`is empty`, transform, and both comment wrappers.
+  - **Behavior:** Exhaustive structural search for `#` across every composite expression kind - calls, accesses, list/map literals, infix, unary, ternary, cast, `is defined`/`is empty`, transform, and both comment wrappers.
   - **Side Effects:** None.
   - **Exceptions:** None; an unhandled node type returns `false`.
 
@@ -49,7 +49,7 @@ tags: pipeline-operator, desugaring, ast-rewriting, hole-substitution
 - **Performance/Scale Notes:** Two full traversals of the argument subtree per stage (detect, then substitute), plus reallocation of every node on the substitution path. Long pipelines with large literal arguments pay this per stage.
 - **Dependencies Risk:**
   - **The two helper switches must stay in lockstep.** `containsPipelineHole` and `substitutePipelineHoles` enumerate node kinds independently. Adding an expression type to one and not the other yields a silent bug: a hole that is detected but never substituted (leaving a bare `#` for the runtime) or, worse, one that is never detected and so triggers the prepend path instead. Any new `ast.Expression` requires editing both.
-  - **A multi-hole stage duplicates the left expression by reference.** `x() |> f(#, #)` puts the *same* node in both argument positions, so the left-hand side is evaluated twice unless the runtime memoizes — a real semantic consequence of the desugaring.
+  - **A multi-hole stage duplicates the left expression by reference.** `x() |> f(#, #)` puts the *same* node in both argument positions, so the left-hand side is evaluated twice unless the runtime memoizes - a real semantic consequence of the desugaring.
   - **The grouped-RHS check runs after parsing, not before.** The flag is captured from the head token but the error is raised only after the whole RHS is parsed, so the diagnostic's position is past the offending parenthesis.
   - **Pipelines are invisible after parsing.** Nothing downstream can tell `f(x)` from `x |> f()`, so error messages about argument counts refer to the rewritten call and may not match what the author wrote.
   - **`|>` binds loosest**, so `x |> f(#) or y` puts the `or` *inside* the stage. See [[parser.precedence]].

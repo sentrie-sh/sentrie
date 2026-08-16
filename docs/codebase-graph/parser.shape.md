@@ -20,7 +20,7 @@ Parses `shape <ident>` in its two mutually exclusive forms: a **simple** alias t
 | `parser.shape` | `CALLS` | [[parser.parser]] | Uses `advanceExpected`, `expect`, `canExpect`, `canExpectAnyOf`, `peek`, `errorf`. |
 | `parser.shape` | `CALLS` | [[ast]] | Emits `ast.NewShapeStatement`, `ast.Cmplx`, and `ast.ShapeField` values. |
 | [[parser.statement]] | `CALLS` | [[parser.shape]] | Registered for `tokens.KeywordShape` at top level. |
-| [[parser.policy]] | `CALLS` | [[parser.shape]] | Registered for the same kind at policy scope — the same handler serves both. |
+| [[parser.policy]] | `CALLS` | [[parser.shape]] | Registered for the same kind at policy scope - the same handler serves both. |
 | [[index.shape]] | `DEPENDS_ON` | [[parser.shape]] | Resolves shape names, composition, and field types. |
 | [[runtime.typeref_shape]] | `DEPENDS_ON` | [[parser.shape]] | Validates values against the resolved shape at runtime. |
 
@@ -45,7 +45,7 @@ Parses `shape <ident>` in its two mutually exclusive forms: a **simple** alias t
 - **Statefulness:** Stateless functions; the `Cmplx` value accumulates fields during the parse.
 - **Performance/Scale Notes:** Two debug logs per field. Nothing else notable.
 - **Dependencies Risk:**
-  - **Fields are a map, so source order is lost and duplicates are silently overwritten.** `shape S { a: string, a: number }` parses without complaint and keeps only the last `a`. Any duplicate-field diagnostic must be added in [[index.shape]] — it cannot be recovered from the AST.
+  - **Fields are a map, so source order is lost and duplicates are silently overwritten.** `shape S { a: string, a: number }` parses without complaint and keeps only the last `a`. Any duplicate-field diagnostic must be added in [[index.shape]] - it cannot be recovered from the AST.
   - **Unterminated field blocks can run away.** The field loop tests only for `}`, not EOF, so a missing closing brace produces an error from deep inside field parsing rather than at the shape header.
   - **Field type errors are detected via `p.err`, not a nil check.** `parseShapeField` assigns `field.Type` and then checks the parser error; if a future change let `parseTypeRef` return nil without recording an error, the subsequent `field.Type.Span()` would panic.
   - **Composition is unresolved here.** `with <fqn>` is stored raw; whether the base exists, is visible, and whether fields conflict is entirely [[index.shape]]'s responsibility.

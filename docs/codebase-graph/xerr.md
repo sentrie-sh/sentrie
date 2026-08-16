@@ -30,10 +30,10 @@ tags: error-taxonomy, diagnostics, sentinel-errors, failure-modes
   - **Side Effects:** None.
   - **Exceptions:** N/A (sentinel).
 
-- **Signature:** Policy header sentinels — `ErrPolicyMetadataContiguous`, `ErrPolicyFactAfterUse`, `ErrPolicyInvalidVersion`, `ErrPolicyEmptyTitle`, `ErrPolicyEmptyTagKey`
+- **Signature:** Policy header sentinels - `ErrPolicyMetadataContiguous`, `ErrPolicyFactAfterUse`, `ErrPolicyInvalidVersion`, `ErrPolicyEmptyTitle`, `ErrPolicyEmptyTagKey`
   - **Behavior:** Enforce the language's policy-header grammar rules: metadata (`title`/`description`/`version`/`tag`) must form one contiguous block at the top, `fact` statements must precede `use` statements, and `version` must be valid SemVer. All wrap `ErrIndex`.
   - **Side Effects:** None.
-  - **Exceptions:** Callers are expected to add location context at the call site via `fmt.Errorf("at %s: %w", span, err)` — the sentinels themselves are location-free.
+  - **Exceptions:** Callers are expected to add location context at the call site via `fmt.Errorf("at %s: %w", span, err)` - the sentinels themselves are location-free.
 
 - **Signature:** `ErrBuiltinCallArity(at: tokens.Range, message: string) -> error` / `ErrBuiltinArgKind(...)` / `ErrBuiltinCallableArity(...)`
   - **Behavior:** Span-anchored builtin contract violations detected at validate time (not run time), backed by `BuiltinCallArityError`, `BuiltinArgKindError`, and `BuiltinCallableArityError`. The third covers higher-order-function callable arity, e.g. a lambda passed to `map` with the wrong parameter count.
@@ -61,7 +61,7 @@ tags: error-taxonomy, diagnostics, sentinel-errors, failure-modes
   - **Exceptions:** N/A.
 
 - **Signature:** `ErrInjected(format: string, args: ...any) -> error`
-  - **Behavior:** The user-facing escape hatch — produced when policy source calls the language's `error` function, letting policy authors raise deliberate, described failures.
+  - **Behavior:** The user-facing escape hatch - produced when policy source calls the language's `error` function, letting policy authors raise deliberate, described failures.
   - **Side Effects:** None.
   - **Exceptions:** N/A.
 
@@ -77,5 +77,5 @@ tags: error-taxonomy, diagnostics, sentinel-errors, failure-modes
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless. Sentinels are package-level immutable values; constructors return fresh error instances.
-- **Performance/Scale Notes:** Error construction uses `fmt.Errorf` wrapping and is therefore allocation-bearing — acceptable on failure paths but should never appear in a successful evaluation loop. Sentinel comparison via `errors.Is` walks the wrap chain, so deeply nested wraps cost proportionally.
+- **Performance/Scale Notes:** Error construction uses `fmt.Errorf` wrapping and is therefore allocation-bearing - acceptable on failure paths but should never appear in a successful evaluation loop. Sentinel comparison via `errors.Is` walks the wrap chain, so deeply nested wraps cost proportionally.
 - **Dependencies Risk:** No runtime failure domain of its own. The architectural risks are: (1) the span-anchored sentinels intentionally omit location, so **any caller that forgets the `fmt.Errorf("at %s: %w", span, err)` wrap produces a diagnostic with no file/line**, which is the most common source of unhelpful Sentrie errors; (2) both [[cmd]] and [[api]] classify errors by these categories, so introducing a new failure mode without rooting it under an existing sentinel (`ErrIndex` in particular) causes it to fall through to a generic 500 / generic CLI error rather than a precise one.

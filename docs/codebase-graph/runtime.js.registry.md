@@ -27,7 +27,7 @@ Owns module identity and compilation for the whole engine. It resolves `use` ref
 - **Signature:** `RegisterGoBuiltin(name string, provider ModuleProvider)` / `RegisterTSBuiltin(name, tsSource string)`
   - **Behavior:** Registers under the key `@<APPNAME>/<name>`. A Go provider takes precedence over a TypeScript source of the same name.
   - **Side Effects:** Mutates the builtin maps.
-  - **Exceptions:** None — a duplicate registration silently overwrites.
+  - **Exceptions:** None - a duplicate registration silently overwrites.
 
 - **Signature:** `PrepareUse(localFrom string, libFrom []string, fileDir string) -> (*ModuleSpec, error)`
   - **Behavior:** Resolves a `use` statement's target, creates the module spec, and warm-compiles it best-effort. `libFrom[0] == APPNAME` selects a builtin; `"local"` resolves under the pack root; anything else is rejected pending vendor support.
@@ -35,7 +35,7 @@ Owns module identity and compilation for the whole engine. It resolves `use` ref
   - **Exceptions:** `unsupported library from: %v`; `module %s not found`; compilation errors.
 
 - **Signature:** `LoadRequire(fromDir, spec string) -> (*ModuleSpec, error)`
-  - **Behavior:** The `require()` counterpart. Handles `@sentrie/…` builtins, `@local/…` pack-relative paths, and `./` or `/` relative paths. Bare specifiers are rejected — there is no `node_modules` resolution.
+  - **Behavior:** The `require()` counterpart. Handles `@sentrie/…` builtins, `@local/…` pack-relative paths, and `./` or `/` relative paths. Bare specifiers are rejected - there is no `node_modules` resolution.
   - **Side Effects:** As above.
   - **Exceptions:** `unsupported require spec: %q`; `relative path is outside the packroot: %s`; `module %s not found`.
 
@@ -45,7 +45,7 @@ Owns module identity and compilation for the whole engine. It resolves `use` ref
   - **Exceptions:** `builtin not found: %s`; file read errors; esbuild errors; source-map unmarshal errors; goja compile errors.
 
 - **Signature:** `(*ModuleSpec).KeyOrPath() -> string`
-  - **Behavior:** The canonical identifier — key if set, otherwise path. Used as the cache key throughout the system.
+  - **Behavior:** The canonical identifier - key if set, otherwise path. Used as the cache key throughout the system.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -54,8 +54,8 @@ Owns module identity and compilation for the whole engine. It resolves `use` ref
 - **Performance/Scale Notes:** Compilation happens once per module per process. `getOrCreateModule` takes the read lock first and only escalates on a miss, so the steady-state path is read-only. Extension probing does up to two `os.Stat` calls, but only on first resolution.
 - **Dependencies Risk:**
   - **The `@local/` branch of `resolveRequire` escapes the pack root.** It joins the specifier onto `PackRoot` directly instead of going through `relativeToLocal`, which is where the `..`-prefix containment check lives. `require("@local/../../x.ts")` therefore reads and executes a file outside the pack. Filed as [#110](https://github.com/sentrie-sh/sentrie/issues/110). The relative-path branch is correctly guarded; only this one is not.
-  - **`RegisterGoBuiltin` and `RegisterTSBuiltin` write their maps without holding a lock**, unlike every other map in the type. This is safe only because registration happens during executor construction before any concurrent use — an invariant nothing enforces.
-  - **A compilation failure is cached permanently.** `sync.Once` fires regardless of outcome and `m.err` is retained, so a module that failed to compile — including for a transient reason such as a file read error — can never be retried for the process lifetime.
+  - **`RegisterGoBuiltin` and `RegisterTSBuiltin` write their maps without holding a lock**, unlike every other map in the type. This is safe only because registration happens during executor construction before any concurrent use - an invariant nothing enforces.
+  - **A compilation failure is cached permanently.** `sync.Once` fires regardless of outcome and `m.err` is retained, so a module that failed to compile - including for a transient reason such as a file read error - can never be retried for the process lifetime.
   - **Extension probing prefers `.ts` over `.js`** silently, so a directory containing both resolves to the TypeScript file with no diagnostic.
   - **`getOrCreateModule` returns nil rather than an error** when nothing resolves, forcing every caller to translate that into `module %s not found` and losing the reason.
   - **Bare specifiers are unsupported**, so no npm dependency can be used; the comment marks vendor resolution as future work.

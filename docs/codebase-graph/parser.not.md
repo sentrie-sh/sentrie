@@ -9,7 +9,7 @@ tags: negated-membership, infix-handler, desugaring
 # Node: parser.parseNotExpression (Negated Membership Infix)
 
 ## 1. Architectural Role & Intent
-Handles the infix use of `not` — the negated membership and matching forms `x not in […]`, `x not contains y`, `x not matches "…"`, and `x not not y`. It desugars them rather than introducing new node types: the positive infix expression is built first and then wrapped in a `UnaryExpression`, so [[runtime.eval_infix]] and [[runtime.eval_unary]] need no special cases.
+Handles the infix use of `not` - the negated membership and matching forms `x not in […]`, `x not contains y`, `x not matches "…"`, and `x not not y`. It desugars them rather than introducing new node types: the positive infix expression is built first and then wrapped in a `UnaryExpression`, so [[runtime.eval_infix]] and [[runtime.eval_unary]] need no special cases.
 
 ## 2. Graph Edges (Strict Relational Data)
 

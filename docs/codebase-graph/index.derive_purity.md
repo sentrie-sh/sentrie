@@ -9,7 +9,7 @@ tags: purity, sandboxing, scoping, static-analysis, security
 # Node: index.validateDerivePurity (Purity Enforcement)
 
 ## 1. Architectural Role & Intent
-The static gate that makes `derive` genuinely pure. It walks every derive body with an explicit lexical scope and rejects anything that could read policy state or reach the outside world: facts, rules, TypeScript module calls, non-derive-safe builtins, unknown identifiers, and yielding a lambda. Because derives are shared across policies and evaluated without a policy context, this check — not the runtime — is what guarantees a derive cannot smuggle in ambient state.
+The static gate that makes `derive` genuinely pure. It walks every derive body with an explicit lexical scope and rejects anything that could read policy state or reach the outside world: facts, rules, TypeScript module calls, non-derive-safe builtins, unknown identifiers, and yielding a lambda. Because derives are shared across policies and evaluated without a policy context, this check - not the runtime - is what guarantees a derive cannot smuggle in ambient state.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -40,7 +40,7 @@ The static gate that makes `derive` genuinely pure. It walks every derive body w
   - **Exceptions:** `derive body may only contain let declarations before yield (got %T)`.
 
 - **Signature:** `yieldHasNoLambda(e) -> error` / `scanLambdasOutsideCalls(e, underCall bool) -> error`
-  - **Behavior:** Rejects a lambda appearing in a yielded position unless it is an **argument to a call** — so `filter(xs, x => …)` is fine but returning a function is not. This keeps derives first-order at their boundary.
+  - **Behavior:** Rejects a lambda appearing in a yielded position unless it is an **argument to a call** - so `filter(xs, x => …)` is fine but returning a function is not. This keeps derives first-order at their boundary.
   - **Side Effects:** None.
   - **Exceptions:** `derive cannot yield a lambda value`; `derive purity: unsupported expression in yield scan %T`.
 
@@ -69,7 +69,7 @@ The static gate that makes `derive` genuinely pure. It walks every derive body w
 - **Performance/Scale Notes:** `cloneScope` copies on every let and every lambda, making deeply nested bodies quadratic in binding count. The `seen` map allocates once per top-level expression walk.
 - **Dependencies Risk:**
   - **This is a security boundary, not a style check.** It is the only thing preventing a derive from calling into a TypeScript module or reading facts. Weakening a case here widens the sandbox.
-  - **Exhaustive switches are a maintenance hazard.** Three separate switches — here, in `scanLambdasOutsideCalls`, and in [[index.derive_expr_walk]] — must all learn about any new `ast.Expression` type. Miss one and you get a spurious "unsupported expression" rejection of valid code.
+  - **Exhaustive switches are a maintenance hazard.** Three separate switches - here, in `scanLambdasOutsideCalls`, and in [[index.derive_expr_walk]] - must all learn about any new `ast.Expression` type. Miss one and you get a spurious "unsupported expression" rejection of valid code.
   - **The callback allowlist is hardcoded by name and index.** Adding a higher-order pure builtin to [[builtins]] without updating `isAllowedDeriveCallbackArg` means derives cannot be passed to it, even though the builtin is derive-safe.
   - **Slash-qualified resolution requires three segments.** A two-segment path falls through to the generic identifier path and reports a less helpful error.
-  - **Error selection is nondeterministic.** Because `DerivesByFQN` is a map, a pack with purity errors in several derives may report a different one on each run — confusing when iterating on fixes.
+  - **Error selection is nondeterministic.** Because `DerivesByFQN` is a map, a pack with purity errors in several derives may report a different one on each run - confusing when iterating on fixes.

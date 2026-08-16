@@ -9,7 +9,7 @@ tags: rule-model, evaluation-unit, dependency-graph
 # Node: index.Rule (Rule Record)
 
 ## 1. Architectural Role & Intent
-`Rule` is the semantic record of one `rule name = [default …] [when …] body` declaration — the atomic unit of evaluation in Sentrie. It keeps the three expression slots independent so [[runtime]] can treat the guard, the body, and the fallback as separate decisions, and it doubles as a graph vertex: rules are the node type of the rule DAG built in [[index.validate]].
+`Rule` is the semantic record of one `rule name = [default …] [when …] body` declaration - the atomic unit of evaluation in Sentrie. It keeps the three expression slots independent so [[runtime]] can treat the guard, the body, and the fallback as separate decisions, and it doubles as a graph vertex: rules are the node type of the rule DAG built in [[index.validate]].
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -25,8 +25,8 @@ tags: rule-model, evaluation-unit, dependency-graph
 
 ## 3. Interface Contracts & Public Surface
 
-- **Signature:** `Rule` struct — `{ Node *ast.RuleStatement, Policy *Policy, Name string, FQN ast.FQN, Default, When, Body ast.Expression }`
-  - **Behavior:** Note the AST field is called `Node`, unlike `Shape`, `Policy`, and `Derive`, which all call theirs `Statement`. `Default` and `When` are nil when the clauses are absent — nil is the encoding for "no fallback" and "no guard". `Body` may be a block, a plain expression, or an `ast.ImportClause` when the rule delegates to another policy's decision.
+- **Signature:** `Rule` struct - `{ Node *ast.RuleStatement, Policy *Policy, Name string, FQN ast.FQN, Default, When, Body ast.Expression }`
+  - **Behavior:** Note the AST field is called `Node`, unlike `Shape`, `Policy`, and `Derive`, which all call theirs `Statement`. `Default` and `When` are nil when the clauses are absent - nil is the encoding for "no fallback" and "no guard". `Body` may be a block, a plain expression, or an `ast.ImportClause` when the rule delegates to another policy's decision.
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 
@@ -43,7 +43,7 @@ tags: rule-model, evaluation-unit, dependency-graph
 - **Signature:** `(*Rule).Span() -> tokens.Range`
   - **Behavior:** Delegates to `Node`.
   - **Side Effects:** None.
-  - **Exceptions:** Panics if `Node` is nil — always populated in practice.
+  - **Exceptions:** Panics if `Node` is nil - always populated in practice.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Immutable after construction.

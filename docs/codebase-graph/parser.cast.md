@@ -9,7 +9,7 @@ tags: cast, type-conversion, infix-handler
 # Node: parser.parseAsCastExpression (Type Cast)
 
 ## 1. Architectural Role & Intent
-Parses the postfix cast `expr as <type>` as an infix handler on `as`. It is the only syntactic bridge between the untyped expression world and the type vocabulary of [[ast.typeref]], letting a policy assert or convert a value's type mid-expression — typically to satisfy a shape or to coerce a document field into a scalar before comparison.
+Parses the postfix cast `expr as <type>` as an infix handler on `as`. It is the only syntactic bridge between the untyped expression world and the type vocabulary of [[ast.typeref]], letting a policy assert or convert a value's type mid-expression - typically to satisfy a shape or to coerce a document field into a scalar before comparison.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -24,7 +24,7 @@ Parses the postfix cast `expr as <type>` as an infix handler on `as`. It is the 
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `parseAsCastExpression(ctx, p, left: ast.Expression, _ Precedence) -> ast.Expression`
-  - **Behavior:** Consumes `as`, parses a type reference, and builds a `CastExpression` spanning from the left operand's start to the type's end — a correctly computed range, unlike most of the expression productions. The precedence argument is explicitly ignored, since the target is a type reference rather than an expression and needs no binding power.
+  - **Behavior:** Consumes `as`, parses a type reference, and builds a `CastExpression` spanning from the left operand's start to the type's end - a correctly computed range, unlike most of the expression productions. The precedence argument is explicitly ignored, since the target is a type reference rather than an expression and needs no binding power.
   - **Side Effects:** Consumes tokens.
   - **Exceptions:** Returns `nil` on a missing `as` or a failed type reference.
 

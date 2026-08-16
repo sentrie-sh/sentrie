@@ -9,7 +9,7 @@ tags: pratt-parser, recursive-descent, front-end, syntax-analysis
 # Node: Parser (Pratt / Recursive-Descent Front-End)
 
 ## 1. Architectural Role & Intent
-`parser` is the hand-written front-end that turns the token stream from [[lexer]] into an `ast.Program`. It is a **Pratt (top-down operator-precedence) parser** for expressions layered over table-driven recursive descent for statements: four handler maps (prefix, infix, top-level statement, policy-scoped statement) are registered once at construction and dispatched on token kind. It exists to enforce Sentrie's structural rules that a grammar alone cannot express — namespace-first files, policy-only metadata, arity-checked type constraints — and to produce nodes with exact source spans so every later diagnostic can point back at source.
+`parser` is the hand-written front-end that turns the token stream from [[lexer]] into an `ast.Program`. It is a **Pratt (top-down operator-precedence) parser** for expressions layered over table-driven recursive descent for statements: four handler maps (prefix, infix, top-level statement, policy-scoped statement) are registered once at construction and dispatched on token kind. It exists to enforce Sentrie's structural rules that a grammar alone cannot express - namespace-first files, policy-only metadata, arity-checked type constraints - and to produce nodes with exact source spans so every later diagnostic can point back at source.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -20,7 +20,7 @@ tags: pratt-parser, recursive-descent, front-end, syntax-analysis
 | `parser` | `CALLS` | [[ast]] | Every production emits AST nodes through `ast.New*` constructors; this package's only output. |
 | `parser` | `CALLS` | [[ast.typeref]] | `parseTypeRef` calls `AddConstraint`, so constraint-name and arity errors surface as parse errors. |
 | `parser` | `LAYERED_ON` | [[trinary]] | Trinary keyword literals are resolved to `trinary.Value` at parse time. |
-| `parser` | `DEPENDS_ON` | [[grammar]] | Conformance only — implements the reference productions with no generated linkage. |
+| `parser` | `DEPENDS_ON` | [[grammar]] | Conformance only - implements the reference productions with no generated linkage. |
 | [[loader]] | `CALLS` | [[parser]] | `LoadPrograms` constructs one parser per `.sentrie` file and calls `ParseProgram`. |
 | [[index]] | `LAYERED_ON` | [[parser]] | Consumes this package's AST output rather than calling the parser directly. |
 
@@ -49,12 +49,12 @@ The package exposes a deliberately narrow surface: everything except constructio
   - **Exceptions:** None.
 
 - **Signature:** `PRIMITIVE_TYPES`, `AGGREGATE_TYPES` (exported `[]tokens.Kind` vars)
-  - **Behavior:** Token-kind sets used to recognise type-reference heads. Exported package-level **mutable slices** — treat as read-only constants.
+  - **Behavior:** Token-kind sets used to recognise type-reference heads. Exported package-level **mutable slices** - treat as read-only constants.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
 - **Signature:** `ErrParse` sentinel
-  - **Behavior:** Declared in [[parser.err]] but not returned by any production — parse failures are `fmt.Errorf` values joined together. Do not match on it.
+  - **Behavior:** Declared in [[parser.err]] but not returned by any production - parse failures are `fmt.Errorf` values joined together. Do not match on it.
   - **Side Effects:** None.
   - **Exceptions:** N/A.
 

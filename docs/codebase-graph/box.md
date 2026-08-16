@@ -9,7 +9,7 @@ tags: value-model, type-system, boundary-marshalling, runtime-data
 # Node: Box (Universal Boxed Value Model)
 
 ## 1. Architectural Role & Intent
-`box` defines the single universal runtime value representation for the Sentrie language — a compact tagged union (`Value`) covering undefined, null, bool, number, string, trinary, list, dict, host document, and first-class callable. It exists so that the evaluator, builtins, constraints, and the JavaScript interop layer all speak one value dialect instead of passing raw `any` around, and so that the critical `undefined` vs `null` distinction (missing fact vs explicitly null fact) survives every boundary crossing. It also owns the semantic comparison operators (`EqualValues`, `ContainsValue`, `MatchesValue`) that back the language's infix operators.
+`box` defines the single universal runtime value representation for the Sentrie language - a compact tagged union (`Value`) covering undefined, null, bool, number, string, trinary, list, dict, host document, and first-class callable. It exists so that the evaluator, builtins, constraints, and the JavaScript interop layer all speak one value dialect instead of passing raw `any` around, and so that the critical `undefined` vs `null` distinction (missing fact vs explicitly null fact) survives every boundary crossing. It also owns the semantic comparison operators (`EqualValues`, `ContainsValue`, `MatchesValue`) that back the language's infix operators.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -30,7 +30,7 @@ tags: value-model, type-system, boundary-marshalling, runtime-data
 - **Signature:** `EqualValues(a: Value, b: Value) -> bool`
   - **Behavior:** Semantic equality including cross-kind numeric comparison. Backs the `==` / `!=` infix operators.
   - **Side Effects:** None.
-  - **Exceptions:** None — incomparable kinds return `false` rather than erroring.
+  - **Exceptions:** None - incomparable kinds return `false` rather than erroring.
 
 - **Signature:** `ContainsValue(haystack: Value, needle: Value) -> bool`
   - **Behavior:** Backs the `contains` and `in` infix operators for string, list, and dict haystacks. Dict haystacks support only string-key lookup and dict-subset containment.
@@ -55,7 +55,7 @@ tags: value-model, type-system, boundary-marshalling, runtime-data
 - **Signature:** `FromBoundaryAny(x: any) -> Value`
   - **Behavior:** Inverse of the above; reconstructs boxed values from boundary representations, restoring `undefined` from its sentinel.
   - **Side Effects:** Allocates a boxed tree.
-  - **Exceptions:** None — unrecognized types are wrapped as `Document`.
+  - **Exceptions:** None - unrecognized types are wrapped as `Document`.
 
 - **Signature:** `IsBoundaryUndefined(x: any) -> bool`
   - **Behavior:** Detects the unexported undefined sentinel on the unboxed side of a boundary.
@@ -67,12 +67,12 @@ tags: value-model, type-system, boundary-marshalling, runtime-data
   - **Side Effects:** None; specifically avoids the intermediate allocation that `trinary.From(v.Any())` would incur.
   - **Exceptions:** None.
 
-- **Signature:** Constructors — `Undefined()`, `Null()`, `Bool[T ~bool]`, `Number[numeric]`, `String[T ~string]`, `Trinary`, `List`, `Dict`, `Document[T any]`, `Callable`, `FromAny`
+- **Signature:** Constructors - `Undefined()`, `Null()`, `Bool[T ~bool]`, `Number[numeric]`, `String[T ~string]`, `Trinary`, `List`, `Dict`, `Document[T any]`, `Callable`, `FromAny`
   - **Behavior:** Kind-specific boxing. `Object`/`ObjectRef`/`SameObjectRef` are retained backward-compatible aliases for the `Document` family.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless package; `Value` is an immutable-by-convention struct passed by copy.
-- **Performance/Scale Notes:** `Value` is deliberately a compact three-field union (`kind`, `u64`, `ref any`) — scalars (bool, number, trinary) are stored inline in `u64` with **zero heap allocation**, while only strings, lists, dicts, documents, and callables touch `ref`. Prefer `TrinaryFrom` over `trinary.From(v.Any())` and prefer typed accessors over `Any()`, since `Any()` deep-copies list/dict trees. `MatchesValue` recompiles its regexp per invocation, so regex-heavy policies pay repeated compilation cost.
-- **Dependencies Risk:** No external failure domain. The principal hazards are semantic: (1) `Value` copies share the underlying `ref` slice/map, so mutating a list or dict obtained from `ListValue`/`DictValue` **aliases into every copy** — treat them as read-only; (2) `ToBoundaryAny` silently degrades callables to a placeholder string, so any path that must reject callables at a boundary has to use `TryToBoundaryAny` and honour `ErrCallableBoundary`; (3) `MarshalJSON` renders `undefined` as JSON `null`, erasing the undefined/null distinction at the serialization edge — consumers of [[api]] output cannot recover it.
+- **Performance/Scale Notes:** `Value` is deliberately a compact three-field union (`kind`, `u64`, `ref any`) - scalars (bool, number, trinary) are stored inline in `u64` with **zero heap allocation**, while only strings, lists, dicts, documents, and callables touch `ref`. Prefer `TrinaryFrom` over `trinary.From(v.Any())` and prefer typed accessors over `Any()`, since `Any()` deep-copies list/dict trees. `MatchesValue` recompiles its regexp per invocation, so regex-heavy policies pay repeated compilation cost.
+- **Dependencies Risk:** No external failure domain. The principal hazards are semantic: (1) `Value` copies share the underlying `ref` slice/map, so mutating a list or dict obtained from `ListValue`/`DictValue` **aliases into every copy** - treat them as read-only; (2) `ToBoundaryAny` silently degrades callables to a placeholder string, so any path that must reject callables at a boundary has to use `TryToBoundaryAny` and honour `ErrCallableBoundary`; (3) `MarshalJSON` renders `undefined` as JSON `null`, erasing the undefined/null distinction at the serialization edge - consumers of [[api]] output cannot recover it.

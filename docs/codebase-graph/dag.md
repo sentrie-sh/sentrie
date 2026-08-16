@@ -28,14 +28,14 @@ tags: graph-algorithms, cycle-detection, dependency-ordering, static-analysis
   - **Exceptions:** None.
 
 - **Signature:** `G.AddNode(n: T)`
-  - **Behavior:** Registers a vertex. Idempotent — re-adding an existing node is a no-op, so callers need not track insertion.
+  - **Behavior:** Registers a vertex. Idempotent - re-adding an existing node is a no-op, so callers need not track insertion.
   - **Side Effects:** Mutates internal graph state.
   - **Exceptions:** None.
 
 - **Signature:** `G.AddEdge(from: T, to: T) -> error`
   - **Behavior:** Registers a directed dependency edge.
   - **Side Effects:** Mutates internal graph state.
-  - **Exceptions:** Returns `ErrNodeMissing` if either endpoint was never added, and `ErrSelfLoop` if `from == to` — the latter catches the trivial "a derive references itself" case eagerly rather than deferring it to topological sort.
+  - **Exceptions:** Returns `ErrNodeMissing` if either endpoint was never added, and `ErrSelfLoop` if `from == to` - the latter catches the trivial "a derive references itself" case eagerly rather than deferring it to topological sort.
 
 - **Signature:** `G.TopoSort() -> ([]T, error)`
   - **Behavior:** Returns vertices in dependency order, so that every node appears after everything it depends on. This is the evaluation order consumed by [[index]].
@@ -45,7 +45,7 @@ tags: graph-algorithms, cycle-detection, dependency-ordering, static-analysis
 - **Signature:** `G.DetectFirstCycle() -> []T`
   - **Behavior:** Returns the vertex path of the first cycle found, or nil/empty when the graph is acyclic. Used to turn a bare `ErrNotADAG` into a diagnostic naming the actual offending chain.
   - **Side Effects:** None.
-  - **Exceptions:** None — reports absence of a cycle by returning an empty path rather than erroring.
+  - **Exceptions:** None - reports absence of a cycle by returning an empty path rather than erroring.
 
 - **Signature:** `ErrCycle` struct with `Path []string`
   - **Behavior:** Carries the rendered cycle path for presentation to the policy author.
@@ -54,5 +54,5 @@ tags: graph-algorithms, cycle-detection, dependency-ordering, static-analysis
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** **Stateful and mutable.** A `G[T]` instance accumulates nodes and edges across calls and is intended to be built up once and then queried. `G` is an interface, so the concrete implementation is hidden and callers cannot inspect internals.
-- **Performance/Scale Notes:** Graph sizes here are bounded by the number of derives and rules in a policy pack — typically tens to low hundreds — so asymptotic behaviour is not a practical concern. `TopoSort` and `DetectFirstCycle` are each a full traversal; calling both (the normal error path) means walking the graph twice.
-- **Dependencies Risk:** No external failure domain. Two usage hazards: (1) `AddEdge` requires **both** endpoints to be pre-registered via `AddNode`, so a caller that adds edges while discovering symbols must add nodes first or handle `ErrNodeMissing` as "forward reference" rather than "unknown symbol"; (2) `TopoSort` reports only that a cycle exists — a caller that surfaces `ErrNotADAG` directly to the user gives an unactionable message, so it must follow up with `DetectFirstCycle` to name the participants.
+- **Performance/Scale Notes:** Graph sizes here are bounded by the number of derives and rules in a policy pack - typically tens to low hundreds - so asymptotic behaviour is not a practical concern. `TopoSort` and `DetectFirstCycle` are each a full traversal; calling both (the normal error path) means walking the graph twice.
+- **Dependencies Risk:** No external failure domain. Two usage hazards: (1) `AddEdge` requires **both** endpoints to be pre-registered via `AddNode`, so a caller that adds edges while discovering symbols must add nodes first or handle `ErrNodeMissing` as "forward reference" rather than "unknown symbol"; (2) `TopoSort` reports only that a cycle exists - a caller that surfaces `ErrNotADAG` directly to the user gives an unactionable message, so it must follow up with `DetectFirstCycle` to name the participants.

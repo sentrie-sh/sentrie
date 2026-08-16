@@ -9,7 +9,7 @@ tags: declaration, namespace, front-end, program-structure
 # Node: parser.parseNamespaceStatement (Namespace Declaration)
 
 ## 1. Architectural Role & Intent
-Parses `namespace <fqn>`, the mandatory first declaration of every Sentrie file. It is a thin production — consume the keyword, delegate the path to [[parser.fqn]], stitch the span — but it produces the node that [[index]] uses as the root key for every policy, shape, and derive in the file, making it the anchor of the entire symbol hierarchy.
+Parses `namespace <fqn>`, the mandatory first declaration of every Sentrie file. It is a thin production - consume the keyword, delegate the path to [[parser.fqn]], stitch the span - but it produces the node that [[index]] uses as the root key for every policy, shape, and derive in the file, making it the anchor of the entire symbol hierarchy.
 
 ## 2. Graph Edges (Strict Relational Data)
 

@@ -33,5 +33,5 @@ Validates a value against a `number` type and applies the numeric constraint tab
 - **Dependencies Risk:**
   - **There is one numeric kind.** [[box]] stores all numbers as `float64`, so this validator cannot distinguish an integer from a float. A type intended to mean "integer" must express that as a constraint, not as a type.
   - **Numeric strings are rejected**, so a fact arriving as `"42"` from JSON fails a `number` declaration rather than coercing.
-  - **Float precision applies to the constraint checks too** — a large integer beyond exact float representation validates against a bound it does not actually satisfy.
+  - **Float precision applies to the constraint checks too** - a large integer beyond exact float representation validates against a bound it does not actually satisfy.
   - Shares the `exec.(*executorImpl)` assertion and the first-failure-wins behaviour described in [[runtime.typeref_string]].

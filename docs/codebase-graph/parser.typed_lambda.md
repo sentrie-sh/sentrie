@@ -9,7 +9,7 @@ tags: lambda, type-annotations, optional-parameters, arity
 # Node: parser.parseTypedLambdaExpression (Typed Lambda)
 
 ## 1. Architectural Role & Intent
-Parses the full lambda form `(a: string, b?: number): trinary => { … }` — per-parameter type annotations, optional markers, and an optional return type. It is the fallback path taken when the fast untyped probe in [[parser.lambda]] declines, and it is where two real language rules are enforced: parameter names must be unique, and **required parameters may not follow optional ones**. That ordering rule is what makes `ast.RequiredLambdaArity` a meaningful prefix count at call time.
+Parses the full lambda form `(a: string, b?: number): trinary => { … }` - per-parameter type annotations, optional markers, and an optional return type. It is the fallback path taken when the fast untyped probe in [[parser.lambda]] declines, and it is where two real language rules are enforced: parameter names must be unique, and **required parameters may not follow optional ones**. That ordering rule is what makes `ast.RequiredLambdaArity` a meaningful prefix count at call time.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -33,8 +33,8 @@ Parses the full lambda form `(a: string, b?: number): trinary => { … }` — pe
 - **Statefulness:** Stateless.
 - **Performance/Scale Notes:** Nothing notable.
 - **Dependencies Risk:**
-  - **Parallel slices are always fully populated here, but not on the fast path.** This production appends to `types`/`opts` for every parameter (using `nil`/`false` placeholders), whereas [[parser.lambda]] produces a lambda with **nil** `ParamTypes` and `ParamOpts`. Consumers must bounds-check both slices rather than assuming they parallel `Params` — see [[ast]].
+  - **Parallel slices are always fully populated here, but not on the fast path.** This production appends to `types`/`opts` for every parameter (using `nil`/`false` placeholders), whereas [[parser.lambda]] produces a lambda with **nil** `ParamTypes` and `ParamOpts`. Consumers must bounds-check both slices rather than assuming they parallel `Params` - see [[ast]].
   - **The optional-ordering rule is checked *after* the type is parsed**, so `(a?: string, b: number)` reports the error at `b` with the type already consumed. Correct, but the position points past the actual mistake.
-  - **The `file` for the span comes from `p.current` at entry**, not from the `(` token, so a lambda whose parameter list somehow spanned files would mislabel — harmless today, fragile if includes are ever added.
+  - **The `file` for the span comes from `p.current` at entry**, not from the `(` token, so a lambda whose parameter list somehow spanned files would mislabel - harmless today, fragile if includes are ever added.
   - **Entry conditions are implicit.** The function documents its precondition in a comment rather than checking it; calling it with `(` unconsumed silently misparses.
   - **A lambda body must be a block.** Expression-bodied lambdas (`(x) => x + 1`) are not supported anywhere in the language.

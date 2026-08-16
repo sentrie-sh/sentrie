@@ -9,7 +9,7 @@ tags: declaration, fact, input-contract, optionality, nullability
 # Node: parser.parseFactStatement (Fact Declaration)
 
 ## 1. Architectural Role & Intent
-Parses `fact <ident>['?'] : <type> ['as' <ident>] ['default' <expr>]`. Facts are a policy's **input contract** — the typed data a caller must supply — so this production is where Sentrie's deliberate split between *presence* optionality (`name?`, the fact may be absent) and *value* nullability (`: T?`, the value may be null) is established. It also carries explicit rejection messages for the retired `!` syntax, so migrating policies get a directive error rather than a parse failure.
+Parses `fact <ident>['?'] : <type> ['as' <ident>] ['default' <expr>]`. Facts are a policy's **input contract** - the typed data a caller must supply - so this production is where Sentrie's deliberate split between *presence* optionality (`name?`, the fact may be absent) and *value* nullability (`: T?`, the value may be null) is established. It also carries explicit rejection messages for the retired `!` syntax, so migrating policies get a directive error rather than a parse failure.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -19,7 +19,7 @@ Parses `fact <ident>['?'] : <type> ['as' <ident>] ['default' <expr>]`. Facts are
 | `parser.fact` | `CALLS` | [[parser.expression]] | Parses the `default` expression at `LOWEST`. |
 | `parser.fact` | `CALLS` | [[parser.parser]] | Uses `expect`, `advanceExpected`, `canExpect`, `canExpectAnyOf`, `errorf`. |
 | `parser.fact` | `CALLS` | [[ast]] | Emits `ast.NewFactStatement(name, type, alias, default, optional, span)`. |
-| [[parser.policy]] | `CALLS` | [[parser.fact]] | Registered for `tokens.KeywordFact` in the policy-scope table only — facts are policy-scoped. |
+| [[parser.policy]] | `CALLS` | [[parser.fact]] | Registered for `tokens.KeywordFact` in the policy-scope table only - facts are policy-scoped. |
 | [[runtime.exec_ctx]] | `DEPENDS_ON` | [[parser.fact]] | Binds supplied input values against the declared facts at execution time. |
 | [[constraints]] | `CALLS` | [[parser.fact]] | The declared type's constraints are checked against the supplied value at runtime. |
 
@@ -34,7 +34,7 @@ Parses `fact <ident>['?'] : <type> ['as' <ident>] ['default' <expr>]`. Facts are
 - **Statefulness:** Stateless.
 - **Performance/Scale Notes:** Nothing notable.
 - **Dependencies Risk:**
-  - **Optionality and nullability are different axes and both are expressible.** `fact x?: T` means the caller may omit `x`; `fact x: T?` means `x` must be supplied but may be null; `fact x?: T?` means both. Conflating them is the most likely source of runtime "missing fact" versus "null value" confusion — and only the first is a presence failure.
+  - **Optionality and nullability are different axes and both are expressible.** `fact x?: T` means the caller may omit `x`; `fact x: T?` means `x` must be supplied but may be null; `fact x?: T?` means both. Conflating them is the most likely source of runtime "missing fact" versus "null value" confusion - and only the first is a presence failure.
   - **Alias defaults to the name, then is overwritten.** `Alias` is initialised to the fact's name and replaced only if `as` appears, so downstream code should read `Alias` (never `Name`) when resolving an external input key.
-  - **The optional-marker span update is off.** After consuming `?`, the range end is set from `p.head()` — the token *after* the marker — so a fact declaration's span can extend slightly past the `?`. Harmless for messages, but do not treat spans here as byte-exact.
+  - **The optional-marker span update is off.** After consuming `?`, the range end is set from `p.head()` - the token *after* the marker - so a fact declaration's span can extend slightly past the `?`. Harmless for messages, but do not treat spans here as byte-exact.
   - **`default` is parsed but not evaluated or type-checked here.** Whether the default satisfies the declared type (and its constraints) is decided later.

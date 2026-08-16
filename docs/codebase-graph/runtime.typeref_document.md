@@ -9,13 +9,13 @@ tags: type-validation, constraints, schemaless
 # Node: runtime.validateAgainstDocumentTypeRef
 
 ## 1. Architectural Role & Intent
-Validates a value against the `document` type — the schemaless container intended for arbitrary external payloads such as a Kubernetes manifest or a cloud resource description. It checks only that the value is a map, delegating any real structural expectation to constraints from the document checker table.
+Validates a value against the `document` type - the schemaless container intended for arbitrary external payloads such as a Kubernetes manifest or a cloud resource description. It checks only that the value is a map, delegating any real structural expectation to constraints from the document checker table.
 
 ## 2. Graph Edges (Strict Relational Data)
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.typeref_document` | `DEPENDS_ON` | [[constraints]] | `constraints.DocumentContraintCheckers` — the table that gives `document` whatever teeth it has. |
+| `runtime.typeref_document` | `DEPENDS_ON` | [[constraints]] | `constraints.DocumentContraintCheckers` - the table that gives `document` whatever teeth it has. |
 | `runtime.typeref_document` | `CALLS` | [[runtime.eval]] | Evaluates constraint argument expressions. |
 | `runtime.typeref_document` | `CALLS` | [[runtime.err_typedef]] | Constraint error constructors. |
 | [[runtime.typeref]] | `CALLS` | [[runtime.typeref_document]] | Dispatched for `*ast.DocumentTypeRef`. |
@@ -23,7 +23,7 @@ Validates a value against the `document` type — the schemaless container inten
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `validateAgainstDocumentTypeRef(ctx, ec, exec Executor, p *index.Policy, v box.Value, typeRef *ast.DocumentTypeRef, pos tokens.Range) -> error`
-  - **Behavior:** Requires `v.DictValue()` — the source comment states plainly that it "just validate[s] that it's a map" — then runs document constraints.
+  - **Behavior:** Requires `v.DictValue()` - the source comment states plainly that it "just validate[s] that it's a map" - then runs document constraints.
   - **Side Effects:** Constraint argument evaluation.
   - **Exceptions:** `value %v is not a document at %s - expected document`; `ErrUnknownConstraint`; `ErrConstraintFailed`.
 

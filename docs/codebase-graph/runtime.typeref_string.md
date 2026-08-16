@@ -34,5 +34,5 @@ Validates a value against a `string` type, then applies each attached constraint
   - **No implicit coercion.** A number that looks like a string is rejected outright; the type system does not widen at validation time even though [[runtime.eval_cast]] would convert.
   - **An unknown constraint is a *runtime* error.** The name is not verified when the pack is indexed, so a typo in a constraint name passes `sentrie validate` and fails at decision time. See [[runtime.err_typedef]].
   - **`exec.(*executorImpl)`** is asserted without a check, so a non-concrete `Executor` panics here rather than at the dispatcher.
-  - **The error message renders the value with `%v`**, so a long or sensitive string is embedded verbatim in the diagnostic — worth remembering when validation errors are surfaced to API callers.
+  - **The error message renders the value with `%v`**, so a long or sensitive string is embedded verbatim in the diagnostic - worth remembering when validation errors are surfaced to API callers.
   - **First failure wins.** Constraints do not accumulate, so an author fixing several violations discovers them one round-trip at a time.

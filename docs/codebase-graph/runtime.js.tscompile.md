@@ -22,7 +22,7 @@ Converts TypeScript or JavaScript source into ES2019 CommonJS via esbuild, then 
 
 - **Signature:** `TranspileTS(module *ModuleSpec, source string) -> (TranspileResult, error)`
   - **Behavior:** Selects the TypeScript loader when the module is a builtin or its extension is `.ts`, `.tsx`, `.mts`, or `.cts`; otherwise the JavaScript loader. Targets **ES2019**, emits **CommonJS**, and produces an external source map with source contents excluded.
-  - **Side Effects:** None — pure string transformation.
+  - **Side Effects:** None - pure string transformation.
   - **Exceptions:** `esbuild: %v` carrying only the **first** error's text.
 
 - **Signature:** `WrapAsIIFE(js string) -> string`

@@ -9,7 +9,7 @@ tags: builtins, higher-order, interface-adapter, dependency-inversion
 # Node: runtime.CallSite (Builtin Environment Adapter)
 
 ## 1. Architectural Role & Intent
-The adapter that lets [[builtins]] stay independent of the runtime. `CallSite` bundles the execution context, executor, and policy into the frame handed to every builtin, and satisfies `builtins.Env` — the narrow interface through which a higher-order builtin such as `filter` can invoke a caller-supplied callback without importing the evaluator. It is the dependency inversion that keeps the builtin library free of import cycles.
+The adapter that lets [[builtins]] stay independent of the runtime. `CallSite` bundles the execution context, executor, and policy into the frame handed to every builtin, and satisfies `builtins.Env` - the narrow interface through which a higher-order builtin such as `filter` can invoke a caller-supplied callback without importing the evaluator. It is the dependency inversion that keeps the builtin library free of import cycles.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -24,7 +24,7 @@ The adapter that lets [[builtins]] stay independent of the runtime. `CallSite` b
 
 ## 3. Interface Contracts & Public Surface
 
-- **Signature:** `CallSite` — `{ EC *ExecutionContext, Exec *executorImpl, Policy *index.Policy }`
+- **Signature:** `CallSite` - `{ EC *ExecutionContext, Exec *executorImpl, Policy *index.Policy }`
   - **Behavior:** A plain frame struct. Note it holds the **unexported** `*executorImpl` rather than the `Executor` interface, so a `CallSite` can only be constructed from inside the package.
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
@@ -48,7 +48,7 @@ The adapter that lets [[builtins]] stay independent of the runtime. `CallSite` b
 - **Statefulness:** A short-lived value constructed per builtin dispatch; all real state lives behind its three pointers.
 - **Performance/Scale Notes:** Allocation is trivial, but `Call` is the per-element path for collection builtins, so its cost is the callee's cost multiplied by collection size.
 - **Dependencies Risk:**
-  - **The `builtins.Env` assertion is load-bearing.** Adding a method to `Env` breaks compilation here, which is the intended safety net — but it also means the runtime must be able to satisfy any capability the builtin library wants, so widening `Env` widens what builtins can reach into.
-  - **Time stability is a semantic guarantee, not an optimization.** Because `ExecutionStart` is pinned to context creation, two `now()`-style calls in one policy always agree — including across derive boundaries, since detached contexts inherit `createdAt`. Changing that would make policies nondeterministic within a single evaluation.
+  - **The `builtins.Env` assertion is load-bearing.** Adding a method to `Env` breaks compilation here, which is the intended safety net - but it also means the runtime must be able to satisfy any capability the builtin library wants, so widening `Env` widens what builtins can reach into.
+  - **Time stability is a semantic guarantee, not an optimization.** Because `ExecutionStart` is pinned to context creation, two `now()`-style calls in one policy always agree - including across derive boundaries, since detached contexts inherit `createdAt`. Changing that would make policies nondeterministic within a single evaluation.
   - **`Call` does not re-check derive purity.** A builtin invoked inside a derive body receives a `CallSite` whose `EC` carries `evalDerive`, and it is the *callee's* evaluation path that enforces restrictions. A builtin that captured a callable and invoked it later under a different site would escape that marking.
   - **The site carries the policy, not the namespace**, so any builtin needing cross-namespace resolution must go through `Exec.index` rather than the frame.

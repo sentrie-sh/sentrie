@@ -9,7 +9,7 @@ tags: call-expression, memoization, arguments, infix-handler
 # Node: parser.parseCallExpression (Call and Memoization Suffix)
 
 ## 1. Architectural Role & Intent
-Parses `callee(arg, …)` as an infix operator on the already-parsed callee, and — distinctively — the trailing **memoization suffix** `f(x)!` / `f(x)!30`. Making memoization a syntactic property of the call site (rather than a property of the function) is a deliberate design choice: the policy author decides at each use whether a result should be cached and for how long, which is what [[runtime.eval_call]] keys its memo table on.
+Parses `callee(arg, …)` as an infix operator on the already-parsed callee, and - distinctively - the trailing **memoization suffix** `f(x)!` / `f(x)!30`. Making memoization a syntactic property of the call site (rather than a property of the function) is a deliberate design choice: the policy author decides at each use whether a result should be cached and for how long, which is what [[runtime.eval_call]] keys its memo table on.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -33,7 +33,7 @@ Parses `callee(arg, …)` as an infix operator on the already-parsed callee, and
 - **Signature:** `parseExpressionList(ctx, parser, end: tokens.Kind) -> []ast.Expression`
   - **Behavior:** Generic comma-separated expression list, terminated by the supplied token kind. Returns an empty (non-nil) slice for `f()`.
   - **Side Effects:** Consumes tokens.
-  - **Exceptions:** Returns `nil` — distinguishable from empty — when an element fails to parse.
+  - **Exceptions:** Returns `nil` - distinguishable from empty - when an element fails to parse.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless.
@@ -41,6 +41,6 @@ Parses `callee(arg, …)` as an infix operator on the already-parsed callee, and
 - **Dependencies Risk:**
   - **The memo suffix span is computed but discarded.** The code updates the local `rnge` after reading `!`/TTL, but the `CallExpression` was already constructed from the pre-suffix range, so a memoized call's span **stops at the closing paren** and excludes `!30`. Error messages pointing at such a call will under-report its extent.
   - **`!` is context-overloaded.** It is the memoization marker here, logical negation as a prefix ([[parser.unary]]), and part of the retired fact/shape syntax that [[parser.fact]] and [[parser.shape]] reject explicitly. Same token, three meanings.
-  - **TTL units are implicit.** The integer is multiplied by `time.Second` with no unit token, so `f(x)!30` is thirty seconds — easy to misread as milliseconds.
+  - **TTL units are implicit.** The integer is multiplied by `time.Second` with no unit token, so `f(x)!30` is thirty seconds - easy to misread as milliseconds.
   - **Missing commas are silently tolerated.** `parseExpressionList` only consumes a comma when present and otherwise loops, so `f(a b)` parses as two arguments. Same laxity as [[parser.collection]].
   - **Unterminated argument lists** exit on `hasTokens()` and report `expected ), got EOF`.

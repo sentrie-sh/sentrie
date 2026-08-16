@@ -25,10 +25,10 @@ Parses the conditional operator in three shapes: the full `cond ? a : b`, the **
 
 - **Signature:** `parseTernaryExpression(ctx, p, condition: ast.Expression, precedence: Precedence) -> ast.Expression`
   - **Behavior:** Consumes `?`, then branches:
-    - **Elvis** — if `:` follows immediately, consumes it and parses one expression at `COMPARISON` precedence, emitting `NewTernaryElvis(condition, fallback)`.
-    - **Full/abbreviated** — otherwise parses the true branch (defaulting to the condition itself when the next token is `:`), requires `:`, and parses the false branch, emitting `NewTernaryExpression`.
+    - **Elvis** - if `:` follows immediately, consumes it and parses one expression at `COMPARISON` precedence, emitting `NewTernaryElvis(condition, fallback)`.
+    - **Full/abbreviated** - otherwise parses the true branch (defaulting to the condition itself when the next token is `:`), requires `:`, and parses the false branch, emitting `NewTernaryExpression`.
 
-    The span starts at the condition and extends to the last branch — one of the few productions here with a fully correct range.
+    The span starts at the condition and extends to the last branch - one of the few productions here with a fully correct range.
   - **Side Effects:** Consumes tokens.
   - **Exceptions:** Returns `nil` on a missing `?` or `:`, or when either branch fails to parse.
 
@@ -36,7 +36,7 @@ Parses the conditional operator in three shapes: the full `cond ? a : b`, the **
 - **Statefulness:** Stateless.
 - **Performance/Scale Notes:** Nothing notable.
 - **Dependencies Risk:**
-  - **Asymmetric branch precedence.** The elvis fallback is parsed at `COMPARISON` while the ordinary branches use the inherited precedence. That means `a ?: b or c` and `a ? b : c or d` group their right-hand sides differently — the elvis fallback stops before `or`, the false branch does not.
+  - **Asymmetric branch precedence.** The elvis fallback is parsed at `COMPARISON` while the ordinary branches use the inherited precedence. That means `a ?: b or c` and `a ? b : c or d` group their right-hand sides differently - the elvis fallback stops before `or`, the false branch does not.
   - **The abbreviated form aliases the condition node.** When the true branch is omitted, the **same** `ast.Expression` pointer is used for both `Condition` and `Then`. Any consumer that mutates or memoizes per-node will see one node in two positions, and the condition is evaluated once but referenced twice.
   - **Elvis and abbreviated forms are nearly identical in source but produce different nodes** (`NewTernaryElvis` vs `NewTernaryExpression`), so tooling must handle both.
-  - **`?` is context-overloaded** — the conditional here, the optional-fact marker in [[parser.fact]], and the optional-field marker in [[parser.shape]].
+  - **`?` is context-overloaded** - the conditional here, the optional-fact marker in [[parser.fact]], and the optional-field marker in [[parser.shape]].

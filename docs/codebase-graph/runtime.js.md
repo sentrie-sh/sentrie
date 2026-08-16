@@ -44,18 +44,18 @@ Everything required to run TypeScript and JavaScript inside the policy engine: m
   - **Side Effects:** None.
   - **Exceptions:** `esbuild: %v` on the first transform error.
 
-- **Signature:** `Builtin<Name>Go` — the Go module providers
+- **Signature:** `Builtin<Name>Go` - the Go module providers
   - **Behavior:** Sixteen `ModuleProvider` values (`uuid`, `crypto`, `time`, `encoding`, `collection`, `jwt`, `regex`, `net`, `hash`, `url`, `string`, `json`, `semver`, `math`, plus base64 and the TypeScript `js` module) that fabricate a `module.exports` object directly in the VM. See [[runtime.js.builtins]].
   - **Side Effects:** Sets properties on a new VM object.
   - **Exceptions:** `ErrPermissionDenied` where a builtin is permission-gated.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** The `Registry` is shared and long-lived, caching compiled programs. Each `AliasRuntime` owns exactly one VM with its own module-exports cache. VMs are pooled by [[runtime.modules]].
-- **Performance/Scale Notes:** Transpilation and compilation happen **once per module** behind a `sync.Once`; execution reuses the compiled `goja.Program`. VM creation is the expensive part, which is why VMs are pooled rather than created per call. goja is an interpreter — it does not JIT — so hot loops in JavaScript are markedly slower than the equivalent Go builtin.
+- **Performance/Scale Notes:** Transpilation and compilation happen **once per module** behind a `sync.Once`; execution reuses the compiled `goja.Program`. VM creation is the expensive part, which is why VMs are pooled rather than created per call. goja is an interpreter - it does not JIT - so hot loops in JavaScript are markedly slower than the equivalent Go builtin.
 - **Dependencies Risk:**
   - **`require("@local/../…")` escapes the pack root.** The `@local/` branch of `resolveRequire` skips the containment check that the relative-path branch applies, enabling arbitrary file reads. Filed as [#110](https://github.com/sentrie-sh/sentrie/issues/110); see [[runtime.js.registry]].
-  - **The sandbox is defined by omission, not by policy.** goja provides no filesystem, network, or process access by default, and this package adds none — the `net` builtin is pure CIDR arithmetic with no sockets. The boundary therefore holds only as long as no future builtin introduces real I/O. There is no allowlist enforcing that.
+  - **The sandbox is defined by omission, not by policy.** goja provides no filesystem, network, or process access by default, and this package adds none - the `net` builtin is pure CIDR arithmetic with no sockets. The boundary therefore holds only as long as no future builtin introduces real I/O. There is no allowlist enforcing that.
   - **Environment access is the one deliberate hole**, gated per-key by pack permissions. A nil permissions block exposes nothing, which is the correct default.
-  - **`time.now()` is pinned to the execution start timestamp** injected as a VM global, so JavaScript sees the same clock as the policy evaluator — with a silent fallback to the real wall clock if the global is missing.
+  - **`time.now()` is pinned to the execution start timestamp** injected as a VM global, so JavaScript sees the same clock as the policy evaluator - with a silent fallback to the real wall clock if the global is missing.
   - **Builtins return error objects rather than throwing.** See [[runtime.js.builtins]]; this is the most likely source of quiet incorrect behaviour in module code.
   - **VMs are pooled without reset**, so module-level state persists across evaluations. Filed as [#105](https://github.com/sentrie-sh/sentrie/issues/105); see [[runtime.modules]].

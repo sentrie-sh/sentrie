@@ -9,7 +9,7 @@ tags: symbol-table, aggregate-root, concurrency, lifecycle
 # Node: index.Index (Semantic Model Aggregate Root)
 
 ## 1. Architectural Role & Intent
-`index/index.go` declares the `Index` struct — the aggregate root holding every namespace, program, and derive in a policy pack — and `AddProgram`, the ingestion routine that turns one parsed file into semantic model entries. It owns the index lifecycle state: a read/write lock, and two `sync.Once` guards that make validation and commit exactly-once operations whose results are cached for the index's lifetime.
+`index/index.go` declares the `Index` struct - the aggregate root holding every namespace, program, and derive in a policy pack - and `AddProgram`, the ingestion routine that turns one parsed file into semantic model entries. It owns the index lifecycle state: a read/write lock, and two `sync.Once` guards that make validation and commit exactly-once operations whose results are cached for the index's lifetime.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -28,8 +28,8 @@ tags: symbol-table, aggregate-root, concurrency, lifecycle
 
 ## 3. Interface Contracts & Public Surface
 
-- **Signature:** `Index` struct — `{ Pack *pack.PackFile, Namespaces map[string]*Namespace, Programs map[string]*Program, DerivesByFQN map[string]*Derive }` plus unexported `theLock`, `ruleDag`, `shapeDag`, and the validation/commit once-guards
-  - **Behavior:** `Namespaces` is keyed by FQN string, `Programs` by source file path, `DerivesByFQN` by fully-qualified derive path — the flat lookup that makes slash-qualified derive calls resolvable without walking the namespace tree.
+- **Signature:** `Index` struct - `{ Pack *pack.PackFile, Namespaces map[string]*Namespace, Programs map[string]*Program, DerivesByFQN map[string]*Derive }` plus unexported `theLock`, `ruleDag`, `shapeDag`, and the validation/commit once-guards
+  - **Behavior:** `Namespaces` is keyed by FQN string, `Programs` by source file path, `DerivesByFQN` by fully-qualified derive path - the flat lookup that makes slash-qualified derive calls resolvable without walking the namespace tree.
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 
@@ -44,7 +44,7 @@ tags: symbol-table, aggregate-root, concurrency, lifecycle
   - **Exceptions:** None.
 
 - **Signature:** `(*Index).AddProgram(ctx, astProgram *ast.Program) -> error`
-  - **Behavior:** Under the write lock: builds a `Program` record, ensures the namespace exists, then iterates statements **from index 1** dispatching on type — comments skipped, shapes and policies created and registered, derives added with a **cloned snapshot** of the namespace's currently-visible derives, and shape/derive exports recorded. Finally registers the program under its file reference.
+  - **Behavior:** Under the write lock: builds a `Program` record, ensures the namespace exists, then iterates statements **from index 1** dispatching on type - comments skipped, shapes and policies created and registered, derives added with a **cloned snapshot** of the namespace's currently-visible derives, and shape/derive exports recorded. Finally registers the program under its file reference.
   - **Side Effects:** Mutates namespaces, policies, shapes, derives, and `Programs`.
   - **Exceptions:** `ctx.Err()`; propagated conflicts from `addShape`/`addPolicy`/`addDerive`; `cannot export unknown derive %q at %s`; `unsupported top-level statement %T at %s`.
 

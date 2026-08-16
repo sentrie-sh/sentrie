@@ -9,7 +9,7 @@ tags: http-server, routing, lifecycle, listeners, problem-details
 # Node: api.HTTPAPI (Server Lifecycle and Routing)
 
 ## 1. Architectural Role & Intent
-Owns the HTTP surface: route registration, multi-address listener setup, server start and stop, the health endpoint, and the shared RFC 9457 error responder. It supports binding several addresses at once — one `http.Server` per listener, all sharing a single mux — so one process can serve both a loopback and a network interface.
+Owns the HTTP surface: route registration, multi-address listener setup, server start and stop, the health endpoint, and the shared RFC 9457 error responder. It supports binding several addresses at once - one `http.Server` per listener, all sharing a single mux - so one process can serve both a loopback and a network interface.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -37,7 +37,7 @@ Owns the HTTP surface: route registration, multi-address listener setup, server 
 - **Signature:** `StopServer(ctx context.Context) -> error`
   - **Behavior:** Closes each listener/server pair and nils the slice. `ListenerServerPair.Close` closes the listener then the server, returning early if the listener close fails.
   - **Side Effects:** Terminates connections.
-  - **Exceptions:** Always returns nil — pair errors are discarded.
+  - **Exceptions:** Always returns nil - pair errors are discarded.
 
 - **Signature:** `handleHealth(w, r)`
   - **Behavior:** Returns status and current time with HTTP 200, unconditionally.
@@ -53,9 +53,9 @@ Owns the HTTP surface: route registration, multi-address listener setup, server 
 - **Statefulness:** Holds the listener slice; not safe for concurrent `Setup`/`Stop`. One executor is shared by all handlers.
 - **Performance/Scale Notes:** Timeouts are hardcoded at 30 seconds each way and are not configurable, so a policy that legitimately takes longer is cut off mid-evaluation with the response half-written. There is no `IdleTimeout` or `ReadHeaderTimeout`, leaving the server open to slow-header connection exhaustion.
 - **Dependencies Risk:**
-  - **`StartServer` cannot report a serve error.** Errors go into `errChan`, and the deferred `wg.Wait()` followed by `close(errChan)` runs immediately — the function returns without waiting, and nothing ever reads the channel. A listener that fails after startup dies silently. `serve` in [[cmd]] launches this in a goroutine and then blocks on `ctx.Done()`, so the process stays alive with no listeners.
+  - **`StartServer` cannot report a serve error.** Errors go into `errChan`, and the deferred `wg.Wait()` followed by `close(errChan)` runs immediately - the function returns without waiting, and nothing ever reads the channel. A listener that fails after startup dies silently. `serve` in [[cmd]] launches this in a goroutine and then blocks on `ctx.Done()`, so the process stays alive with no listeners.
   - **`StopServer` is not a graceful shutdown.** It calls `Close`, which terminates active connections immediately, rather than `http.Server.Shutdown`, which drains them. An in-flight decision is dropped at exit.
   - **`ListenerServerPair.Close` returns early on the first error**, so a failed listener close leaves the server unclosed.
-  - **`BaseContext` returns the setup context**, so cancelling it cancels every in-flight request — correct for shutdown, but it means request contexts are tied to process lifetime rather than to the request.
+  - **`BaseContext` returns the setup context**, so cancelling it cancels every in-flight request - correct for shutdown, but it means request contexts are tied to process lifetime rather than to the request.
   - **`Setup`'s `port` and `listen` are re-passed to `StartServer`**, which ignores them and uses the stored listeners. The parameters are vestigial and misleading.
   - **The `{target...}` wildcard swallows the entire path tail**, so path parsing and validation are entirely delegated to `ResolveSegments`.

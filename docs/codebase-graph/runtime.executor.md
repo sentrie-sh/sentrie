@@ -9,7 +9,7 @@ tags: orchestration, concurrency, fact-binding, module-binding, entrypoint
 # Node: runtime.Executor (Execution Orchestrator)
 
 ## 1. Architectural Role & Intent
-The top-level driver: it owns the index, the JS registry, and the two caches, and it sequences a full evaluation — resolve the policy, verify the rule is exported, bind facts (injected or defaulted), bind lets, bind `use` modules, validate fact types, evaluate the rule outcome, then compute export attachments. `ExecPolicy` fans this out across every exported rule concurrently, making the executor both the entrypoint and the concurrency boundary of the system.
+The top-level driver: it owns the index, the JS registry, and the two caches, and it sequences a full evaluation - resolve the policy, verify the rule is exported, bind facts (injected or defaulted), bind lets, bind `use` modules, validate fact types, evaluate the rule outcome, then compute export attachments. `ExecPolicy` fans this out across every exported rule concurrently, making the executor both the entrypoint and the concurrency boundary of the system.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -70,7 +70,7 @@ The top-level driver: it owns the index, the JS registry, and the two caches, an
 - **Performance/Scale Notes:** Every exported rule of a policy runs in parallel against shared caches. VM pools cap at 10 instances per module, so contention appears as latency, not errors. Module binding happens per `ExecRule`, but the underlying pool is cache-hit after the first use.
 - **Dependencies Risk:**
   - **Fact defaults are injected under the wrong key.** Injected facts are stored under the **alias** (`p.Facts` is alias-keyed), but a defaulted fact is injected under `factStatement.Name`. When a fact declares `as <alias>`, has a `default`, and the caller omits it, `execRule`'s validation loop looks up `thePolicy.Facts[name]` with the declared name, gets nil, and **panics on `stmt.Span()`**. Aliased-with-default facts are the trigger.
-  - **The panic recovery in `ExecPolicy` is itself racy.** The deferred `recover` assigns `compositeErr` **without holding `theLock`**, and assigns rather than joins — so a panic in one rule can race with, and clobber, errors recorded by others.
+  - **The panic recovery in `ExecPolicy` is itself racy.** The deferred `recover` assigns `compositeErr` **without holding `theLock`**, and assigns rather than joins - so a panic in one rule can race with, and clobber, errors recorded by others.
   - **`ExecPolicy` output order is nondeterministic.** It ranges over the `RuleExports` map and appends as goroutines finish, so callers must not rely on ordering.
   - **Module bindings are cached by module path alone.** The perch key is `ms.KeyOrPath()`, but the export restriction comes from the *first* `use` statement to populate that key. Two policies importing different named exports from the same module share one binding, so the second can observe a narrower exports map than it asked for.
   - **`defer done()` inside the attachment loop** accumulates trace closures until `execRule` returns rather than closing each span promptly; the same pattern appears in `evaluateRuleOutcome`.

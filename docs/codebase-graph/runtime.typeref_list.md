@@ -32,8 +32,8 @@ Validates a value against a `list<T>` type. It is the first of the recursive val
 - **Statefulness:** Stateless.
 - **Performance/Scale Notes:** **This is the expensive validator.** Cost is O(elements) recursions, and each element's constraints re-evaluate their argument expressions independently. A list of shapes with constrained fields multiplies out quickly, and there is no memoisation of constraint arguments across elements. A large fact validated against a deeply-typed list is a plausible latency source.
 - **Dependencies Risk:**
-  - **Element errors do not say which element failed.** The wrapper is `item is not valid at %s` with the *container's* range and no index — the source carries a `TODO` acknowledging this. Debugging a failure in a hundred-element list means bisecting by hand.
+  - **Element errors do not say which element failed.** The wrapper is `item is not valid at %s` with the *container's* range and no index - the source carries a `TODO` acknowledging this. Debugging a failure in a hundred-element list means bisecting by hand.
   - **Validation stops at the first bad element**, so a caller cannot see how widespread a problem is from one response.
-  - **Raw boundary lists are not accepted.** Only `v.ListValue()` is tried, not `ObjectRef` holding a `[]any`, so a list returned from a JavaScript module may fail a `list<T>` declaration depending on how it was boxed — unlike [[runtime.eval_access]], which handles both representations.
+  - **Raw boundary lists are not accepted.** Only `v.ListValue()` is tried, not `ObjectRef` holding a `[]any`, so a list returned from a JavaScript module may fail a `list<T>` declaration depending on how it was boxed - unlike [[runtime.eval_access]], which handles both representations.
   - **An empty list trivially passes the element check**, so an element type is no guarantee the list is non-empty; that requires an explicit size constraint.
   - Shares the `exec.(*executorImpl)` assertion described in [[runtime.typeref]].

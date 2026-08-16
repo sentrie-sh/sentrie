@@ -29,9 +29,9 @@ Validates a value against the `dict` type. Deliberately shallow: it confirms the
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless.
-- **Performance/Scale Notes:** O(constraints), independent of dictionary size — the cheapest composite validator precisely because it does not recurse.
+- **Performance/Scale Notes:** O(constraints), independent of dictionary size - the cheapest composite validator precisely because it does not recurse.
 - **Dependencies Risk:**
-  - **`dict` provides no structural guarantee whatsoever.** Any map passes. Field access on a dict-typed value therefore has no compile-time or runtime backing, and [[runtime.eval_access]] returns `Undefined` for absent members — so a typo'd field name silently yields undefined rather than failing anywhere.
+  - **`dict` provides no structural guarantee whatsoever.** Any map passes. Field access on a dict-typed value therefore has no compile-time or runtime backing, and [[runtime.eval_access]] returns `Undefined` for absent members - so a typo'd field name silently yields undefined rather than failing anywhere.
   - **`dict` and `document` are nearly identical validators** with separate constraint tables; the only real difference is which checkers apply. The distinction is not enforced structurally.
   - **The error message lacks a position**, unlike its list and document siblings which include `pos`.
   - Shares the `exec.(*executorImpl)` assertion described in [[runtime.typeref]].

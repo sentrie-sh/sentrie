@@ -26,7 +26,7 @@ Parses `import decision <rule> from <fqn> (with <ident> as <expr>)*`, the altern
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `parseImportExpression(ctx, p) -> ast.Expression`
-  - **Behavior:** Requires `import`, `decision`, a rule identifier, `from`, and an FQN, then consumes zero or more `with` clauses, extending the span across each. Returns an `ImportClause` that occupies a rule's body slot — note it is an **expression**, not a statement, despite being usable only in that one position.
+  - **Behavior:** Requires `import`, `decision`, a rule identifier, `from`, and an FQN, then consumes zero or more `with` clauses, extending the span across each. Returns an `ImportClause` that occupies a rule's body slot - note it is an **expression**, not a statement, despite being usable only in that one position.
   - **Side Effects:** Consumes tokens.
   - **Exceptions:** Returns `nil` on a missing keyword, rule identifier, or FQN.
 
@@ -39,7 +39,7 @@ Parses `import decision <rule> from <fqn> (with <ident> as <expr>)*`, the altern
 - **Statefulness:** Stateless.
 - **Performance/Scale Notes:** Nothing notable at parse time; the runtime cost is a nested policy evaluation per import.
 - **Dependencies Risk:**
-  - **A failed `with` clause is swallowed.** The loop appends only when `parseWithClause` returns non-nil, but does **not** return on nil — so a malformed clause is skipped and the import is built without it. Combined with the loop condition (`head is 'with'`), a clause that fails after consuming its `with` token can leave the parser mid-clause and produce a cascade of unrelated errors. This is the weakest error handling in the package.
+  - **A failed `with` clause is swallowed.** The loop appends only when `parseWithClause` returns non-nil, but does **not** return on nil - so a malformed clause is skipped and the import is built without it. Combined with the loop condition (`head is 'with'`), a clause that fails after consuming its `with` token can leave the parser mid-clause and produce a cascade of unrelated errors. This is the weakest error handling in the package.
   - **Nothing is resolved here.** The target namespace, the rule's existence, whether it is exported, and whether the `with` names match the target's facts are all [[index.resolve]]'s concern. A typo in the FQN parses cleanly.
   - **It is an expression in a statement-shaped role.** `ImportClause` satisfies `ast.Expression` but is only ever valid as a rule body, so a generic expression walker may encounter it in a position it does not expect.
-  - **The doc comment is stale** — it specifies `withClause ::= 'with' IDENT 'as' IDENT` and a `blockExpr` production that this file does not implement.
+  - **The doc comment is stale** - it specifies `withClause ::= 'with' IDENT 'as' IDENT` and a `blockExpr` production that this file does not implement.

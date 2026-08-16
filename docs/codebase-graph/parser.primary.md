@@ -9,7 +9,7 @@ tags: literals, atoms, prefix-handlers, leaf-expressions
 # Node: parser.primary (Atomic Prefix Handlers)
 
 ## 1. Architectural Role & Intent
-`parser/primary.go` holds the six leaf prefix handlers — null, trinary, identifier, pipeline hole, integer, and string/float literals — that terminate every expression descent. It is where raw token text is converted into typed AST payloads: `strconv` for numerics, [[trinary]]'s keyword mapping for the tri-state literals. Everything else in the expression grammar eventually bottoms out here.
+`parser/primary.go` holds the six leaf prefix handlers - null, trinary, identifier, pipeline hole, integer, and string/float literals - that terminate every expression descent. It is where raw token text is converted into typed AST payloads: `strconv` for numerics, [[trinary]]'s keyword mapping for the tri-state literals. Everything else in the expression grammar eventually bottoms out here.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -33,17 +33,17 @@ tags: literals, atoms, prefix-handlers, leaf-expressions
 - **Signature:** `parseTrinaryLiteral(ctx, p) -> ast.Expression`
   - **Behavior:** Maps the `true`/`false`/`unknown` keyword token through `trinary.FromToken` and emits `TrinaryLiteral`.
   - **Side Effects:** Consumes a token.
-  - **Exceptions:** None — `FromToken` is total, so an unexpected token silently yields `Unknown`.
+  - **Exceptions:** None - `FromToken` is total, so an unexpected token silently yields `Unknown`.
 
 - **Signature:** `parseIdentifier(ctx, p) -> ast.Expression`
-  - **Behavior:** Wraps the token value in `Identifier`. No resolution, no scope check — every name is unbound until [[index.resolve]] and [[runtime.eval_ident]] run.
+  - **Behavior:** Wraps the token value in `Identifier`. No resolution, no scope check - every name is unbound until [[index.resolve]] and [[runtime.eval_ident]] run.
   - **Side Effects:** Consumes a token.
   - **Exceptions:** None.
 
 - **Signature:** `parsePipelineHoleExpression(ctx, p) -> ast.Expression`
   - **Behavior:** Emits the `#` placeholder node consumed by [[parser.pipeline]].
   - **Side Effects:** Consumes a token.
-  - **Exceptions:** None — a `#` outside a pipeline parses successfully here and must be rejected downstream.
+  - **Exceptions:** None - a `#` outside a pipeline parses successfully here and must be rejected downstream.
 
 - **Signature:** `parseIntegerLiteral(ctx, p) -> ast.Expression`
   - **Behavior:** `strconv.ParseInt(value, 10, 64)` → `IntegerLiteral`.
@@ -67,4 +67,4 @@ tags: literals, atoms, prefix-handlers, leaf-expressions
   - **Regression history.** `parseNullLiteral` previously assigned `p.err` directly instead of calling `errorf`, which dropped earlier diagnostics (bypassing `errors.Join`) and omitted the standard position prefix. Fixed; every production in this package must report through `errorf` to preserve the error-accumulation contract described in [[parser.parser]].
   - **Integer/float distinction is lost downstream.** `IntegerLiteral` carries an `int64`, but [[box.value]] stores all numbers as `float64`, so integers beyond 2^53 silently lose precision at evaluation even though they parsed exactly.
   - **`FromToken` never fails.** A malformed trinary token yields `Unknown` rather than an error, so a lexer change that alters keyword kinds would degrade silently into "unknown" verdicts.
-  - **Identifiers are unresolved strings.** Nothing here distinguishes a fact, a `let`, a derive, or a module alias — they are all `Identifier` nodes.
+  - **Identifiers are unresolved strings.** Nothing here distinguishes a fact, a `let`, a derive, or a module alias - they are all `Identifier` nodes.

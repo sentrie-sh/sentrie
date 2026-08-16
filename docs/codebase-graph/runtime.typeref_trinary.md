@@ -9,7 +9,7 @@ tags: type-validation, constraints, kleene-logic
 # Node: runtime.validateAgainstTrinaryTypeRef
 
 ## 1. Architectural Role & Intent
-Validates a value against the `trinary` type. Unlike the other scalar validators it **accepts two representations** — a native boolean, widened via `trinary.From`, or an already-trinary value — and normalises to a trinary before running constraints, so a policy declaring `trinary` transparently accepts a boolean fact.
+Validates a value against the `trinary` type. Unlike the other scalar validators it **accepts two representations** - a native boolean, widened via `trinary.From`, or an already-trinary value - and normalises to a trinary before running constraints, so a policy declaring `trinary` transparently accepts a boolean fact.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -32,7 +32,7 @@ Validates a value against the `trinary` type. Unlike the other scalar validators
 - **Statefulness:** Stateless.
 - **Performance/Scale Notes:** Negligible beyond constraint argument evaluation.
 - **Dependencies Risk:**
-  - **The error message says "bool" for a trinary type.** `value '%v' is not a bool ... expected bool` is the only diagnostic, so an author who declared `trinary` is told they needed a bool — misleading given `Unknown` is a legal value the message never mentions.
+  - **The error message says "bool" for a trinary type.** `value '%v' is not a bool ... expected bool` is the only diagnostic, so an author who declared `trinary` is told they needed a bool - misleading given `Unknown` is a legal value the message never mentions.
   - **Constraints see the normalised trinary, not the input.** A boolean input is re-boxed before checking, so a constraint cannot distinguish "was a bool" from "was a trinary that happened to be definite".
-  - **Truthiness coercion is *not* applied here.** Unlike [[runtime.eval_infix]], which coerces anything through `TrinaryFrom`, this validator only accepts the two exact kinds. So a value that behaves as true in a condition still fails a `trinary` declaration — validation is stricter than evaluation.
+  - **Truthiness coercion is *not* applied here.** Unlike [[runtime.eval_infix]], which coerces anything through `TrinaryFrom`, this validator only accepts the two exact kinds. So a value that behaves as true in a condition still fails a `trinary` declaration - validation is stricter than evaluation.
   - Shares the `exec.(*executorImpl)` assertion described in [[runtime.typeref]].

@@ -54,5 +54,5 @@ tags: configuration, environment, conventions, cross-cutting
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Entirely stateless compile-time constants.
-- **Performance/Scale Notes:** None — all values are inlined at compile time with no runtime cost.
+- **Performance/Scale Notes:** None - all values are inlined at compile time with no runtime cost.
 - **Dependencies Risk:** No failure domain. The notable hazards are conventional: (1) `ExecutionStartTimeUnixKey` uses a double-underscore prefix to signal reservation, but it lives in the same namespace as user-visible context data, so a policy defining that identifier would collide; (2) changing `PolicyFileExtension` or `PackFileExtension` silently breaks discovery of every existing on-disk pack, since [[loader]] does pure suffix matching with no fallback; (3) `EnvDebug` is checked with `os.LookupEnv`, so setting it to an empty string or `false` still enables debug mode.

@@ -9,7 +9,7 @@ tags: parser-state, token-window, error-accumulation, dispatch-tables
 # Node: parser.Parser (Parser State Machine)
 
 ## 1. Architectural Role & Intent
-`parser/parser.go` defines the `Parser` struct — the mutable state machine every production operates on — together with its token-window navigation primitives (`advance`, `expect`, `peek`, `canExpect`) and its error accumulator. It exists to centralise the two-token lookahead discipline and the "report and continue" error strategy, so that individual productions can be written as small functions that assume a valid `current`/`next` window and never handle I/O or error plumbing themselves.
+`parser/parser.go` defines the `Parser` struct - the mutable state machine every production operates on - together with its token-window navigation primitives (`advance`, `expect`, `peek`, `canExpect`) and its error accumulator. It exists to centralise the two-token lookahead discipline and the "report and continue" error strategy, so that individual productions can be written as small functions that assume a valid `current`/`next` window and never handle I/O or error plumbing themselves.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -25,7 +25,7 @@ tags: parser-state, token-window, error-accumulation, dispatch-tables
 
 ## 3. Interface Contracts & Public Surface
 
-- **Signature:** `Parser` struct — `{ lexer *lexer.Lexer, reference string, current, next tokens.Instance, atEof bool, err error, prefixHandlers, infixHandlers, statementHandlers, policyStatementHandlers map[tokens.Kind]… }`
+- **Signature:** `Parser` struct - `{ lexer *lexer.Lexer, reference string, current, next tokens.Instance, atEof bool, err error, prefixHandlers, infixHandlers, statementHandlers, policyStatementHandlers map[tokens.Kind]… }`
   - **Behavior:** All state is unexported. `reference` is the filename stamped onto `ast.Program.Reference`. The four maps are the entire dispatch mechanism; there is no switch-based fallback.
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
@@ -36,7 +36,7 @@ tags: parser-state, token-window, error-accumulation, dispatch-tables
   - **Exceptions:** None.
 
 - **Signature:** `(*Parser).head() -> tokens.Instance` / `peek() -> tokens.Instance`
-  - **Behavior:** Read the window without consuming. `peek()` returns a synthetic bare `Instance{Kind: EOF}` — **with a zero-valued `Range`** — once `atEof` is set, so a span taken from a peeked EOF token is meaningless.
+  - **Behavior:** Read the window without consuming. `peek()` returns a synthetic bare `Instance{Kind: EOF}` - **with a zero-valued `Range`** - once `atEof` is set, so a span taken from a peeked EOF token is meaningless.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -48,7 +48,7 @@ tags: parser-state, token-window, error-accumulation, dispatch-tables
 - **Signature:** `(*Parser).expect(kind: tokens.Kind) -> bool` / `advanceExpected(kind) -> (tokens.Instance, bool)`
   - **Behavior:** Assert-and-consume. Both report `expected X, got Y at <range>` on mismatch. `expect` discards the token; `advanceExpected` returns it (or a synthetic error token) alongside the success flag.
   - **Side Effects:** Consumes a token on success; appends to `p.err` on failure.
-  - **Exceptions:** Never returns an error — the boolean is the only failure signal, and **ignoring it silently continues parsing from an unexpected token**.
+  - **Exceptions:** Never returns an error - the boolean is the only failure signal, and **ignoring it silently continues parsing from an unexpected token**.
 
 - **Signature:** `(*Parser).canExpect(kind) -> bool` / `canExpectAnyOf(kinds ...) -> bool` / `hasTokens() -> bool`
   - **Behavior:** Non-consuming predicates over `current`. `hasTokens()` is simply `!atEof` and is the top-level loop condition.
@@ -66,7 +66,7 @@ tags: parser-state, token-window, error-accumulation, dispatch-tables
   - **Exceptions:** N/A.
 
 ## 4. Operational Context & Gotchas
-- **Statefulness:** **Single-use, mutable, not goroutine-safe.** The window, EOF flag, error, and handler maps all live on the instance; there is no reset path and no snapshot/restore. The only backtracking available is `lexer.PushBack`, which rewinds the *lexer* but not `current`/`next` — the reason speculative parsing is confined to a couple of carefully written sites.
+- **Statefulness:** **Single-use, mutable, not goroutine-safe.** The window, EOF flag, error, and handler maps all live on the instance; there is no reset path and no snapshot/restore. The only backtracking available is `lexer.PushBack`, which rewinds the *lexer* but not `current`/`next` - the reason speculative parsing is confined to a couple of carefully written sites.
 - **Performance/Scale Notes:** Every dispatch is a single map lookup; the four maps are rebuilt per `Parser`, so constructing a parser per file costs four map allocations plus ~60 inserts. Negligible for CLI use, worth noting if a server ever parses many small files in a tight loop.
 - **Dependencies Risk:**
   - **Boolean-only failure signalling.** `expect`/`advanceExpected` return `bool`; callers that ignore it keep parsing from an unexpected token and typically produce a cascade of downstream errors whose first entry is the only meaningful one. When reading a joined parse error, trust the earliest message.

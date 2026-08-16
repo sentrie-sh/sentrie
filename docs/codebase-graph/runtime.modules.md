@@ -26,7 +26,7 @@ The foreign-function boundary between Sentrie and embedded JavaScript. A `Module
 
 ## 3. Interface Contracts & Public Surface
 
-- **Signature:** `JSInstance` — `{ rt *goja.Runtime, exports map[string]goja.Value }` / `ModuleBinding` — `{ CanonicalKey, Alias string, instancePool *puddle.Pool[*JSInstance] }`
+- **Signature:** `JSInstance` - `{ rt *goja.Runtime, exports map[string]goja.Value }` / `ModuleBinding` - `{ CanonicalKey, Alias string, instancePool *puddle.Pool[*JSInstance] }`
   - **Behavior:** `exports` is the **restricted** set of names the `use` statement asked for, captured at construction. `CanonicalKey` is the resolved module path used as the cache key.
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
@@ -45,9 +45,9 @@ The foreign-function boundary between Sentrie and embedded JavaScript. A `Module
 - **Statefulness:** Pooled and reused. VMs are **not** reset between calls beyond the interrupt clear and the start-time global, so any global a module mutates persists across policy evaluations that land on the same instance.
 - **Performance/Scale Notes:** Pools cap at 10 instances per binding, so concurrent evaluations exceeding that block on `Acquire`. Every call spawns a watchdog goroutine and allocates a channel. Argument marshalling deep-copies lists and maps.
 - **Dependencies Risk:**
-  - **`out.ExportType()` can be nil.** goja returns a nil reflect type for `null` and `undefined` returns, and this code calls `.Kind()` on it unconditionally — so **a JS function that returns `null` or `undefined` panics the evaluator**. Given that returning `null` is idiomatic JavaScript, this is easy to hit from ordinary module code.
+  - **`out.ExportType()` can be nil.** goja returns a nil reflect type for `null` and `undefined` returns, and this code calls `.Kind()` on it unconditionally - so **a JS function that returns `null` or `undefined` panics the evaluator**. Given that returning `null` is idiomatic JavaScript, this is easy to hit from ordinary module code.
   - **VM state leaks between evaluations.** Because instances are pooled without a reset, a module that writes to a global carries that value into an unrelated policy's execution. This is a cross-tenant concern anywhere one executor serves multiple callers.
   - **The interrupt watchdog races with release.** `close(done)` runs before `poolInstance.Release()`, but the goroutine's `ClearInterrupt()` may still be in flight when the instance is handed to the next acquirer, which could clear an interrupt that acquirer just installed.
-  - **The return-type allowlist rejects by kind, not by contract.** `reflect.Int64` is listed but JS numbers export as `float64`, and any unlisted kind produces `unexpected return type` naming the reflect type rather than the JS value — an opaque message for module authors.
+  - **The return-type allowlist rejects by kind, not by contract.** `reflect.Int64` is listed but JS numbers export as `float64`, and any unlisted kind produces `unexpected return type` naming the reflect type rather than the JS value - an opaque message for module authors.
   - **The error message for a missing export double-quotes the name** (`'%q'`), producing `'"foo"'` in user-facing output.
   - **This is the sandbox boundary.** Permissions are applied when the VM is constructed in [[runtime.js]]; nothing in `Call` re-checks them, so a binding created with broad permissions stays broad for its whole cached lifetime.

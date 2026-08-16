@@ -33,7 +33,7 @@ The finalization step that flattens shape composition. It topologically sorts th
   - **Exceptions:** As above.
 
 ## 4. Operational Context & Gotchas
-- **Statefulness:** **Exactly-once, and partially destructive on failure.** Because it mutates shapes as it goes and aborts on the first error, a failed commit leaves the index in a half-hydrated state that cannot be retried — `commitOnce` has already fired.
+- **Statefulness:** **Exactly-once, and partially destructive on failure.** Because it mutates shapes as it goes and aborts on the first error, a failed commit leaves the index in a half-hydrated state that cannot be retried - `commitOnce` has already fired.
 - **Performance/Scale Notes:** One topological sort plus one pass per shape. The real cost is inside `resolveDependency`, whose cross-namespace fallback scans every namespace.
 - **Dependencies Risk:**
   - **`resolveDependency` is called with a nil policy.** Commit passes `nil` for `inPolicy`, so the policy-local shape lookup inside `resolveDependency` is **never exercised from this path**. Policy-scoped shapes composing with another policy-scoped shape rely entirely on the namespace and cross-namespace lookups.

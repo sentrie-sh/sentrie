@@ -9,7 +9,7 @@ tags: infrastructure, boundary, io, untrusted-input, security
 # Node: Filesystem (Host Storage Boundary)
 
 ## 1. Architectural Role & Intent
-The host filesystem is the only source of policy input that Sentrie reads without a network hop, and it is where every artefact the engine executes originates: pack manifests, `.sentrie` policy sources, and JavaScript/TypeScript modules. It is modelled as an explicit node because reads here cross a trust boundary — the bytes are attacker-controlled in any deployment where pack authorship is not the same as operator identity — and because the containment rules that are supposed to confine those reads to a pack root are enforced inconsistently across the two readers.
+The host filesystem is the only source of policy input that Sentrie reads without a network hop, and it is where every artefact the engine executes originates: pack manifests, `.sentrie` policy sources, and JavaScript/TypeScript modules. It is modelled as an explicit node because reads here cross a trust boundary - the bytes are attacker-controlled in any deployment where pack authorship is not the same as operator identity - and because the containment rules that are supposed to confine those reads to a pack root are enforced inconsistently across the two readers.
 
 Two subsystems touch it, with different guarantees. [[loader]] walks a pack directory tree during startup and produces the parse inputs. [[runtime.js.registry]] reads module files lazily, during evaluation, in response to `require` specifiers that originate in policy source.
 
@@ -38,4 +38,4 @@ Two subsystems touch it, with different guarantees. [[loader]] walks a pack dire
 - **Dependencies Risk:**
   - **Reads are not uniformly confined to the pack root.** The `@local/` branch of `resolveRequire` joins the specifier onto `PackRoot` without the `..`-containment check that guards the relative-path branch, so `require("@local/../../x.ts")` reads and executes a file outside the pack. Filed as [#110](https://github.com/sentrie-sh/sentrie/issues/110). This node exists largely to make that boundary visible in the graph.
   - **There is no read-size limit anywhere.** Neither reader bounds the bytes it will pull in, so a large file in a pack tree is fully materialised in memory.
-  - **Symlinks are not resolved or rejected.** Containment checks, where they exist at all, are lexical — they operate on the joined path string, not on the resolved target.
+  - **Symlinks are not resolved or rejected.** Containment checks, where they exist at all, are lexical - they operate on the joined path string, not on the resolved target.

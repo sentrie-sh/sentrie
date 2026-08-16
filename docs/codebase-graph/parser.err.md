@@ -20,7 +20,7 @@ tags: error-handling, sentinel, dead-code
 
 ## 3. Interface Contracts & Public Surface
 
-- **Signature:** `ErrParse` — `errors.New("parse error")`
+- **Signature:** `ErrParse` - `errors.New("parse error")`
   - **Behavior:** An exported sentinel with no producers. Matching against it never succeeds.
   - **Side Effects:** None.
   - **Exceptions:** N/A.
@@ -28,5 +28,5 @@ tags: error-handling, sentinel, dead-code
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Package-level immutable value.
 - **Performance/Scale Notes:** None.
-- **Two non-edges worth stating.** [[parser.parser]] produces the errors that actually reach callers — joined `fmt.Errorf` values, **not** wrappers of this sentinel. And parse errors do **not** flow through [[xerr]]; unlike index and runtime diagnostics they are plain joined errors with no structured span payload.
-- **Dependencies Risk:** **Do not classify parse failures with `errors.Is`.** Errors returned by `ParseProgram` are `errors.Join` trees of formatted messages, each prefixed `parsing error at <file>:<line>:<column>:`. Callers wanting to distinguish parse failures from I/O or validation failures must do so by call site (they came out of [[parser.parse]]) or by wrapping at the boundary — [[loader]] takes the call-site approach. Either wire this sentinel through `errorf` or delete it; leaving it exported invites a false-negative check.
+- **Two non-edges worth stating.** [[parser.parser]] produces the errors that actually reach callers - joined `fmt.Errorf` values, **not** wrappers of this sentinel. And parse errors do **not** flow through [[xerr]]; unlike index and runtime diagnostics they are plain joined errors with no structured span payload.
+- **Dependencies Risk:** **Do not classify parse failures with `errors.Is`.** Errors returned by `ParseProgram` are `errors.Join` trees of formatted messages, each prefixed `parsing error at <file>:<line>:<column>:`. Callers wanting to distinguish parse failures from I/O or validation failures must do so by call site (they came out of [[parser.parse]]) or by wrapping at the boundary - [[loader]] takes the call-site approach. Either wire this sentinel through `errorf` or delete it; leaving it exported invites a false-negative check.
