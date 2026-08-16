@@ -31,6 +31,24 @@ jobs:
             --output.text.print-issued-lines=true
             --output.text.colors=true
 
+  docs-graph:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+
+      # Asserts the schema documented in docs/codebase-graph/index.md: front-matter
+      # shape, closed predicate set, link resolution, edge locality, no orphans.
+      - name: Validate knowledge graph
+        run: make docs-graph
+
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 35

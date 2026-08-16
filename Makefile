@@ -14,6 +14,11 @@ clean-git:
 	git branch -vv
 	git branch -vv | grep ': gone]' | awk '{print $$1}' | xargs -r git branch -D
 
+# Conformance check for the knowledge graph under docs/codebase-graph.
+# The schema it asserts is documented in docs/codebase-graph/index.md.
+docs-graph:
+	go test -count=1 ./internal/docsgraph/
+
 # Each recipe line runs in a fresh shell; env must be set on the same line as go generate.
 gen:
 	GIT_USER_NAME="$(shell git config user.name)" GIT_USER_EMAIL="$(shell git config user.email)" go generate ./...
