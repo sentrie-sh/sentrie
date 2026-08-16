@@ -15,9 +15,8 @@ tags: error-handling, sentinel, dead-code
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `parser.err` | `DEPENDS_ON` | (stdlib: `errors`) | Sole dependency. |
-| [[parser.parser]] | `DEPENDS_ON` | (stdlib: `errors`, `fmt`) | Produces the errors that actually reach callers — joined `fmt.Errorf` values, **not** wrappers of this sentinel. |
-| [[xerr]] | (no edge) | — | Parse errors do **not** flow through the structured diagnostic package; they are plain joined errors. |
+| `parser.err` | `IMPORTS` | `std.errors` | Sole dependency. |
+| [[parser.err]] | `DEPENDS_ON` | [[parser.parser]] | The sentinel is declared for use by the parser's `errorf` path, which never actually wraps it. |
 
 ## 3. Interface Contracts & Public Surface
 
@@ -29,4 +28,5 @@ tags: error-handling, sentinel, dead-code
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Package-level immutable value.
 - **Performance/Scale Notes:** None.
+- **Two non-edges worth stating.** [[parser.parser]] produces the errors that actually reach callers — joined `fmt.Errorf` values, **not** wrappers of this sentinel. And parse errors do **not** flow through [[xerr]]; unlike index and runtime diagnostics they are plain joined errors with no structured span payload.
 - **Dependencies Risk:** **Do not classify parse failures with `errors.Is`.** Errors returned by `ParseProgram` are `errors.Join` trees of formatted messages, each prefixed `parsing error at <file>:<line>:<column>:`. Callers wanting to distinguish parse failures from I/O or validation failures must do so by call site (they came out of [[parser.parse]]) or by wrapping at the boundary — [[loader]] takes the call-site approach. Either wire this sentinel through `errorf` or delete it; leaving it exported invites a false-negative check.

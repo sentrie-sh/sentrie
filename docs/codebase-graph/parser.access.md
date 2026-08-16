@@ -19,8 +19,8 @@ tags: field-access, index-access, infix-handler, navigation
 | `parser.access` | `CALLS` | [[ast]] | Emits `ast.NewFieldAccessExpression` and `ast.NewIndexAccessExpression`. |
 | `parser.access` | `CALLS` | [[parser.parser]] | Uses `advance` and `advanceExpected`. |
 | [[parser.lookups]] | `CALLS` | [[parser.access]] | Registered as infix handlers for `.` and `[`. |
-| [[runtime.eval_access]] | `DEPENDS_ON` | [[ast]] | Resolves field and index navigation against boxed values at runtime. |
-| [[box.value]] | `READS_FROM` | [[ast]] | Dict, document, and list kinds back the two access forms. |
+| [[runtime.eval_access]] | `DEPENDS_ON` | [[parser.access]] | Resolves field and index navigation against boxed values at runtime. |
+| [[box.value]] | `READS_FROM` | [[parser.access]] | Dict, document, and list kinds back the two access forms. |
 
 ## 3. Interface Contracts & Public Surface
 

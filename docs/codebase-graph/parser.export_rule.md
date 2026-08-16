@@ -11,6 +11,8 @@ tags: declaration, decision-export, attachment, policy-output
 ## 1. Architectural Role & Intent
 Parses `export decision of <rule> (attach <ident> as <expr>)*` — the declaration that promotes one rule's outcome to the policy's public decision and attaches arbitrary named metadata expressions to it. It is the policy's **output contract**: what the CLI prints, what the HTTP API returns, and what another namespace can import. The attachment clauses are how a decision carries evidence (reasons, offending values, remediation hints) alongside its [[trinary]] verdict.
 
+The `export` keyword is context-sensitive: inside a policy block it reaches this handler, while at top level it dispatches to [[parser.export_shape]] instead. Reading either node alone gives half the picture.
+
 ## 2. Graph Edges (Strict Relational Data)
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
@@ -19,9 +21,8 @@ Parses `export decision of <rule> (attach <ident> as <expr>)*` — the declarati
 | `parser.export_rule` | `CALLS` | [[parser.parser]] | Uses `head`, `advance`, `advanceExpected`, `expect`, `errorf`. |
 | `parser.export_rule` | `CALLS` | [[ast]] | Emits `ast.NewRuleExportStatement` and `ast.NewAttachmentClause`. |
 | [[parser.policy]] | `CALLS` | [[parser.export_rule]] | Registered for `tokens.KeywordExport` in the **policy-scope** table. |
-| [[parser.export_shape]] | (contrast) | [[parser.export_rule]] | The same keyword at **top level** dispatches to the shape/derive export handler instead. |
-| [[runtime.decision]] | `DEPENDS_ON` | [[ast]] | Resolves the exported rule and evaluates attachments into the decision payload. |
-| [[parser.import]] | `DEPENDS_ON` | [[ast]] | Cross-namespace `import decision` consumes what this declares. |
+| [[runtime.decision]] | `DEPENDS_ON` | [[parser.export_rule]] | Resolves the exported rule and evaluates attachments into the decision payload. |
+| [[parser.import]] | `DEPENDS_ON` | [[parser.export_rule]] | Cross-namespace `import decision` consumes what this declares. |
 
 ## 3. Interface Contracts & Public Surface
 

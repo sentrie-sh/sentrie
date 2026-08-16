@@ -15,10 +15,10 @@ Hosts exactly one `goja.Runtime` per `use … as alias` binding and implements C
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.js.alias_runtime` | `DEPENDS_ON` | `ext.goja` | Owns the `goja.Runtime`; uses `Interrupt`, `ClearInterrupt`, `RunProgram`, `AssertFunction`. |
+| `runtime.js.alias_runtime` | `IMPORTS` | `ext.dop251.goja` | Owns the `goja.Runtime`; uses `Interrupt`, `ClearInterrupt`, `RunProgram`, `AssertFunction`. |
 | `runtime.js.alias_runtime` | `CALLS` | [[runtime.js.registry]] | `LoadRequire` and `programFor` to resolve and compile dependencies. |
 | `runtime.js.alias_runtime` | `CALLS` | [[runtime.js.stdlib]] | `SetupStdLib` installs globals before any module runs. |
-| `runtime.js.alias_runtime` | `MUTATES` | `ext.goja` | Sets the `__require` global around each factory invocation. |
+| `runtime.js.alias_runtime` | `MUTATES` | `ext.dop251.goja` | Sets the `__require` global around each factory invocation. |
 | [[runtime.modules]] | `DEPENDS_ON` | `runtime.js.alias_runtime` | Pools these instances and invokes exported functions through them. |
 
 ## 3. Interface Contracts & Public Surface

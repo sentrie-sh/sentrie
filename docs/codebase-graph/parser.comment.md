@@ -19,8 +19,8 @@ Turns a `LineComment` or `TrailingComment` token into an `ast.CommentStatement`.
 | `parser.comment` | `CALLS` | [[parser.parser]] | Uses `head()` and `advance()`. |
 | [[parser.statement]] | `CALLS` | [[parser.comment]] | Registered for both `LineComment` and `TrailingComment` in the top-level table. |
 | [[parser.policy]] | `CALLS` | [[parser.comment]] | Registered for the same kinds in the policy-scope table — though the policy body loop discards comments before they reach it. |
-| [[parser.expression]] | `DEPENDS_ON` | [[ast]] | Handles the expression-position case with `PrecedingCommentExpression`/`TrailingCommentExpression` wrappers instead. |
-| [[lexer]] | `DEPENDS_ON` | [[tokens]] | Classifies leading vs trailing by whether non-whitespace preceded the `--` on the line. |
+| [[parser.expression]] | `DEPENDS_ON` | [[parser.comment]] | Handles the expression-position case with `PrecedingCommentExpression`/`TrailingCommentExpression` wrappers instead. |
+| `parser.comment` | `DEPENDS_ON` | [[lexer]] | The lexer decides leading vs trailing by whether non-whitespace preceded the `--` on the line; this production trusts that classification rather than re-deriving it. |
 
 ## 3. Interface Contracts & Public Surface
 

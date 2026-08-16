@@ -15,8 +15,8 @@ A deliberately minimal tree structure recording every evaluation step: what kind
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.trace` | `DEPENDS_ON` | [[ast]] | Holds the originating `ast.Node` and reads its `Kind()`. |
-| `runtime.trace` | `DEPENDS_ON` | [[box]] | `Result` carries the boxed value produced by the step. |
+| `runtime.trace` | `LAYERED_ON` | [[ast]] | Holds the originating `ast.Node` and reads its `Kind()`. |
+| `runtime.trace` | `LAYERED_ON` | [[box]] | `Result` carries the boxed value produced by the step. |
 | [[runtime.eval]] | `CALLS` | `runtime.trace` | Every evaluator opens a node, attaches children, and records a result or error. |
 | [[runtime.executor]] | `READS_FROM` | `runtime.trace` | `ExecutorOutput.RuleNode` is the root of a rule's trace subtree. |
 | [[api]] | `READS_FROM` | `runtime.trace` | Serialised into decision responses when explanation is requested. |

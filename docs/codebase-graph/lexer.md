@@ -15,11 +15,11 @@ tags: tokenization, scanner, front-end, source-positions, heredoc
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `lexer` | `DEPENDS_ON` | [[tokens]] | Emits `tokens.Instance` values; consults `tokens.IsKeyword` to promote identifiers to keyword kinds; builds `tokens.Range` from `tokens.Pos`. |
-| `lexer` | `DEPENDS_ON` | (stdlib: `bufio`, `bytes`, `io`, `regexp`, `slices`, `strings`, `unicode`, `unicode/utf8`) | No third-party dependencies; the scanner is self-contained. |
-| [[parser]] | `DEPENDS_ON` | [[lexer]] | `parser.NewParser` wraps an `io.Reader` in a `Lexer` and drives it via `NextToken`. |
+| `lexer` | `LAYERED_ON` | [[tokens]] | Emits `tokens.Instance` values; consults `tokens.IsKeyword` to promote identifiers to keyword kinds; builds `tokens.Range` from `tokens.Pos`. |
+| `lexer` | `IMPORTS` | `std.bufio`, `std.bytes`, `std.io`, `std.regexp`, `std.slices`, `std.strings`, `std.unicode`, `std.unicode/utf8` | No third-party dependencies; the scanner is self-contained. |
+| [[parser]] | `LAYERED_ON` | [[lexer]] | `parser.NewParser` wraps an `io.Reader` in a `Lexer` and drives it via `NextToken`. |
 | [[parser]] | `CALLS` | [[lexer]] | Lambda-vs-grouped-expression disambiguation calls `PushBack` to rewind speculatively consumed tokens. |
-| [[loader]] | `CALLS` | [[parser]] | Indirect consumer: each discovered policy file is opened and handed to `parser.NewParser`, which constructs the lexer. |
+| [[loader]] | `CALLS` | [[lexer]] | Indirect consumer: each discovered policy file is opened and handed to `parser.NewParser`, which constructs the lexer. |
 | `lexer` | `DEPENDS_ON` | [[grammar]] | Conformance only — the token vocabulary implements the terminals declared in the reference grammar; there is no build-time link. |
 
 ## 3. Interface Contracts & Public Surface

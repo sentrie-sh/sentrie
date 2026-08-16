@@ -19,8 +19,8 @@ Parses the full lambda form `(a: string, b?: number): trinary => { … }` — pe
 | `parser.typed_lambda` | `CALLS` | [[parser.block]] | Requires the body to be a block expression. |
 | `parser.typed_lambda` | `CALLS` | [[ast]] | Emits `ast.NewLambdaExpressionFull(names, types, opts, returnType, body, span)`. |
 | [[parser.block]] | `CALLS` | [[parser.typed_lambda]] | Invoked from `parseGroupedExpression` after the fast probe fails. |
-| [[parser.derive]] | `DEPENDS_ON` | [[ast]] | Derives require a lambda; typed derives come through this path. |
-| [[runtime.callable]] | `DEPENDS_ON` | [[ast]] | Uses `RequiredLambdaArity` and the parallel type slices to bind and check arguments. |
+| [[parser.derive]] | `DEPENDS_ON` | [[parser.typed_lambda]] | Derives require a lambda; typed derives come through this path. |
+| [[runtime.callable]] | `DEPENDS_ON` | [[parser.typed_lambda]] | Uses `RequiredLambdaArity` and the parallel type slices to bind and check arguments. |
 
 ## 3. Interface Contracts & Public Surface
 

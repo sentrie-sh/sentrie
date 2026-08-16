@@ -24,7 +24,7 @@ tags: block-expression, yield, lambda, speculative-parsing, backtracking
 | [[parser.lookups]] | `CALLS` | [[parser.block]] | `parseGroupedExpression` is the prefix handler for `(`. |
 | [[parser.rule]] | `CALLS` | [[parser.block]] | Rule bodies are normally block expressions. |
 | [[parser.derive]] | `DEPENDS_ON` | [[parser.block]] | Derives require a lambda, which requires a block body. |
-| [[runtime.eval_block]] | `DEPENDS_ON` | [[ast]] | Evaluates statements in order then returns the yielded value. |
+| [[runtime.eval_block]] | `DEPENDS_ON` | [[parser.block]] | Evaluates statements in order then returns the yielded value. |
 
 ## 3. Interface Contracts & Public Surface
 

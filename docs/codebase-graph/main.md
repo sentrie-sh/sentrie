@@ -18,8 +18,8 @@ The process bootstrap: installs signal handling, resolves build-time version inf
 | `main` | `CALLS` | [[cmd]] | `cmd.Setup` builds the CLI, `cmd.Execute` runs it with `os.Args`. |
 | `main` | `CALLS` | [[version]] | `GetVersionInfo` assembles the version string from ldflags and build info. |
 | `main` | `DEPENDS_ON` | [[constants]] | `EnvDebug` and `EnvLogLevel` control logging. |
-| `main` | `DEPENDS_ON` | `ext.google_uuid` | Generates a per-process instance identifier for log correlation. |
-| `main` | `MUTATES` | `ext.os_environment` | Sets `EnvLogLevel` to `DEBUG` when debug mode is detected. |
+| `main` | `IMPORTS` | `ext.google.uuid` | Generates a per-process instance identifier for log correlation. |
+| `main` | `MUTATES` | [[infra.os_environment]] | Sets `EnvLogLevel` to `DEBUG` when debug mode is detected. |
 
 ## 3. Interface Contracts & Public Surface
 

@@ -20,8 +20,8 @@ Parses `rule <ident> = ['default' expr] ['when' expr] (block | importClause)` â€
 | `parser.rule` | `CALLS` | [[parser.parser]] | Uses `advanceExpected`, `expect(TokenAssign)`, `canExpect`. |
 | `parser.rule` | `CALLS` | [[ast]] | Emits `ast.NewRuleStatement(name, default, when, body, span)`. |
 | [[parser.policy]] | `CALLS` | [[parser.rule]] | Registered for `tokens.KeywordRule` in the policy-scope table only. |
-| [[index.rule]] | `DEPENDS_ON` | [[ast]] | Indexes the rule and its dependencies. |
-| [[runtime.decision]] | `DEPENDS_ON` | [[ast]] | Evaluates guard, body, and default into the exported decision. |
+| [[index.rule]] | `DEPENDS_ON` | [[parser.rule]] | Indexes the rule and its dependencies. |
+| [[runtime.decision]] | `DEPENDS_ON` | [[parser.rule]] | Evaluates guard, body, and default into the exported decision. |
 
 ## 3. Interface Contracts & Public Surface
 

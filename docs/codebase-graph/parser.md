@@ -15,14 +15,14 @@ tags: pratt-parser, recursive-descent, front-end, syntax-analysis
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `parser` | `DEPENDS_ON` | [[lexer]] | Owns a `*lexer.Lexer` and pulls tokens via `NextToken`; calls `PushBack` for speculative lookahead in lambda-vs-grouped disambiguation. |
-| `parser` | `DEPENDS_ON` | [[tokens]] | Dispatches on `tokens.Kind`; all handler maps are keyed by kind. |
+| `parser` | `LAYERED_ON` | [[lexer]] | Owns a `*lexer.Lexer` and pulls tokens via `NextToken`; calls `PushBack` for speculative lookahead in lambda-vs-grouped disambiguation. |
+| `parser` | `LAYERED_ON` | [[tokens]] | Dispatches on `tokens.Kind`; all handler maps are keyed by kind. |
 | `parser` | `CALLS` | [[ast]] | Every production emits AST nodes through `ast.New*` constructors; this package's only output. |
 | `parser` | `CALLS` | [[ast.typeref]] | `parseTypeRef` calls `AddConstraint`, so constraint-name and arity errors surface as parse errors. |
-| `parser` | `DEPENDS_ON` | [[trinary]] | Trinary keyword literals are resolved to `trinary.Value` at parse time. |
+| `parser` | `LAYERED_ON` | [[trinary]] | Trinary keyword literals are resolved to `trinary.Value` at parse time. |
 | `parser` | `DEPENDS_ON` | [[grammar]] | Conformance only — implements the reference productions with no generated linkage. |
 | [[loader]] | `CALLS` | [[parser]] | `LoadPrograms` constructs one parser per `.sentrie` file and calls `ParseProgram`. |
-| [[index.package]] | `DEPENDS_ON` | [[ast]] | Consumes this package's output rather than the parser itself. |
+| [[index.package]] | `LAYERED_ON` | [[parser]] | Consumes this package's AST output rather than calling the parser directly. |
 
 ## 3. Interface Contracts & Public Surface
 

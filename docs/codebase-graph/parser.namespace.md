@@ -20,7 +20,7 @@ Parses `namespace <fqn>`, the mandatory first declaration of every Sentrie file.
 | `parser.namespace` | `CALLS` | [[ast]] | Emits `ast.NewNamespaceStatement`. |
 | [[parser.statement]] | `CALLS` | [[parser.namespace]] | Registered for `tokens.KeywordNamespace` in the **top-level** table only. |
 | [[parser.parse]] | `DEPENDS_ON` | [[parser.namespace]] | Type-asserts the first non-comment statement to `*ast.NamespaceStatement`. |
-| [[index.namespace]] | `DEPENDS_ON` | [[ast]] | Consumes the produced node to build the namespace tree. |
+| [[index.namespace]] | `DEPENDS_ON` | [[parser.namespace]] | Consumes the produced node to build the namespace tree. |
 
 ## 3. Interface Contracts & Public Surface
 

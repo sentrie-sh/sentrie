@@ -15,7 +15,7 @@ The HTTP middleware chain, currently consisting of request-ID assignment and an 
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `api.middleware` | `DEPENDS_ON` | `ext.google_uuid` | Generates the request identifier. |
+| `api.middleware` | `IMPORTS` | `ext.google.uuid` | Generates the request identifier. |
 | [[api.http]] | `CALLS` | `api.middleware` | Wraps the decision handler with `RequestIDMiddleware`. |
 | [[api.problem_details]] | `READS_FROM` | `api.middleware` | The request ID becomes the `instance` field. |
 

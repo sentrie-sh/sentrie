@@ -17,11 +17,11 @@ tags: literals, atoms, prefix-handlers, leaf-expressions
 | :--- | :--- | :--- | :--- |
 | `parser.primary` | `CALLS` | [[trinary]] | `parseTrinaryLiteral` calls `trinary.FromToken` to resolve `true`/`false`/`unknown`. |
 | `parser.primary` | `CALLS` | [[ast]] | Emits `NullLiteral`, `TrinaryLiteral`, `Identifier`, `PipelineHoleExpression`, `IntegerLiteral`, `StringLiteral`, `FloatLiteral`. |
-| `parser.primary` | `DEPENDS_ON` | (stdlib: `strconv`) | Parses integer (base 10, 64-bit) and float (64-bit) literals. |
+| `parser.primary` | `IMPORTS` | `std.strconv` | Parses integer (base 10, 64-bit) and float (64-bit) literals. |
 | [[parser.lookups]] | `CALLS` | [[parser.primary]] | All six are registered as prefix handlers. |
 | [[parser.literal]] | `CALLS` | [[parser.primary]] | The constraint-argument parser reuses these same handlers for its literal-only subset. |
 | [[parser.call]] | `CALLS` | [[parser.primary]] | Reuses `parseIntegerLiteral` to read a memoization TTL suffix. |
-| [[box.value]] | `DEPENDS_ON` | [[ast]] | Literal payloads become boxed values at evaluation time. |
+| [[box.value]] | `DEPENDS_ON` | [[parser.primary]] | Literal payloads become boxed values at evaluation time. |
 
 ## 3. Interface Contracts & Public Surface
 

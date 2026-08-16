@@ -15,7 +15,8 @@ Translates the operator-facing `--http-listen` values into concrete `host:port` 
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `api.net` | `DEPENDS_ON` | `ext.gocoll` | `collection.Map` over the explicit-address list. |
+| `api.net` | `IMPORTS` | `ext.binaek.gocoll` | `collection.Map` over the explicit-address list. |
+| `api.net` | `IMPORTS` | `ext.golang.x-exp` | `slices` membership check against the predefined listen names. |
 | [[api.http]] | `CALLS` | `api.net` | `Setup` resolves bindings before opening listeners. |
 | [[cmd]] | `DEPENDS_ON` | `api.net` | The `--http-listen` flag's accepted values are defined by this function. |
 
@@ -41,7 +42,7 @@ Translates the operator-facing `--http-listen` values into concrete `host:port` 
 - **Statefulness:** Pure function.
 - **Performance/Scale Notes:** Negligible; called once at startup.
 - **Dependencies Risk:**
-  - **`local6` and `network6` cannot bind.** The hosts are passed to `net.JoinHostPort` **already bracketed** (`"[::1]"`, `"[::]"`), and `JoinHostPort` brackets any host containing a colon — producing `[[::1]]:7529` and `[[::]]:7529`. `net.Listen` rejects both, so IPv6-only serving is impossible via the predefined names. The IPv4 and unbracketed cases are correct. Filed as an issue.
+  - **`local6` and `network6` cannot bind.** The hosts are passed to `net.JoinHostPort` **already bracketed** (`"[::1]"`, `"[::]"`), and `JoinHostPort` brackets any host containing a colon — producing `[[::1]]:7529` and `[[::]]:7529`. `net.Listen` rejects both, so IPv6-only serving is impossible via the predefined names. The IPv4 and unbracketed cases are correct. Filed as [#116](https://github.com/sentrie-sh/sentrie/issues/116).
   - **`listen[0]` is read without a length check**, so an empty slice panics. The CLI default of `["local"]` prevents this in practice, but the function is package-level and offers no guard.
   - **The predefined/explicit distinction is decided by `listen[0]` alone.** The validation loop confirms a predefined name implies a single-element list, so the two agree — but the switch would silently mishandle a list whose predefined name is not first if that validation ever changed.
   - **Explicit IPv6 addresses must be supplied unbracketed** for `JoinHostPort` to bracket them correctly. Nothing documents this, and supplying the bracketed form produces the same double-bracket failure.

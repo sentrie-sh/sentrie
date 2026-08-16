@@ -15,8 +15,8 @@ tags: graph-algorithms, cycle-detection, dependency-ordering, static-analysis
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `dag` | `DEPENDS_ON` | (stdlib only: `errors`, `fmt`, `slices`, `strings`, `sync`) | Zero internal or third-party dependencies; a graph sink. |
-| [[index.package]] | `DEPENDS_ON` | [[dag]] | Builds a graph of derive/rule dependencies and calls `TopoSort` to establish evaluation order. |
+| `dag` | `IMPORTS` | `std.errors`, `std.fmt`, `std.slices`, `std.strings`, `std.sync` | Zero internal or third-party dependencies; a graph sink. |
+| [[index.package]] | `LAYERED_ON` | [[dag]] | Builds a graph of derive/rule dependencies and calls `TopoSort` to establish evaluation order. |
 | [[index.derive]] | `CALLS` | [[dag]] | Registers each derive as a node and each referenced symbol as an edge. |
 | [[index.derive_cycle]] | `CALLS` | [[dag]] | Uses `DetectFirstCycle` to produce a human-readable cyclic-dependency diagnostic. |
 

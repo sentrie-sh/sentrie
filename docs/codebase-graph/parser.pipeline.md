@@ -20,7 +20,7 @@ tags: pipeline-operator, desugaring, ast-rewriting, hole-substitution
 | `parser.pipeline` | `DEPENDS_ON` | [[parser.primary]] | Consumes the `PipelineHoleExpression` nodes that `#` produces. |
 | [[parser.lookups]] | `CALLS` | [[parser.pipeline]] | Registered as the infix handler for `TokenPipeForward`. |
 | [[parser.precedence]] | `DEPENDS_ON` | [[parser.pipeline]] | `PIPELINE` is the loosest real binding power, so a stage absorbs everything to its right. |
-| [[runtime.eval_call]] | `DEPENDS_ON` | [[ast]] | Evaluates the rewritten call with no knowledge of the original pipeline syntax. |
+| [[runtime.eval_call]] | `DEPENDS_ON` | [[parser.pipeline]] | Evaluates the rewritten call with no knowledge of the original pipeline syntax. |
 
 ## 3. Interface Contracts & Public Surface
 

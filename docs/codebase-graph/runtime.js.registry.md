@@ -15,9 +15,9 @@ Owns module identity and compilation for the whole engine. It resolves `use` ref
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.js.registry` | `DEPENDS_ON` | `ext.goja` | `goja.Compile` produces the cached `Program`. |
+| `runtime.js.registry` | `IMPORTS` | `ext.dop251.goja` | `goja.Compile` produces the cached `Program`. |
 | `runtime.js.registry` | `CALLS` | [[runtime.js.tscompile]] | `TranspileTS` then `WrapAsIIFE` before compilation. |
-| `runtime.js.registry` | `READS_FROM` | `ext.filesystem` | `os.ReadFile` for on-disk modules; `os.Stat` for extension probing. |
+| `runtime.js.registry` | `READS_FROM` | [[infra.filesystem]] | `os.ReadFile` for on-disk modules; `os.Stat` for extension probing. |
 | `runtime.js.registry` | `DEPENDS_ON` | [[constants]] | `APPNAME` forms the `@sentrie/` builtin key prefix. |
 | [[runtime.executor]] | `MUTATES` | `runtime.js.registry` | Registers all Go and TypeScript builtins at construction. |
 | [[runtime.js.alias_runtime]] | `CALLS` | `runtime.js.registry` | `LoadRequire` and `programFor` on every `require`. |
@@ -53,7 +53,7 @@ Owns module identity and compilation for the whole engine. It resolves `use` ref
 - **Statefulness:** Long-lived and shared. The module map is guarded by an `RWMutex` with correct double-checked locking; each spec's compilation is guarded by its own `sync.Once`.
 - **Performance/Scale Notes:** Compilation happens once per module per process. `getOrCreateModule` takes the read lock first and only escalates on a miss, so the steady-state path is read-only. Extension probing does up to two `os.Stat` calls, but only on first resolution.
 - **Dependencies Risk:**
-  - **The `@local/` branch of `resolveRequire` escapes the pack root.** It joins the specifier onto `PackRoot` directly instead of going through `relativeToLocal`, which is where the `..`-prefix containment check lives. `require("@local/../../x.ts")` therefore reads and executes a file outside the pack. Filed as a security issue. The relative-path branch is correctly guarded; only this one is not.
+  - **The `@local/` branch of `resolveRequire` escapes the pack root.** It joins the specifier onto `PackRoot` directly instead of going through `relativeToLocal`, which is where the `..`-prefix containment check lives. `require("@local/../../x.ts")` therefore reads and executes a file outside the pack. Filed as [#110](https://github.com/sentrie-sh/sentrie/issues/110). The relative-path branch is correctly guarded; only this one is not.
   - **`RegisterGoBuiltin` and `RegisterTSBuiltin` write their maps without holding a lock**, unlike every other map in the type. This is safe only because registration happens during executor construction before any concurrent use — an invariant nothing enforces.
   - **A compilation failure is cached permanently.** `sync.Once` fires regardless of outcome and `m.err` is retained, so a module that failed to compile — including for a transient reason such as a file read error — can never be retried for the process lifetime.
   - **Extension probing prefers `.ts` over `.js`** silently, so a directory containing both resolves to the TypeScript file with no diagnostic.

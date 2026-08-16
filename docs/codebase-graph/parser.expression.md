@@ -19,7 +19,7 @@ tags: pratt-parser, expression-parsing, comment-attachment, core-loop
 | `parser.expression` | `READS_FROM` | [[parser.precedence]] | Loop condition compares `precedences[current.Kind]` against the caller's binding power. |
 | `parser.expression` | `CALLS` | [[parser.parser]] | Uses `advance`, `head`, `canExpectAnyOf`, and `noPrefixParseFnError`. |
 | `parser.expression` | `CALLS` | [[ast]] | Wraps results in `ast.NewPrecedingCommentExpression` / `ast.NewTrailingCommentExpression`. |
-| `parser.expression` | `DEPENDS_ON` | (stdlib: `log/slog`, `slices`) | Emits debug spans around every expression parse; reverses the collected comment list. |
+| `parser.expression` | `IMPORTS` | `std.log/slog`, `std.slices` | Emits debug spans around every expression parse; reverses the collected comment list. |
 | [[parser.parse]] | `CALLS` | [[parser.expression]] | Indirectly, through every statement production that parses an expression. |
 
 ## 3. Interface Contracts & Public Surface

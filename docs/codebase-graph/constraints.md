@@ -15,9 +15,9 @@ The registry of predicates that refine a type beyond its kind — `string@email`
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `constraints` | `DEPENDS_ON` | [[box]] | Every checker receives and inspects `box.Value`. |
-| `constraints` | `DEPENDS_ON` | [[index.package]] | Checkers take a `*index.Policy` — currently unused by every checker, but part of the contract. |
-| `constraints` | `DEPENDS_ON` | `ext.google_uuid` | The `uuid` string constraint. |
+| `constraints` | `LAYERED_ON` | [[box]] | Every checker receives and inspects `box.Value`. |
+| `constraints` | `LAYERED_ON` | [[index.package]] | Checkers take a `*index.Policy` — currently unused by every checker, but part of the contract. |
+| `constraints` | `IMPORTS` | `ext.google.uuid` | The `uuid` string constraint. |
 | [[runtime.typeref_string]] | `READS_FROM` | `constraints` | `StringContraintCheckers`. |
 | [[runtime.typeref_number]] | `READS_FROM` | `constraints` | `NumberContraintCheckers`. |
 | [[runtime.typeref_trinary]] | `READS_FROM` | `constraints` | `TrinaryConstraintCheckers`. |
@@ -63,7 +63,7 @@ The registry of predicates that refine a type beyond its kind — `string@email`
 - **Statefulness:** Package-level maps built at initialisation, read-only thereafter.
 - **Performance/Scale Notes:** Checkers are cheap, but they run on **every** validation. Inside [[runtime.typeref_list]] that means once per element, and the constraint's argument expressions are re-evaluated per element too. The `regexp` constraint compiles its pattern on each invocation rather than caching, so a regex constraint on a list element type recompiles per element.
 - **Dependencies Risk:**
-  - **Four of the eight tables are empty.** `dict`, `document`, `record`, and `shape` have no constraints at all. Because [[runtime.err_typedef]] turns an unrecognised constraint into a **runtime** error, and nothing validates constraint names at index time, any constraint written on one of these types passes `sentrie validate` and then fails at decision time with `unknown constraint`. Filed as an issue.
+  - **Four of the eight tables are empty.** `dict`, `document`, `record`, and `shape` have no constraints at all. Because [[runtime.err_typedef]] turns an unrecognised constraint into a **runtime** error, and nothing validates constraint names at index time, any constraint written on one of these types passes `sentrie validate` and then fails at decision time with `unknown constraint`. Filed as [#113](https://github.com/sentrie-sh/sentrie/issues/113).
   - **`list` has only `not_empty`.** There is no size, min-length, or unique constraint, so list contracts must be expressed as rule logic instead.
   - **Constraint names are not validated statically.** A typo like `string@emial` is indistinguishable from a constraint that has not been implemented yet — both surface only when a decision is requested. This is the single highest-value fix in the constraint pipeline.
   - **String length constraints count bytes, not runes.** `len(s)` on a Go string is its byte length, so a `length(5)` constraint rejects a five-character string containing any multi-byte character. For a policy engine handling international identifiers this is a correctness issue, not a nit.

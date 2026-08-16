@@ -16,7 +16,6 @@ tags: dead-code, vestigial, data-model
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `parser.program` | `DEPENDS_ON` | [[ast]] | Declares a `[]ast.Statement` field; this is its only linkage. |
-| [[parser.parse]] | `CALLS` | [[ast]] | **Does not** use this type — the real output is `ast.Program`, which additionally carries `Reference`. |
 
 ## 3. Interface Contracts & Public Surface
 

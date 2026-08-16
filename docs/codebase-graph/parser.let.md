@@ -21,7 +21,7 @@ Parses `let <ident> [: <type>] = <expr>`, the local binding form used inside pol
 | `parser.let` | `CALLS` | [[ast]] | Emits `ast.NewVarDeclaration(name, typeRef, value, span)`. |
 | [[parser.policy]] | `CALLS` | [[parser.let]] | Registered for `tokens.KeywordLet` in the policy-scope table. |
 | [[parser.block]] | `CALLS` | [[parser.let]] | Block bodies accept `let` statements before their `yield`. |
-| [[runtime.eval]] | `DEPENDS_ON` | [[ast]] | Binds the evaluated value into the current scope. |
+| [[runtime.eval]] | `DEPENDS_ON` | [[parser.let]] | Binds the evaluated value into the current scope. |
 
 ## 3. Interface Contracts & Public Surface
 

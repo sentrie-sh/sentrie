@@ -17,11 +17,11 @@ The busiest node in the evaluator. It evaluates arguments, resolves the callee t
 | :--- | :--- | :--- | :--- |
 | `runtime.eval_call` | `DEPENDS_ON` | [[builtins]] | `builtins.Table` lookup, then `Decl.Precheck` followed by `Decl.Impl`. |
 | `runtime.eval_call` | `DEPENDS_ON` | [[index.package]] | Resolves derives via `Policy.Derives`, `Namespace.Derives`, and `Index.DerivesByFQN`. |
-| `runtime.eval_call` | `DEPENDS_ON` | `ext.hashstructure` | Hashes boundary-marshalled arguments for the memoization key. |
+| `runtime.eval_call` | `IMPORTS` | `ext.mitchellh.hashstructure` | Hashes boundary-marshalled arguments for the memoization key. |
 | `runtime.eval_call` | `CALLS` | [[runtime.derive_invoke]] | Every derive dispatch routes through `invokeDerive`. |
 | `runtime.eval_call` | `CALLS` | [[runtime.modules]] | Module calls marshal arguments and invoke `ModuleBinding.Call`. |
 | `runtime.eval_call` | `CALLS` | [[runtime.builtin_call]] | Constructs a `CallSite` per builtin invocation. |
-| `runtime.eval_call` | `MUTATES` | `ext.perch` | Reads and populates the executor's call-memoization cache. |
+| `runtime.eval_call` | `MUTATES` | `ext.binaek.perch` | Reads and populates the executor's call-memoization cache. |
 | `runtime.eval_call` | `READS_FROM` | [[runtime.exec_ctx]] | `ec.Module(alias)` and the `evalDerive` purity marker. |
 | [[runtime.eval]] | `CALLS` | [[runtime.eval_call]] | All `ast.CallExpression` nodes dispatch here. |
 
@@ -61,7 +61,7 @@ The busiest node in the evaluator. It evaluates arguments, resolves the callee t
 - **Statefulness:** Stateless per call, but reads and writes the executor's shared memoization cache.
 - **Performance/Scale Notes:** Memoized calls default to a **5 minute TTL** and share a 10 MB budget, so eviction is silent and a hot policy can thrash. Every module call marshals all arguments across the boundary. The `Precheck`/`Impl` split lets builtins short-circuit before doing work.
 - **Dependencies Risk:**
-  - **An unhashable memoized argument collapses onto the key `""`.** `calculateHashKey` returns the empty string on failure and the caller passes it straight to the cache, so unrelated calls become cache siblings and can receive each other's results. Tracked as a filed issue.
+  - **An unhashable memoized argument collapses onto the key `""`.** `calculateHashKey` returns the empty string on failure and the caller passes it straight to the cache, so unrelated calls become cache siblings and can receive each other's results. Filed as [#108](https://github.com/sentrie-sh/sentrie/issues/108).
   - **The precedence ladder must stay in sync with [[index.builtin_kind]]'s `isBuiltinCall`.** Static checking assumes local binding > derive > builtin; this function implements derive > builtin with locals handled earlier in [[runtime.eval_ident]]. Drift means checks are applied to a different callee than the one invoked.
   - **The three-segment floor for slash FQNs is a parser-ambiguity workaround.** `a/b` is division; `a/b/c` may be a derive. A genuinely two-segment derive FQN is therefore unreachable by slash syntax.
   - **Module resolution errors are misleading when the callee has no dot.** A bare unknown identifier that is not a derive or builtin falls through to `splitAliasFn`, yields an empty module name, and reports `ErrImportResolution` — an import error for what is really an unknown-function error.

@@ -18,8 +18,8 @@ Parses `transform <expr> with "<jq>"`, applying a JQ-compatible transformation p
 | `parser.transform` | `CALLS` | [[parser.expression]] | Parses the transform argument at `LOWEST`. |
 | `parser.transform` | `CALLS` | [[ast]] | Emits `ast.NewTransformExpression(argument, transformerString, span)`. |
 | [[parser.lookups]] | `CALLS` | [[parser.transform]] | Registered as the prefix handler for `KeywordTransform`. |
-| [[runtime.eval_transform]] | `DEPENDS_ON` | [[ast]] | Compiles and applies the JQ program to the evaluated argument. |
-| [[box.value]] | `READS_FROM` | [[ast]] | Documents and dicts are the usual transform inputs. |
+| [[runtime.eval_transform]] | `DEPENDS_ON` | [[parser.transform]] | Compiles and applies the JQ program to the evaluated argument. |
+| [[box.value]] | `READS_FROM` | [[parser.transform]] | Documents and dicts are the usual transform inputs. |
 
 ## 3. Interface Contracts & Public Surface
 

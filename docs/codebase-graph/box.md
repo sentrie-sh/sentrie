@@ -15,15 +15,15 @@ tags: value-model, type-system, boundary-marshalling, runtime-data
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `box` | `DEPENDS_ON` | [[trinary]] | Boxes `trinary.Value` and projects any boxed value onto the Kleene lattice via `TrinaryFrom`. |
-| `box` | `DEPENDS_ON` | (stdlib: `encoding/json`, `regexp`, `math`) | JSON marshalling of values; `regexp` backs `MatchesValue`; `math.Float64bits` packs numbers into the union's `u64` slot. |
+| `box` | `LAYERED_ON` | [[trinary]] | Boxes `trinary.Value` and projects any boxed value onto the Kleene lattice via `TrinaryFrom`. |
+| `box` | `IMPORTS` | `std.encoding/json`, `std.regexp`, `std.math` | JSON marshalling of values; `regexp` backs `MatchesValue`; `math.Float64bits` packs numbers into the union's `u64` slot. |
 | [[box.value]] | `DEPENDS_ON` | [[box]] | The `Value` struct and its accessors are defined within this package. |
-| [[builtins]] | `DEPENDS_ON` | [[box]] | Every builtin signature accepts and returns `box.Value`. |
-| [[runtime]] | `DEPENDS_ON` | [[box]] | The evaluator's universal expression result type; also uses `Callable` to represent lambdas. |
-| [[constraints]] | `DEPENDS_ON` | [[box]] | Type/shape constraints validate incoming `box.Value` payloads. |
-| [[index.package]] | `DEPENDS_ON` | [[box]] | Static analysis carries literal and builtin-kind information as boxed values. |
-| [[runtime.trace]] | `DEPENDS_ON` | [[box]] | Trace tree nodes record evaluated `box.Value` results per step. |
-| [[cmd]] | `DEPENDS_ON` | [[box]] | CLI marshals final decision payloads to JSON via `Value.MarshalJSON`. |
+| [[builtins]] | `LAYERED_ON` | [[box]] | Every builtin signature accepts and returns `box.Value`. |
+| [[runtime]] | `LAYERED_ON` | [[box]] | The evaluator's universal expression result type; also uses `Callable` to represent lambdas. |
+| [[constraints]] | `LAYERED_ON` | [[box]] | Type/shape constraints validate incoming `box.Value` payloads. |
+| [[index.package]] | `LAYERED_ON` | [[box]] | Static analysis carries literal and builtin-kind information as boxed values. |
+| [[runtime.trace]] | `LAYERED_ON` | [[box]] | Trace tree nodes record evaluated `box.Value` results per step. |
+| [[cmd]] | `LAYERED_ON` | [[box]] | CLI marshals final decision payloads to JSON via `Value.MarshalJSON`. |
 
 ## 3. Interface Contracts & Public Surface
 

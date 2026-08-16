@@ -19,9 +19,9 @@ Parses `import decision <rule> from <fqn> (with <ident> as <expr>)*`, the altern
 | `parser.import` | `CALLS` | [[parser.expression]] | Parses each `with … as <expr>` binding at `LOWEST`. |
 | `parser.import` | `CALLS` | [[ast]] | Emits `ast.NewImportClause` and `ast.NewWithClause`. |
 | [[parser.rule]] | `CALLS` | [[parser.import]] | The only caller: a rule body beginning with `import` routes here instead of to an expression. |
-| [[parser.export_rule]] | `DEPENDS_ON` | [[ast]] | The imported rule must be exported by the source policy. |
-| [[runtime.imports]] | `DEPENDS_ON` | [[ast]] | Resolves the target policy, binds the `with` values, and evaluates the remote decision. |
-| [[index.resolve]] | `DEPENDS_ON` | [[ast]] | Validates that the referenced namespace and rule exist and are visible. |
+| [[parser.export_rule]] | `DEPENDS_ON` | [[parser.import]] | The imported rule must be exported by the source policy. |
+| [[runtime.imports]] | `DEPENDS_ON` | [[parser.import]] | Resolves the target policy, binds the `with` values, and evaluates the remote decision. |
+| [[index.resolve]] | `DEPENDS_ON` | [[parser.import]] | Validates that the referenced namespace and rule exist and are visible. |
 
 ## 3. Interface Contracts & Public Surface
 

@@ -16,14 +16,14 @@ tags: filesystem, manifest-discovery, schema-validation, bootstrap, toml
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `loader` | `MUTATES` | [[pack]] | Decodes TOML into a `pack.PackFile` and injects the resolved `Location` directory. |
-| `loader` | `DEPENDS_ON` | [[constants]] | Composes `PackFileName` from `constants.APPNAME` + `constants.PackFileExtension`; filters sources by `constants.PolicyFileExtension`. |
+| `loader` | `LAYERED_ON` | [[constants]] | Composes `PackFileName` from `constants.APPNAME` + `constants.PackFileExtension`; filters sources by `constants.PolicyFileExtension`. |
 | `loader` | `CALLS` | [[parser]] | `LoadPrograms` constructs a `parser.NewParser` per discovered file and calls `ParseProgram`. |
-| `loader` | `DEPENDS_ON` | [[ast]] | Returns `[]*ast.Program`. |
-| `loader` | `DEPENDS_ON` | `ext.pelletier.go-toml` | Manifest decoding, performed twice: once into a raw map for unknown-key detection, once into the typed struct. |
-| `loader` | `DEPENDS_ON` | `ext.xeipuuv.gojsonschema` | Compiles the embedded Draft-7 `schema.json` at package init and validates the marshalled manifest. |
-| `loader` | `READS_FROM` | `infra.filesystem` | `os.Stat`, `os.ReadFile`, and `fs.WalkDir` over the pack directory tree. |
+| `loader` | `LAYERED_ON` | [[ast]] | Returns `[]*ast.Program`. |
+| `loader` | `IMPORTS` | `ext.pelletier.go-toml` | Manifest decoding, performed twice: once into a raw map for unknown-key detection, once into the typed struct. |
+| `loader` | `IMPORTS` | `ext.xeipuuv.gojsonschema` | Compiles the embedded Draft-7 `schema.json` at package init and validates the marshalled manifest. |
+| `loader` | `READS_FROM` | [[infra.filesystem]] | `os.Stat`, `os.ReadFile`, and `fs.WalkDir` over the pack directory tree. |
 | [[cmd]] | `CALLS` | [[loader]] | `exec`, `init`, `serve`, and `validate` all bootstrap through `LoadPack`/`LoadPrograms`. |
-| [[index.package]] | `DEPENDS_ON` | [[loader]] | Consumes the programs produced here as its indexing input. |
+| [[index.package]] | `LAYERED_ON` | [[loader]] | Consumes the programs produced here as its indexing input. |
 
 ## 3. Interface Contracts & Public Surface
 

@@ -11,6 +11,8 @@ tags: declaration, visibility, namespace-export, shape, derive
 ## 1. Architectural Role & Intent
 Parses the **top-level** `export` form, dispatching on the following keyword into `export shape <ident>` or `export derive <ident>`. Sentrie's default visibility is namespace-private, so this production is the sole mechanism by which a shape or derive becomes visible to other namespaces — making it the front-end half of the visibility model that [[index.resolve]] enforces.
 
+The `export` keyword is context-sensitive: at top level it reaches this handler, while inside a policy block it dispatches to [[parser.export_rule]] instead. Reading either node alone gives half the picture.
+
 ## 2. Graph Edges (Strict Relational Data)
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
@@ -18,10 +20,9 @@ Parses the **top-level** `export` form, dispatching on the following keyword int
 | `parser.export_shape` | `CALLS` | [[parser.parser]] | Uses `head`, `advance`, `expect`, `advanceExpected`, `errorf`. |
 | `parser.export_shape` | `CALLS` | [[ast]] | Emits `ast.NewShapeExportStatement` or `ast.NewExportDeriveStatement`. |
 | [[parser.statement]] | `CALLS` | [[parser.export_shape]] | Registered for `tokens.KeywordExport` in the **top-level** table. |
-| [[parser.export_rule]] | (contrast) | [[parser.export_shape]] | The same keyword inside a policy dispatches to the decision-export handler instead. |
-| [[index.resolve]] | `DEPENDS_ON` | [[ast]] | Uses these statements to decide cross-namespace visibility. |
-| [[parser.shape]] | `DEPENDS_ON` | [[ast]] | Declares the shape that this statement exports by name. |
-| [[parser.derive]] | `DEPENDS_ON` | [[ast]] | Declares the derive that this statement exports by name. |
+| [[index.resolve]] | `DEPENDS_ON` | [[parser.export_shape]] | Uses these statements to decide cross-namespace visibility. |
+| [[parser.shape]] | `DEPENDS_ON` | [[parser.export_shape]] | Declares the shape that this statement exports by name. |
+| [[parser.derive]] | `DEPENDS_ON` | [[parser.export_shape]] | Declares the derive that this statement exports by name. |
 
 ## 3. Interface Contracts & Public Surface
 

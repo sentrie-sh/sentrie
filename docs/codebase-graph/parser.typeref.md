@@ -24,7 +24,7 @@ tags: type-syntax, constraints, nullable, recursive-descent
 | [[parser.shape]] | `CALLS` | [[parser.typeref]] | Simple-shape types and each complex-shape field type. |
 | [[parser.cast]] | `CALLS` | [[parser.typeref]] | The target type of an `as` cast. |
 | [[parser.typed_lambda]] | `CALLS` | [[parser.typeref]] | Parameter and return types. |
-| [[constraints]] | `DEPENDS_ON` | [[ast.typeref]] | Evaluates the parsed constraint arguments against values at runtime. |
+| [[constraints]] | `DEPENDS_ON` | [[parser.typeref]] | Evaluates the parsed constraint arguments against values at runtime. |
 
 ## 3. Interface Contracts & Public Surface
 

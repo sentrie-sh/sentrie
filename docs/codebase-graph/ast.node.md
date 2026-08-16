@@ -21,7 +21,7 @@ tags: interface-contract, sealed-hierarchy, source-positions, type-switch
 | [[parser]] | `CALLS` | [[ast.node]] | Sets each node's span from the token range consumed by the production. |
 | [[index.package]] | `CALLS` | [[ast.node]] | Reads `Span()` to attach file/line/column to validation diagnostics. |
 | [[runtime]] | `CALLS` | [[ast.node]] | Reads `Span()` to position runtime errors and trace entries; type-switches on `Statement`/`Expression`. |
-| [[xerr]] | `DEPENDS_ON` | [[tokens]] | Diagnostics carry the span obtained from `Span()` into the rendered error. |
+| [[xerr]] | `DEPENDS_ON` | [[ast.node]] | Diagnostics carry the span obtained from `Span()` into the rendered error. |
 
 ## 3. Interface Contracts & Public Surface
 

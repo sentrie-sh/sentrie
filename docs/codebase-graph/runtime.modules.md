@@ -15,9 +15,9 @@ The foreign-function boundary between Sentrie and embedded JavaScript. A `Module
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.modules` | `DEPENDS_ON` | `ext.goja` | `goja.Runtime`, `goja.Value`, `AssertFunction`, `Interrupt`/`ClearInterrupt`. |
-| `runtime.modules` | `DEPENDS_ON` | `ext.puddle` | Pools `*JSInstance` per binding. |
-| `runtime.modules` | `DEPENDS_ON` | `ext.structs` | Converts struct returns to `map[string]any`. |
+| `runtime.modules` | `IMPORTS` | `ext.dop251.goja` | `goja.Runtime`, `goja.Value`, `AssertFunction`, `Interrupt`/`ClearInterrupt`. |
+| `runtime.modules` | `IMPORTS` | `ext.jackc.puddle` | Pools `*JSInstance` per binding. |
+| `runtime.modules` | `IMPORTS` | `ext.fatih.structs` | Converts struct returns to `map[string]any`. |
 | `runtime.modules` | `DEPENDS_ON` | [[box]] | `IsBoundaryUndefined` drives undefined normalization on the way in. |
 | `runtime.modules` | `DEPENDS_ON` | [[constants]] | `ExecutionStartTimeUnixKey` is the global injected into every VM. |
 | `runtime.modules` | `READS_FROM` | [[runtime.exec_ctx]] | Reads `CreatedAt()` so JS-side time matches Go-side time. |

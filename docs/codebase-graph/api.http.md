@@ -19,7 +19,7 @@ Owns the HTTP surface: route registration, multi-address listener setup, server 
 | `api.http` | `CALLS` | [[api.middleware]] | Wraps the decision handler with request-ID assignment. |
 | `api.http` | `CALLS` | [[api.handle_decision]] | The registered POST handler. |
 | `api.http` | `DEPENDS_ON` | [[api.problem_details]] | `writeErrorResponse` builds a `ProblemDetails`. |
-| `api.http` | `MUTATES` | `ext.network_sockets` | Binds and closes TCP listeners. |
+| `api.http` | `MUTATES` | [[infra.network_sockets]] | Binds and closes TCP listeners. |
 | [[cmd]] | `CALLS` | `api.http` | `serve` drives `Setup`, `StartServer`, and `StopServer`. |
 
 ## 3. Interface Contracts & Public Surface

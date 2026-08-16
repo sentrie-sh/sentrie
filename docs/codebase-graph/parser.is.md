@@ -19,8 +19,8 @@ Parses the `is` family: `x is defined`, `x is empty`, their negated forms with a
 | `parser.is` | `CALLS` | [[ast]] | Emits `IsDefinedExpression`, `IsEmptyExpression`, or `InfixExpression`, optionally wrapped in `UnaryExpression`. |
 | `parser.is` | `CALLS` | [[parser.parser]] | Uses `expect(KeywordIs)`, `head`, `advance`, `canExpect`. |
 | [[parser.lookups]] | `CALLS` | [[parser.is]] | Registered as the infix handler for `KeywordIs` at `EQUALITY` precedence. |
-| [[box.value]] | `READS_FROM` | [[ast]] | `IsDefined` resolves against the boxed undefined sentinel rather than null. |
-| [[runtime.eval]] | `DEPENDS_ON` | [[ast]] | Evaluates all three produced forms. |
+| [[box.value]] | `READS_FROM` | [[parser.is]] | `IsDefined` resolves against the boxed undefined sentinel rather than null. |
+| [[runtime.eval]] | `DEPENDS_ON` | [[parser.is]] | Evaluates all three produced forms. |
 
 ## 3. Interface Contracts & Public Surface
 

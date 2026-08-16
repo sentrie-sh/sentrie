@@ -15,11 +15,10 @@ tags: configuration, environment, conventions, cross-cutting
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `constants` | `DEPENDS_ON` | (nothing) | Imports zero packages, including stdlib. Absolute graph sink. |
 | [[main]] | `DEPENDS_ON` | [[constants]] | Reads `EnvDebug` and `EnvLogLevel` to configure the `slog` JSON handler at startup. |
-| [[loader]] | `DEPENDS_ON` | [[constants]] | Uses `PackFileExtension` and `PolicyFileExtension` to discover pack manifests and policy sources on disk. |
-| [[runtime]] | `DEPENDS_ON` | [[constants]] | Seeds the execution context with `ExecutionStartTimeUnixKey`. |
-| [[runtime.js]] | `DEPENDS_ON` | [[constants]] | JS `time` builtins read the injected execution start time to keep clock reads deterministic within one evaluation. |
+| [[loader]] | `LAYERED_ON` | [[constants]] | Uses `PackFileExtension` and `PolicyFileExtension` to discover pack manifests and policy sources on disk. |
+| [[runtime]] | `LAYERED_ON` | [[constants]] | Seeds the execution context with `ExecutionStartTimeUnixKey`. |
+| [[runtime.js]] | `LAYERED_ON` | [[constants]] | JS `time` builtins read the injected execution start time to keep clock reads deterministic within one evaluation. |
 
 ## 3. Interface Contracts & Public Surface
 

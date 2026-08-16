@@ -15,8 +15,8 @@ The single registry of Sentrie's native functions and the declarative machinery 
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `builtins` | `DEPENDS_ON` | [[box]] | Every signature, argument, and result is a `box.Value`; `ValueKind` drives kind checking. |
-| `builtins` | `DEPENDS_ON` | [[xerr]] | `InjectedError` lets the `error` builtin short-circuit with a user message. |
+| `builtins` | `LAYERED_ON` | [[box]] | Every signature, argument, and result is a `box.Value`; `ValueKind` drives kind checking. |
+| `builtins` | `LAYERED_ON` | [[xerr]] | `InjectedError` lets the `error` builtin short-circuit with a user message. |
 | [[runtime.eval_call]] | `CALLS` | `builtins` | Looks up `Table`, runs `Decl.Precheck`, then `Decl.Impl`. |
 | [[runtime.builtin_call]] | `INHERITS_FROM` | `builtins` | `CallSite` implements the `Env` interface. |
 | [[index.builtin_check]] | `READS_FROM` | `builtins` | Static arity and kind checking reads `Table` and each `Decl.Sig`. |

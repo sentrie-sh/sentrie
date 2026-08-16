@@ -15,15 +15,15 @@ tags: semantic-analysis, symbol-table, validation, dependency-graph, middle-end
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `index` | `DEPENDS_ON` | [[ast]] | Consumes `ast.Program` and every statement type; retains AST nodes by reference throughout the model. |
-| `index` | `DEPENDS_ON` | [[dag]] | Builds four graphs — rule, shape, derive, and a per-policy identifier graph — for cycle detection and topological ordering. |
-| `index` | `DEPENDS_ON` | [[pack]] | Holds the pack manifest alongside the semantic model. |
-| `index` | `DEPENDS_ON` | [[xerr]] | Every diagnostic is an `xerr` sentinel or `ErrConflict`, giving structured two-span conflict errors. |
-| `index` | `DEPENDS_ON` | [[builtins]] | Reads builtin declarations and signatures to validate call sites; consults `IsDeriveSafe` for purity. |
-| `index` | `DEPENDS_ON` | [[box]] | Uses `box.ValueKind` as the vocabulary for static argument-kind checking. |
-| `index` | `DEPENDS_ON` | `ext.masterminds.semver` | Parses and validates per-policy `version` metadata. |
-| [[loader]] | `DEPENDS_ON` | [[index.package]] | Supplies the parsed programs that populate the index. |
-| [[runtime]] | `DEPENDS_ON` | [[index.package]] | Resolves namespaces, policies, rules, and derives against the committed index during evaluation. |
+| `index.package` | `LAYERED_ON` | [[ast]] | Consumes `ast.Program` and every statement type; retains AST nodes by reference throughout the model. |
+| `index.package` | `LAYERED_ON` | [[dag]] | Builds four graphs — rule, shape, derive, and a per-policy identifier graph — for cycle detection and topological ordering. |
+| `index.package` | `LAYERED_ON` | [[pack]] | Holds the pack manifest alongside the semantic model. |
+| `index.package` | `LAYERED_ON` | [[xerr]] | Every diagnostic is an `xerr` sentinel or `ErrConflict`, giving structured two-span conflict errors. |
+| `index.package` | `LAYERED_ON` | [[builtins]] | Reads builtin declarations and signatures to validate call sites; consults `IsDeriveSafe` for purity. |
+| `index.package` | `LAYERED_ON` | [[box]] | Uses `box.ValueKind` as the vocabulary for static argument-kind checking. |
+| `index.package` | `IMPORTS` | `ext.masterminds.semver` | Parses and validates per-policy `version` metadata. |
+| [[loader]] | `LAYERED_ON` | [[index.package]] | Supplies the parsed programs that populate the index. |
+| [[runtime]] | `LAYERED_ON` | [[index.package]] | Resolves namespaces, policies, rules, and derives against the committed index during evaluation. |
 | [[cmd]] | `CALLS` | [[index.package]] | `validate` and `exec` build an index, call `Validate`, and report or proceed. |
 | [[api]] | `CALLS` | [[index.package]] | Serves evaluation requests against a pre-built index. |
 

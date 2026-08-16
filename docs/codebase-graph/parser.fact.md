@@ -20,8 +20,8 @@ Parses `fact <ident>['?'] : <type> ['as' <ident>] ['default' <expr>]`. Facts are
 | `parser.fact` | `CALLS` | [[parser.parser]] | Uses `expect`, `advanceExpected`, `canExpect`, `canExpectAnyOf`, `errorf`. |
 | `parser.fact` | `CALLS` | [[ast]] | Emits `ast.NewFactStatement(name, type, alias, default, optional, span)`. |
 | [[parser.policy]] | `CALLS` | [[parser.fact]] | Registered for `tokens.KeywordFact` in the policy-scope table only — facts are policy-scoped. |
-| [[runtime.exec_ctx]] | `DEPENDS_ON` | [[ast]] | Binds supplied input values against the declared facts at execution time. |
-| [[constraints]] | `CALLS` | [[ast.typeref]] | The declared type's constraints are checked against the supplied value at runtime. |
+| [[runtime.exec_ctx]] | `DEPENDS_ON` | [[parser.fact]] | Binds supplied input values against the declared facts at execution time. |
+| [[constraints]] | `CALLS` | [[parser.fact]] | The declared type's constraints are checked against the supplied value at runtime. |
 
 ## 3. Interface Contracts & Public Surface
 

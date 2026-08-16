@@ -21,8 +21,8 @@ The top-level driver: it owns the index, the JS registry, and the two caches, an
 | `runtime.executor` | `CALLS` | [[runtime.decision]] | Wraps the final value via `DecisionOf`. |
 | `runtime.executor` | `CALLS` | [[runtime.modules]] | Builds `ModuleBinding` values wrapping pooled `JSInstance` VMs. |
 | `runtime.executor` | `CALLS` | [[runtime.js]] | `NewRegistry`, `RegisterGoBuiltin`, `PrepareUse`, `NewAliasRuntime`, `SetupStdLib`, `Require`. |
-| `runtime.executor` | `MUTATES` | `ext.perch` | Populates the module-binding and call-memoization caches. |
-| `runtime.executor` | `DEPENDS_ON` | `ext.puddle` | One VM pool per module binding, `MaxSize: 10`. |
+| `runtime.executor` | `MUTATES` | `ext.binaek.perch` | Populates the module-binding and call-memoization caches. |
+| `runtime.executor` | `IMPORTS` | `ext.jackc.puddle` | One VM pool per module binding, `MaxSize: 10`. |
 | `runtime.executor` | `CALLS` | [[runtime.trace]] | Opens `rule-outcome`, `rule`, `rule-when`, `rule-default`, `rule-body`, and `attachment` nodes. |
 | [[runtime.imports]] | `CALLS` | [[runtime.executor]] | Cross-policy decision imports re-enter through `ExecRule`. |
 | [[cmd]] | `CALLS` | [[runtime.executor]] | Builds an executor and runs a policy or rule. |

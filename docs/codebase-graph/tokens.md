@@ -15,15 +15,15 @@ tags: lexing, source-positions, language-frontend, diagnostics
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `tokens` | `DEPENDS_ON` | (stdlib only: `fmt`, `slices`) | No internal project dependencies; this is a graph sink. |
-| `tokens` | `DEPENDS_ON` | [[ext.golang-x-exp]] | Uses `golang.org/x/exp/maps` to enumerate the keyword lookup table. |
-| [[lexer]] | `DEPENDS_ON` | [[tokens]] | Lexer emits `tokens.Instance` values and constructs `tokens.Range` from byte offsets. |
-| [[parser]] | `DEPENDS_ON` | [[tokens]] | Parser dispatches on `tokens.Kind` for prefix/infix lookup and precedence. |
-| [[ast]] | `DEPENDS_ON` | [[tokens]] | Every AST node embeds a `tokens.Range` for span reporting. |
-| [[trinary]] | `DEPENDS_ON` | [[tokens]] | `trinary.FromToken` converts `true`/`false`/`unknown` keyword tokens into tri-state values. |
-| [[xerr]] | `DEPENDS_ON` | [[tokens]] | Span-anchored error constructors accept `tokens.Range` to render `file:line:col`. |
-| [[index.package]] | `DEPENDS_ON` | [[tokens]] | Static validation errors are anchored to declaration spans. |
-| [[runtime]] | `DEPENDS_ON` | [[tokens]] | Runtime errors and builtin arity failures carry originating spans. |
+| `tokens` | `IMPORTS` | `std.fmt`, `std.slices` | No internal project dependencies; this is a graph sink. |
+| `tokens` | `IMPORTS` | `ext.golang.x-exp` | Uses `golang.org/x/exp/maps` to enumerate the keyword lookup table. |
+| [[lexer]] | `LAYERED_ON` | [[tokens]] | Lexer emits `tokens.Instance` values and constructs `tokens.Range` from byte offsets. |
+| [[parser]] | `LAYERED_ON` | [[tokens]] | Parser dispatches on `tokens.Kind` for prefix/infix lookup and precedence. |
+| [[ast]] | `LAYERED_ON` | [[tokens]] | Every AST node embeds a `tokens.Range` for span reporting. |
+| [[trinary]] | `LAYERED_ON` | [[tokens]] | `trinary.FromToken` converts `true`/`false`/`unknown` keyword tokens into tri-state values. |
+| [[xerr]] | `LAYERED_ON` | [[tokens]] | Span-anchored error constructors accept `tokens.Range` to render `file:line:col`. |
+| [[index.package]] | `LAYERED_ON` | [[tokens]] | Static validation errors are anchored to declaration spans. |
+| [[runtime]] | `LAYERED_ON` | [[tokens]] | Runtime errors and builtin arity failures carry originating spans. |
 
 ## 3. Interface Contracts & Public Surface
 

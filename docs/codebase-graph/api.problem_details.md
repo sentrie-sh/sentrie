@@ -15,7 +15,7 @@ The standard error representation for every handled HTTP failure, implementing R
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `api.problem_details` | `DEPENDS_ON` | `ext.encoding_json` | Implements a custom `MarshalJSON` to flatten extensions. |
+| `api.problem_details` | `IMPORTS` | `std.encoding/json` | Implements a custom `MarshalJSON` to flatten extensions. |
 | [[api.http]] | `CALLS` | `api.problem_details` | `writeErrorResponse` constructs and encodes one per failure. |
 | [[api.middleware]] | `READS_FROM` | `api.problem_details` | The request ID populates `instance`. |
 

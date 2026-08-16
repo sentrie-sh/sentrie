@@ -18,10 +18,10 @@ Parses `callee(arg, …)` as an infix operator on the already-parsed callee, and
 | `parser.call` | `CALLS` | [[parser.expression]] | `parseExpressionList` parses each argument at `LOWEST`. |
 | `parser.call` | `CALLS` | [[parser.primary]] | Reuses `parseIntegerLiteral` to read the TTL after `!`. |
 | `parser.call` | `CALLS` | [[ast]] | Emits `ast.NewCallExpression(callee, args, memoized, ttl, span)`. |
-| `parser.call` | `DEPENDS_ON` | (stdlib: `time`) | The TTL integer is interpreted as **seconds** and stored as a `time.Duration`. |
+| `parser.call` | `IMPORTS` | `std.time` | The TTL integer is interpreted as **seconds** and stored as a `time.Duration`. |
 | [[parser.lookups]] | `CALLS` | [[parser.call]] | Registered as the infix handler for `(` at `CALL` precedence. |
 | [[parser.pipeline]] | `CALLS` | [[parser.call]] | Pipeline stages are typically call expressions with a `#` hole argument. |
-| [[runtime.eval_call]] | `DEPENDS_ON` | [[ast]] | Dispatches builtins, JS module functions, derives, and lambdas; honours the memo flag and TTL. |
+| [[runtime.eval_call]] | `DEPENDS_ON` | [[parser.call]] | Dispatches builtins, JS module functions, derives, and lambdas; honours the memo flag and TTL. |
 
 ## 3. Interface Contracts & Public Surface
 

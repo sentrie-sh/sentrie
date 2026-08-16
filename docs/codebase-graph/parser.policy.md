@@ -24,7 +24,7 @@ Parses `policy <ident> { … }` and — importantly — owns the **second statem
 | `parser.policy` | `CALLS` | [[parser.use]] | Via the handler table, for each `use`. |
 | `parser.policy` | `CALLS` | [[parser.export_rule]] | Via the handler table, for `export decision of …`. |
 | [[parser.statement]] | `CALLS` | [[parser.policy]] | Registered for `tokens.KeywordPolicy` at top level. |
-| [[index.policy]] | `DEPENDS_ON` | [[ast]] | Consumes the produced `PolicyStatement`. |
+| [[index.policy]] | `DEPENDS_ON` | [[parser.policy]] | Consumes the produced `PolicyStatement`. |
 
 ## 3. Interface Contracts & Public Surface
 

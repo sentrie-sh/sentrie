@@ -19,7 +19,7 @@ Parses the conditional operator in three shapes: the full `cond ? a : b`, the **
 | `parser.ternary` | `CALLS` | [[ast]] | Emits `ast.NewTernaryExpression` or `ast.NewTernaryElvis`. |
 | `parser.ternary` | `CALLS` | [[parser.parser]] | Uses `expect(TokenQuestion)`, `canExpect(PunctColon)`, `advance`. |
 | [[parser.lookups]] | `CALLS` | [[parser.ternary]] | Registered as the infix handler for `TokenQuestion` at `TERNARY` precedence. |
-| [[runtime.eval_ternary]] | `DEPENDS_ON` | [[ast]] | Evaluates the condition through [[trinary]] and selects a branch. |
+| [[runtime.eval_ternary]] | `DEPENDS_ON` | [[parser.ternary]] | Evaluates the condition through [[trinary]] and selects a branch. |
 
 ## 3. Interface Contracts & Public Surface
 

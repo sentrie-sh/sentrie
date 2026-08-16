@@ -15,9 +15,9 @@ tags: build-metadata, cli-output, observability, release
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `version` | `DEPENDS_ON` | `ext.masterminds.semver` | `String()` parses `GitVersion` through `semver.MustParse` before rendering. |
-| `version` | `DEPENDS_ON` | (stdlib: `runtime/debug`, `text/tabwriter`, `strings`, `fmt`) | Reads the build info embedded by the Go toolchain; aligns the build-info block for terminal output. |
-| `version` | `READS_FROM` | `infra.build_metadata` | Pulls `vcs.revision`, `vcs.time`, and `vcs.modified` from the module build settings baked in at compile time. |
+| `version` | `IMPORTS` | `ext.masterminds.semver` | `String()` parses `GitVersion` through `semver.MustParse` before rendering. |
+| `version` | `IMPORTS` | `std.runtime/debug`, `std.text/tabwriter`, `std.strings`, `std.fmt` | Reads the build info embedded by the Go toolchain; aligns the build-info block for terminal output. |
+| `version` | `READS_FROM` | [[infra.build_metadata]] | Pulls `vcs.revision`, `vcs.time`, and `vcs.modified` from the module build settings baked in at compile time. |
 | [[main]] | `CALLS` | [[version]] | The single consumer: builds an `Info` with app name/description/website and the ASCII banner, then renders it. |
 
 ## 3. Interface Contracts & Public Surface

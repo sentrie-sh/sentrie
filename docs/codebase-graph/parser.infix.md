@@ -19,9 +19,9 @@ The single handler behind every ordinary binary operator — arithmetic, compari
 | `parser.infix` | `READS_FROM` | [[parser.precedence]] | Receives the operator's binding power from the Pratt loop; overrides it for `/`. |
 | `parser.infix` | `CALLS` | [[ast]] | Emits `ast.NewInfixExpression(left, right, operatorString, span)`. |
 | [[parser.lookups]] | `CALLS` | [[parser.infix]] | Registered for roughly fifteen token kinds. |
-| [[parser.not]] | `CALLS` | [[ast]] | Builds the same node type for negated membership forms. |
-| [[parser.is]] | `CALLS` | [[ast]] | Falls back to this node type for the general `a is b` comparison. |
-| [[runtime.eval_infix]] | `DEPENDS_ON` | [[ast]] | Dispatches on the operator string and applies [[trinary]] Kleene logic for boolean operators. |
+| [[parser.not]] | `CALLS` | [[parser.infix]] | Builds the same node type for negated membership forms. |
+| [[parser.is]] | `CALLS` | [[parser.infix]] | Falls back to this node type for the general `a is b` comparison. |
+| [[runtime.eval_infix]] | `DEPENDS_ON` | [[parser.infix]] | Dispatches on the operator string and applies [[trinary]] Kleene logic for boolean operators. |
 
 ## 3. Interface Contracts & Public Surface
 

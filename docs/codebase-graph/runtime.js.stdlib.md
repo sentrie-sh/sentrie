@@ -15,7 +15,7 @@ Installs the globals available to every module before any JavaScript runs. Curre
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.js.stdlib` | `READS_FROM` | `ext.os_environment` | `os.Environ()` supplies the candidate variables. |
+| `runtime.js.stdlib` | `READS_FROM` | [[infra.os_environment]] | `os.Environ()` supplies the candidate variables. |
 | `runtime.js.stdlib` | `CALLS` | [[pack]] | `PackFile.Permissions.CheckEnvAccess(key)` decides each variable individually. |
 | `runtime.js.stdlib` | `MUTATES` | [[runtime.js.alias_runtime]] | Sets the `env` global on the VM. |
 | [[runtime.modules]] | `CALLS` | `runtime.js.stdlib` | Invoked once per VM, before `Require`. |

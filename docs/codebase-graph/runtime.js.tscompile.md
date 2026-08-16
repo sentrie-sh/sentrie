@@ -15,7 +15,7 @@ Converts TypeScript or JavaScript source into ES2019 CommonJS via esbuild, then 
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.js.tscompile` | `DEPENDS_ON` | `ext.esbuild` | `api.Transform` with a fixed option set. |
+| `runtime.js.tscompile` | `IMPORTS` | `ext.evanw.esbuild` | `api.Transform` with a fixed option set. |
 | [[runtime.js.registry]] | `CALLS` | `runtime.js.tscompile` | `TranspileTS` then `WrapAsIIFE` inside `programFor`. |
 
 ## 3. Interface Contracts & Public Surface

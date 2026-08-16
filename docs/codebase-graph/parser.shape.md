@@ -21,8 +21,8 @@ Parses `shape <ident>` in its two mutually exclusive forms: a **simple** alias t
 | `parser.shape` | `CALLS` | [[ast]] | Emits `ast.NewShapeStatement`, `ast.Cmplx`, and `ast.ShapeField` values. |
 | [[parser.statement]] | `CALLS` | [[parser.shape]] | Registered for `tokens.KeywordShape` at top level. |
 | [[parser.policy]] | `CALLS` | [[parser.shape]] | Registered for the same kind at policy scope — the same handler serves both. |
-| [[index.shape]] | `DEPENDS_ON` | [[ast]] | Resolves shape names, composition, and field types. |
-| [[runtime.typeref_shape]] | `DEPENDS_ON` | [[ast]] | Validates values against the resolved shape at runtime. |
+| [[index.shape]] | `DEPENDS_ON` | [[parser.shape]] | Resolves shape names, composition, and field types. |
+| [[runtime.typeref_shape]] | `DEPENDS_ON` | [[parser.shape]] | Validates values against the resolved shape at runtime. |
 
 ## 3. Interface Contracts & Public Surface
 

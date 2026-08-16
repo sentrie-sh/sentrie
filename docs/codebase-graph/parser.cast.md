@@ -19,7 +19,7 @@ Parses the postfix cast `expr as <type>` as an infix handler on `as`. It is the 
 | `parser.cast` | `CALLS` | [[ast]] | Emits `ast.NewCastExpression(left, targetType, span)`. |
 | [[parser.lookups]] | `CALLS` | [[parser.cast]] | Registered as the infix handler for `KeywordAs`. |
 | [[parser.precedence]] | `DEPENDS_ON` | [[parser.cast]] | `as` sits at `UNARY`, above all arithmetic and comparison operators. |
-| [[runtime.eval_cast]] | `DEPENDS_ON` | [[ast]] | Performs the actual conversion and constraint check against [[box.value]]. |
+| [[runtime.eval_cast]] | `DEPENDS_ON` | [[parser.cast]] | Performs the actual conversion and constraint check against [[box.value]]. |
 
 ## 3. Interface Contracts & Public Surface
 

@@ -15,15 +15,15 @@ tags: syntax-tree, front-end, data-model, code-generation, ir
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `ast` | `DEPENDS_ON` | [[tokens]] | Every node embeds a `tokens.Range` span via `baseNode`; `FQN`, literals, and type refs all carry positions for diagnostics. |
-| `ast` | `DEPENDS_ON` | [[trinary]] | `TrinaryLiteral` stores a resolved `trinary.Value` rather than raw text. |
-| `ast` | `DEPENDS_ON` | [[xerr]] | `validateConstraint` returns `xerr.NotFoundError{}` for unknown constraint names on a type ref. |
-| `ast` | `DEPENDS_ON` | [[constraints]] | **Build-time only.** `ast/gen.go` (guarded by the `generate` build tag) reads the constraint checker tables and emits `typeref_constraint_args_gen.go`. The compiled package has no runtime edge to [[constraints]]. |
+| `ast` | `LAYERED_ON` | [[tokens]] | Every node embeds a `tokens.Range` span via `baseNode`; `FQN`, literals, and type refs all carry positions for diagnostics. |
+| `ast` | `LAYERED_ON` | [[trinary]] | `TrinaryLiteral` stores a resolved `trinary.Value` rather than raw text. |
+| `ast` | `LAYERED_ON` | [[xerr]] | `validateConstraint` returns `xerr.NotFoundError{}` for unknown constraint names on a type ref. |
+| `ast` | `LAYERED_ON` | [[constraints]] | **Build-time only.** `ast/gen.go` (guarded by the `generate` build tag) reads the constraint checker tables and emits `typeref_constraint_args_gen.go`. The compiled package has no runtime edge to [[constraints]]. |
 | [[parser]] | `CALLS` | [[ast]] | Every production calls a `New*` constructor; this is the parser's only output type. |
-| [[index.package]] | `DEPENDS_ON` | [[ast]] | Walks `Program.Statements` to build namespaces, policies, rules, derives, shapes, and the dependency graph. |
-| [[runtime]] | `DEPENDS_ON` | [[ast]] | The evaluator switches on concrete node types to evaluate expressions and execute statements. |
-| [[loader]] | `DEPENDS_ON` | [[ast]] | `LoadPrograms` returns `[]*ast.Program`, one per discovered policy file. |
-| [[pack]] | `DEPENDS_ON` | [[ast]] | `pack.Pack` pairs a `PackFile` manifest with the parsed `[]*ast.Program`. |
+| [[index.package]] | `LAYERED_ON` | [[ast]] | Walks `Program.Statements` to build namespaces, policies, rules, derives, shapes, and the dependency graph. |
+| [[runtime]] | `LAYERED_ON` | [[ast]] | The evaluator switches on concrete node types to evaluate expressions and execute statements. |
+| [[loader]] | `LAYERED_ON` | [[ast]] | `LoadPrograms` returns `[]*ast.Program`, one per discovered policy file. |
+| [[pack]] | `LAYERED_ON` | [[ast]] | `pack.Pack` pairs a `PackFile` manifest with the parsed `[]*ast.Program`. |
 
 ## 3. Interface Contracts & Public Surface
 

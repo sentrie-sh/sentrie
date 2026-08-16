@@ -11,6 +11,8 @@ tags: metadata, documentation, policy-scope, declarative
 ## 1. Architectural Role & Intent
 Four near-identical productions — `title "…"`, `description "…"`, `version "…"`, and `tag "k" = "v"` — that attach human-facing metadata to a policy. They are grouped into one graph node because they are structurally the same production with different keywords and node types. Their architectural significance is scope: they are legal **only inside a policy block**, and [[parser.statement]] carries a dedicated guard to say so rather than emitting a generic syntax error.
 
+Not to be confused with pack metadata, which lives in the manifest and is modelled by [[pack]]. The two carry similar-sounding fields and are entirely unrelated.
+
 ## 2. Graph Edges (Strict Relational Data)
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
@@ -19,8 +21,7 @@ Four near-identical productions — `title "…"`, `description "…"`, `version
 | `parser.policy_metadata` | `CALLS` | [[parser.parser]] | Each uses `head`, `expect(<keyword>)`, `advanceExpected(String)`. |
 | [[parser.policy]] | `CALLS` | [[parser.policy_metadata]] | All four are registered in the policy-scope handler table. |
 | [[parser.statement]] | `DEPENDS_ON` | [[parser.policy_metadata]] | Guards the four keywords at top level with `'<kind>' is only allowed inside a policy`. |
-| [[index.policy_stmt]] | `DEPENDS_ON` | [[ast]] | Collects metadata onto the indexed policy. |
-| [[pack]] | (contrast) | [[parser.policy_metadata]] | Pack-level metadata lives in the manifest; this is *per-policy* metadata and the two are unrelated. |
+| [[index.policy_stmt]] | `DEPENDS_ON` | [[parser.policy_metadata]] | Collects metadata onto the indexed policy. |
 
 ## 3. Interface Contracts & Public Surface
 

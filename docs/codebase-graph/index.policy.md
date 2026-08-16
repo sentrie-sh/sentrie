@@ -16,7 +16,7 @@ tags: policy-model, scoping, metadata, decision-export, phase-ordering
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `index.policy` | `DEPENDS_ON` | [[ast]] | Type-switches over every policy-body statement; retains all nodes by reference. |
-| `index.policy` | `DEPENDS_ON` | `ext.masterminds.semver` | `version` metadata is parsed into a concrete `*semver.Version`. |
+| `index.policy` | `IMPORTS` | `ext.masterminds.semver` | `version` metadata is parsed into a concrete `*semver.Version`. |
 | `index.policy` | `DEPENDS_ON` | [[xerr]] | Uses `ErrConflict`, `ErrPolicyMetadataContiguous`, `ErrPolicyEmptyTitle`, `ErrPolicyInvalidVersion`, `ErrPolicyEmptyTagKey`, `ErrPolicyFactAfterUse`, `ErrInvalidInvocation`, `ErrIndex`. |
 | `index.policy` | `CALLS` | [[index.policy_stmt]] | `policyStmtKindOf` classifies statements (to skip comments); `buildTagsByKey` derives the tag index. |
 | `index.policy` | `CALLS` | [[index.rule]] | `AddRule` builds `Rule` records via `createRule`. |

@@ -20,7 +20,7 @@ tags: literals, list, map, aggregate-expressions
 | `parser.collection` | `CALLS` | [[parser.parser]] | Uses `advanceExpected`, `expect`, `canExpect`, `hasTokens`, `errorf`. |
 | [[parser.lookups]] | `CALLS` | [[parser.collection]] | `parseListLiteral` is the prefix handler for `[`. |
 | [[parser.left_curly]] | `CALLS` | [[parser.collection]] | `parseMapLiteral` is reached only through the `{` disambiguation, never registered directly. |
-| [[box.value]] | `DEPENDS_ON` | [[ast]] | List and dict values are materialised from these nodes at evaluation. |
+| [[box.value]] | `DEPENDS_ON` | [[parser.collection]] | List and dict values are materialised from these nodes at evaluation. |
 
 ## 3. Interface Contracts & Public Surface
 

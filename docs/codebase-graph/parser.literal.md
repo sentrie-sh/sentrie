@@ -19,8 +19,8 @@ tags: constraints, compile-time-constants, literal-only, type-system
 | `parser.literal` | `CALLS` | [[ast]] | Emits `ListLiteral` and `MapLiteral` for aggregate constraint arguments. |
 | `parser.literal` | `CALLS` | [[parser.parser]] | Uses `advanceExpected`, `expect`, `canExpect`, `hasTokens`, `errorf`. |
 | [[parser.typeref]] | `CALLS` | [[parser.literal]] | The sole caller: constraint suffix arguments are parsed here. |
-| [[ast.typeref]] | `DEPENDS_ON` | [[ast]] | Stores the parsed literals as `TypeRefConstraint.Args`. |
-| [[constraints]] | `READS_FROM` | [[ast]] | Evaluates these argument nodes when applying a checker to a value. |
+| [[ast.typeref]] | `DEPENDS_ON` | [[parser.literal]] | Stores the parsed literals as `TypeRefConstraint.Args`. |
+| [[constraints]] | `READS_FROM` | [[parser.literal]] | Evaluates these argument nodes when applying a checker to a value. |
 
 ## 3. Interface Contracts & Public Surface
 

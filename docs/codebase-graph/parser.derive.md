@@ -20,9 +20,9 @@ Parses `derive <ident> = <lambda>`, the named reusable computation that both nam
 | `parser.derive` | `CALLS` | [[ast]] | Emits `ast.NewDeriveStatement(name, lambda, span)`. |
 | [[parser.statement]] | `CALLS` | [[parser.derive]] | Registered for `tokens.KeywordDerive` at **top level**. |
 | [[parser.policy]] | `CALLS` | [[parser.derive]] | Registered for the same kind in the **policy scope** — the same handler serves both. |
-| [[index.derive]] | `DEPENDS_ON` | [[ast]] | Registers the derive as a graph node and extracts its dependencies. |
-| [[index.derive_cycle]] | `CALLS` | [[dag]] | Detects cyclic derive definitions built from these nodes. |
-| [[runtime.derive_invoke]] | `DEPENDS_ON` | [[ast]] | Invokes the derive's lambda during evaluation. |
+| [[index.derive]] | `DEPENDS_ON` | [[parser.derive]] | Registers the derive as a graph node and extracts its dependencies. |
+| [[index.derive_cycle]] | `DEPENDS_ON` | [[parser.derive]] | Detects cyclic definitions among the derives this production declares. |
+| [[runtime.derive_invoke]] | `DEPENDS_ON` | [[parser.derive]] | Invokes the derive's lambda during evaluation. |
 
 ## 3. Interface Contracts & Public Surface
 

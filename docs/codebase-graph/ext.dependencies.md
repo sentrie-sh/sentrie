@@ -15,18 +15,20 @@ The complete external surface of the Sentrie module, declared in `go.mod` agains
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| [[runtime.js]] | `DEPENDS_ON` | `ext.goja` | `github.com/dop251/goja` — the JavaScript interpreter. |
-| [[runtime.js.tscompile]] | `DEPENDS_ON` | `ext.esbuild` | `github.com/evanw/esbuild` — TypeScript to CommonJS transpilation. |
-| [[runtime.executor]] | `DEPENDS_ON` | `ext.perch` | `github.com/binaek/perch` — TTL cache backing module bindings and call memoization. |
-| [[runtime.modules]] | `DEPENDS_ON` | `ext.puddle` | `github.com/jackc/puddle/v2` — the JavaScript VM pool. |
-| [[cmd]] | `DEPENDS_ON` | `ext.cling` | `github.com/binaek/cling` — CLI command, flag, and argument framework. |
-| [[loader]] | `DEPENDS_ON` | `ext.gojsonschema` | `github.com/xeipuuv/gojsonschema` — pack manifest schema validation. |
-| [[loader]] | `DEPENDS_ON` | `ext.toml` | `github.com/pelletier/go-toml/v2` — pack manifest parsing and encoding. |
-| [[pack]] | `DEPENDS_ON` | `ext.semver` | `github.com/Masterminds/semver/v3` — pack version and engine constraint checking. |
-| [[runtime.eval_call]] | `DEPENDS_ON` | `ext.hashstructure` | `github.com/mitchellh/hashstructure/v2` — memoization key derivation. |
-| [[api.middleware]] | `DEPENDS_ON` | `ext.google_uuid` | `github.com/google/uuid` — request and instance identifiers. |
-| [[api.net]] | `DEPENDS_ON` | `ext.gocoll` | `github.com/binaek/gocoll` — generic collection helpers. |
-| [[box]] | `DEPENDS_ON` | `ext.structs` | `github.com/fatih/structs` — struct-to-map reflection at the value boundary. |
+| [[runtime.js]] | `IMPORTS` | `ext.dop251.goja` | `github.com/dop251/goja` — the JavaScript interpreter. |
+| [[runtime.js.tscompile]] | `IMPORTS` | `ext.evanw.esbuild` | `github.com/evanw/esbuild` — TypeScript to CommonJS transpilation. |
+| [[runtime.executor]] | `IMPORTS` | `ext.binaek.perch` | `github.com/binaek/perch` — TTL cache backing module bindings and call memoization. |
+| [[runtime.modules]] | `IMPORTS` | `ext.jackc.puddle` | `github.com/jackc/puddle/v2` — the JavaScript VM pool. |
+| [[cmd]] | `IMPORTS` | `ext.binaek.cling` | `github.com/binaek/cling` — CLI command, flag, and argument framework. |
+| [[loader]] | `IMPORTS` | `ext.xeipuuv.gojsonschema` | `github.com/xeipuuv/gojsonschema` — pack manifest schema validation. |
+| [[loader]] | `IMPORTS` | `ext.pelletier.go-toml` | `github.com/pelletier/go-toml/v2` — pack manifest parsing and encoding. |
+| [[pack]] | `IMPORTS` | `ext.masterminds.semver` | `github.com/Masterminds/semver/v3` — pack version and engine constraint checking. |
+| [[runtime.eval_call]] | `IMPORTS` | `ext.mitchellh.hashstructure` | `github.com/mitchellh/hashstructure/v2` — memoization key derivation. |
+| [[api.middleware]] | `IMPORTS` | `ext.google.uuid` | `github.com/google/uuid` — request and instance identifiers. |
+| [[api.net]] | `IMPORTS` | `ext.binaek.gocoll` | `github.com/binaek/gocoll` — generic collection helpers. |
+| [[box]] | `IMPORTS` | `ext.fatih.structs` | `github.com/fatih/structs` — struct-to-map reflection at the value boundary. |
+| [[tokens]] | `IMPORTS` | `ext.golang.x-exp` | `golang.org/x/exp/maps` — enumerating the keyword lookup table. |
+| [[api.net]] | `IMPORTS` | `ext.golang.x-exp` | `golang.org/x/exp/slices` — membership checks over the predefined listen names. |
 
 ## 3. Interface Contracts & Public Surface
 
@@ -39,7 +41,7 @@ The complete external surface of the Sentrie module, declared in `go.mod` agains
   - **`go-toml/v2` v2.2.4** — manifest read and write.
   - **`semver/v3` v3.4.0** — SemVer parsing and constraint matching for engine compatibility.
   - **`testify` v1.11.1** — test-only, but a direct requirement.
-  - **`golang.org/x/exp`** — used for `slices` helpers in [[api.net]].
+  - **`golang.org/x/exp`** — `maps` in [[tokens]], `slices` in [[api.net]]. Both have standard-library equivalents as of Go 1.21/1.23, so this requirement is removable.
 
 - **Signature:** Notable indirect requirements
   - **`dlclark/regexp2`** — goja's regex engine, which is .NET-flavoured rather than RE2; relevant because policy `matches` and the `regexp` constraint use Go's `regexp` while JavaScript regexes go through this. The two dialects differ.

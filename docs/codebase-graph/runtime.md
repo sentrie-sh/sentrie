@@ -15,18 +15,18 @@ tags: evaluation, execution, sandboxing, javascript, concurrency, back-end
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime` | `DEPENDS_ON` | [[index.package]] | Resolves policies, rules, facts, lets, derives, and export metadata. Requires a validated index. |
-| `runtime` | `DEPENDS_ON` | [[ast]] | Walks expression nodes directly; there is no separate IR or bytecode. |
-| `runtime` | `DEPENDS_ON` | [[box]] | `box.Value` is the universal runtime value representation and boundary codec. |
-| `runtime` | `DEPENDS_ON` | [[trinary]] | Decisions are Kleene three-valued; `Unknown` is the failure-safe default. |
-| `runtime` | `DEPENDS_ON` | [[builtins]] | Dispatches native builtin calls through the `builtins.Env` interface. |
-| `runtime` | `DEPENDS_ON` | [[pack]] | Reads `Permissions` to gate module and environment access, and `Location` to resolve module paths. |
-| `runtime` | `DEPENDS_ON` | [[xerr]] | Structured error sentinels for required facts, recursion, and type failures. |
-| `runtime` | `DEPENDS_ON` | [[runtime.js]] | Owns the goja VM registry, TypeScript compilation, and the `@sentra/*` standard library. |
-| `runtime` | `DEPENDS_ON` | [[runtime.trace]] | Builds the decision explanation tree alongside evaluation. |
-| `runtime` | `DEPENDS_ON` | `ext.goja` | Embedded ECMAScript interpreter for `use` modules. |
-| `runtime` | `DEPENDS_ON` | `ext.puddle` | Pools JS VM instances per module binding. |
-| `runtime` | `DEPENDS_ON` | `ext.perch` | Size-bounded caches for module bindings and memoized calls. |
+| `runtime` | `LAYERED_ON` | [[index.package]] | Resolves policies, rules, facts, lets, derives, and export metadata. Requires a validated index. |
+| `runtime` | `LAYERED_ON` | [[ast]] | Walks expression nodes directly; there is no separate IR or bytecode. |
+| `runtime` | `LAYERED_ON` | [[box]] | `box.Value` is the universal runtime value representation and boundary codec. |
+| `runtime` | `LAYERED_ON` | [[trinary]] | Decisions are Kleene three-valued; `Unknown` is the failure-safe default. |
+| `runtime` | `LAYERED_ON` | [[builtins]] | Dispatches native builtin calls through the `builtins.Env` interface. |
+| `runtime` | `LAYERED_ON` | [[pack]] | Reads `Permissions` to gate module and environment access, and `Location` to resolve module paths. |
+| `runtime` | `LAYERED_ON` | [[xerr]] | Structured error sentinels for required facts, recursion, and type failures. |
+| `runtime` | `LAYERED_ON` | [[runtime.js]] | Owns the goja VM registry, TypeScript compilation, and the `@sentra/*` standard library. |
+| `runtime` | `LAYERED_ON` | [[runtime.trace]] | Builds the decision explanation tree alongside evaluation. |
+| `runtime` | `IMPORTS` | `ext.dop251.goja` | Embedded ECMAScript interpreter for `use` modules. |
+| `runtime` | `IMPORTS` | `ext.jackc.puddle` | Pools JS VM instances per module binding. |
+| `runtime` | `IMPORTS` | `ext.binaek.perch` | Size-bounded caches for module bindings and memoized calls. |
 | [[cmd]] | `CALLS` | [[runtime]] | The `exec` command builds an executor and runs a policy or rule. |
 | [[api]] | `CALLS` | [[runtime]] | Serves evaluation requests against a long-lived executor. |
 

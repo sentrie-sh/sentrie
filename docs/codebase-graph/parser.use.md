@@ -17,10 +17,10 @@ Parses `use { f, g } from ("./mod.js" | @pkg/mod) [as alias]` — the bridge bet
 | :--- | :--- | :--- | :--- |
 | `parser.use` | `CALLS` | [[parser.parser]] | Uses `advanceExpected`, `expect`, `canExpect`, `canExpectAnyOf`, `errorf`. |
 | `parser.use` | `CALLS` | [[ast]] | Emits `ast.NewUseStatement(modules, relativeFrom, libFrom, alias, span)`. |
-| `parser.use` | `DEPENDS_ON` | (stdlib: `strings`) | Splits a relative path on `/` to derive the default alias. |
+| `parser.use` | `IMPORTS` | `std.strings` | Splits a relative path on `/` to derive the default alias. |
 | [[parser.policy]] | `CALLS` | [[parser.use]] | Registered for `tokens.KeywordUse` in the policy-scope table — `use` is policy-scoped, not namespace-scoped. |
-| [[runtime.js]] | `DEPENDS_ON` | [[ast]] | Resolves and loads the named module, exposing the listed exports under the alias. |
-| [[pack]] | `READS_FROM` | [[ast]] | Permission grants bound what a resolved module may access. |
+| [[runtime.js]] | `DEPENDS_ON` | [[parser.use]] | Resolves and loads the named module, exposing the listed exports under the alias. |
+| [[pack]] | `READS_FROM` | [[parser.use]] | Permission grants bound what a resolved module may access. |
 
 ## 3. Interface Contracts & Public Surface
 

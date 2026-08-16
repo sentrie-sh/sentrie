@@ -15,12 +15,12 @@ Defines the four user-facing commands and wires the loading pipeline behind each
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `cmd` | `DEPENDS_ON` | `ext.cling` | The CLI framework: command, flag, and argument definitions plus `Hydrate` for typed binding. |
+| `cmd` | `IMPORTS` | `ext.binaek.cling` | The CLI framework: command, flag, and argument definitions plus `Hydrate` for typed binding. |
 | `cmd` | `CALLS` | [[loader]] | `LoadPack` reads the manifest; `LoadPrograms` parses every policy file. |
 | `cmd` | `CALLS` | [[index.package]] | `CreateIndex`, `SetPack`, `AddProgram`, `Validate`. |
 | `cmd` | `CALLS` | [[runtime.executor]] | `NewExecutor`, then `ExecPolicy` / `ExecRule`. |
 | `cmd` | `CALLS` | [[api.http]] | `serve` constructs and drives the HTTP API. |
-| `cmd` | `DEPENDS_ON` | [[pack]] | `init` constructs and TOML-encodes a new pack manifest. |
+| `cmd` | `LAYERED_ON` | [[pack]] | `init` constructs and TOML-encodes a new pack manifest. |
 | [[main]] | `CALLS` | `cmd` | `Setup` builds the CLI; `Execute` runs it. |
 
 ## 3. Interface Contracts & Public Surface

@@ -18,9 +18,9 @@ The prefix handler for `!`, `-`, `+`, and the `not` keyword. It parses its opera
 | `parser.unary` | `CALLS` | [[parser.expression]] | Parses the operand at `UNARY`. |
 | `parser.unary` | `CALLS` | [[ast]] | Emits `ast.NewUnaryExpression(operatorString, operand, span)`. |
 | [[parser.lookups]] | `CALLS` | [[parser.unary]] | Registered as the prefix handler for `TokenBang`, `TokenMinus`, `TokenPlus`, and `KeywordNot`. |
-| [[parser.not]] | `CALLS` | [[ast]] | Produces the same node type when wrapping a negated membership test. |
-| [[parser.is]] | `CALLS` | [[ast]] | Produces the same node type for `is not defined` / `is not empty`. |
-| [[runtime.eval_unary]] | `DEPENDS_ON` | [[ast]] | Applies numeric negation or [[trinary]] `Not()` depending on the operator and operand kind. |
+| [[parser.not]] | `CALLS` | [[parser.unary]] | Produces the same node type when wrapping a negated membership test. |
+| [[parser.is]] | `CALLS` | [[parser.unary]] | Produces the same node type for `is not defined` / `is not empty`. |
+| [[runtime.eval_unary]] | `DEPENDS_ON` | [[parser.unary]] | Applies numeric negation or [[trinary]] `Not()` depending on the operator and operand kind. |
 
 ## 3. Interface Contracts & Public Surface
 

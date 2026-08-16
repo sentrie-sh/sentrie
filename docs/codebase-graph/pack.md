@@ -15,14 +15,14 @@ tags: manifest, packaging, permissions, semver, configuration
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `pack` | `DEPENDS_ON` | [[ast]] | `Pack.Programs` is `[]*ast.Program` — the parsed policy sources belonging to this manifest. |
-| `pack` | `DEPENDS_ON` | `ext.masterminds.semver` | `PackInformation.Version` is a `*semver.Version`; `Engine.Sentrie` is a `*semver.Constraints`. |
-| `pack` | `DEPENDS_ON` | (stdlib: `encoding/json`, `slices`) | Custom JSON codec for the semver constraint; membership check for env permissions. |
+| `pack` | `LAYERED_ON` | [[ast]] | `Pack.Programs` is `[]*ast.Program` — the parsed policy sources belonging to this manifest. |
+| `pack` | `IMPORTS` | `ext.masterminds.semver` | `PackInformation.Version` is a `*semver.Version`; `Engine.Sentrie` is a `*semver.Constraints`. |
+| `pack` | `IMPORTS` | `std.encoding/json`, `std.slices` | Custom JSON codec for the semver constraint; membership check for env permissions. |
 | [[loader]] | `MUTATES` | [[pack]] | `LoadPack` decodes TOML into a `PackFile` and sets `Location` to the manifest's directory. |
 | [[loader]] | `READS_FROM` | [[pack]] | `LoadPrograms` reads `PackFile.Location` to decide where to walk for `.sentrie` sources. |
-| [[index.package]] | `DEPENDS_ON` | [[pack]] | Indexing is performed against a pack's manifest plus programs. |
+| [[index.package]] | `LAYERED_ON` | [[pack]] | Indexing is performed against a pack's manifest plus programs. |
 | [[runtime.js]] | `READS_FROM` | [[pack]] | The JS standard library consults `Permissions` before granting env/file/network access to sandboxed modules. |
-| [[cmd]] | `DEPENDS_ON` | [[pack]] | `sentrie init` writes a new manifest via `NewPackFile`; `exec`/`validate`/`serve` load and carry one. |
+| [[cmd]] | `LAYERED_ON` | [[pack]] | `sentrie init` writes a new manifest via `NewPackFile`; `exec`/`validate`/`serve` load and carry one. |
 
 ## 3. Interface Contracts & Public Surface
 

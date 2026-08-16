@@ -19,8 +19,8 @@ Handles the infix use of `not` — the negated membership and matching forms `x 
 | `parser.not` | `CALLS` | [[ast]] | Emits `InfixExpression` wrapped in `UnaryExpression`. |
 | `parser.not` | `CALLS` | [[parser.parser]] | Uses `advance`, `canExpectAnyOf`, `head`, `errorf`. |
 | [[parser.lookups]] | `CALLS` | [[parser.not]] | Registered as the **infix** handler for `KeywordNot`; the prefix registration goes to [[parser.unary]]. |
-| [[parser.unary]] | `DEPENDS_ON` | [[ast]] | Shares the `UnaryExpression` node used as the negation wrapper. |
-| [[runtime.eval_unary]] | `DEPENDS_ON` | [[ast]] | Evaluates the wrapper via [[trinary]] `Not()`. |
+| [[parser.unary]] | `DEPENDS_ON` | [[parser.not]] | Shares the `UnaryExpression` node used as the negation wrapper. |
+| [[runtime.eval_unary]] | `DEPENDS_ON` | [[parser.not]] | Evaluates the wrapper via [[trinary]] `Not()`. |
 
 ## 3. Interface Contracts & Public Surface
 
