@@ -22,7 +22,7 @@ tags: lexing, source-positions, language-frontend, diagnostics
 | [[ast]] | `LAYERED_ON` | [[tokens]] | Every AST node embeds a `tokens.Range` for span reporting. |
 | [[trinary]] | `LAYERED_ON` | [[tokens]] | `trinary.FromToken` converts `true`/`false`/`unknown` keyword tokens into tri-state values. |
 | [[xerr]] | `LAYERED_ON` | [[tokens]] | Span-anchored error constructors accept `tokens.Range` to render `file:line:col`. |
-| [[index.package]] | `LAYERED_ON` | [[tokens]] | Static validation errors are anchored to declaration spans. |
+| [[index]] | `LAYERED_ON` | [[tokens]] | Static validation errors are anchored to declaration spans. |
 | [[runtime]] | `LAYERED_ON` | [[tokens]] | Runtime errors and builtin arity failures carry originating spans. |
 
 ## 3. Interface Contracts & Public Surface

@@ -44,7 +44,7 @@ jobs:
           go-version: "1.25"
           cache: true
 
-      # Asserts the schema documented in docs/codebase-graph/index.md: front-matter
+      # Asserts the schema documented in docs/codebase-graph/overview.md: front-matter
       # shape, closed predicate set, link resolution, edge locality, no orphans.
       - name: Validate knowledge graph
         run: make docs-graph

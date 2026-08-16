@@ -89,7 +89,7 @@ curl -X POST http://localhost:7529/decision/user_management/user_access/allow \
 
 ### Working on Sentrie itself
 
-- **[Codebase Knowledge Graph](docs/codebase-graph/index.md)** - Architecture, dependencies, and contracts for every package and boundary. The fastest way to orient in the source.
+- **[Codebase Knowledge Graph](docs/codebase-graph/overview.md)** - Architecture, dependencies, and contracts for every package and boundary. The fastest way to orient in the source.
 - **[Contributing](CONTRIBUTING.md)** - Development workflow and CLA
 
 ## License

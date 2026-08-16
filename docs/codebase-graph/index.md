@@ -2,342 +2,69 @@
 id: index
 type: System / Package
 language: Go
-file_path: ./
-tags: entrypoint, catalog, architecture-overview, navigation
+file_path: index/
+tags: semantic-analysis, symbol-table, validation, dependency-graph, middle-end
 ---
 
-# Sentrie — Knowledge Graph Entrypoint Matrix
+# Node: Index (Semantic Model and Validator)
 
-Sentrie is an extensible policy evaluation engine. A policy pack is loaded from disk, parsed into an AST, indexed into a validated semantic model, and evaluated against caller-supplied facts to produce a three-valued decision — `True`, `False`, or `Unknown`.
+## 1. Architectural Role & Intent
+`index` is Sentrie's middle-end: it consumes the `ast.Program` values produced by [[parser]] and builds a queryable semantic model — namespaces, policies, rules, shapes, derives, and their exports — then validates that model before anything is allowed to execute. It is where every rule that a grammar cannot express is enforced: declaration ordering inside a policy, name uniqueness across kinds, shape composition, derive purity, builtin call arity and argument kinds, and cycle freedom across four separate dependency graphs. [[runtime]] executes only against a validated, committed index.
 
-This directory is the machine-readable index of that system. Every node file follows a fixed schema: identity front-matter, architectural role, a graph-edge table using a closed predicate set, interface contracts, and operational gotchas. Start here, follow the wiki-links.
+## 2. Graph Edges (Strict Relational Data)
 
-The schema below is normative and is enforced by `make docs-graph` (and by the `docs-graph` CI job). A change that violates it fails the build.
-
----
-
-## Graph Schema
-
-### Extractor contract
-
-An edge is a `[[target]]` wiki-link or a backticked leaf id appearing in the **Target (Object)** column of a section-2 table. Consumers **must** be markdown-aware:
-
-- `[[…]]` inside a code span or a fenced code block is **not** an edge. It is literal text. `api.net` legitimately documents the string `[[::1]]:7529`, which is the malformed output of `net.JoinHostPort` — not a reference to a node called `::1`.
-- Wiki-links outside section 2 are navigational cross-references, not edges.
-
-A naive `\[\[([^\]]+)\]\]` scan over the raw bytes will produce false edges. Strip code spans first.
-
-### Required front-matter
-
-Every node file carries exactly these five keys:
-
-| Key | Value |
-| :--- | :--- |
-| `id` | Must equal the filename stem. |
-| `type` | One of the five node types below. |
-| `language` | `Go`, `EBNF`, or `N/A`. |
-| `file_path` | A path, glob, or comma-separated list of either, each of which must match at least one file. `Infrastructure` nodes have no source file and use the literal `(external)`. |
-| `tags` | Comma-separated, free-form. |
-
-### Node types
-
-| Type | Meaning |
-| :--- | :--- |
-| `System / Package` | A Go package or a whole subsystem. |
-| `Class` | A struct or interface with meaningful behaviour. |
-| `Function / Endpoint` | A function, method group, or HTTP endpoint. |
-| `Module / File` | A source file whose contents do not warrant a class node. |
-| `Infrastructure` | A resource outside the process: filesystem, environment, sockets, build metadata. |
-
-### Predicates (closed set)
-
-| Predicate | Meaning | Target constraint |
-| :--- | :--- | :--- |
-| `CALLS` | Subject invokes a function or method on the target. | any |
-| `IMPORTS` | Subject imports the target **library**. | leaves only |
-| `LAYERED_ON` | Subject is a subsystem built on top of the target subsystem. | package to package |
-| `DEPENDS_ON` | Subject consumes the target's types, contracts, or declarations, with no layering implied. | nodes only |
-| `READS_FROM` | Subject reads state or data owned by the target. | any |
-| `MUTATES` | Subject writes state owned by the target. | any |
-| `INHERITS_FROM` | Subject implements or embeds the target's interface. | nodes only |
-
-No other predicate may appear.
-
-**`LAYERED_ON` versus `DEPENDS_ON`.** Layering is a property of *subsystems*, so `LAYERED_ON` is restricted to edges between two `System / Package` nodes. That restriction is the point: it keeps the layer map to around eighty edges, small enough to read as an architecture diagram, instead of re-absorbing every type reference in the codebase. `DEPENDS_ON` covers the rest — a file consuming an AST type, a validator consuming a shape model, and conformance relationships like [[parser]] to [[grammar]], which is a specification rather than a layer.
-
-To answer "what sits beneath X", read X's `LAYERED_ON` edges. To answer "what would break if I change this type", read the `DEPENDS_ON` edges pointing at it.
-
-A predicate asserts a relationship that exists. Contrasts, fallbacks, and deliberate **non**-relationships belong in section 1 or section 4 — not in the table with a parenthesised pseudo-predicate.
-
-### Id namespaces
-
-| Namespace | Form | Linked as | Has a file |
+| Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| Internal | `<pkg>` or `<pkg>.<symbol>` | `[[wiki-link]]` | yes |
-| Infrastructure | `infra.<resource>` | `[[wiki-link]]` | yes |
-| Third-party | `ext.<org>.<module>` | backticks | no |
-| Standard library | `std.<import/path>` | backticks | no |
+| `index` | `LAYERED_ON` | [[ast]] | Consumes `ast.Program` and every statement type; retains AST nodes by reference throughout the model. |
+| `index` | `LAYERED_ON` | [[dag]] | Builds four graphs — rule, shape, derive, and a per-policy identifier graph — for cycle detection and topological ordering. |
+| `index` | `LAYERED_ON` | [[pack]] | Holds the pack manifest alongside the semantic model. |
+| `index` | `LAYERED_ON` | [[xerr]] | Every diagnostic is an `xerr` sentinel or `ErrConflict`, giving structured two-span conflict errors. |
+| `index` | `LAYERED_ON` | [[builtins]] | Reads builtin declarations and signatures to validate call sites; consults `IsDeriveSafe` for purity. |
+| `index` | `LAYERED_ON` | [[box]] | Uses `box.ValueKind` as the vocabulary for static argument-kind checking. |
+| `index` | `IMPORTS` | `ext.masterminds.semver` | Parses and validates per-policy `version` metadata. |
+| [[loader]] | `LAYERED_ON` | [[index]] | Supplies the parsed programs that populate the index. |
+| [[runtime]] | `LAYERED_ON` | [[index]] | Resolves namespaces, policies, rules, and derives against the committed index during evaluation. |
+| [[cmd]] | `CALLS` | [[index]] | `validate` and `exec` build an index, call `Validate`, and report or proceed. |
+| [[api]] | `CALLS` | [[index]] | Serves evaluation requests against a pre-built index. |
 
-`ext.*` ids are derived from the `go.mod` module path: host organisation, then module name, lowercased, `/v2`-style major suffixes dropped. `github.com/Masterminds/semver/v3` is therefore `ext.masterminds.semver` — never `ext.semver`. `std.*` ids keep the import path verbatim, so `std.encoding/json`, not `std.encoding_json`.
+## 3. Interface Contracts & Public Surface
 
-**External references are backticked leaves, never wiki-links.** They have no node file and a `[[…]]` around one is a broken link by definition. The single exception is [[ext.dependencies]], which is the *catalog* node describing the manifest as a whole — it is a real node, and the individual libraries it catalogues are leaves.
+- **Signature:** `CreateIndex() -> *Index`
+  - **Behavior:** Allocates an empty index with its lock, maps, and the two `sync.Once` guards for validation and commit. See [[index.index]].
+  - **Side Effects:** Allocation only.
+  - **Exceptions:** None.
 
-### Edge locality
+- **Signature:** `(*Index).SetPack(ctx, p *pack.PackFile) -> error` / `(*Index).AddProgram(ctx, astProgram *ast.Program) -> error`
+  - **Behavior:** The two population entrypoints. `AddProgram` is where namespaces are created, top-level statements are dispatched, and most structural conflicts are detected. See [[index.index]].
+  - **Side Effects:** Mutates the index under a write lock.
+  - **Exceptions:** Name conflicts, unknown derive exports, unsupported top-level statements.
 
-Every edge in a node's table has that node — or one of its namespace members, for package nodes — at one end. A node does not declare edges between two unrelated third parties.
+- **Signature:** `(*Index).Validate(ctx) -> error` / `(*Index).IsValid(ctx) -> error`
+  - **Behavior:** Runs the full validation pipeline exactly once and then commits. See [[index.validate]].
+  - **Side Effects:** Populates the rule and shape DAGs; triggers [[index.commit]].
+  - **Exceptions:** Any validation failure, wrapped as `validation error: …`.
 
-Full reciprocity is deliberately **not** required. Hub nodes such as [[ast]] have well over a hundred inbound edges and summarise them rather than enumerating them; forcing symmetry would make those files unreadable. The invariant that replaces it is locality plus **no orphans**: every node has at least one inbound link from somewhere, so nothing is unreachable from this entrypoint.
+- **Signature:** `(*Index).Commit(ctx) -> error`
+  - **Behavior:** Hydrates shape composition in topological order. See [[index.commit]].
+  - **Side Effects:** Mutates shape models in place.
+  - **Exceptions:** Composition conflicts and unresolvable base shapes.
 
-A corollary worth internalising: a node's table is not a complete inbound index. To find every caller of a hub, traverse from the callers, not from the hub.
+- **Signature:** Resolution surface — `ResolveNamespace`, `ResolvePolicy`, `ResolveShape`, `ResolveDerive`, `ResolveSegments`, `VerifyRuleExported`, `VerifyShapeExported`, `VerifyDeriveExported`, plus the `RuleFQN`/`ShapeFQN`/`DeriveFQN` builders
+  - **Behavior:** The read API used by [[runtime]] and [[cmd]]. See [[index.resolve]] and [[index.segments]].
+  - **Side Effects:** None.
+  - **Exceptions:** `xerr` not-found and not-exported sentinels.
 
-### Enforcement
+- **Signature:** Model types — `Index`, `Namespace`, `Policy`, `Rule`, `Shape`, `Derive`, `Program`, `ExportedRule`, `ExportedShape`, `ExportedDerive`, `ShapeModel`, `ShapeModelField`, `PolicyTagPair`, `RuleExportAttachment`
+  - **Behavior:** The exported semantic vocabulary. All fields are public and all retain AST node references.
+  - **Side Effects:** N/A.
+  - **Exceptions:** N/A.
 
-`go test ./internal/docsgraph/` asserts all of the above — front-matter shape, `id`/filename agreement, `file_path` resolution, the closed predicate set, link resolution, locality, orphans, and catalog completeness. It runs in CI as the `docs-graph` job. A change that violates the schema fails the build rather than being caught in review.
-
-### Known limitation
-
-- **Nothing detects prose drift.** The checks above verify structure, not truth: a node whose source is rewritten still passes as long as the path resolves. [#121](https://github.com/sentrie-sh/sentrie/issues/121) proposes source fingerprints. Treat specific behavioural claims as accurate-as-of-writing and verify against source before relying on one.
-
----
-
-## System Overview
-
-```mermaid
-graph TD
-    subgraph Entry["Entrypoints"]
-        MAIN[main]
-        CMD[cmd — CLI]
-        API[api — HTTP]
-    end
-
-    subgraph Load["Load and Package"]
-        PACK[pack — manifest model]
-        LOADER[loader — pack discovery]
-    end
-
-    subgraph Front["Front End"]
-        LEXER[lexer]
-        TOKENS[tokens]
-        PARSER[parser — Pratt + recursive descent]
-        AST[ast]
-        GRAMMAR[grammar — reference spec]
-    end
-
-    subgraph Middle["Semantic Middle End"]
-        INDEX[index — symbol table and validation]
-        DAG[dag — cycle detection]
-    end
-
-    subgraph Back["Evaluation Runtime"]
-        EXEC[runtime.executor]
-        EVAL[runtime.eval — expression dispatch]
-        TYPEREF[runtime.typeref — type validation]
-        TRACE[runtime.trace — decision tree]
-    end
-
-    subgraph Capability["Capability Layers"]
-        BUILTINS[builtins — native functions]
-        CONSTRAINTS[constraints — type refinement]
-        JS[runtime.js — embedded JS/TS]
-    end
-
-    subgraph Core["Core Value Model"]
-        BOX[box — boxed values]
-        TRINARY[trinary — Kleene logic]
-        XERR[xerr — error taxonomy]
-    end
-
-    MAIN --> CMD
-    CMD --> API
-    CMD --> LOADER
-    LOADER --> PACK
-    LOADER --> PARSER
-
-    LEXER --> TOKENS
-    PARSER --> LEXER
-    PARSER --> AST
-    GRAMMAR -.specifies.-> PARSER
-
-    AST --> INDEX
-    INDEX --> DAG
-
-    INDEX --> EXEC
-    API --> EXEC
-    CMD --> EXEC
-
-    EXEC --> EVAL
-    EVAL --> TYPEREF
-    EVAL --> TRACE
-    EVAL --> BUILTINS
-    EVAL --> JS
-    TYPEREF --> CONSTRAINTS
-
-    EVAL --> BOX
-    BOX --> TRINARY
-    EXEC --> XERR
-```
-
-### Reading Order for a New Agent
-
-1. **Value model first** — [[box]], [[trinary]], [[box.value]]. Nothing else makes sense without knowing that every value is boxed and that logic is three-valued.
-2. **Pipeline shape** — [[lexer]], [[parser]], [[ast]], [[index.package]], [[runtime]]. Five stages, strictly ordered.
-3. **Where the risk lives** — [[runtime.executor]], [[runtime.exec_ctx]], [[runtime.modules]], [[api.handle_decision]]. Concurrency, foreign code execution, and the network boundary.
-
----
-
-## Node Catalog
-
-### System / Package
-
-- [[api]] — HTTP service layer
-- [[api.middleware]] — request middleware chain
-- [[ast]] — abstract syntax tree definitions
-- [[box]] — universal boxed value type
-- [[builtins]] — native function registry
-- [[cmd]] — command-line interface
-- [[constants]] — shared constant definitions
-- [[constraints]] — type refinement predicates
-- [[dag]] — directed acyclic graph and cycle detection
-- [[ext.dependencies]] — third-party dependency manifest
-- [[grammar]] — reference grammar specification
-- [[index.package]] — semantic model, symbol table, validation
-- [[lexer]] — lexical analysis
-- [[loader]] — pack discovery and program loading
-- [[pack]] — pack manifest model and permissions
-- [[parser]] — Pratt and recursive-descent parser
-- [[runtime]] — policy evaluation engine
-- [[runtime.js]] — embedded JavaScript subsystem
-- [[runtime.js.builtins]] — Go-backed JavaScript standard library
-- [[runtime.trace]] — decision trace tree
-- [[tokens]] — token kinds and source ranges
-- [[trinary]] — Kleene three-valued logic
-- [[version]] — build and version information
-- [[xerr]] — structured error taxonomy
-
-### Infrastructure
-
-- [[infra.build_metadata]] — Go toolchain build info
-- [[infra.filesystem]] — host storage boundary
-- [[infra.network_sockets]] — inbound TCP listeners
-- [[infra.os_environment]] — process environment variables
-
-### Class
-
-- [[api.http]] — HTTP server lifecycle and routing
-- [[api.problem_details]] — RFC 9457 error format
-- [[ast.node]] — base node interfaces
-- [[ast.typeref]] — type reference hierarchy
-- [[box.value]] — the boxed value implementation
-- [[index.derive]] — derive semantic model
-- [[index.index]] — the root index type
-- [[index.namespace]] — namespace scope and exports
-- [[index.policy]] — policy semantic model
-- [[index.program]] — per-file inventory
-- [[index.rule]] — rule semantic model
-- [[index.shape]] — shape composition and hydration
-- [[parser.parser]] — parser state and driver
-- [[parser.program]] — top-level program assembly
-- [[runtime.builtin_call]] — the builtin `Env` adapter
-- [[runtime.callable]] — lambda and derive callable interface
-- [[runtime.decision]] — the decision output contract
-- [[runtime.exec_ctx]] — per-execution scope chain
-- [[runtime.executor]] — top-level execution driver
-- [[runtime.js.alias_runtime]] — CommonJS VM host
-- [[runtime.js.registry]] — module resolution and compilation
-- [[runtime.modules]] — JavaScript module binding and VM pooling
-
-### Function / Endpoint
-
-- [[api.handle_decision]] — `POST /decision`
-- [[index.builtin_check]] — static builtin call validation
-- [[index.commit]] — index finalisation
-- [[index.derive_cycle]] — derive cycle detection
-- [[index.derive_expr_walk]] — derive expression traversal
-- [[index.derive_purity]] — derive purity enforcement
-- [[index.resolve]] — symbol resolution
-- [[index.segments]] — path segment resolution
-- [[index.validate]] — whole-index validation
-- [[parser.call]] — call expression parsing
-- [[parser.cast]] — cast expression parsing
-- [[parser.comment]] — comment statement parsing
-- [[parser.derive]] — derive declaration parsing
-- [[parser.export_rule]] — rule export parsing
-- [[parser.export_shape]] — shape export parsing
-- [[parser.expression]] — Pratt expression driver
-- [[parser.fact]] — fact declaration parsing
-- [[parser.fqn]] — fully-qualified name parsing
-- [[parser.infix]] — infix operator parsing
-- [[parser.is]] — `is` expression parsing
-- [[parser.lambda]] — lambda literal parsing
-- [[parser.left_curly]] — brace disambiguation
-- [[parser.let]] — let declaration parsing
-- [[parser.namespace]] — namespace statement parsing
-- [[parser.not]] — negated infix parsing
-- [[parser.parse]] — parse entry point
-- [[parser.policy]] — policy block parsing
-- [[parser.rule]] — rule declaration parsing
-- [[parser.shape]] — shape declaration parsing
-- [[parser.statement]] — statement dispatch
-- [[parser.ternary]] — ternary and Elvis parsing
-- [[parser.transform]] — transform expression parsing
-- [[parser.typed_lambda]] — typed lambda parsing
-- [[parser.unary]] — prefix operator parsing
-- [[parser.use]] — `use` statement parsing
-- [[runtime.derive_invoke]] — derive invocation in a pure context
-- [[runtime.eval]] — central expression dispatch
-- [[runtime.eval_access]] — field and index access
-- [[runtime.eval_block]] — block expression evaluation
-- [[runtime.eval_call]] — call dispatch and memoization
-- [[runtime.eval_cast]] — type cast evaluation
-- [[runtime.eval_ident]] — identifier resolution
-- [[runtime.eval_infix]] — binary operators
-- [[runtime.eval_lambda]] — closure creation
-- [[runtime.eval_ternary]] — conditional and Elvis
-- [[runtime.eval_transform]] — transform (unimplemented)
-- [[runtime.eval_unary]] — prefix operators
-- [[runtime.imports]] — cross-policy decision imports
-- [[runtime.typeref]] — type validation dispatcher
-- [[runtime.typeref_dict]] — dict validation
-- [[runtime.typeref_document]] — document validation
-- [[runtime.typeref_list]] — list validation
-- [[runtime.typeref_number]] — number validation
-- [[runtime.typeref_record]] — record validation
-- [[runtime.typeref_shape]] — shape validation
-- [[runtime.typeref_string]] — string validation
-- [[runtime.typeref_trinary]] — trinary validation
-
-### Module / File
-
-- [[api.net]] — listen address resolution
-- [[index.builtin_kind]] — builtin kind inference
-- [[index.policy_stmt]] — policy statement indexing
-- [[main]] — process entrypoint
-- [[parser.access]] — access expression parsing
-- [[parser.block]] — block expression parsing
-- [[parser.collection]] — list and dict literal parsing
-- [[parser.err]] — parser error accumulation
-- [[parser.import]] — import statement parsing
-- [[parser.literal]] — literal parsing
-- [[parser.lookups]] — prefix/infix handler registration
-- [[parser.pipeline]] — pipeline operator desugaring
-- [[parser.policy_metadata]] — policy metadata parsing
-- [[parser.precedence]] — operator precedence table
-- [[parser.primary]] — primary expression parsing
-- [[parser.typeref]] — type reference parsing
-- [[runtime.err_typedef]] — type validation error types
-- [[runtime.js.stdlib]] — VM global installation
-- [[runtime.js.tscompile]] — TypeScript transpilation
-
----
-
-## Cross-Cutting Notes
-
-**Where correctness risk concentrates.** [[runtime.executor]] and [[runtime.exec_ctx]] carry the concurrency; [[runtime.modules]] and [[runtime.js]] execute foreign code; [[api.handle_decision]] is the unauthenticated network boundary. Changes in those four areas warrant the most scrutiny.
-
-**Where the language is stricter than it looks.** Logical operators do not short-circuit ([[runtime.eval_infix]]), shapes accept undeclared fields ([[runtime.typeref_shape]]), and casts do not currently enforce their target type ([[runtime.eval_cast]]).
-
-**Where the language is looser than it looks.** Constraint names are not validated until a decision is requested ([[constraints]]), and `transform` parses but is unimplemented ([[runtime.eval_transform]]).
-
-**Where the process meets the outside world.** Four `Infrastructure` nodes mark every boundary the engine crosses: [[infra.filesystem]] (policy and module bytes, executed after reading), [[infra.network_sockets]] (unauthenticated inbound requests), [[infra.os_environment]] (configuration in, and a permission-filtered projection out to policy JavaScript), and [[infra.build_metadata]] (provenance). Anything crossing one of these is untrusted input by default.
-
-**Static and dynamic checks are paired.** [[index.builtin_check]] mirrors [[runtime.eval_call]], and [[index.derive_purity]] mirrors the runtime purity gates. When changing one, check the other — they are designed to agree and can silently drift.
+## 4. Operational Context & Gotchas
+- **Statefulness:** **Stateful, mutable, and phase-ordered.** An index is populated (`SetPack`, `AddProgram`), then validated, then committed, then read. `Validate` and `Commit` are each `sync.Once`-guarded, so the first result is cached permanently — including a failure.
+- **Performance/Scale Notes:** Validation walks every rule, let, shape, and derive several times over (reference cycles, rule cycles, shape cycles, derive cycles, purity, builtin kinds), so cost is roughly linear in policy count times checks. All of it happens once per index, not per evaluation.
+- **Dependencies Risk:**
+  - **Order-sensitive population.** Derive visibility is captured as a **bind-time snapshot** when each derive is registered, so a program added *later* does not retroactively become visible to derives registered earlier. Load dependent programs after their helpers, or keep helpers in the same file — see [[index.derive]].
+  - **`AddProgram` skips the first statement.** Its loop starts at index 1 on the assumption that statement zero is the namespace. A file whose leading statements are comments (legal per [[parser.parse]]) has its second statement silently ignored.
+  - **Locking is partial.** The write lock guards `SetPack` and `AddProgram`, but `Validate`, `Commit`, and every `Resolve*` read the model without acquiring `theLock`. Concurrent population and evaluation is unsafe.
+  - **Every policy must export a decision.** `createPolicy` fails a policy with zero rule exports, so an index cannot contain a "library" policy that only defines helpers.
+  - **Failure is sticky.** Because validation is `sync.Once`-guarded, an index that failed validation can never be repaired and re-validated; build a fresh one.

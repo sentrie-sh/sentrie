@@ -17,7 +17,7 @@ Defines the four user-facing commands and wires the loading pipeline behind each
 | :--- | :--- | :--- | :--- |
 | `cmd` | `IMPORTS` | `ext.binaek.cling` | The CLI framework: command, flag, and argument definitions plus `Hydrate` for typed binding. |
 | `cmd` | `CALLS` | [[loader]] | `LoadPack` reads the manifest; `LoadPrograms` parses every policy file. |
-| `cmd` | `CALLS` | [[index.package]] | `CreateIndex`, `SetPack`, `AddProgram`, `Validate`. |
+| `cmd` | `CALLS` | [[index]] | `CreateIndex`, `SetPack`, `AddProgram`, `Validate`. |
 | `cmd` | `CALLS` | [[runtime.executor]] | `NewExecutor`, then `ExecPolicy` / `ExecRule`. |
 | `cmd` | `CALLS` | [[api.http]] | `serve` constructs and drives the HTTP API. |
 | `cmd` | `LAYERED_ON` | [[pack]] | `init` constructs and TOML-encodes a new pack manifest. |

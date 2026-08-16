@@ -45,7 +45,7 @@ The `export` keyword is context-sensitive: at top level it reaches this handler,
 - **Statefulness:** Stateless.
 - **Performance/Scale Notes:** Nothing notable.
 - **Dependencies Risk:**
-  - **Export is a separate statement, not a modifier.** `export shape Foo` does not declare `Foo` — it references a shape declared elsewhere in the namespace. Exporting a name that was never declared is not detected here; [[index.package]] must catch the dangling reference.
+  - **Export is a separate statement, not a modifier.** `export shape Foo` does not declare `Foo` — it references a shape declared elsewhere in the namespace. Exporting a name that was never declared is not detected here; [[index]] must catch the dangling reference.
   - **Only namespace-level derives are exportable.** The policy-scope counterpart in [[parser.export_rule]] rejects `export derive` explicitly. If you are tracing why an export was refused, check which scope the statement was written in.
   - **Nothing prevents duplicate exports** of the same name, and nothing here associates the export with its declaration — the linkage is by string name, resolved later.
   - **The file name understates its scope.** `export_shape.go` also owns the derive-export path; searching for "export derive" by filename will miss it.

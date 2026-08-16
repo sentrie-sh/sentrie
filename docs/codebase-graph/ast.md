@@ -9,7 +9,7 @@ tags: syntax-tree, front-end, data-model, code-generation, ir
 # Node: AST (Abstract Syntax Tree Node Family)
 
 ## 1. Architectural Role & Intent
-`ast` defines the complete node vocabulary of the Sentrie language — 50+ statement, expression, and type-reference types spread one-per-file — and is the sole data contract between the front-end ([[parser]]) and everything downstream ([[index.package]], [[runtime]]). It exists to keep syntax representation free of evaluation concerns: nodes are plain immutable-by-convention structs carrying source spans and child references, with no evaluation, no symbol resolution, and no environment. Its second responsibility is *parse-time* type-constraint arity validation, driven by a table generated from the canonical definitions in [[constraints]].
+`ast` defines the complete node vocabulary of the Sentrie language — 50+ statement, expression, and type-reference types spread one-per-file — and is the sole data contract between the front-end ([[parser]]) and everything downstream ([[index]], [[runtime]]). It exists to keep syntax representation free of evaluation concerns: nodes are plain immutable-by-convention structs carrying source spans and child references, with no evaluation, no symbol resolution, and no environment. Its second responsibility is *parse-time* type-constraint arity validation, driven by a table generated from the canonical definitions in [[constraints]].
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -20,7 +20,7 @@ tags: syntax-tree, front-end, data-model, code-generation, ir
 | `ast` | `LAYERED_ON` | [[xerr]] | `validateConstraint` returns `xerr.NotFoundError{}` for unknown constraint names on a type ref. |
 | `ast` | `LAYERED_ON` | [[constraints]] | **Build-time only.** `ast/gen.go` (guarded by the `generate` build tag) reads the constraint checker tables and emits `typeref_constraint_args_gen.go`. The compiled package has no runtime edge to [[constraints]]. |
 | [[parser]] | `CALLS` | [[ast]] | Every production calls a `New*` constructor; this is the parser's only output type. |
-| [[index.package]] | `LAYERED_ON` | [[ast]] | Walks `Program.Statements` to build namespaces, policies, rules, derives, shapes, and the dependency graph. |
+| [[index]] | `LAYERED_ON` | [[ast]] | Walks `Program.Statements` to build namespaces, policies, rules, derives, shapes, and the dependency graph. |
 | [[runtime]] | `LAYERED_ON` | [[ast]] | The evaluator switches on concrete node types to evaluate expressions and execute statements. |
 | [[loader]] | `LAYERED_ON` | [[ast]] | `LoadPrograms` returns `[]*ast.Program`, one per discovered policy file. |
 | [[pack]] | `LAYERED_ON` | [[ast]] | `pack.Pack` pairs a `PackFile` manifest with the parsed `[]*ast.Program`. |
@@ -53,7 +53,7 @@ tags: syntax-tree, front-end, data-model, code-generation, ir
   - **Exceptions:** None.
 
 - **Signature:** `FQN` struct + `NewFQN(parts, span)`, `CreateFQN(base, lastSegment)`, `String()`, `LastSegment()`, `Parent()`, `IsChildOf(other)`, `IsParentOf(other)`, `IsEmpty()`, `Ptr()`
-  - **Behavior:** Slash-separated fully-qualified namespace path with hierarchy predicates used by [[index.package]] for visibility and resolution.
+  - **Behavior:** Slash-separated fully-qualified namespace path with hierarchy predicates used by [[index]] for visibility and resolution.
   - **Side Effects:** `CreateFQN` clones the base parts, so derived FQNs never alias the parent's slice.
   - **Exceptions:** None.
 
@@ -68,7 +68,7 @@ tags: syntax-tree, front-end, data-model, code-generation, ir
   - **Exceptions:** None; returns `0` for a nil lambda rather than panicking.
 
 ## 4. Operational Context & Gotchas
-- **Statefulness:** Nodes are heap-allocated structs constructed once by the parser and thereafter treated as read-only. There is no interning, no parent pointers, and no visitor framework — traversal is open-coded type switching in [[index.package]] and [[runtime]]. `TypeRef.AddConstraint` is the one legitimate post-construction mutation and happens during parsing only.
+- **Statefulness:** Nodes are heap-allocated structs constructed once by the parser and thereafter treated as read-only. There is no interning, no parent pointers, and no visitor framework — traversal is open-coded type switching in [[index]] and [[runtime]]. `TypeRef.AddConstraint` is the one legitimate post-construction mutation and happens during parsing only.
 - **Performance/Scale Notes:** Every node embeds `*baseNode` (a pointer), so each node costs at least two allocations. `String()` implementations recurse over the whole subtree and allocate — never call them in evaluation hot paths, only in diagnostics.
 - **Dependencies Risk:** No external failure domain, but several structural hazards:
   - **Generated table drift.** `typeref_constraint_args_gen.go` is produced from [[constraints]] under the `generate` build tag and the generator **panics unless `GIT_USER_NAME` and `GIT_USER_EMAIL` are set**. Adding a constraint to [[constraints]] without re-running `go generate` means the parser rejects it as unknown while the runtime would have accepted it.

@@ -9,7 +9,7 @@ tags: declaration, derive, lambda, dependency-graph
 # Node: parser.parseDeriveStatement (Derive Declaration)
 
 ## 1. Architectural Role & Intent
-Parses `derive <ident> = <lambda>`, the named reusable computation that both namespaces and policies can declare. Its single enforced rule is that the right-hand side **must** be a lambda expression, not an arbitrary expression — that restriction is what lets [[index.package]] treat derives as callable units with analysable dependencies, order them topologically via [[dag]], and reject cyclic definitions before evaluation.
+Parses `derive <ident> = <lambda>`, the named reusable computation that both namespaces and policies can declare. Its single enforced rule is that the right-hand side **must** be a lambda expression, not an arbitrary expression — that restriction is what lets [[index]] treat derives as callable units with analysable dependencies, order them topologically via [[dag]], and reject cyclic definitions before evaluation.
 
 ## 2. Graph Edges (Strict Relational Data)
 

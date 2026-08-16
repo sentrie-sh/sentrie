@@ -18,9 +18,10 @@ const (
 	graphDir = "../../docs/codebase-graph"
 	repoRoot = "../.."
 
-	// indexNode is the entrypoint matrix. It carries the catalog and the
-	// normative schema instead of the four-section node structure.
-	indexNode = "index"
+	// overviewNode is the entrypoint matrix. It carries the catalog and the
+	// normative schema instead of the four-section node structure. Named
+	// overview so the Go package index/ can own index.md.
+	overviewNode = "overview"
 
 	// externalFilePath marks a node with no source file. Only Infrastructure
 	// nodes, which describe resources outside the process, may use it.
@@ -30,7 +31,7 @@ const (
 // catalogNodes describe the system as a whole rather than one participant, so
 // they legitimately declare edges between two other nodes.
 var catalogNodes = map[string]bool{
-	indexNode:          true,
+	overviewNode:       true,
 	"ext.dependencies": true,
 }
 
@@ -205,14 +206,15 @@ func tokens(cell string) []string {
 }
 
 func soleToken(cell string) string {
-	if got := tokens(cell); len(got) > 0 {
-		return got[0]
+	got := tokens(cell)
+	if len(got) != 1 {
+		return ""
 	}
-	return strings.TrimSpace(cell)
+	return got[0]
 }
 
 // stripCode removes fenced blocks and inline spans. The extractor contract in
-// index.md says a wiki-link inside code is literal text, not an edge — api.net
+// overview.md says a wiki-link inside code is literal text, not an edge — api.net
 // documents the string "[[::1]]:7529", which is not a reference to a node.
 func stripCode(body string) string {
 	return codeSpanRe.ReplaceAllString(fenceRe.ReplaceAllString(body, ""), "")
@@ -226,12 +228,36 @@ func involves(id, other string) bool {
 	return other == id || strings.HasPrefix(other, id+".")
 }
 
+// expectedPackageID is the node id implied by a directory file_path:
+// index/ → index, runtime/js/ → runtime.js. Globs and non-directory paths
+// are not convertible and return ok=false.
+func expectedPackageID(filePath string) (string, bool) {
+	if strings.ContainsAny(filePath, "*,") {
+		return "", false
+	}
+	if !strings.HasSuffix(filePath, "/") {
+		return "", false
+	}
+	p := strings.Trim(filePath, "/")
+	if p == "" || p == "." {
+		return "", false
+	}
+	return strings.ReplaceAll(p, "/", "."), true
+}
+
 func TestFrontMatterIsWellFormed(t *testing.T) {
 	for id, n := range loadGraph(t) {
 		t.Run(id, func(t *testing.T) {
 			stem := strings.TrimSuffix(n.file, ".md")
 			require.Equal(t, stem, n.id, "id must equal the filename stem")
 			require.True(t, nodeTypes[n.typ], "unknown node type %q", n.typ)
+
+			if n.typ == packageType {
+				if want, ok := expectedPackageID(n.filePath); ok {
+					require.Equal(t, want, n.id,
+						"package id must equal file_path with slashes as dots")
+				}
+			}
 
 			if n.filePath == externalFilePath {
 				require.Equal(t, "Infrastructure", n.typ,
@@ -254,7 +280,7 @@ func TestFrontMatterIsWellFormed(t *testing.T) {
 
 func TestNodesHaveTheFourSections(t *testing.T) {
 	for id, n := range loadGraph(t) {
-		if id == indexNode {
+		if id == overviewNode {
 			continue
 		}
 		t.Run(id, func(t *testing.T) {
@@ -342,7 +368,7 @@ func TestNoOrphanNodes(t *testing.T) {
 	}
 
 	for id := range nodes {
-		if id == indexNode {
+		if id == overviewNode {
 			continue
 		}
 		require.True(t, inbound[id], "node %q has no inbound link from any other node", id)
@@ -367,11 +393,11 @@ func TestWikiLinksResolve(t *testing.T) {
 func TestEveryNodeIsInTheCatalog(t *testing.T) {
 	nodes := loadGraph(t)
 
-	index, ok := nodes[indexNode]
-	require.True(t, ok, "%s.md is missing", indexNode)
+	overview, ok := nodes[overviewNode]
+	require.True(t, ok, "%s.md is missing", overviewNode)
 
-	_, catalog, found := strings.Cut(index.body, "## Node Catalog")
-	require.True(t, found, "%s.md has no catalog section", indexNode)
+	_, catalog, found := strings.Cut(overview.body, "## Node Catalog")
+	require.True(t, found, "%s.md has no catalog section", overviewNode)
 
 	listed := map[string]bool{}
 	for _, m := range wikiLinkRe.FindAllStringSubmatch(catalog, -1) {
@@ -379,9 +405,21 @@ func TestEveryNodeIsInTheCatalog(t *testing.T) {
 	}
 
 	for id := range nodes {
-		if id == indexNode {
+		if id == overviewNode {
 			continue
 		}
-		require.True(t, listed[id], "node %q is not listed in the %s.md catalog", id, indexNode)
+		require.True(t, listed[id], "node %q is not listed in the %s.md catalog", id, overviewNode)
 	}
+}
+
+func TestInvolvesTreatsPackageAsNamespaceParent(t *testing.T) {
+	assert.True(t, involves("index", "index"))
+	assert.True(t, involves("index", "index.derive"))
+	assert.True(t, involves("index", "index.rule"))
+	assert.True(t, involves("runtime", "runtime.eval"))
+	assert.True(t, involves("runtime.js", "runtime.js.registry"))
+	assert.False(t, involves("overview", "index.policy"))
+	assert.False(t, involves("index.package", "index.derive"))
+	assert.False(t, involves("index", "indexer"))
+	assert.False(t, involves("runtime", "runtimejs"))
 }

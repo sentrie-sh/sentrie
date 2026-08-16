@@ -15,7 +15,7 @@ clean-git:
 	git branch -vv | grep ': gone]' | awk '{print $$1}' | xargs -r git branch -D
 
 # Conformance check for the knowledge graph under docs/codebase-graph.
-# The schema it asserts is documented in docs/codebase-graph/index.md.
+# The schema it asserts is documented in docs/codebase-graph/overview.md.
 docs-graph:
 	go test -count=1 ./internal/docsgraph/
 

@@ -15,7 +15,7 @@ The runtime half of derive purity. It pads and type-validates arguments, then ev
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.derive_invoke` | `DEPENDS_ON` | [[index.package]] | Reads `index.Derive` — its lambda, FQN, and scope. |
+| `runtime.derive_invoke` | `DEPENDS_ON` | [[index]] | Reads `index.Derive` — its lambda, FQN, and scope. |
 | `runtime.derive_invoke` | `DEPENDS_ON` | [[ast]] | `RequiredLambdaArity`, `ParamTypes`, `ParamOpts`, `ReturnType`. |
 | `runtime.derive_invoke` | `CALLS` | [[runtime.exec_ctx]] | `DetachedChildContext`, `PushRefStack`/`PopRefStack`, `SetLocal`. |
 | `runtime.derive_invoke` | `CALLS` | [[runtime.eval_block]] | Derive bodies are always block expressions. |

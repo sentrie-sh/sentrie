@@ -17,7 +17,7 @@ Implements `import decision <rule> from <ns/policy> with <fact> as <expr>`: it r
 | :--- | :--- | :--- | :--- |
 | `runtime.imports` | `CALLS` | [[runtime.executor]] | Re-enters `ExecRule` with a freshly built fact map — a full nested execution. |
 | `runtime.imports` | `CALLS` | [[runtime.eval]] | Evaluates each `with` expression in the **importing** policy's context. |
-| `runtime.imports` | `DEPENDS_ON` | [[index.package]] | `ResolvePolicy` and `VerifyRuleExported` gate the import. |
+| `runtime.imports` | `DEPENDS_ON` | [[index]] | `ResolvePolicy` and `VerifyRuleExported` gate the import. |
 | `runtime.imports` | `DEPENDS_ON` | [[box]] | `TryToBoundaryAny` marshals values out; the envelope is a `box.Dict`. |
 | `runtime.imports` | `DEPENDS_ON` | [[trinary]] | Supplies `Unknown` for the empty envelope. |
 | `runtime.imports` | `CALLS` | [[runtime.trace]] | Opens an `import` node and attaches the callee's whole rule trace. |

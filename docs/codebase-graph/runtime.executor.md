@@ -15,7 +15,7 @@ The top-level driver: it owns the index, the JS registry, and the two caches, an
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.executor` | `DEPENDS_ON` | [[index.package]] | `ResolvePolicy`, `VerifyRuleExported`, `Policy.Facts/Lets/Uses/Rules/RuleExports`. |
+| `runtime.executor` | `DEPENDS_ON` | [[index]] | `ResolvePolicy`, `VerifyRuleExported`, `Policy.Facts/Lets/Uses/Rules/RuleExports`. |
 | `runtime.executor` | `CALLS` | [[runtime.exec_ctx]] | Creates the per-run context and injects facts, lets, and module bindings. |
 | `runtime.executor` | `CALLS` | [[runtime.eval]] | Evaluates fact defaults, the `when` gate, the body, the `default` clause, and attachments. |
 | `runtime.executor` | `CALLS` | [[runtime.decision]] | Wraps the final value via `DecisionOf`. |

@@ -16,7 +16,7 @@ Unifies the two things Sentrie can invoke — an anonymous lambda and a named de
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `runtime.callable` | `DEPENDS_ON` | [[ast]] | Wraps `ast.LambdaExpression` and reads `RequiredLambdaArity`. |
-| `runtime.callable` | `DEPENDS_ON` | [[index.package]] | `deriveCallable` wraps an `index.Derive`. |
+| `runtime.callable` | `DEPENDS_ON` | [[index]] | `deriveCallable` wraps an `index.Derive`. |
 | `runtime.callable` | `DEPENDS_ON` | [[box]] | Callables are carried as `box.Value` via `CallableRef`. |
 | `runtime.callable` | `CALLS` | [[runtime.exec_ctx]] | Lambda invocation builds an **attached** child from the capture context. |
 | `runtime.callable` | `CALLS` | [[runtime.derive_invoke]] | Argument padding/validation and `invokeDerive`. |

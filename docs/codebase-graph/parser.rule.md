@@ -36,5 +36,5 @@ Parses `rule <ident> = ['default' expr] ['when' expr] (block | importClause)` â€
 - **Dependencies Risk:**
   - **Clause order is rigid and silently enforced.** `when` before `default` does not error clearly â€” the `default` check runs first, fails to match, then the `when` check consumes the guard, and the subsequent `default` keyword lands in body position where it produces a confusing "no prefix parse function found for 'default'" message.
   - **The body is any expression.** Writing `rule x = true` parses fine; there is no requirement of a block or a trinary-typed body at parse time. Type and shape enforcement is entirely [[index.validate]]'s and the runtime's responsibility.
-  - **`default` and `when` are unconstrained expressions.** Nothing prevents a `default` that calls a function or references a fact; whether that is *legal* (purity, ordering) is decided in [[index.package]].
+  - **`default` and `when` are unconstrained expressions.** Nothing prevents a `default` that calls a function or references a fact; whether that is *legal* (purity, ordering) is decided in [[index]].
   - **All three slots may be nil in the AST.** `RuleStatement.Default`, `.When`, and `.Body` are interface fields; only the body is guaranteed non-nil by a successful parse.

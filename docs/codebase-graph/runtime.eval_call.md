@@ -16,7 +16,7 @@ The busiest node in the evaluator. It evaluates arguments, resolves the callee t
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `runtime.eval_call` | `DEPENDS_ON` | [[builtins]] | `builtins.Table` lookup, then `Decl.Precheck` followed by `Decl.Impl`. |
-| `runtime.eval_call` | `DEPENDS_ON` | [[index.package]] | Resolves derives via `Policy.Derives`, `Namespace.Derives`, and `Index.DerivesByFQN`. |
+| `runtime.eval_call` | `DEPENDS_ON` | [[index]] | Resolves derives via `Policy.Derives`, `Namespace.Derives`, and `Index.DerivesByFQN`. |
 | `runtime.eval_call` | `IMPORTS` | `ext.mitchellh.hashstructure` | Hashes boundary-marshalled arguments for the memoization key. |
 | `runtime.eval_call` | `CALLS` | [[runtime.derive_invoke]] | Every derive dispatch routes through `invokeDerive`. |
 | `runtime.eval_call` | `CALLS` | [[runtime.modules]] | Module calls marshal arguments and invoke `ModuleBinding.Call`. |

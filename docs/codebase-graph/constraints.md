@@ -16,7 +16,7 @@ The registry of predicates that refine a type beyond its kind — `string@email`
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `constraints` | `LAYERED_ON` | [[box]] | Every checker receives and inspects `box.Value`. |
-| `constraints` | `LAYERED_ON` | [[index.package]] | Checkers take a `*index.Policy` — currently unused by every checker, but part of the contract. |
+| `constraints` | `LAYERED_ON` | [[index]] | Checkers take a `*index.Policy` — currently unused by every checker, but part of the contract. |
 | `constraints` | `IMPORTS` | `ext.google.uuid` | The `uuid` string constraint. |
 | [[runtime.typeref_string]] | `READS_FROM` | `constraints` | `StringContraintCheckers`. |
 | [[runtime.typeref_number]] | `READS_FROM` | `constraints` | `NumberContraintCheckers`. |

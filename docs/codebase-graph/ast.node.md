@@ -19,7 +19,7 @@ tags: interface-contract, sealed-hierarchy, source-positions, type-switch
 | [[ast]] | `INHERITS_FROM` | [[ast.node]] | Every concrete node type embeds `*baseNode` and thereby satisfies `Node`. |
 | [[ast.typeref]] | `INHERITS_FROM` | [[ast.node]] | `baseTypeRef` embeds `*baseNode`, so `TypeRef` is a strict extension of `Node`. |
 | [[parser]] | `CALLS` | [[ast.node]] | Sets each node's span from the token range consumed by the production. |
-| [[index.package]] | `CALLS` | [[ast.node]] | Reads `Span()` to attach file/line/column to validation diagnostics. |
+| [[index]] | `CALLS` | [[ast.node]] | Reads `Span()` to attach file/line/column to validation diagnostics. |
 | [[runtime]] | `CALLS` | [[ast.node]] | Reads `Span()` to position runtime errors and trace entries; type-switches on `Statement`/`Expression`. |
 | [[xerr]] | `DEPENDS_ON` | [[ast.node]] | Diagnostics carry the span obtained from `Span()` into the rendered error. |
 

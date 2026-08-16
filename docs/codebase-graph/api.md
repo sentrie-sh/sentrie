@@ -16,7 +16,7 @@ The network-facing façade over the policy engine. It translates HTTP requests i
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `api` | `LAYERED_ON` | [[runtime]] | Holds a `runtime.Executor` and calls `ExecPolicy` / `ExecRule`. |
-| `api` | `LAYERED_ON` | [[index.package]] | `executor.Index().ResolveSegments` turns a URL path into namespace, policy, and rule. |
+| `api` | `LAYERED_ON` | [[index]] | `executor.Index().ResolveSegments` turns a URL path into namespace, policy, and rule. |
 | `api` | `LAYERED_ON` | [[api.middleware]] | Request ID assignment. |
 | `api` | `READS_FROM` | [[runtime.trace]] | `ExecutorOutput` carries the trace tree, which is serialised into responses. |
 | [[cmd]] | `CALLS` | `api` | `serve` constructs the HTTP API and starts it. |

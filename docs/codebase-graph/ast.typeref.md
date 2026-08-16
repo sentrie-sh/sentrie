@@ -21,7 +21,7 @@ tags: type-system, constraints, parse-time-validation, code-generation
 | `ast.typeref` | `DEPENDS_ON` | [[constraints]] | **Generated, build-time only.** The `gen*Constraints` maps in `typeref_constraint_args_gen.go` are emitted from the checker tables in [[constraints]] by `ast/gen.go`. |
 | [[parser]] | `CALLS` | [[ast.typeref]] | `parser/typeref.go` builds the type ref then calls `AddConstraint` per parsed suffix, surfacing rejections as parse errors. |
 | [[runtime]] | `DEPENDS_ON` | [[ast.typeref]] | `runtime/typeref*.go` type-switches on the concrete refs to coerce and validate [[box.value]] instances at cast and assignment boundaries. |
-| [[index.package]] | `DEPENDS_ON` | [[ast.typeref]] | Resolves `ShapeTypeRef.Ref` FQNs against declared shapes during validation. |
+| [[index]] | `DEPENDS_ON` | [[ast.typeref]] | Resolves `ShapeTypeRef.Ref` FQNs against declared shapes during validation. |
 | [[constraints]] | `CALLS` | [[ast.typeref]] | At evaluation time the checker for each `TypeRefConstraint` name is looked up and applied to the value. |
 
 ## 3. Interface Contracts & Public Surface
@@ -52,7 +52,7 @@ tags: type-system, constraints, parse-time-validation, code-generation
   - **Exceptions:** None.
 
 - **Signature:** Composite refs — `NewListTypeRef(elem, span)`, `NewDictTypeRef(valueType, span)`, `NewRecordTypeRef(fields, span)`, `NewShapeTypeRef(ref: *FQN, span)`
-  - **Behavior:** `list[T]` and `dict[T]` carry a single child type (dicts are string-keyed, so only the value type is expressible). `record[…]` carries a positional field list. `ShapeTypeRef` is a **by-name reference** holding an `FQN` that stays unresolved until [[index.package]] links it to a `ShapeStatement`.
+  - **Behavior:** `list[T]` and `dict[T]` carry a single child type (dicts are string-keyed, so only the value type is expressible). `record[…]` carries a positional field list. `ShapeTypeRef` is a **by-name reference** holding an `FQN` that stays unresolved until [[index]] links it to a `ShapeStatement`.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -67,5 +67,5 @@ tags: type-system, constraints, parse-time-validation, code-generation
 - **Dependencies Risk:** No external failure domain. The hazards:
   - **Generation drift.** The permitted-constraint tables are generated from [[constraints]]; adding a checker there without re-running `go generate` (which itself **panics unless `GIT_USER_NAME` and `GIT_USER_EMAIL` are set**) makes the parser reject a constraint the runtime fully supports. This is the single most likely cause of a spurious "unknown constraint" error.
   - **Nullable delegation surprises.** `NullableTypeRef.GetConstraints()` returns the *inner* type's constraints, so code that checks whether a wrapper "has constraints" sees through the wrapper. Always call `UnwrapNullableTypeRef` before matching on concrete type, and never assume a `NullableTypeRef` owns its own constraint list.
-  - **Unresolved shape references.** `ShapeTypeRef.Ref` is a raw FQN — dangling until [[index.package]] validates it. Anything consuming a type ref straight from the parser must treat shape references as unverified.
+  - **Unresolved shape references.** `ShapeTypeRef.Ref` is a raw FQN — dangling until [[index]] validates it. Anything consuming a type ref straight from the parser must treat shape references as unverified.
   - **Live slice exposure.** `GetConstraints()` hands back the internal slice; appending to the result corrupts the node.

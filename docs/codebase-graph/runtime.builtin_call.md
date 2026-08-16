@@ -18,7 +18,7 @@ The adapter that lets [[builtins]] stay independent of the runtime. `CallSite` b
 | `runtime.builtin_call` | `DEPENDS_ON` | [[builtins]] | Implements `builtins.Env`; the compile-time assertion `var _ builtins.Env = (*CallSite)(nil)` pins the contract. |
 | `runtime.builtin_call` | `CALLS` | [[runtime.callable]] | `callableFromValue` then `Invoke` / `Arity`. |
 | `runtime.builtin_call` | `READS_FROM` | [[runtime.exec_ctx]] | `ExecutionStart()` returns the context's root `CreatedAt`. |
-| `runtime.builtin_call` | `DEPENDS_ON` | [[index.package]] | Carries the `*index.Policy` for downstream type-ref resolution. |
+| `runtime.builtin_call` | `DEPENDS_ON` | [[index]] | Carries the `*index.Policy` for downstream type-ref resolution. |
 | [[runtime.eval_call]] | `CALLS` | [[runtime.builtin_call]] | Constructs a `CallSite` at each builtin dispatch. |
 | [[builtins]] | `CALLS` | [[runtime.builtin_call]] | Higher-order builtins call back through the `Env` methods. |
 

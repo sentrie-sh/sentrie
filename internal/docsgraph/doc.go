@@ -7,5 +7,5 @@
 // The graph is consumed by agents, so its invariants — front-matter shape, a
 // closed predicate set, resolvable links, and reciprocal edges — are asserted
 // mechanically rather than by review. The normative schema lives in
-// docs/codebase-graph/index.md; this package is its enforcement.
+// docs/codebase-graph/overview.md; this package is its enforcement.
 package docsgraph

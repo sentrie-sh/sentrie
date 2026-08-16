@@ -22,7 +22,7 @@ tags: pratt-parser, recursive-descent, front-end, syntax-analysis
 | `parser` | `LAYERED_ON` | [[trinary]] | Trinary keyword literals are resolved to `trinary.Value` at parse time. |
 | `parser` | `DEPENDS_ON` | [[grammar]] | Conformance only — implements the reference productions with no generated linkage. |
 | [[loader]] | `CALLS` | [[parser]] | `LoadPrograms` constructs one parser per `.sentrie` file and calls `ParseProgram`. |
-| [[index.package]] | `LAYERED_ON` | [[parser]] | Consumes this package's AST output rather than calling the parser directly. |
+| [[index]] | `LAYERED_ON` | [[parser]] | Consumes this package's AST output rather than calling the parser directly. |
 
 ## 3. Interface Contracts & Public Surface
 

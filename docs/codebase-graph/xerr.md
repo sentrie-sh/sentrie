@@ -17,7 +17,7 @@ tags: error-taxonomy, diagnostics, sentinel-errors, failure-modes
 | :--- | :--- | :--- | :--- |
 | `xerr` | `LAYERED_ON` | [[tokens]] | Builtin-validation and conflict errors embed `tokens.Range` to render source spans. |
 | [[ast]] | `LAYERED_ON` | [[xerr]] | AST construction/inspection reports malformed-node conditions. |
-| [[index.package]] | `LAYERED_ON` | [[xerr]] | Static validation emits `ErrIndex`-rooted failures for shape, rule, and namespace problems. |
+| [[index]] | `LAYERED_ON` | [[xerr]] | Static validation emits `ErrIndex`-rooted failures for shape, rule, and namespace problems. |
 | [[builtins]] | `LAYERED_ON` | [[xerr]] | Builtin implementations raise arity and argument-kind errors carrying call-site spans. |
 | [[runtime]] | `LAYERED_ON` | [[xerr]] | Evaluation raises fact-resolution, recursion, module-invocation, and injected errors. |
 | [[cmd]] | `CALLS` | [[xerr]] | CLI classifies failures to choose exit disposition and error rendering. |

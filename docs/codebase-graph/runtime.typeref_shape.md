@@ -15,7 +15,7 @@ The most substantial validator: it resolves a shape reference through a three-ti
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.typeref_shape` | `READS_FROM` | [[index.package]] | `Policy.Shapes`, `Namespace.Shapes`, `Index.ResolveNamespace`, `Index.ResolveShape`. |
+| `runtime.typeref_shape` | `READS_FROM` | [[index]] | `Policy.Shapes`, `Namespace.Shapes`, `Index.ResolveNamespace`, `Index.ResolveShape`. |
 | `runtime.typeref_shape` | `CALLS` | [[index.namespace]] | `VerifyShapeExported` gates cross-namespace references. |
 | `runtime.typeref_shape` | `CALLS` | [[runtime.typeref]] | Recurses per field, and for the whole value when the shape is an alias. |
 | `runtime.typeref_shape` | `DEPENDS_ON` | [[constraints]] | `constraints.ShapeContraintCheckers`. |

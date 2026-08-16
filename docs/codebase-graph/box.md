@@ -21,7 +21,7 @@ tags: value-model, type-system, boundary-marshalling, runtime-data
 | [[builtins]] | `LAYERED_ON` | [[box]] | Every builtin signature accepts and returns `box.Value`. |
 | [[runtime]] | `LAYERED_ON` | [[box]] | The evaluator's universal expression result type; also uses `Callable` to represent lambdas. |
 | [[constraints]] | `LAYERED_ON` | [[box]] | Type/shape constraints validate incoming `box.Value` payloads. |
-| [[index.package]] | `LAYERED_ON` | [[box]] | Static analysis carries literal and builtin-kind information as boxed values. |
+| [[index]] | `LAYERED_ON` | [[box]] | Static analysis carries literal and builtin-kind information as boxed values. |
 | [[runtime.trace]] | `LAYERED_ON` | [[box]] | Trace tree nodes record evaluated `box.Value` results per step. |
 | [[cmd]] | `LAYERED_ON` | [[box]] | CLI marshals final decision payloads to JSON via `Value.MarshalJSON`. |
 

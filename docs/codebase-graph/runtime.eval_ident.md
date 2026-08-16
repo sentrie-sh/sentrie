@@ -21,7 +21,7 @@ Resolves a bare identifier through a fixed precedence chain — local, fact, let
 | `runtime.eval_ident` | `CALLS` | [[runtime.typeref]] | Validates a let's value against its declared type. |
 | `runtime.eval_ident` | `CALLS` | [[runtime.eval_call]] | Reuses `lookupDeriveByIdentifier` for the derive-as-value case. |
 | `runtime.eval_ident` | `CALLS` | [[runtime.callable]] | Boxes a derive as a `deriveCallable` for higher-order use. |
-| `runtime.eval_ident` | `READS_FROM` | [[index.package]] | Reads `Policy.Facts` (for the derive error message) and `Policy.Rules`. |
+| `runtime.eval_ident` | `READS_FROM` | [[index]] | Reads `Policy.Facts` (for the derive error message) and `Policy.Rules`. |
 | [[runtime.eval]] | `CALLS` | [[runtime.eval_ident]] | All `ast.Identifier` nodes dispatch here. |
 
 ## 3. Interface Contracts & Public Surface

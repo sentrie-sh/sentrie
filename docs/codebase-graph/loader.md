@@ -23,7 +23,7 @@ tags: filesystem, manifest-discovery, schema-validation, bootstrap, toml
 | `loader` | `IMPORTS` | `ext.xeipuuv.gojsonschema` | Compiles the embedded Draft-7 `schema.json` at package init and validates the marshalled manifest. |
 | `loader` | `READS_FROM` | [[infra.filesystem]] | `os.Stat`, `os.ReadFile`, and `fs.WalkDir` over the pack directory tree. |
 | [[cmd]] | `CALLS` | [[loader]] | `exec`, `init`, `serve`, and `validate` all bootstrap through `LoadPack`/`LoadPrograms`. |
-| [[index.package]] | `LAYERED_ON` | [[loader]] | Consumes the programs produced here as its indexing input. |
+| [[index]] | `LAYERED_ON` | [[loader]] | Consumes the programs produced here as its indexing input. |
 
 ## 3. Interface Contracts & Public Surface
 

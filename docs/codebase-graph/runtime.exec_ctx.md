@@ -15,7 +15,7 @@ The per-execution scope chain: facts, policy lets, evaluated locals, module bind
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.exec_ctx` | `DEPENDS_ON` | [[index.package]] | Holds the `*index.Policy` and consults `policy.Rules` during local assignment. |
+| `runtime.exec_ctx` | `DEPENDS_ON` | [[index]] | Holds the `*index.Policy` and consults `policy.Rules` during local assignment. |
 | `runtime.exec_ctx` | `DEPENDS_ON` | [[box]] | Locals and fact values are `box.Value`. |
 | `runtime.exec_ctx` | `DEPENDS_ON` | [[ast]] | Lets are stored as unevaluated `ast.VarDeclaration` nodes and evaluated lazily. |
 | `runtime.exec_ctx` | `DEPENDS_ON` | [[xerr]] | `ErrConflict` for duplicate lets, `ErrInfiniteRecursion` for cycles. |

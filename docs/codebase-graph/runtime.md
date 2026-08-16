@@ -9,13 +9,13 @@ tags: evaluation, execution, sandboxing, javascript, concurrency, back-end
 # Node: Runtime (Policy Evaluation Engine)
 
 ## 1. Architectural Role & Intent
-`runtime` is Sentrie's back-end: it takes a validated [[index.package]] plus a caller-supplied fact map and produces decisions. It owns the tree-walking evaluator, the per-execution scope chain, the embedded JavaScript/TypeScript sandbox used by `use` modules, memoization, cross-policy decision imports, and the trace tree that explains how a decision was reached. This is the only package that executes untrusted-adjacent code and the only one that runs concurrently by design, which makes it the highest-risk area of the system.
+`runtime` is Sentrie's back-end: it takes a validated [[index]] plus a caller-supplied fact map and produces decisions. It owns the tree-walking evaluator, the per-execution scope chain, the embedded JavaScript/TypeScript sandbox used by `use` modules, memoization, cross-policy decision imports, and the trace tree that explains how a decision was reached. This is the only package that executes untrusted-adjacent code and the only one that runs concurrently by design, which makes it the highest-risk area of the system.
 
 ## 2. Graph Edges (Strict Relational Data)
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime` | `LAYERED_ON` | [[index.package]] | Resolves policies, rules, facts, lets, derives, and export metadata. Requires a validated index. |
+| `runtime` | `LAYERED_ON` | [[index]] | Resolves policies, rules, facts, lets, derives, and export metadata. Requires a validated index. |
 | `runtime` | `LAYERED_ON` | [[ast]] | Walks expression nodes directly; there is no separate IR or bytecode. |
 | `runtime` | `LAYERED_ON` | [[box]] | `box.Value` is the universal runtime value representation and boundary codec. |
 | `runtime` | `LAYERED_ON` | [[trinary]] | Decisions are Kleene three-valued; `Unknown` is the failure-safe default. |
