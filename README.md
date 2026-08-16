@@ -87,6 +87,11 @@ curl -X POST http://localhost:7529/decision/user_management/user_access/allow \
 - **[TypeScript Modules](https://sentrie.sh/typescript-modules/)** - Extend policies with JavaScript
 - **[Running Sentrie](https://sentrie.sh/running-sentrie/)** - Production deployment guide
 
+### Working on Sentrie itself
+
+- **[Codebase Knowledge Graph](docs/codebase-graph/index.md)** - Architecture, dependencies, and contracts for every package and boundary. The fastest way to orient in the source.
+- **[Contributing](CONTRIBUTING.md)** - Development workflow and CLA
+
 ## License
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [LICENSE-DUAL.md](LICENSE-DUAL.md) for details.

@@ -2,6 +2,12 @@ The name of the project is "Sentrie"
 
 ---
 
+**Read `docs/codebase-graph/index.md` before exploring the codebase.** It is a knowledge graph of every package, file, and boundary in the repository: what each one is for, what it depends on, its public contract, and its known defects and gotchas. Start at the index and follow the wiki-links to the areas you need.
+
+Use it instead of grepping blindly. If you change architecture, dependencies, or public contracts, update the affected node files in the same change — the graph is only useful while it is true. `make docs-graph` validates it, and the schema it enforces is documented at the top of the index.
+
+---
+
 Use the `sandbox.go` file to write sandboxed programs you need to run to test your code.
 
 **IMPORTANT: After testing is complete, RESET `sandbox.go` to its template state:**

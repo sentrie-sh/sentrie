@@ -126,11 +126,13 @@ To keep the project maintainable and reviewable:
 
 # Development workflow (high level)
 
+Before changing anything, read [`docs/codebase-graph/index.md`](docs/codebase-graph/index.md). It maps every package and boundary in the repository — role, dependencies, public contract, and known gotchas — and will save you a lot of reading. If your change alters architecture, dependencies, or public contracts, update the affected node files alongside the code; `make docs-graph` validates the result.
+
 This will evolve over time, but the rough flow is:
 
 1. Fork the repo and create a topic branch.
 2. Make your changes.
-3. Add or update tests where appropriate.
+3. Add or update tests where appropriate, and update the knowledge graph if the change affects it.
 4. If this is your first contribution (or the CLA version has changed), update cla-signers.yaml as described above.
 5. Open a pull request:
    - Explain what changed and why.
