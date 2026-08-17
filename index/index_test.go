@@ -126,20 +126,17 @@ policy pol {
 }
 
 func (suite *IndexTestSuite) TestAddProgramRejectsDuplicateNamespace() {
-	ctx := suite.T().Context()
-	idx := CreateIndex()
-	src := `namespace com/example
-namespace com/other
+	stubRange := tokens.Range{File: "dup_ns.sentrie", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}
+	secondRange := tokens.Range{File: "dup_ns.sentrie", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}}
+	program := &ast.Program{
+		Reference: "dup_ns.sentrie",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, stubRange), stubRange),
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "other"}, secondRange), secondRange),
+		},
+	}
 
-policy pol {
-  let _s = 0
-  rule r = { yield true }
-  export decision of r
-}
-`
-	prog, err := parser.NewParserFromString(src, "dup_ns.sentrie").ParseProgram(ctx)
-	suite.Require().NoError(err)
-	err = idx.AddProgram(ctx, prog)
+	err := suite.idx.AddProgram(suite.T().Context(), program)
 	suite.Require().Error(err)
 	suite.Contains(err.Error(), "duplicate namespace statement")
 }
