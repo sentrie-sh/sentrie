@@ -47,10 +47,10 @@ The busiest node in the evaluator. It evaluates arguments, resolves the callee t
   - **Side Effects:** None.
   - **Exceptions:** `unknown derive %q`; visibility and not-exported errors.
 
-- **Signature:** `calculateHashKey(node *ast.CallExpression, args []box.Value) -> string`
-  - **Behavior:** Marshals arguments to boundary values, hashes them, and prefixes the **AST node pointer** so the key is per-call-site. Returns `""` on any failure.
+- **Signature:** `calculateHashKey(node *ast.CallExpression, args []box.Value) -> (string, error)`
+  - **Behavior:** Marshals arguments to boundary values, hashes them, and prefixes the **AST node pointer** so the key is per-call-site. Returns an error when marshalling or hashing fails.
   - **Side Effects:** None.
-  - **Exceptions:** None - failures are encoded as the empty string.
+  - **Exceptions:** Propagates `box.TryToBoundaryAny` and `hashstructure.Hash` failures.
 
 - **Signature:** `splitAliasFn(s string) -> (string, string)`
   - **Behavior:** Splits `alias.fn` on the first dot; returns `(s, "")` when there is no dot.
@@ -61,7 +61,7 @@ The busiest node in the evaluator. It evaluates arguments, resolves the callee t
 - **Statefulness:** Stateless per call, but reads and writes the executor's shared memoization cache.
 - **Performance/Scale Notes:** Memoized calls default to a **5 minute TTL** and share a 10 MB budget, so eviction is silent and a hot policy can thrash. Every module call marshals all arguments across the boundary. The `Precheck`/`Impl` split lets builtins short-circuit before doing work.
 - **Dependencies Risk:**
-  - **An unhashable memoized argument collapses onto the key `""`.** `calculateHashKey` returns the empty string on failure and the caller passes it straight to the cache, so unrelated calls become cache siblings and can receive each other's results. Filed as [#108](https://github.com/sentrie-sh/sentrie/issues/108).
+  - **Unhashable memoized arguments bypass the cache.** When `calculateHashKey` fails, the call is invoked directly rather than cached under an empty key.
   - **The precedence ladder must stay in sync with [[index.builtin_kind]]'s `isBuiltinCall`.** Static checking assumes local binding > derive > builtin; this function implements derive > builtin with locals handled earlier in [[runtime.eval_ident]]. Drift means checks are applied to a different callee than the one invoked.
   - **The three-segment floor for slash FQNs is a parser-ambiguity workaround.** `a/b` is division; `a/b/c` may be a derive. A genuinely two-segment derive FQN is therefore unreachable by slash syntax.
   - **Module resolution errors are misleading when the callee has no dot.** A bare unknown identifier that is not a derive or builtin falls through to `splitAliasFn`, yields an empty module name, and reports `ErrImportResolution` - an import error for what is really an unknown-function error.

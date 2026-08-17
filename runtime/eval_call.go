@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -74,7 +61,11 @@ func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *
 			ttl = *t.MemoizeTTL
 		}
 
-		hashKey := calculateHashKey(t, args)
+		hashKey, hashErr := calculateHashKey(t, args)
+		if hashErr != nil {
+			// Arguments cannot be hashed stably; bypass memoization.
+			return target(ctx, args...)
+		}
 		loader := func(ctx context.Context, key string) (any, error) {
 			return target(ctx, args...)
 		}
@@ -111,21 +102,24 @@ func splitAliasFn(s string) (string, string) {
 	return parts[0], parts[1]
 }
 
-func calculateHashKey(node *ast.CallExpression, args []box.Value) string {
+// calculateHashKey hashes memoization arguments and prefixes the AST call-site pointer.
+// The pointer is stable for the lifetime of the loaded index; the executor holds the index
+// and the memoization cache, so keys do not outlive their call sites.
+func calculateHashKey(node *ast.CallExpression, args []box.Value) (string, error) {
 	hashArgs := make([]any, 0, len(args))
 	for _, a := range args {
 		// Callables are rejected for memoized calls before we get here.
 		h, err := box.TryToBoundaryAny(a)
 		if err != nil {
-			return ""
+			return "", err
 		}
 		hashArgs = append(hashArgs, h)
 	}
 	arghash, err := hashstructure.Hash(hashArgs, hashstructure.FormatV2, nil)
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return fmt.Sprintf("%p:%d", node, arghash)
+	return fmt.Sprintf("%p:%d", node, arghash), nil
 }
 
 func lookupDeriveByIdentifier(ec *ExecutionContext, p *index.Policy, name string) *index.Derive {

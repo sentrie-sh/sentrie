@@ -7,6 +7,7 @@ import (
 	"context"
 	"math"
 
+	"github.com/binaek/perch"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/builtins"
@@ -21,8 +22,10 @@ func stubRange() tokens.Range {
 
 func (s *RuntimeTestSuite) TestCalculateHashKeyDistinguishesUndefinedAndNull() {
 	node := &ast.CallExpression{}
-	undefinedHash := calculateHashKey(node, []box.Value{box.Undefined()})
-	nullHash := calculateHashKey(node, []box.Value{box.Null()})
+	undefinedHash, err := calculateHashKey(node, []box.Value{box.Undefined()})
+	s.Require().NoError(err)
+	nullHash, err := calculateHashKey(node, []box.Value{box.Null()})
+	s.Require().NoError(err)
 
 	s.Require().NotEmpty(undefinedHash)
 	s.Require().NotEmpty(nullHash)
@@ -75,8 +78,10 @@ func (s *RuntimeTestSuite) TestCalculateHashKeyMapKeyOrderStable() {
 	node := &ast.CallExpression{}
 	arg1 := box.Dict(map[string]box.Value{"a": box.Number(1), "b": box.Number(2)})
 	arg2 := box.Dict(map[string]box.Value{"b": box.Number(2), "a": box.Number(1)})
-	hash1 := calculateHashKey(node, []box.Value{arg1})
-	hash2 := calculateHashKey(node, []box.Value{arg2})
+	hash1, err := calculateHashKey(node, []box.Value{arg1})
+	s.Require().NoError(err)
+	hash2, err := calculateHashKey(node, []box.Value{arg2})
+	s.Require().NoError(err)
 	s.Require().Equal(hash1, hash2)
 }
 
@@ -85,16 +90,21 @@ func (s *RuntimeTestSuite) TestCalculateHashKeyNestedStructureStable() {
 	arg := box.List([]box.Value{
 		box.Dict(map[string]box.Value{"k": box.List([]box.Value{box.Number(1), box.String("x")})}),
 	})
-	hash := calculateHashKey(node, []box.Value{arg})
+	hash, err := calculateHashKey(node, []box.Value{arg})
+	s.Require().NoError(err)
 	s.Require().NotEmpty(hash)
 }
 
 func (s *RuntimeTestSuite) TestCalculateHashKeyNumericEdges() {
 	node := &ast.CallExpression{}
-	hashNegZero := calculateHashKey(node, []box.Value{box.Number(math.Copysign(0, -1))})
-	hashPosZero := calculateHashKey(node, []box.Value{box.Number(0)})
-	hashNaN := calculateHashKey(node, []box.Value{box.Number(math.NaN())})
-	hashInf := calculateHashKey(node, []box.Value{box.Number(math.Inf(1))})
+	hashNegZero, err := calculateHashKey(node, []box.Value{box.Number(math.Copysign(0, -1))})
+	s.Require().NoError(err)
+	hashPosZero, err := calculateHashKey(node, []box.Value{box.Number(0)})
+	s.Require().NoError(err)
+	hashNaN, err := calculateHashKey(node, []box.Value{box.Number(math.NaN())})
+	s.Require().NoError(err)
+	hashInf, err := calculateHashKey(node, []box.Value{box.Number(math.Inf(1))})
+	s.Require().NoError(err)
 
 	s.Require().NotEmpty(hashNaN)
 	s.Require().NotEmpty(hashInf)
@@ -229,15 +239,15 @@ func (s *RuntimeTestSuite) TestGetTargetModuleCallRejectsCallableArgument() {
 	s.Require().ErrorContains(err, "module call mod.fn")
 }
 
-func (s *RuntimeTestSuite) TestCalculateHashKeyCallableArgumentReturnsEmpty() {
+func (s *RuntimeTestSuite) TestCalculateHashKeyCallableArgumentReturnsError() {
 	node := &ast.CallExpression{}
-	hash := calculateHashKey(node, []box.Value{box.Callable(callableStub{
+	_, err := calculateHashKey(node, []box.Value{box.Callable(callableStub{
 		arity: 1,
 		fn: func(_ context.Context, _ []box.Value) (box.Value, error) {
 			return box.Undefined(), nil
 		},
 	})})
-	s.Require().Empty(hash)
+	s.Require().Error(err)
 }
 
 func (s *RuntimeTestSuite) TestLookupDeriveBySlashFQResolveErrorWithoutEvalDerive() {
@@ -295,4 +305,82 @@ policy pol {
 
 	_, err := lookupDeriveBySlashFQ(ec, exec, pol, "com/alpha/secret")
 	s.Require().Error(err)
+}
+
+func (s *RuntimeTestSuite) TestEvalCallMemoizedBypassesCacheForUnhashableArguments() {
+	ctx := s.T().Context()
+	p := newEvalTestPolicy()
+	exec := &executorImpl{
+		callMemoizePerch: perch.New[any](1 << 20),
+	}
+	exec.callMemoizePerch.Reserve()
+
+	const builtinName = "test_unhashable_memo_builtin"
+	original, hadOriginal := builtins.Table[builtinName]
+	defer func() {
+		if hadOriginal {
+			builtins.Table[builtinName] = original
+			return
+		}
+		delete(builtins.Table, builtinName)
+	}()
+
+	callCount := 0
+	builtins.Table[builtinName] = &builtins.Decl{
+		Name:        builtinName,
+		Description: "returns first argument for unhashable memo tests",
+		DeriveSafe:  true,
+		Sig: builtins.Sig{
+			Variadic:    &builtins.ParamSig{Name: "args"},
+			TooFewError: "",
+		},
+		Impl: func(_ context.Context, _ builtins.Env, args ...box.Value) (box.Value, error) {
+			callCount++
+			if len(args) > 0 {
+				return args[0], nil
+			}
+			return box.Undefined(), nil
+		},
+	}
+
+	callable := box.Callable(callableStub{
+		arity: 1,
+		fn: func(_ context.Context, _ []box.Value) (box.Value, error) {
+			return box.Undefined(), nil
+		},
+	})
+	listOne := box.List([]box.Value{box.Number(1), callable})
+	listTwo := box.List([]box.Value{box.Number(2), callable})
+
+	ec := NewExecutionContext(p, exec)
+	s.Require().NoError(ec.InjectFact(ctx, "arg_one", listOne, false, nil))
+	s.Require().NoError(ec.InjectFact(ctx, "arg_two", listTwo, false, nil))
+
+	callOne := ast.NewCallExpression(
+		ast.NewIdentifier(builtinName, stubRange()),
+		[]ast.Expression{ast.NewIdentifier("arg_one", stubRange())},
+		true,
+		nil,
+		stubRange(),
+	)
+	callTwo := ast.NewCallExpression(
+		ast.NewIdentifier(builtinName, stubRange()),
+		[]ast.Expression{ast.NewIdentifier("arg_two", stubRange())},
+		true,
+		nil,
+		stubRange(),
+	)
+
+	first, _, err := evalCall(ctx, ec, exec, p, callOne)
+	s.Require().NoError(err)
+	firstList, ok := first.ListValue()
+	s.Require().True(ok)
+	s.Require().Equal(1.0, firstList[0].Any())
+
+	second, _, err := evalCall(ctx, ec, exec, p, callTwo)
+	s.Require().NoError(err)
+	secondList, ok := second.ListValue()
+	s.Require().True(ok)
+	s.Require().Equal(2.0, secondList[0].Any())
+	s.Require().Equal(2, callCount)
 }
