@@ -201,7 +201,7 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 			}
 
 			// inject the default value
-			if err := ec.InjectFact(ctx, factStatement.Name, val, true, factStatement.Type); err != nil {
+			if err := ec.InjectFact(ctx, factName, val, true, factStatement.Type); err != nil {
 				return nil, err
 			}
 		}

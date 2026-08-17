@@ -148,6 +148,32 @@ func (s *RuntimeTestSuite) TestExecRuleNullableFactDefaultAcceptsNull() {
 	s.Require().NoError(err)
 }
 
+func (s *RuntimeTestSuite) TestExecRuleDefaultedAliasedFactUsesAliasKey() {
+	fact := ast.NewFactStatement(
+		"userRole",
+		ast.NewStringTypeRef(stubRange()),
+		"role",
+		ast.NewStringLiteral("guest", stubRange()),
+		true,
+		stubRange(),
+	)
+	exec, p := newExecutorAndPolicyWithFact(fact)
+	body := ast.NewInfixExpression(
+		ast.NewIdentifier("role", stubRange()),
+		ast.NewStringLiteral("guest", stubRange()),
+		"==",
+		stubRange(),
+	)
+	p.Rules["allow"].Body = body
+	p.Rules["allow"].Node.Body = body
+
+	out, err := exec.ExecRule(s.T().Context(), "test/ns", "pol", "allow", map[string]any{})
+	s.Require().NoError(err)
+	s.Require().NotNil(out)
+	s.Require().NotNil(out.Decision)
+	s.Equal(trinary.True, out.Decision.State)
+}
+
 func (s *RuntimeTestSuite) TestExecRuleValidationErrorReturnsUnknownDecision() {
 	fact := ast.NewFactStatement("age", ast.NewNumberTypeRef(stubRange()), "age", nil, false, stubRange())
 	exec, _ := newExecutorAndPolicyWithFact(fact)
