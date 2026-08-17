@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package js
 
@@ -86,9 +73,8 @@ func (r *Registry) resolveUse(localFrom string, libFrom []string, fileDir string
 			key = "@" + constants.APPNAME + "/" + filepath.ToSlash(filepath.Join(libFrom[1:]...))
 			return key, "", "", true, nil
 		case "local":
-			key = "@local/" + filepath.ToSlash(filepath.Join(libFrom[1:]...))
-			path = filepath.Join(r.PackRoot, filepath.ToSlash(filepath.Join(libFrom[1:]...)))
-			return key, path, filepath.Dir(path), false, nil
+			key, path, dir, err = r.relativeToLocal(r.PackRoot, filepath.Join(libFrom[1:]...))
+			return key, path, dir, false, err
 		default:
 			// we should be able to resolve a @vendor/lib/sublib style reference - later on where vendor libs are installed in a known location
 			return "", "", "", false, fmt.Errorf("unsupported library from: %v", libFrom)
@@ -103,21 +89,80 @@ func (r *Registry) resolveUse(localFrom string, libFrom []string, fileDir string
 
 }
 
+func isOutsidePackRoot(rel string) bool {
+	return rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
+func evalSymlinksExisting(path string) (string, error) {
+	path = filepath.Clean(path)
+	resolved, err := filepath.EvalSymlinks(path)
+	if err == nil {
+		return resolved, nil
+	}
+	if !os.IsNotExist(err) {
+		return "", err
+	}
+
+	dir := filepath.Dir(path)
+	if dir == path {
+		return path, nil
+	}
+
+	resolvedDir, err := evalSymlinksExisting(dir)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(resolvedDir, filepath.Base(path)), nil
+}
+
+func (r *Registry) confineToPackRoot(path string) (string, error) {
+	packRoot := filepath.Clean(r.PackRoot)
+	path = filepath.Clean(path)
+
+	packRootRelative, err := filepath.Rel(packRoot, path)
+	if err != nil {
+		return "", err
+	}
+	if isOutsidePackRoot(packRootRelative) {
+		return "", fmt.Errorf("relative path is outside the packroot: %s", packRootRelative)
+	}
+
+	resolvedPackRoot, err := evalSymlinksExisting(packRoot)
+	if err != nil {
+		return "", err
+	}
+	resolvedPath, err := evalSymlinksExisting(path)
+	if err != nil {
+		return "", err
+	}
+
+	packRootRelative, err = filepath.Rel(resolvedPackRoot, resolvedPath)
+	if err != nil {
+		return "", err
+	}
+	if isOutsidePackRoot(packRootRelative) {
+		return "", fmt.Errorf("relative path is outside the packroot: %s", packRootRelative)
+	}
+
+	return resolvedPath, nil
+}
+
 func (r *Registry) relativeToLocal(fromDir, spec string) (key, path, dir string, err error) {
-	// convert localfrom to a @local key
-	path = filepath.Join(fromDir, spec)
-	// find relative to the packroot
-	packRootRelative, err := filepath.Rel(r.PackRoot, path)
+	path, err = r.confineToPackRoot(filepath.Join(fromDir, spec))
 	if err != nil {
 		return "", "", "", err
 	}
 
-	// make sure that the relative is not in the parent of the packroot
-	if strings.HasPrefix(packRootRelative, "..") {
-		return "", "", "", fmt.Errorf("relative path is outside the packroot: %s", packRootRelative)
+	resolvedPackRoot, err := evalSymlinksExisting(filepath.Clean(r.PackRoot))
+	if err != nil {
+		return "", "", "", err
+	}
+	packRootRelative, err := filepath.Rel(resolvedPackRoot, path)
+	if err != nil {
+		return "", "", "", err
 	}
 
-	key = "@local/" + packRootRelative
+	key = "@local/" + filepath.ToSlash(packRootRelative)
 	return key, path, filepath.Dir(path), nil
 }
 
@@ -128,7 +173,8 @@ func (r *Registry) resolveRequire(fromDir, spec string) (key, path, dir string, 
 	}
 
 	if strings.HasPrefix(spec, "@local/") {
-		return spec, filepath.Join(r.PackRoot, spec[len("@local/"):]), r.PackRoot, false, nil
+		key, path, dir, err := r.relativeToLocal(r.PackRoot, spec[len("@local/"):])
+		return key, path, dir, false, err
 	}
 
 	if strings.HasPrefix(spec, ".") || strings.HasPrefix(spec, "/") {
