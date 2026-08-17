@@ -80,7 +80,7 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 
 	val, ok := instance.exports[fn]
 	if !ok {
-		return nil, fmt.Errorf("function '%q' not found in module %q", fn, m.Alias)
+		return nil, fmt.Errorf("function %s not found in module %q", fn, m.Alias)
 	}
 	fnc, ok := goja.AssertFunction(val)
 	if !ok {
@@ -112,6 +112,13 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 		return nil, err
 	}
 
+	if goja.IsUndefined(out) {
+		return box.ToBoundaryAny(box.Undefined()), nil
+	}
+	if goja.IsNull(out) {
+		return nil, nil
+	}
+
 	acceptedReturnTypes := []reflect.Kind{
 		reflect.Map,
 		reflect.Slice,
@@ -124,7 +131,7 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 	}
 
 	if !slices.Contains(acceptedReturnTypes, out.ExportType().Kind()) {
-		return nil, fmt.Errorf("unexpected return type %T", out.ExportType())
+		return nil, fmt.Errorf("unexpected return type %s", out.ExportType().String())
 	}
 
 	result := out.Export()
