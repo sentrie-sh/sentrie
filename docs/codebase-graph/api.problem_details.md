@@ -45,4 +45,4 @@ The standard error representation for every handled HTTP failure, implementing R
   - **`Status` of zero is omitted**, meaning a caller who forgets to set it produces a body with no status member while the HTTP status is whatever `writeErrorResponse` was given - the two can disagree with no signal.
   - **The `type` URI points at `https://sentrie.sh/problems/{status}`**, which mirrors the HTTP status rather than identifying the specific problem. The RFC intends `type` to distinguish problem *kinds*, so two unrelated 400s are indistinguishable by type.
   - **`NewProblemDetails` is dead code**, and the divergence between it and the literal construction in `writeErrorResponse` means a future change to one will not affect the other.
-  - **Problem Details are only used for handler-level failures.** Evaluation errors come back as HTTP 200 with an `error` string in the normal response body, so clients need two error-handling paths - see [[api.handle_decision]].
+  - **Evaluation errors return Problem Details** with HTTP 400 for `InvalidInvocationError` (missing or invalid facts) and HTTP 500 otherwise — see [[api.handle_decision]].

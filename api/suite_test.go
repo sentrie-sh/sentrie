@@ -24,6 +24,7 @@ import (
 
 type APITestSuite struct {
 	suite.Suite
+	examplePackAPI *HTTPAPI
 }
 
 func TestAPITestSuite(t *testing.T) {

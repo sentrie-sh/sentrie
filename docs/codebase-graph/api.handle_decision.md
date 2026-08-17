@@ -25,18 +25,15 @@ The only functional endpoint in the service and the whole reason the API exists:
 
 - **Signature:** `POST /decision/{namespace}/{policy}[/{rule}]`
   - **Request:** `DecisionRequest` - `{"facts": {"name": <any>, ...}}`. Query parameters are collected into a `runConfig` map.
-  - **Response:** `DecisionResponse` - `{"decisions": [ExecutorOutput...], "error": "..."}`.
+  - **Response:** `DecisionResponse` - `{"decisions": [ExecutorOutput...]}` on success; RFC 9457 Problem Details on evaluation failure.
   - **Behavior:** Sets CORS headers, validates the path, short-circuits `OPTIONS`, rejects non-POST, resolves segments, parses query parameters, decodes the body, evaluates, and encodes.
   - **Side Effects:** Full policy evaluation - JavaScript execution, memoization cache writes, VM pool acquisition.
-  - **Exceptions:** Problem Details for missing path (400), unresolvable path (404), wrong method (405), and unparseable JSON (400).
+  - **Exceptions:** Problem Details for missing path (400), unresolvable path (404), wrong method (405), unparseable JSON (400), and evaluation failures (400 for invalid invocation, 500 otherwise).
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless per request; all state lives in the shared executor.
 - **Performance/Scale Notes:** Unbounded work per request. The body is decoded without a size limit, facts flow into evaluation where collection builtins multiply over them, and the trace tree allocates a node per evaluation step. Request cost is a function of both payload size and policy complexity, neither of which is capped.
 - **Dependencies Risk:**
-  - **The success path panics.** `Error: runErr.Error()` is evaluated unconditionally, and `runErr` is nil whenever evaluation succeeds - so **every successful request** dereferences nil. `net/http` recovers per-connection, so the caller sees an empty reply and the computed decision is discarded. The `json:"error,omitempty"` tag shows the intent was conditional. Filed as [#114](https://github.com/sentrie-sh/sentrie/issues/114). Note the CLI equivalent in [[cmd]] checks `runErr != nil` correctly, so this handler is the outlier.
-  - **A nil output is wrapped into the response.** The `ExecRule` branch builds `[]*ExecutorOutput{output}` without a nil check, and `ExecRule` returns nil on many failure paths - serialising as `[null]`.
-  - **Every response is HTTP 200**, including evaluation failures, so status codes cannot be used to distinguish success from failure.
   - **`runConfig` is built from query parameters and never used.** Dead code that reads as though per-request configuration is supported.
   - **`strings.TrimPrefix(path, "/decision/")` is a no-op.** `r.PathValue("target")` already excludes the route prefix.
   - **CORS is wildcard and unconditional**, and the `OPTIONS` short-circuit is checked *after* the path validation, so a preflight for an empty path gets a 400 instead of the expected 200.
