@@ -33,7 +33,7 @@ Handles the infix use of `not` - the negated membership and matching forms `x no
 - **Statefulness:** Stateless.
 - **Performance/Scale Notes:** Nothing notable.
 - **Dependencies Risk:**
-  - **Regression history.** This production previously carried a stray third `advance()` that swallowed the first token of the right operand, making *every* negated membership form unparseable (`9 not in [1, 2, 3]` failed with `unexpected token 'Comma'`). It is fixed and covered by `parser/not_test.go`; do not reintroduce a bare `advance()` between the operator and the operand parse.
-  - **The `lang_test/` fixtures do not run.** `lang_test/0014-matches-contains-in.sentrie` exercises all three forms, but no Go test harness references that directory, so nothing executes those fixtures in CI. They provide no regression protection for this or any other production.
+  - **Regression history.** A stray third `advance()` between the operator token and `parseExpression` swallowed the first token of the right operand, making negated membership forms unparseable (`9 not in [1, 2, 3]` failed with `unexpected token 'Comma'`). It is fixed and covered by `parser/not_test.go`; do not reintroduce a bare `advance()` between the operator and the operand parse.
+  - **The `lang_test/` fixtures do not run.** `lang_test/0014-matches-contains-in.sentrie` exercises all three forms, but no Go test harness references that directory, so nothing executes those fixtures in CI (see #103). They provide no regression protection for this or any other production.
   - **Right-operand precedence is inherited, not raised.** The operand is parsed at the caller's precedence rather than the operator's, which differs from [[parser.infix]] and may produce different associativity for chained forms.
   - **The desugaring is invisible in the AST.** `x not in y` and `not (x in y)` produce identical trees, so tooling cannot recover which spelling the author used.
