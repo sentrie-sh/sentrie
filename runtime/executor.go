@@ -125,15 +125,21 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 	var compositeErr error
 	outputs := make([]*ExecutorOutput, 0, len(p.RuleExports))
 	wg := &sync.WaitGroup{}
-	for _, ruleExport := range p.RuleExports {
+	for exportedName, ruleExport := range p.RuleExports {
+		ruleName := exportedName
+		if ruleExport != nil && ruleExport.RuleName != "" {
+			ruleName = ruleExport.RuleName
+		}
 		wg.Go(func() {
 			defer func() {
 				if r := recover(); r != nil {
-					compositeErr = stdErr.New("panic in ExecRule: " + fmt.Sprintf("%v", r))
+					theLock.Lock()
+					defer theLock.Unlock()
+					compositeErr = stdErr.Join(compositeErr, fmt.Errorf("panic in ExecRule %q: %v", ruleName, r))
 				}
 			}()
 
-			output, err := e.ExecRule(ctx, namespace, policy, ruleExport.RuleName, facts)
+			output, err := e.ExecRule(ctx, namespace, policy, ruleName, facts)
 
 			// now that we have the output, we can add it to the outputs slice,
 			// but we need to lock the mutex to avoid race conditions
