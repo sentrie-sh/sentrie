@@ -75,6 +75,22 @@ func (idx *Index) AddProgram(ctx context.Context, astProgram *ast.Program) error
 		return ctx.Err()
 	}
 
+	var extraNamespace ast.Statement
+	nsCount := 0
+	for _, stmt := range astProgram.Statements {
+		if _, ok := stmt.(*ast.NamespaceStatement); !ok {
+			continue
+		}
+		nsCount++
+		if nsCount > 1 {
+			extraNamespace = stmt
+			break
+		}
+	}
+	if extraNamespace != nil {
+		return fmt.Errorf("duplicate namespace statement at %s", extraNamespace.Span())
+	}
+
 	program := createProgram(astProgram)
 
 	ns, err := idx.ensureNamespace(ctx, program.Namespace)
@@ -88,6 +104,7 @@ func (idx *Index) AddProgram(ctx context.Context, astProgram *ast.Program) error
 			continue
 
 		case *ast.NamespaceStatement:
+			// The first (and only) namespace is consumed by createProgram/ensureNamespace.
 			continue
 
 		case *ast.ShapeStatement:

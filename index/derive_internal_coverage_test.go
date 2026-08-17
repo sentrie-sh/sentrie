@@ -540,6 +540,24 @@ policy p {
 	s.Require().NoError(idx.AddProgram(ctx, prog))
 }
 
+func (s *IndexTestSuite) TestAddProgramRejectsDuplicateNamespaceStatement() {
+	ctx := s.T().Context()
+	idx := CreateIndex()
+	r := deriveCovRng(20)
+	prog := &ast.Program{
+		Reference: "two_ns.sentrie",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "one"}, r), r),
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "two"}, r), r),
+			ast.NewShapeStatement("User", ast.NewStringTypeRef(r), nil, r),
+		},
+	}
+	err := idx.AddProgram(ctx, prog)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "duplicate namespace statement")
+	s.Empty(idx.Programs)
+}
+
 func (s *IndexTestSuite) TestAddProgramRejectsUnsupportedNamespaceLevelFact() {
 	ctx := s.T().Context()
 	idx := CreateIndex()

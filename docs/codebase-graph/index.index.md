@@ -44,9 +44,9 @@ tags: symbol-table, aggregate-root, concurrency, lifecycle
   - **Exceptions:** None.
 
 - **Signature:** `(*Index).AddProgram(ctx, astProgram *ast.Program) -> error`
-  - **Behavior:** Under the write lock: builds a `Program` record, ensures the namespace exists, then iterates all statements dispatching on type - comments and the namespace statement are skipped, shapes and policies created and registered, derives added with a **cloned snapshot** of the namespace's currently-visible derives, and shape/derive exports recorded. Finally registers the program under its file reference.
+  - **Behavior:** Under the write lock: rejects a second `NamespaceStatement`, builds a `Program` record, ensures the namespace exists, then iterates all statements dispatching on type - comments and the (single) namespace statement are skipped, shapes and policies created and registered, derives added with a **cloned snapshot** of the namespace's currently-visible derives, and shape/derive exports recorded. Finally registers the program under its file reference.
   - **Side Effects:** Mutates namespaces, policies, shapes, derives, and `Programs`.
-  - **Exceptions:** `ctx.Err()`; propagated conflicts from `addShape`/`addPolicy`/`addDerive`; `cannot export unknown derive %q at %s`; `unsupported top-level statement %T at %s`.
+  - **Exceptions:** `ctx.Err()`; `duplicate namespace statement at %s`; propagated conflicts from `addShape`/`addPolicy`/`addDerive`; `cannot export unknown derive %q at %s`; `unsupported top-level statement %T at %s`.
 
 - **Signature:** `(*Index).ensureNamespace(_, namespace *ast.NamespaceStatement) -> (*Namespace, error)`
   - **Behavior:** Returns the existing namespace or creates one, then scans **every** already-known namespace to wire parent/child links in both directions.
@@ -57,7 +57,7 @@ tags: symbol-table, aggregate-root, concurrency, lifecycle
 - **Statefulness:** Mutable aggregate with a strict lifecycle: populate → validate → commit → read. Not reusable after a failed validation.
 - **Performance/Scale Notes:** `ensureNamespace` is **O(n) over all namespaces per new namespace**, so building the tree is quadratic in namespace count. Fine for tens of namespaces; noticeable for thousands. `cloneDeriveMap` copies the visible-derive map on every derive registration.
 - **Dependencies Risk:**
-  - **Statement iteration starts at index 0** and skips namespace and comment statements by type, so leading comments do not cause the first declaration after them to be dropped.
+  - **Statement iteration starts at index 0** and skips comment statements by type. The first namespace statement is consumed by `createProgram`/`ensureNamespace`; a second `NamespaceStatement` is an error (`duplicate namespace statement`).
   - **Locking does not cover reads.** `theLock` is taken by `SetPack` and `AddProgram` only. `Validate`, `Commit`, and all resolution methods read unguarded, so an index must be fully populated before it is shared.
   - **The `validated`/`committed` flags are not used atomically.** They are plain `uint32` fields written inside the `Once` bodies; the real exactly-once guarantee comes from `sync.Once`, not from these. Do not read them as a concurrency signal.
   - **Derive visibility snapshots are taken here.** `cloneDeriveMap(ns.Derives)` captures what is visible *at that moment*, which is the mechanism behind the file-ordering constraint documented in [[index.derive]].
