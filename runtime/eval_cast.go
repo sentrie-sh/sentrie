@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -27,38 +14,35 @@ import (
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 )
 
-func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *index.Policy, cast *ast.CastExpression) (box.Value, *trace.Node, error) {
+func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *index.Policy, cast *ast.CastExpression) (result box.Value, node *trace.Node, err error) {
 	ctx, node, done := trace.New(ctx, cast, "cast", map[string]any{
 		"target": cast.TargetType.String(),
 	})
 	defer done()
 
-	val, child, err := eval(ctx, ec, e, p, cast.Expr)
+	val, child, evalErr := eval(ctx, ec, e, p, cast.Expr)
 	node.Attach(child)
-	if err != nil {
-		return box.Value{}, node.SetErr(err), err
+	if evalErr != nil {
+		return box.Value{}, node.SetErr(evalErr), evalErr
 	}
-	result := val
+	result = val
 	target := cast.TargetType
 
 	defer func() {
 		if r := recover(); r != nil {
-			// we are doing type casting on an unknown entity
-			// catch panics and return as error
-			node.SetErr(fmt.Errorf("cast: %v", r))
 			err = fmt.Errorf("cast: %v", r)
+			node.SetErr(err)
+			result = box.Value{}
 			return
 		}
 
 		if result.IsValid() {
-			// validate the result before returning
 			if validateErr := validateValueAgainstTypeRef(ctx, ec, e, p, result, target, cast.Span()); validateErr != nil {
-				node.SetErr(validateErr)
 				err = validateErr
+				node.SetErr(validateErr)
 				result = box.Value{}
 			}
 		}
-
 	}()
 	switch target.(type) {
 	case *ast.StringTypeRef:
@@ -108,5 +92,6 @@ func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *ind
 		result = val
 	}
 
-	return result, node.SetResult(result).SetErr(err), err
+	node = node.SetResult(result).SetErr(err)
+	return
 }
