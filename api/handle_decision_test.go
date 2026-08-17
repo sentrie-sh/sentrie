@@ -23,7 +23,11 @@ func examplePackDir() string {
 	return filepath.Join(filepath.Dir(current), "..", "example_pack")
 }
 
-func (s *APITestSuite) newExamplePackHTTPAPI() *HTTPAPI {
+func (s *APITestSuite) examplePackHTTPAPI() *HTTPAPI {
+	if s.examplePackAPI != nil {
+		return s.examplePackAPI
+	}
+
 	ctx := s.T().Context()
 
 	packFile, err := loader.LoadPack(ctx, examplePackDir())
@@ -43,7 +47,8 @@ func (s *APITestSuite) newExamplePackHTTPAPI() *HTTPAPI {
 	exec, err := runtimepkg.NewExecutor(idx)
 	s.Require().NoError(err)
 
-	return NewHTTPAPI(exec)
+	s.examplePackAPI = NewHTTPAPI(exec)
+	return s.examplePackAPI
 }
 
 func (s *APITestSuite) decisionHandler(api *HTTPAPI) http.Handler {
@@ -63,7 +68,7 @@ func (s *APITestSuite) postDecision(api *HTTPAPI, path string, body string) *htt
 }
 
 func (s *APITestSuite) TestHandleDecisionPolicySuccess() {
-	api := s.newExamplePackHTTPAPI()
+	api := s.examplePackHTTPAPI()
 
 	rec := s.postDecision(api, "/decision/sh/sentrie/example/user_access", `{
 		"facts": {
@@ -85,7 +90,7 @@ func (s *APITestSuite) TestHandleDecisionPolicySuccess() {
 }
 
 func (s *APITestSuite) TestHandleDecisionRuleSuccess() {
-	api := s.newExamplePackHTTPAPI()
+	api := s.examplePackHTTPAPI()
 
 	rec := s.postDecision(api, "/decision/sh/sentrie/example/user_access/allow_admin", `{
 		"facts": {
@@ -106,7 +111,7 @@ func (s *APITestSuite) TestHandleDecisionRuleSuccess() {
 }
 
 func (s *APITestSuite) TestHandleDecisionMissingRequiredFact() {
-	api := s.newExamplePackHTTPAPI()
+	api := s.examplePackHTTPAPI()
 
 	rec := s.postDecision(api, "/decision/sh/sentrie/example/user_access", `{"facts": {}}`)
 
@@ -121,7 +126,7 @@ func (s *APITestSuite) TestHandleDecisionMissingRequiredFact() {
 }
 
 func (s *APITestSuite) TestHandleDecisionEvaluationInternalError() {
-	api := s.newExamplePackHTTPAPI()
+	api := s.examplePackHTTPAPI()
 
 	rec := s.postDecision(api, "/decision/sh/sentrie/example/shapes/example", `{"facts": {}}`)
 
@@ -136,7 +141,7 @@ func (s *APITestSuite) TestHandleDecisionEvaluationInternalError() {
 }
 
 func (s *APITestSuite) TestHandleDecisionInvalidPath() {
-	api := s.newExamplePackHTTPAPI()
+	api := s.examplePackHTTPAPI()
 
 	rec := s.postDecision(api, "/decision/does/not/exist", `{"facts": {}}`)
 
@@ -145,7 +150,7 @@ func (s *APITestSuite) TestHandleDecisionInvalidPath() {
 }
 
 func (s *APITestSuite) TestHandleDecisionInvalidJSON() {
-	api := s.newExamplePackHTTPAPI()
+	api := s.examplePackHTTPAPI()
 
 	req := httptest.NewRequest(http.MethodPost, "/decision/sh/sentrie/example/user_access", bytes.NewReader([]byte("not json")))
 	req.Header.Set("Content-Type", "application/json")
