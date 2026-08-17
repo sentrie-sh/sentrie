@@ -1,6 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -83,10 +82,12 @@ func (idx *Index) AddProgram(ctx context.Context, astProgram *ast.Program) error
 		return err
 	}
 
-	for i := 1; i < len(astProgram.Statements); i++ {
-		stmt := astProgram.Statements[i]
+	for _, stmt := range astProgram.Statements {
 		switch s := stmt.(type) {
 		case *ast.CommentStatement:
+			continue
+
+		case *ast.NamespaceStatement:
 			continue
 
 		case *ast.ShapeStatement:

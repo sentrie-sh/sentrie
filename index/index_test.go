@@ -21,6 +21,7 @@ import (
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/pack"
+	"github.com/sentrie-sh/sentrie/parser"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/sentrie-sh/sentrie/trinary"
 )
@@ -98,6 +99,31 @@ func (suite *IndexTestSuite) TestAddProgramWithSimpleShape() {
 	suite.Equal("com/example", ns.FQN.String())
 	suite.Len(ns.Shapes, 1)
 	suite.Contains(ns.Shapes, "User")
+}
+
+func (suite *IndexTestSuite) TestAddProgramWithLeadingCommentIndexesAllDeclarations() {
+	ctx := suite.T().Context()
+	idx := CreateIndex()
+	src := `-- a leading comment
+namespace com/example
+
+shape Foo { name: string }
+
+policy pol {
+  let _s = 0
+  rule r = { yield true }
+  export decision of r
+}
+`
+	prog, err := parser.NewParserFromString(src, "leading_comment.sentrie").ParseProgram(ctx)
+	suite.Require().NoError(err)
+	err = idx.AddProgram(ctx, prog)
+	suite.Require().NoError(err)
+
+	ns, ok := idx.Namespaces["com/example"]
+	suite.True(ok)
+	suite.Contains(ns.Shapes, "Foo")
+	suite.Contains(ns.Policies, "pol")
 }
 
 func (suite *IndexTestSuite) TestAddProgramWithPolicy() {
