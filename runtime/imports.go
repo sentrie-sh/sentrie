@@ -95,11 +95,14 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 	}
 
 	output, err := exec.ExecRule(ctx, ns, pol, rule, injectedFacts)
-	n = n.Attach(output.RuleNode)
 	if err != nil {
+		if output != nil {
+			n = n.Attach(output.RuleNode)
+		}
 		n.SetErr(err)
 		return box.Null(), n, err
 	}
+	n = n.Attach(output.RuleNode)
 
 	envelope := executorOutputEnvelope(output)
 	n.SetResult(envelope)
