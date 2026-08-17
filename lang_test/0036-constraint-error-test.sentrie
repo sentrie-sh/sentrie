@@ -10,5 +10,6 @@ policy constraint_validation {
   
   rule allow = { yield user_doc is defined and user_record is defined }
   rule has_name = { yield user_doc.name is defined }
-  rule is_adult = { yield user_record[1] >= 18 }
+  rule is_adult = { yield user_record[1] >= 18 }  rule _corpus = { yield true }
+  export decision of _corpus
 }

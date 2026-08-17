@@ -2,4 +2,7 @@ namespace shapes
 
 policy policyName {
   let x = y as string
+  rule _corpus = { yield true }
+
+  export decision of _corpus
 }

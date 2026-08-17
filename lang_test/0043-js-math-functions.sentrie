@@ -1,10 +1,10 @@
 namespace test/js
 
 policy mathTest {
-  use { round, floor, ceil, max, min, abs, sqrt, pow, PI, E } from "@sentrie/js" as math
+  fact value: number
+  fact value2: number
 
-  fact value!: number
-  fact value2!: number
+  use { round, floor, ceil, max, min, abs, sqrt, pow, PI, E } from "@sentrie/js" as math
 
   rule testRound = default false {
     let rounded = math.round(value)

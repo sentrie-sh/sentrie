@@ -1,6 +1,8 @@
--- first line comment
 namespace comments
+-- first line comment moved below namespace
 -- top-level note
 policy c1 {
 	-- inside policy
+  rule _corpus = { yield true }
+  export decision of _corpus
 }

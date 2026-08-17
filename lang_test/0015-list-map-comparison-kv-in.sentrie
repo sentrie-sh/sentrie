@@ -4,5 +4,6 @@ policy cmp2 {
 	let t1   = ls in  [ ["a", "b"], ["c"] ]
 	let mp   = { "k": "v" }
 	let t2   = mp in [ { "x": 1 }, { "k": "v" } ]
-	let kvok = { "x": 1 } in [ { "x": 1, "y": 2 }, { "a": 3 } ]
+	let kvok = { "x": 1 } in [ { "x": 1, "y": 2 }, { "a": 3 } ]  rule _corpus = { yield true }
+  export decision of _corpus
 }

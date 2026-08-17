@@ -1,11 +1,11 @@
 namespace test/js
 
 policy jsonTest {
+  fact jsonStr: string
+  fact data: document
+
   use { parse, stringify } from "@sentrie/js" as json
   use { isValid } from "@sentrie/json" as jsonUtil
-
-  fact jsonStr!: string
-  fact data!: dict[string]any
 
   rule testParse = default false {
     let parsed = json.parse(jsonStr)

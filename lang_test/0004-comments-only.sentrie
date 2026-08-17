@@ -2,4 +2,6 @@ namespace comments
 -- top-level note
 policy c1 {
 	-- inside policy
+  rule _corpus = { yield true }
+  export decision of _corpus
 }

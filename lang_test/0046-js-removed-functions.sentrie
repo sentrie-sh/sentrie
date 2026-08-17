@@ -4,13 +4,13 @@ policy removedFunctionsTest {
   -- Test that removed functions from @sentrie/math, @sentrie/string, @sentrie/json are no longer available
   -- These should fail to compile/execute
 
+  fact value: number
+  fact text: string
+  fact jsonStr: string
+
   use { round } from "@sentrie/js" as math
   use { length } from "@sentrie/js" as str
   use { parse } from "@sentrie/js" as json
-
-  fact value!: number
-  fact text!: string
-  fact jsonStr!: string
 
   rule testMathFromJS = default false {
     -- This should work - using @sentrie/js

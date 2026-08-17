@@ -1,3 +1,9 @@
 namespace ns
-policy nothing1 {}
-policy nothing2 {}
+policy nothing1 {  rule _corpus = { yield true }
+  export decision of _corpus
+}
+policy nothing2 {
+  rule _corpus = { yield true }
+
+  export decision of _corpus
+}

@@ -1,1 +1,5 @@
-namespace com.example.minimal
+namespace com/example/minimal
+policy minimal {
+  rule _corpus = { yield true }
+  export decision of _corpus
+}

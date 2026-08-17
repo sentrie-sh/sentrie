@@ -1,7 +1,11 @@
 namespace multi
 policy base {
-	rule allowAll = { yield true }
+	rule allowAll = { yield true }  rule _corpus = { yield true }
+  export decision of _corpus
 }
 policy consumer {
 	rule allow = import decision allowAll from base
+  rule _corpus = { yield true }
+
+  export decision of _corpus
 }

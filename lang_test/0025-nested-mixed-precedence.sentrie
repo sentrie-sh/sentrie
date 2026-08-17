@@ -4,5 +4,6 @@ policy big {
 	let result =
 		any(data["ids"], (id) => {
 			yield (id % 2 == 0 and not (id in [4, 6])) or id == 3
-		}) ? "ok" : "fail"
+		}) ? "ok" : "fail"  rule _corpus = { yield true }
+  export decision of _corpus
 }

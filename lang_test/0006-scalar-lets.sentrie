@@ -6,11 +6,13 @@ policy scalar_vals {
 	let b = true
 	let n = null
 	let g = false
-	let i = -100
+	let i_neg = -100
 	let u = -3.14
   let d = "sss"+"ggg"
   let heredoc=<<<HHH
 Hello, World!
 This is a heredoc string.
 HHH
+  rule _corpus = { yield true }
+  export decision of _corpus
 }

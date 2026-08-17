@@ -5,5 +5,6 @@ policy mix {
   let z = resource.a_map["key"]
   let p = resource.a_map["key"].property
   let q = resource.a_map["key"].a_list[2]
-  let r = resource.a_map["key"].a_list[2+1]
+  let r = resource.a_map["key"].a_list[2+1]  rule _corpus = { yield true }
+  export decision of _corpus
 }

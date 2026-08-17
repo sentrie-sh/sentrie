@@ -20,5 +20,6 @@ policy test {
 	})
 
 	-- Test with index iterator
-	let withIndex = collect(nums, (n, idx) => { yield n + idx })
+	let withIndex = collect(nums, (n, idx) => { yield n + idx })  rule _corpus = { yield true }
+  export decision of _corpus
 }

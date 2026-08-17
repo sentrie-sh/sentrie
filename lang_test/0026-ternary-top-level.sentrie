@@ -1,4 +1,5 @@
 namespace ternary2
 policy cond {
-	let a = true ? 1 : 0
+	let a = true ? 1 : 0  rule _corpus = { yield true }
+  export decision of _corpus
 }

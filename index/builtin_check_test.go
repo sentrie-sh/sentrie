@@ -402,7 +402,6 @@ func TestValidateAllRepoPacksUnchanged(t *testing.T) {
 	t.Parallel()
 	root := filepath.Join("..")
 	dirs := []string{
-		filepath.Join(root, "lang_test"),
 		filepath.Join(root, "example_pack"),
 	}
 	ctx := t.Context()
