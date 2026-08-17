@@ -1,6 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -124,6 +123,25 @@ policy pol {
 	suite.True(ok)
 	suite.Contains(ns.Shapes, "Foo")
 	suite.Contains(ns.Policies, "pol")
+}
+
+func (suite *IndexTestSuite) TestAddProgramRejectsDuplicateNamespace() {
+	ctx := suite.T().Context()
+	idx := CreateIndex()
+	src := `namespace com/example
+namespace com/other
+
+policy pol {
+  let _s = 0
+  rule r = { yield true }
+  export decision of r
+}
+`
+	prog, err := parser.NewParserFromString(src, "dup_ns.sentrie").ParseProgram(ctx)
+	suite.Require().NoError(err)
+	err = idx.AddProgram(ctx, prog)
+	suite.Require().Error(err)
+	suite.Contains(err.Error(), "duplicate namespace statement")
 }
 
 func (suite *IndexTestSuite) TestAddProgramWithPolicy() {
