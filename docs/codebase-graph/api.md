@@ -34,7 +34,7 @@ The network-facing façade over the policy engine. It translates HTTP requests i
   - **Exceptions:** Bind failures.
 
 - **Signature:** `POST /decision/{target...}` - see [[api.handle_decision]]
-  - **Behavior:** The only functional endpoint. Body is `{"facts": {...}}`; response is `{"decisions": [...], "error": "..."}`.
+  - **Behavior:** The only functional endpoint. Body is `{"facts": {...}}`; response is `{"decisions": [...]}` on success, or RFC 9457 Problem Details on evaluation failure.
   - **Side Effects:** Full policy evaluation.
   - **Exceptions:** RFC 9457 Problem Details on the handled error paths.
 
@@ -47,7 +47,6 @@ The network-facing façade over the policy engine. It translates HTTP requests i
 - **Statefulness:** `HTTPAPI` owns its listeners and a shared executor. The executor is concurrency-safe by design, so one instance serves all requests and all connections share the JavaScript VM pool and the memoization cache.
 - **Performance/Scale Notes:** Read and write timeouts are fixed at 30 seconds with no configuration. There is **no concurrency limit**, so inbound request concurrency maps directly onto executor concurrency; the VM pool (max 10) becomes the implicit bottleneck under load, and requests queue on it invisibly.
 - **Dependencies Risk:**
-  - **The success path panics.** `handleDecision` calls `runErr.Error()` on a nil error, so a successful evaluation never produces a response. Filed as [#114](https://github.com/sentrie-sh/sentrie/issues/114) - see [[api.handle_decision]].
   - **No authentication, no authorization, no rate limiting, wildcard CORS, and no request body limit.** Filed as [#115](https://github.com/sentrie-sh/sentrie/issues/115). The default bind of `local` is the one thing keeping the out-of-the-box posture safe.
   - **`local6` and `network6` cannot bind** because the addresses are double-bracketed - see [[api.net]].
   - **Responses embed the full trace tree**, which contains evaluated fact values. Any caller that can reach the endpoint can read back the data the policy saw.
