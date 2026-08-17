@@ -2,5 +2,6 @@ namespace rules1
 policy simple_rule {
 	rule isAdult = { yield age >= 18 }
 	rule isMinor = { yield age < 18 }
-	rule isSenior = { yield age >= 65 }
+	rule isSenior = { yield age >= 65 }  rule _corpus = { yield true }
+  export decision of _corpus
 }

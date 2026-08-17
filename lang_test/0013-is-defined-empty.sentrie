@@ -1,11 +1,12 @@
 namespace isops
 policy defined_empty {
   let lst = []
-  let lst = [1, 2, 3]
+  let lst2 = [1, 2, 3]
   let lst3 = [1]
   let m   = {"k": "v"}
   let a1  = lst is empty
   let a2  = lst is not empty
   let a3  = m   is defined
-  let a4  = m   is not defined
+  let a4  = m   is not defined  rule _corpus = { yield true }
+  export decision of _corpus
 }

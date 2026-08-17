@@ -262,6 +262,7 @@ graph TD
 - [[index.resolve]] - symbol resolution
 - [[index.segments]] - path segment resolution
 - [[index.validate]] - whole-index validation
+- [[lang_test.lang_test]] - language acceptance corpus harness
 - [[parser.call]] - call expression parsing
 - [[parser.cast]] - cast expression parsing
 - [[parser.comment]] - comment statement parsing

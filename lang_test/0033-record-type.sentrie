@@ -6,5 +6,6 @@ policy record_operations {
   
   rule allow = { yield user_record is defined and config_record is defined }
   rule has_name = { yield user_record[0] is defined }
-  rule is_config_valid = { yield config_record[0] is defined and config_record[2] is true }
+  rule is_config_valid = { yield config_record[0] is defined and config_record[2] is true }  rule _corpus = { yield true }
+  export decision of _corpus
 }

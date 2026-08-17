@@ -5,5 +5,6 @@ policy match_contain_in {
 	let has      = ["x", "y", "z"] contains "y"
 	let nohas    = ["x", "y"] not contains "z"
 	let inside   = 3 in [1, 2, 3, 4]
-	let outside  = 9 not in [1, 2, 3]
+	let outside  = 9 not in [1, 2, 3]  rule _corpus = { yield true }
+  export decision of _corpus
 }

@@ -1,9 +1,9 @@
 namespace test/js
 
 policy stringTest {
-  use { length, fromCharCode } from "@sentrie/js" as str
+  fact text: string
 
-  fact text!: string
+  use { length, fromCharCode } from "@sentrie/js" as str
 
   rule testLength = default false {
     let len = str.length(text)

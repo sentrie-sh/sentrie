@@ -5,5 +5,6 @@ policy choose {
   let max = x > y ? x : y
   let min = x < y ? x : y
   let result = (x > y ? "X is greater" : "Y is greater")
-  let complex = (x > y ? (x + y) : (x - y)) * (x < y ? 2 : 3)
+  let complex = (x > y ? (x + y) : (x - y)) * (x < y ? 2 : 3)  rule _corpus = { yield true }
+  export decision of _corpus
 }

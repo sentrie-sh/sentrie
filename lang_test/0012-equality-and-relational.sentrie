@@ -5,5 +5,6 @@ policy cmp {
   let lt  = 4 < 5
   let lte = 5 <= 5
   let gt  = 6 > 5
-  let gte = 6 >= 6
+  let gte = 6 >= 6  rule _corpus = { yield true }
+  export decision of _corpus
 }

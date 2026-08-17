@@ -1,5 +1,6 @@
 namespace facts
 policy employment {
 	fact employee_type:string as role
-  fact fact_with_default:ShapeName as a_fact default "default_value"
+  fact fact_with_default?: ShapeName as a_fact default "default_value"  rule _corpus = { yield true }
+  export decision of _corpus
 } 
