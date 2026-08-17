@@ -1,6 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -76,6 +75,22 @@ func (idx *Index) AddProgram(ctx context.Context, astProgram *ast.Program) error
 		return ctx.Err()
 	}
 
+	var extraNamespace ast.Statement
+	nsCount := 0
+	for _, stmt := range astProgram.Statements {
+		if _, ok := stmt.(*ast.NamespaceStatement); !ok {
+			continue
+		}
+		nsCount++
+		if nsCount > 1 {
+			extraNamespace = stmt
+			break
+		}
+	}
+	if extraNamespace != nil {
+		return fmt.Errorf("duplicate namespace statement at %s", extraNamespace.Span())
+	}
+
 	program := createProgram(astProgram)
 
 	ns, err := idx.ensureNamespace(ctx, program.Namespace)
@@ -83,10 +98,13 @@ func (idx *Index) AddProgram(ctx context.Context, astProgram *ast.Program) error
 		return err
 	}
 
-	for i := 1; i < len(astProgram.Statements); i++ {
-		stmt := astProgram.Statements[i]
+	for _, stmt := range astProgram.Statements {
 		switch s := stmt.(type) {
 		case *ast.CommentStatement:
+			continue
+
+		case *ast.NamespaceStatement:
+			// The first (and only) namespace is consumed by createProgram/ensureNamespace.
 			continue
 
 		case *ast.ShapeStatement:

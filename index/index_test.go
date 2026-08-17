@@ -1,6 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +20,7 @@ import (
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/pack"
+	"github.com/sentrie-sh/sentrie/parser"
 	"github.com/sentrie-sh/sentrie/tokens"
 	"github.com/sentrie-sh/sentrie/trinary"
 )
@@ -98,6 +98,47 @@ func (suite *IndexTestSuite) TestAddProgramWithSimpleShape() {
 	suite.Equal("com/example", ns.FQN.String())
 	suite.Len(ns.Shapes, 1)
 	suite.Contains(ns.Shapes, "User")
+}
+
+func (suite *IndexTestSuite) TestAddProgramWithLeadingCommentIndexesAllDeclarations() {
+	ctx := suite.T().Context()
+	idx := CreateIndex()
+	src := `-- a leading comment
+namespace com/example
+
+shape Foo { name: string }
+
+policy pol {
+  let _s = 0
+  rule r = { yield true }
+  export decision of r
+}
+`
+	prog, err := parser.NewParserFromString(src, "leading_comment.sentrie").ParseProgram(ctx)
+	suite.Require().NoError(err)
+	err = idx.AddProgram(ctx, prog)
+	suite.Require().NoError(err)
+
+	ns, ok := idx.Namespaces["com/example"]
+	suite.True(ok)
+	suite.Contains(ns.Shapes, "Foo")
+	suite.Contains(ns.Policies, "pol")
+}
+
+func (suite *IndexTestSuite) TestAddProgramRejectsDuplicateNamespace() {
+	stubRange := tokens.Range{File: "dup_ns.sentrie", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 10, Offset: 10}}
+	secondRange := tokens.Range{File: "dup_ns.sentrie", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 10, Offset: 10}}
+	program := &ast.Program{
+		Reference: "dup_ns.sentrie",
+		Statements: []ast.Statement{
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "example"}, stubRange), stubRange),
+			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "other"}, secondRange), secondRange),
+		},
+	}
+
+	err := suite.idx.AddProgram(suite.T().Context(), program)
+	suite.Require().Error(err)
+	suite.Contains(err.Error(), "duplicate namespace statement")
 }
 
 func (suite *IndexTestSuite) TestAddProgramWithPolicy() {
