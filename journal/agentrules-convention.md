@@ -50,3 +50,19 @@
 - No overlap with this branch's files. `git rebase origin/main` applied all seven commits cleanly.
 - `GOWORK=off make docs-graph` still passes after the rebase.
 - Force-pushed with the lease pinned to the PR head GitHub reported.
+
+### 2026-10-13 16:10 - Drop Cursor rules, prose em dashes, PR template
+- The maintainer asked to translate the Cursor rules into agent rules and to take care of the follow-ups.
+- Read with the earlier answer ("move away from cursor rules to generic agent rules"), that meant deleting `.cursor/rules/*.mdc` outright rather than keeping pointers.
+  - Each rule's scope already lives in its `.agentrules/` text (`go-test-conventions`: every `**/*_test.go`; `evalderive-resolution`: `runtime/eval_call.go` and `runtime/eval_ident.go`).
+  - This supersedes the thin-pointer step from the 14:50 entry.
+- `config-writer.md` no longer mentions pointer files. It says not to create `.cursor/rules/` files, and to state path scope in the rule text.
+- `code-reviewer.md` now checks changed code against the rules indexed in `AGENTS.md` instead of `.cursor/rules/`.
+- `.cursor/agents/` stays. Those files are subagent briefs, not rules.
+- Replaced every em dash in prose files with " - ": `CONTRIBUTING.md`, `builtins/ADDING_BUILTINS.md`, `.cursor/agents/*.md`, and the `parser.not` and `api.problem_details` graph nodes.
+  - Em dashes in source files (`.go` comments and error strings, `grammar/grammar.ebnf`, `grammar/grammar.peg`) and in `ci.yml` step names are left for their own PRs.
+- `.github/pull_request_template.md` now has the six sections from `pr-conventions`, and keeps the dependency guidance.
+- Follow-up split, following this branch's own rules:
+  - workflow hygiene and protected paths: `[Workflow]` PR, based on this branch;
+  - Makefile and `sandbox.go` tooling: no-issue tooling PR, based on this branch;
+  - `golang.org/x/exp` to std, and source em dashes: product code, so each gets an issue and a PR off `main`.
