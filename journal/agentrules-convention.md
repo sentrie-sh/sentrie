@@ -66,3 +66,14 @@
   - workflow hygiene and protected paths: `[Workflow]` PR, based on this branch;
   - Makefile and `sandbox.go` tooling: no-issue tooling PR, based on this branch;
   - `golang.org/x/exp` to std, and source em dashes: product code, so each gets an issue and a PR off `main`.
+
+### 2026-10-14 01:56 - Sync after follow-up merges
+- Merged by the maintainer:
+  - #187 (tooling) into this branch, its base, as `af3afc7`. This PR now carries the Makefile and `sandbox.go` changes too.
+  - #188 (`x/exp` to std, closes #184) and #189 (em dashes and gofmt, closes #185) into `main`.
+- One fetch of `main` and this branch. Fast-forwarded to `origin/agentrules-convention`, then `git rebase origin/main`. All 12 commits applied cleanly, and `make docs-graph` passes.
+- Rule text the merges made stale:
+  - `build-and-test` said some files are not gofmt-clean. `gofmt -l .` is now empty, so the rule says to keep it that way.
+  - `current-libraries` gains #188 as a precedent, plus the note that the standard `maps.Keys` and `maps.Values` return iterators.
+- Only `ci.yml` still has em dashes, and #186 removes them.
+- Rebased #186 (`workflow-hygiene`) onto this branch with `--onto` the old head `4e2ebfa`.
