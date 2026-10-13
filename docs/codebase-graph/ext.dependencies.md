@@ -9,7 +9,7 @@ tags: third-party, dependencies, supply-chain, manifest
 # Node: ext.dependencies (Third-Party Dependency Manifest)
 
 ## 1. Architectural Role & Intent
-The complete external surface of the Sentrie module, declared in `go.mod` against **Go 1.25.0**. The dependency set is deliberately small for a language runtime - 14 direct requirements - and every one of them sits at a specific architectural seam. This node exists so an agent can reason about which third-party failure affects which subsystem without re-reading the manifest.
+The complete external surface of the Sentrie module, declared in `go.mod` against **Go 1.25.0**. The dependency set is deliberately small for a language runtime - 13 direct requirements - and every one of them sits at a specific architectural seam. This node exists so an agent can reason about which third-party failure affects which subsystem without re-reading the manifest.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -27,8 +27,6 @@ The complete external surface of the Sentrie module, declared in `go.mod` agains
 | [[api.middleware]] | `IMPORTS` | `ext.google.uuid` | `github.com/google/uuid` - request and instance identifiers. |
 | [[api.net]] | `IMPORTS` | `ext.binaek.gocoll` | `github.com/binaek/gocoll` - generic collection helpers. |
 | [[box]] | `IMPORTS` | `ext.fatih.structs` | `github.com/fatih/structs` - struct-to-map reflection at the value boundary. |
-| [[tokens]] | `IMPORTS` | `ext.golang.x-exp` | `golang.org/x/exp/maps` - enumerating the keyword lookup table. |
-| [[api.net]] | `IMPORTS` | `ext.golang.x-exp` | `golang.org/x/exp/slices` - membership checks over the predefined listen names. |
 
 ## 3. Interface Contracts & Public Surface
 
@@ -41,7 +39,6 @@ The complete external surface of the Sentrie module, declared in `go.mod` agains
   - **`go-toml/v2` v2.2.4** - manifest read and write.
   - **`semver/v3` v3.4.0** - SemVer parsing and constraint matching for engine compatibility.
   - **`testify` v1.11.1** - test-only, but a direct requirement.
-  - **`golang.org/x/exp`** - `maps` in [[tokens]], `slices` in [[api.net]]. Both have standard-library equivalents as of Go 1.21/1.23, so this requirement is removable.
 
 - **Signature:** Notable indirect requirements
   - **`dlclark/regexp2`** - goja's regex engine, which is .NET-flavoured rather than RE2; relevant because policy `matches` and the `regexp` constraint use Go's `regexp` while JavaScript regexes go through this. The two dialects differ.
@@ -57,4 +54,4 @@ The complete external surface of the Sentrie module, declared in `go.mod` agains
   - **Two regex engines are in play.** Go's RE2-based `regexp` serves the policy language's `matches` operator and the string constraints; `regexp2` serves JavaScript. RE2 has no backtracking (and so no catastrophic backtracking), while `regexp2` does - meaning a regex in module JavaScript can hang in ways the same pattern in a policy cannot. The goja `Interrupt` watchdog is the only mitigation.
   - **`fatih/structs` v1.1.0 is effectively unmaintained**, with no release in years. It sits at the value boundary in [[box]].
   - **`xeipuuv/gojsonschema` is likewise dormant** and implements an older JSON Schema draft; manifest validation is bounded by whatever draft it supports.
-  - **The dependency count is a security asset.** A policy engine benefits from a small supply chain, and 14 direct dependencies with no web framework, no ORM, and no logging library beyond the standard `slog` is a deliberate and defensible position worth preserving.
+  - **The dependency count is a security asset.** A policy engine benefits from a small supply chain, and 13 direct dependencies with no web framework, no ORM, and no logging library beyond the standard `slog` is a deliberate and defensible position worth preserving.

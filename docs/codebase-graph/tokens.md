@@ -15,8 +15,7 @@ tags: lexing, source-positions, language-frontend, diagnostics
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `tokens` | `IMPORTS` | `std.fmt`, `std.slices` | No internal project dependencies; this is a graph sink. |
-| `tokens` | `IMPORTS` | `ext.golang.x-exp` | Uses `golang.org/x/exp/maps` to enumerate the keyword lookup table. |
+| `tokens` | `IMPORTS` | `std.fmt`, `std.maps`, `std.slices` | No internal project dependencies; this is a graph sink. `maps.Values` enumerates the keyword lookup table. |
 | [[lexer]] | `LAYERED_ON` | [[tokens]] | Lexer emits `tokens.Instance` values and constructs `tokens.Range` from byte offsets. |
 | [[parser]] | `LAYERED_ON` | [[tokens]] | Parser dispatches on `tokens.Kind` for prefix/infix lookup and precedence. |
 | [[ast]] | `LAYERED_ON` | [[tokens]] | Every AST node embeds a `tokens.Range` for span reporting. |

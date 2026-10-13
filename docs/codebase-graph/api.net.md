@@ -16,7 +16,7 @@ Translates the operator-facing `--http-listen` values into concrete `host:port` 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `api.net` | `IMPORTS` | `ext.binaek.gocoll` | `collection.Map` over the explicit-address list. |
-| `api.net` | `IMPORTS` | `ext.golang.x-exp` | `slices` membership check against the predefined listen names. |
+| `api.net` | `IMPORTS` | `std.slices` | `slices.Contains` membership check against the predefined listen names. |
 | [[api.http]] | `CALLS` | `api.net` | `Setup` resolves bindings before opening listeners. |
 | [[cmd]] | `DEPENDS_ON` | `api.net` | The `--http-listen` flag's accepted values are defined by this function. |
 
