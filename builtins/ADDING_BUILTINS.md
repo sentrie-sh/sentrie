@@ -3,7 +3,7 @@
 This document is the authoritative guide for contributors adding or modifying Sentrie
 built-in functions. Builtins live entirely in the [`builtins/`](.) package as **one
 struct literal per function** in `Table`. There is no `init()` registration, no second
-purity list, and no hand-rolled arity checks in implementations — `Precheck` is the
+purity list, and no hand-rolled arity checks in implementations - `Precheck` is the
 single enforcement point at dispatch.
 
 **Read this file end-to-end before opening a PR.** Skipping a step (especially
@@ -34,7 +34,7 @@ runtime.CallSite              implements builtins.Env
 - **`builtins/`** is a **leaf package**: it may import `box`, stdlib, and `xerr` (for
   `error()` only). It must **never** import `runtime`, `index`, or `ast`.
 - **`index/`** and **`runtime/`** both import `builtins` and read `Table` / `IsDeriveSafe`.
-- **TypeScript / JS modules** under `runtime/js/` are a separate registry — do not touch
+- **TypeScript / JS modules** under `runtime/js/` are a separate registry - do not touch
   them when adding Go builtins.
 
 ---
@@ -77,7 +77,7 @@ var declExample = &Decl{
         TooManyError: "example requires 2 arguments", // often same as TooFewError
         Result: ParamSig{
             Name:  "result",
-            Kinds: kindList, // REQUIRED — see [Result kinds](#result-kinds)
+            Kinds: kindList, // REQUIRED - see [Result kinds](#result-kinds)
         },
     },
     Impl: implExample,
@@ -98,7 +98,7 @@ Each `ParamSig`:
 | `Name` | Documentation / future static checker |
 | `Kinds` | Allowed `box.ValueKind`s; `nil` = any defined kind |
 | `Optional` | Trailing-only optional param (`flatten` depth, `distinct` keyFn) |
-| `CallableArities` | e.g. `{1,2}` — only valid when `Kinds == {ValueCallable}` |
+| `CallableArities` | e.g. `{1,2}` - only valid when `Kinds == {ValueCallable}` |
 | `OnMismatch` | Default `MismatchError`; use `MismatchUndefined` only with strong justification (today: `count` only) |
 | `KindError` | **Verbatim** error string when a *defined* arg has wrong kind |
 | `CallableArityError` | Verbatim string when callable arity ∉ `CallableArities` |
@@ -107,7 +107,7 @@ Each `ParamSig`:
 code; do not invent a generic template like `"example: argument 1 must be list"`. Golden
 tests assert exact text.
 
-### 4. Implement `Fn` — signature is mandatory
+### 4. Implement `Fn` - signature is mandatory
 
 ```go
 func implExample(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
@@ -120,7 +120,7 @@ Rules:
 1. **First parameter must be `ctx context.Context`.** Runtime passes the evaluation
    context from `eval_call.go`. Do not omit or reorder parameters.
 2. **Second parameter is `env Env`.** Use it for `env.Call`, `env.CallableArity`, and
-   `env.ExecutionStart` — never import `runtime`.
+   `env.ExecutionStart` - never import `runtime`.
 3. **Third is variadic `args ...box.Value`.** `Precheck` has already run; do not
    re-check arity/kind/callable-arity unless [strict profile](#strict-vs-lenient-profiles)
    requires Impl-side checks for undefined/null.
@@ -145,24 +145,24 @@ delete from `Impl` vs what you keep after moving checks to `Precheck`.
 | `true` | Deterministic **within a single policy execution** (pinned `ExecutionStart` for time). Required for use inside `derive` bodies. |
 | `false` | Not allowed in derives; runtime and `index` purity walker reject it. |
 
-If you widen `Env`, reconsider `DeriveSafe` for every builtin — widening `Env` is a
+If you widen `Env`, reconsider `DeriveSafe` for every builtin - widening `Env` is a
 deliberate review event.
 
 ### 7. Update tests
 
-1. **`table_test.go` → `expectedResultKinds`** — add your builtin name and result kinds.
+1. **`table_test.go` → `expectedResultKinds`** - add your builtin name and result kinds.
 2. **Behavior tests** in `scalar_test.go` or `collection_test.go` using `invoke(t, name, env, args...)`.
-3. **`TestGoldenBehavior`** — add rows for undefined/sentinel behavior if non-obvious.
-4. **Arity/kind/callable errors** — table-driven cases like `TestBuiltinsCollection_ArityAndTypeErrors`.
+3. **`TestGoldenBehavior`** - add rows for undefined/sentinel behavior if non-obvious.
+4. **Arity/kind/callable errors** - table-driven cases like `TestBuiltinsCollection_ArityAndTypeErrors`.
 5. Run `go test -race ./builtins/...` and `golangci-lint run ./builtins/...`.
 
-You do **not** need to change `runtime/eval_call.go` for a new name — dispatch is table-driven.
+You do **not** need to change `runtime/eval_call.go` for a new name - dispatch is table-driven.
 
 ### 8. Index / static metadata consumers
 
-- `index/derive_purity.go` uses `builtins.IsDeriveSafe(name)` — no change needed if
+- `index/derive_purity.go` uses `builtins.IsDeriveSafe(name)` - no change needed if
   `DeriveSafe: true`.
-- Future validate-time checking (Issue B) reads `Table[name].Sig` — populate `Result.Kinds`
+- Future validate-time checking (Issue B) reads `Table[name].Sig` - populate `Result.Kinds`
   and param `Kinds` correctly now.
 
 ---
@@ -180,11 +180,11 @@ return decl.Impl(ctx, site, args...)
 
 `Precheck` algorithm:
 
-1. **Arity** — `min` = non-optional params; `max` = `len(Params)` or unbounded if `Variadic != nil`.
-2. **Kind** — for each arg: if `undefined` or `null`, **skip** (pass through to `Impl`).
+1. **Arity** - `min` = non-optional params; `max` = `len(Params)` or unbounded if `Variadic != nil`.
+2. **Kind** - for each arg: if `undefined` or `null`, **skip** (pass through to `Impl`).
    If `Kinds` is set and kind ∉ `Kinds`: apply `OnMismatch` or `KindError`.
    Callable params with wrong kind: `"expected callable, got <kind>"` when `KindError` is empty.
-3. **Callable arity** — if `CallableArities` set: `env.CallableArity` + `CallableArityError`.
+3. **Callable arity** - if `CallableArities` set: `env.CallableArity` + `CallableArityError`.
 
 **Delete from `Impl`:** hand-rolled `len(args)`, list-kind checks, and callable-arity
 checks for **lenient** builtins once `Precheck` covers them.
@@ -236,7 +236,7 @@ type Env interface {
 |--------|-----|
 | `Call` | Invoke predicate/transform/reducer callables (HOFs) |
 | `CallableArity` | Usually only needed inside `Precheck`; HOFs call once per invocation |
-| `ExecutionStart` | `now()` — `box.Number(float64(env.ExecutionStart().UnixMilli()))` |
+| `ExecutionStart` | `now()` - `box.Number(float64(env.ExecutionStart().UnixMilli()))` |
 
 At runtime, `Env` is `*runtime.CallSite`. In tests, use `noopEnv()` or a custom fake
 (see [`test_helpers_test.go`](test_helpers_test.go)).
@@ -259,7 +259,7 @@ At runtime, `Env` is `*runtime.CallSite`. In tests, use `noopEnv()` or a custom 
 
 ## Testing
 
-### `invoke()` — mirrors production dispatch
+### `invoke()` - mirrors production dispatch
 
 ```go
 func invoke(t *testing.T, name string, env Env, args ...box.Value) (box.Value, error) {
@@ -297,7 +297,7 @@ Must flow through real `eval_call` dispatch, not bypass it.
 
 1. Edit **only** its `Decl` literal and `impl*` function in `builtins/`.
 2. If arity/kind/callable rules change, update `Sig` and **grep-verify** error strings.
-3. If behavior changes, update golden tests — byte-for-byte for errors, value-for-value for results.
+3. If behavior changes, update golden tests - byte-for-byte for errors, value-for-value for results.
 4. If `DeriveSafe` flips to `false`, expect derive purity and runtime derive-guard failures in tests.
 5. Do **not** add a second registration site or `init()` hook.
 
