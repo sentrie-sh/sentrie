@@ -18,7 +18,7 @@ func parseTernaryExpression(ctx context.Context, p *Parser, condition ast.Expres
 		return nil
 	}
 
-	// Elvis: `a ?: b` — `?` immediately followed by `:`
+	// Elvis: `a ?: b` - `?` immediately followed by `:`
 	if p.canExpect(tokens.PunctColon) {
 		p.advance()
 		rhs := p.parseExpression(ctx, COMPARISON)

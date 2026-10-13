@@ -74,7 +74,7 @@ func parseTypedLambdaExpression(ctx context.Context, p *Parser, lparenFrom token
 
 	var returnType ast.TypeRef
 	if p.canExpect(tokens.PunctColon) {
-		// return type (not to be confused with ':' inside params — we are past ')')
+		// return type (not to be confused with ':' inside params - we are past ')')
 		p.advance()
 		returnType = parseTypeRef(ctx, p)
 		if returnType == nil {

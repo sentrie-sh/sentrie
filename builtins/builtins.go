@@ -20,7 +20,7 @@ import (
 // the visible review event for "does this builtin remain DeriveSafe?".
 //
 // DeriveSafe means: deterministic output within a single policy execution.
-// It does NOT mean deterministic across executions — now is DeriveSafe
+// It does NOT mean deterministic across executions - now is DeriveSafe
 // because ExecutionStart is pinned per execution.
 type Env interface {
 	Call(ctx context.Context, fn box.Value, args []box.Value) (box.Value, error)
@@ -45,12 +45,12 @@ const (
 )
 
 type ParamSig struct {
-	Name              string
-	Kinds             []box.ValueKind
-	Optional          bool
-	CallableArities   []int
-	OnMismatch        MismatchPolicy
-	KindError         string
+	Name               string
+	Kinds              []box.ValueKind
+	Optional           bool
+	CallableArities    []int
+	OnMismatch         MismatchPolicy
+	KindError          string
 	CallableArityError string
 }
 

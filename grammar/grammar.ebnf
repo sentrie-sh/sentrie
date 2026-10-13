@@ -1,3 +1,6 @@
+/* SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com> */
+/* SPDX-License-Identifier: Apache-2.0 */
+
 /* Sentrie Language Grammar */
 
 /* Program Structure */
@@ -67,7 +70,7 @@ cmpOp               ::= '==' | '!=' | '<=' | '>=' | '<' | '>' | 'is' | 'matches'
 listCmpOp           ::= 'in' | 'not in'
 mapCmpOp            ::= 'in' | 'not in'
 
-/* Arithmetic Expressions — postfix `as typeRef` binds tighter than + - * / in the Pratt parser.
+/* Arithmetic Expressions - postfix `as typeRef` binds tighter than + - * / in the Pratt parser.
    One-or-more repeats allow chained casts (e.g. `x as T1 as T2`); the Pratt parser resolves them left-associatively. */
 castExpr            ::= primaryExpr ( 'as' typeRef )+
 mulExpr             ::= castExpr ( ( '*' | '/' | '%' ) castExpr )*

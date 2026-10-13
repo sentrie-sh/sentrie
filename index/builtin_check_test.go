@@ -452,7 +452,7 @@ policy p {
 	require.NoError(t, err)
 	require.NoError(t, idx.AddProgram(ctx, prog))
 
-	// Call checkBuiltinCalls directly — no detectReferenceCycle — must not stack-overflow.
+	// Call checkBuiltinCalls directly - no detectReferenceCycle - must not stack-overflow.
 	err = idx.checkBuiltinCalls(ctx)
 	require.NoError(t, err)
 }

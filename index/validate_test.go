@@ -1,6 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
 
 package index
 
@@ -285,7 +284,7 @@ func TestValidatePropagatesCommitError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// complex shape that composes with the alias — valid structure, bad semantics
+	// complex shape that composes with the alias - valid structure, bad semantics
 	composedStmt := ast.NewShapeStatement("Composed", nil, &ast.Cmplx{
 		Range:  rng,
 		With:   ast.NewFQN([]string{"Alias"}, rng).Ptr(),

@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// lenientEnv returns (0, nil) from CallableArity for any value — must not be
+// lenientEnv returns (0, nil) from CallableArity for any value - must not be
 // relied on for callable kind rejection; Precheck must error on its own.
 type lenientEnv struct{}
 
@@ -89,8 +89,8 @@ func TestPrecheckTooManyUsesTooFewWhenTooManyEmpty(t *testing.T) {
 	decl := &Decl{
 		Name: "synthetic",
 		Sig: Sig{
-			Params:      []ParamSig{{Name: "x"}},
-			TooFewError: "synthetic requires 1 argument",
+			Params:       []ParamSig{{Name: "x"}},
+			TooFewError:  "synthetic requires 1 argument",
 			TooManyError: "",
 		},
 		Impl: func(_ context.Context, _ Env, _ ...box.Value) (box.Value, error) {

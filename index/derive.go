@@ -25,7 +25,7 @@ type Derive struct {
 	// to the same namespace or policy do not retroactively update older entries; load dependent
 	// programs after their helpers when using AddProgram, or keep helpers in the same file.
 	DefineShort map[string]*Derive
-	DefineFQN map[string]*Derive
+	DefineFQN   map[string]*Derive
 }
 
 func (d *Derive) String() string {
