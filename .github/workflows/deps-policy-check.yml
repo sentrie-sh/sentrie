@@ -4,6 +4,14 @@ on:
   pull_request:
     branches: ["main"]
     types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/deps-policy-check.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -11,7 +19,9 @@ permissions:
 
 jobs:
   dependency-policy:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     env:
       REPO: ${{ github.repository }}
