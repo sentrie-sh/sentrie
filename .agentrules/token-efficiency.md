@@ -31,12 +31,12 @@ Exhaust it first.
 - Test scope ladder, narrowest first, stopping as soon as the change is proven:
   1. `GOWORK=off go test ./parser/ -run 'TestParserTestSuite/TestParseNotExpressionForms' -count=1 -failfast`
   2. `GOWORK=off go test ./parser/... ./index/... -count=1 -failfast`
-  3. `GOWORK=off go test ./... -count=1` only before pushing. `./runtime/...` is the slowest
+  3. `make test` (or `GOWORK=off go test ./... -count=1`) only before pushing. `./runtime/...` is the slowest
      package tree, so leave it out of the inner loop unless the change is in it.
   Never pass `-v`: without it the run prints failures only.
 - One language fixture: `GOWORK=off go test ./lang_test/ -run 'TestFixturesParseIndexAndValidate/0009' -count=1`.
 - `git diff --stat` first. Full diffs only for named paths: `git diff -- runtime/js/`.
-- Anything that can exceed ~100 lines (`go test ./...`, `golangci-lint run`, `make gen`)
+- Anything that can exceed ~100 lines (`make test`, `make lint`, `make gen`)
   goes to a file outside the repo, read selectively on failure:
   `GOWORK=off go test ./... > /tmp/sentrie-test.log 2>&1 || rg -n '^(FAIL|---|panic)' /tmp/sentrie-test.log`.
 - Never paste a log body back. State the failing command, the cause, and the log path.
