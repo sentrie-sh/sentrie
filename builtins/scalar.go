@@ -51,8 +51,8 @@ var (
 		Description: "Short-circuits execution with a formatted error.",
 		DeriveSafe:  true,
 		Sig: Sig{
-			Params: []ParamSig{{Name: "format"}},
-			Variadic: &ParamSig{Name: "args"},
+			Params:      []ParamSig{{Name: "format"}},
+			Variadic:    &ParamSig{Name: "args"},
 			TooFewError: "error requires at least 1 argument",
 			Result:      ParamSig{Name: "result"},
 		},

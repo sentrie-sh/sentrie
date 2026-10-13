@@ -45,12 +45,12 @@ const (
 )
 
 type ParamSig struct {
-	Name              string
-	Kinds             []box.ValueKind
-	Optional          bool
-	CallableArities   []int
-	OnMismatch        MismatchPolicy
-	KindError         string
+	Name               string
+	Kinds              []box.ValueKind
+	Optional           bool
+	CallableArities    []int
+	OnMismatch         MismatchPolicy
+	KindError          string
 	CallableArityError string
 }
 
