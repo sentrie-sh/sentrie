@@ -1,6 +1,0 @@
----
-description: Derive mode (evalDerive) resolution hygiene for runtime evaluators
-globs: runtime/eval_call.go runtime/eval_ident.go
----
-
-Follow [`evalDerive` resolution](../../.agentrules/evalderive-resolution.md). That file is the source of truth; this pointer only lets Cursor attach it.
