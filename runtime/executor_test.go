@@ -265,7 +265,9 @@ func (s *RuntimeTestSuite) TestWithCallMemoizeCacheSizeAndToTrinaryHelpers() {
 	})
 }
 
-func (s *RuntimeTestSuite) TestExecPolicyRecoversPanicFromExecRule() {
+// newPanickingPolicyExecutor returns an executor over a single policy whose
+// exported "allow" rule has a nil index entry, so execRule panics on it.
+func newPanickingPolicyExecutor() (*executorImpl, *index.Policy) {
 	idx := index.CreateIndex()
 	nsFQN := ast.NewFQN([]string{"panic", "ns"}, stubRange())
 	ns := &index.Namespace{
@@ -277,91 +279,35 @@ func (s *RuntimeTestSuite) TestExecPolicyRecoversPanicFromExecRule() {
 	}
 	idx.Namespaces[nsFQN.String()] = ns
 
-	fact := ast.NewFactStatement(
-		"userName",
-		ast.NewStringTypeRef(stubRange()),
-		"user",
-		ast.NewStringLiteral("default", stubRange()),
-		true,
-		stubRange(),
-	)
 	p := &index.Policy{
 		Namespace:   ns,
 		Name:        "pol",
 		FQN:         ast.CreateFQN(nsFQN, "pol"),
-		Facts:       map[string]*ast.FactStatement{fact.Alias: fact},
-		Rules:       map[string]*index.Rule{},
-		RuleExports: map[string]*index.ExportedRule{},
+		Facts:       map[string]*ast.FactStatement{},
+		Rules:       map[string]*index.Rule{"allow": nil},
+		RuleExports: map[string]*index.ExportedRule{"allow": {RuleName: "allow"}},
 		Lets:        map[string]*ast.VarDeclaration{},
 		Uses:        map[string]*ast.UseStatement{},
 		Shapes:      map[string]*index.Shape{},
 	}
-	ruleStmt := ast.NewRuleStatement("allow", nil, nil, ast.NewTrinaryLiteral(trinary.True, stubRange()), stubRange())
-	rule := &index.Rule{
-		Node:   ruleStmt,
-		Policy: p,
-		Name:   "allow",
-		FQN:    ast.CreateFQN(p.FQN, "allow"),
-		Body:   ruleStmt.Body,
-	}
-	p.Rules["allow"] = rule
-	p.RuleExports["allow"] = &index.ExportedRule{RuleName: "allow"}
 	ns.Policies[p.Name] = p
 
-	exec := &executorImpl{index: idx}
-	_, err := exec.ExecPolicy(s.T().Context(), nsFQN.String(), p.Name, map[string]any{})
+	return &executorImpl{index: idx}, p
+}
+
+func (s *RuntimeTestSuite) TestExecPolicyRecoversPanicFromExecRule() {
+	exec, p := newPanickingPolicyExecutor()
+
+	_, err := exec.ExecPolicy(s.T().Context(), p.Namespace.FQN.String(), p.Name, map[string]any{})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "panic in ExecRule \"allow\"")
 }
 
 func (s *RuntimeTestSuite) TestExecPolicyPanicRecoveryJoinsOtherRuleErrors() {
-	idx := index.CreateIndex()
-	nsFQN := ast.NewFQN([]string{"panic", "ns"}, stubRange())
-	ns := &index.Namespace{
-		FQN:          nsFQN,
-		Policies:     map[string]*index.Policy{},
-		Shapes:       map[string]*index.Shape{},
-		ShapeExports: map[string]*index.ExportedShape{},
-		Children:     []*index.Namespace{},
-	}
-	idx.Namespaces[nsFQN.String()] = ns
-
-	defaultFact := ast.NewFactStatement(
-		"userName",
-		ast.NewStringTypeRef(stubRange()),
-		"user",
-		ast.NewStringLiteral("default", stubRange()),
-		true,
-		stubRange(),
-	)
-	p := &index.Policy{
-		Namespace: ns,
-		Name:      "pol",
-		FQN:       ast.CreateFQN(nsFQN, "pol"),
-		Facts: map[string]*ast.FactStatement{
-			defaultFact.Alias: defaultFact,
-		},
-		Rules:       map[string]*index.Rule{},
-		RuleExports: map[string]*index.ExportedRule{},
-		Lets:        map[string]*ast.VarDeclaration{},
-		Uses:        map[string]*ast.UseStatement{},
-		Shapes:      map[string]*index.Shape{},
-	}
-	allowStmt := ast.NewRuleStatement("allow", nil, nil, ast.NewTrinaryLiteral(trinary.True, stubRange()), stubRange())
-	allowRule := &index.Rule{
-		Node:   allowStmt,
-		Policy: p,
-		Name:   "allow",
-		FQN:    ast.CreateFQN(p.FQN, "allow"),
-		Body:   allowStmt.Body,
-	}
-	p.Rules["allow"] = allowRule
-	p.RuleExports["allow"] = &index.ExportedRule{RuleName: "allow"}
+	exec, p := newPanickingPolicyExecutor()
 	p.RuleExports["ghost"] = &index.ExportedRule{RuleName: "ghost"}
-	ns.Policies[p.Name] = p
 
-	exec := &executorImpl{index: idx}
-	_, err := exec.ExecPolicy(s.T().Context(), nsFQN.String(), p.Name, map[string]any{})
+	_, err := exec.ExecPolicy(s.T().Context(), p.Namespace.FQN.String(), p.Name, map[string]any{})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "panic in ExecRule \"allow\"")
 	s.Contains(err.Error(), "not found")
