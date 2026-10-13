@@ -1,14 +1,41 @@
 name: CI
 
+# Lint and tests. Draft PRs run nothing: marking a PR ready for review starts CI.
+# Prose-only changes create no run. docs-graph.yml validates the knowledge graph.
 on:
   push:
     branches: ["main"]
+    paths:
+      - "**"
+      - "!**.md"
+      - "!journal/**"
+      - "!.agentrules/**"
+      - "!.cursor/**"
+      - "!LICENSE"
   pull_request:
     branches: ["main"]
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - "**"
+      - "!**.md"
+      - "!journal/**"
+      - "!.agentrules/**"
+      - "!.cursor/**"
+      - "!LICENSE"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GO_VERSION: "1.25"
 
 jobs:
   lint:
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
@@ -16,9 +43,10 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version: ${{ env.GO_VERSION }}
           cache: false
 
+      # golangci-lint-action keeps its own cache, keyed on the linter version.
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
@@ -31,25 +59,8 @@ jobs:
             --output.text.print-issued-lines=true
             --output.text.colors=true
 
-  docs-graph:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.25"
-          cache: true
-
-      # Asserts the schema documented in docs/codebase-graph/overview.md: front-matter
-      # shape, closed predicate set, link resolution, edge locality, no orphans.
-      - name: Validate knowledge graph
-        run: make docs-graph
-
   test:
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
 
@@ -60,7 +71,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version: ${{ env.GO_VERSION }}
           cache: true
 
       - name: Download dependencies
@@ -68,7 +79,7 @@ jobs:
 
       # Split race tests: runtime under -race is memory-heavy on 7 GiB runners.
       # Running it in a separate step frees the prior test binary before runtime starts.
-      - name: Run tests (race) — packages
+      - name: Run tests (race) - packages
         timeout-minutes: 10
         env:
           GOMAXPROCS: 2
@@ -78,7 +89,7 @@ jobs:
           echo "## Running race tests (non-runtime)..."
           go test -count=1 -race -timeout=10m -p=2 $pkgs
 
-      - name: Run tests (race) — runtime
+      - name: Run tests (race) - runtime
         timeout-minutes: 15
         env:
           GOMAXPROCS: 2
