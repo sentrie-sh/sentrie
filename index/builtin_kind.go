@@ -425,7 +425,7 @@ func (k *kindCheckCtx) resolveFieldChainRootTypeRef(root ast.Expression) (ast.Ty
 		return nil, false
 	}
 	// v1: only annotated roots (fact/let/param TypeRef). Unannotated lets whose
-	// initializer resolves to a shape are intentionally unknown here — safe, no false positive.
+	// initializer resolves to a shape are intentionally unknown here - safe, no false positive.
 	if info.typeRef != nil {
 		return info.typeRef, true
 	}

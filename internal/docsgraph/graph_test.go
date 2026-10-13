@@ -214,7 +214,7 @@ func soleToken(cell string) string {
 }
 
 // stripCode removes fenced blocks and inline spans. The extractor contract in
-// overview.md says a wiki-link inside code is literal text, not an edge — api.net
+// overview.md says a wiki-link inside code is literal text, not an edge - api.net
 // documents the string "[[::1]]:7529", which is not a reference to a node.
 func stripCode(body string) string {
 	return codeSpanRe.ReplaceAllString(fenceRe.ReplaceAllString(body, ""), "")
@@ -334,7 +334,7 @@ func TestEdgesUseTheClosedSchema(t *testing.T) {
 
 // TestEdgesAreLocal keeps each node's table about that node. Hub nodes such as
 // ast have over a hundred inbound edges and deliberately summarise rather than
-// enumerate them, so full reciprocity is not the invariant — locality is. An
+// enumerate them, so full reciprocity is not the invariant - locality is. An
 // edge declared somewhere that is party to neither end is unreachable from both.
 func TestEdgesAreLocal(t *testing.T) {
 	nodes := loadGraph(t)

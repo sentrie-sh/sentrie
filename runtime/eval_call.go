@@ -250,7 +250,7 @@ func getTarget(_ context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 	if nameForBuiltin != "" {
 		if decl, ok := builtins.Table[nameForBuiltin]; ok {
 			if ec.evalDerive != nil && !decl.DeriveSafe {
-				return nil, fmt.Errorf("builtin %q is not permitted inside a derive — it cannot guarantee deterministic output within a single policy execution", nameForBuiltin)
+				return nil, fmt.Errorf("builtin %q is not permitted inside a derive - it cannot guarantee deterministic output within a single policy execution", nameForBuiltin)
 			}
 			return func(ctx context.Context, args ...box.Value) (box.Value, error) {
 				site := &CallSite{EC: ec, Exec: exec, Policy: p}
@@ -264,7 +264,7 @@ func getTarget(_ context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 
 	module, fn := splitAliasFn(calleeStr)
 	if ec.evalDerive != nil && module != "" && fn != "" {
-		return nil, fmt.Errorf("TypeScript module calls like %q are not permitted inside a derive — they cannot guarantee deterministic output within a single policy execution", calleeStr)
+		return nil, fmt.Errorf("TypeScript module calls like %q are not permitted inside a derive - they cannot guarantee deterministic output within a single policy execution", calleeStr)
 	}
 
 	if module == "" || fn == "" {

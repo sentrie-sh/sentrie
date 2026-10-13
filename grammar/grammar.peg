@@ -1,3 +1,6 @@
+/* SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com> */
+/* SPDX-License-Identifier: Apache-2.0 */
+
 /* Sentra Language Grammar - PEG Version */
 
 /* Program Structure */
@@ -67,7 +70,7 @@ CmpOp = "==" / "!=" / "<=" / ">=" / "<" / ">" / "is" / "matches" / "contains"
 ListCmpOp = "in" / "not" "in"
 MapCmpOp = "in" / "not" "in"
 
-/* Arithmetic Expressions — postfix `as TypeRef` binds tighter than + - * / in the Pratt parser.
+/* Arithmetic Expressions - postfix `as TypeRef` binds tighter than + - * / in the Pratt parser.
    Repeated `as` allows chained casts (e.g. `x as T1 as T2`); the Pratt parser resolves them left-associatively. */
 CastExpr = PrimaryExpr ("as" TypeRef)+
 AddExpr  = MulExpr (( "+" / "-" ) MulExpr)*

@@ -256,7 +256,7 @@ func (r *Registry) PrepareUse(localFrom string, libFrom []string, fileDir string
 // programFor ensures the module is compiled to a goja.Program returning a factory function.
 func (r *Registry) programFor(m *ModuleSpec) (*goja.Program, error) {
 	if m.BuiltInProvider != nil {
-		// No JS program to run — Go provider will fabricate exports.
+		// No JS program to run - Go provider will fabricate exports.
 		return nil, nil
 	}
 	m.once.Do(func() {

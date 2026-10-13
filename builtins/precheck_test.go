@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// lenientEnv returns (0, nil) from CallableArity for any value — must not be
+// lenientEnv returns (0, nil) from CallableArity for any value - must not be
 // relied on for callable kind rejection; Precheck must error on its own.
 type lenientEnv struct{}
 
