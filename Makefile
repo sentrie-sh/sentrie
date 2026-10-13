@@ -1,12 +1,16 @@
 OUTPUT_DIR?=~/.local/bin
 VERSION?=$(shell result=$$(git tag --sort=-version:refname | head -n 1); echo $${result:-0.0.1-dev})
+COMMIT:=$(shell git rev-parse HEAD)
+# Commit date in UTC, the same value GoReleaser stamps for releases.
+DATE:=$(shell TZ=UTC git log -1 --format=%cd --date=format-local:%Y-%m-%dT%H:%M:%SZ)
+TREE_STATE:=$(shell if [ -z "$$(git status --porcelain)" ]; then echo clean; else echo dirty; fi)
 
 # A go.work above the checkout (for example in $$HOME) must not join the module
 # graph: inside worktrees/<branch> it resolves packages to the primary checkout.
 export GOWORK := off
 
 build:
-	go build -o $(OUTPUT_DIR)/sentrie -ldflags "-X main.builtBy=make -X main.version=$(VERSION) -X main.commit=$(shell git rev-parse HEAD) -X main.treeState=dirty -X main.date=$(shell date -u '+%Y-%m-%dT%H:%M:%SZ') -s -w" .
+	go build -o $(OUTPUT_DIR)/sentrie -ldflags "-X main.builtBy=make -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.treeState=$(TREE_STATE) -X main.date=$(DATE) -s -w" .
 
 clean-git:
 	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then \
