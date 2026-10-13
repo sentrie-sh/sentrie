@@ -1,6 +1,6 @@
 # Sandbox Programs
 
-Use the `sandbox.go` file to write sandboxed programs you need to run to test your code. It carries the `sandbox` build tag, so it never builds into the binary. Run it on its own with `go run -tags sandbox sandbox.go`. Don't use `go run -tags sandbox .`, which also compiles the root `main.go` and fails with two `main` functions.
+Use the `sandbox.go` file to write sandboxed programs you need to run to test your code. It carries the `sandbox` build tag, so it never builds into the binary. Run it on its own with `GOWORK=off go run -tags sandbox sandbox.go` ([Build and test](build-and-test.md)). Don't use `go run -tags sandbox .`, which also compiles the root `main.go` and fails with two `main` functions.
 
 **After testing is complete, RESET `sandbox.go` to its template state:**
 
@@ -10,6 +10,7 @@ Use the `sandbox.go` file to write sandboxed programs you need to run to test yo
   ```go
   func main() {
       ctx := context.Background()
+      _ = ctx // remove once your test code uses ctx
       // Your test code here
       fmt.Println("Sandbox test")
       os.Exit(0)
@@ -21,6 +22,6 @@ Use the `sandbox.go` file to write sandboxed programs you need to run to test yo
 
 **How to apply:** Never commit scratch code in `sandbox.go`. Before committing, `git diff -- sandbox.go` must be empty.
 
-Known gotcha: the template as written fails `go vet` and won't compile without a use of `ctx` (`declared and not used: ctx`). Use `ctx` in your test code, or add `_ = ctx` while experimenting.
+The `_ = ctx` line keeps the template compiling and passing `go vet` while `ctx` is unused. Delete it once your test code uses `ctx`.
 
-Related: [Go project layout](go-project-layout.md), [Commits](commits.md)
+Related: [Go project layout](go-project-layout.md), [Build and test](build-and-test.md), [Commits](commits.md)
