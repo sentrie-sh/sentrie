@@ -1,7 +1,0 @@
----
-description: Go test context and suite conventions
-globs: **/*_test.go
-alwaysApply: false
----
-
-Follow [Go test conventions](../../.agentrules/go-test-conventions.md). That file is the source of truth; this pointer only lets Cursor attach it.

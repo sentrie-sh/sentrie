@@ -1,6 +1,0 @@
----
-description: Maintain license headers for touched source files only: add missing headers when required and update outdated copyright years.
-alwaysApply: true
----
-
-Follow [License headers and copyright year](../../.agentrules/license-headers.md). That file is the source of truth; this pointer only lets Cursor attach it.

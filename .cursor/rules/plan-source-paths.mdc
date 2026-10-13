@@ -1,6 +1,0 @@
----
-description: Plan files must link to source using paths relative to the repository root
-alwaysApply: true
----
-
-Follow [Plan source paths](../../.agentrules/plan-source-paths.md). That file is the source of truth; this pointer only lets Cursor attach it.
