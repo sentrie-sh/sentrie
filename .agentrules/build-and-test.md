@@ -20,7 +20,7 @@ Run these from the root. `make help` lists them.
 - `make clean-git` - on `main` only: `git fetch -p`, then delete local branches whose upstream is gone. It is an origin touch ([Batch origin access](origin-access.md)).
 - `make test` - `go test ./...`, which runs everything, including `lang_test` (every `.sentrie` fixture must parse, index and validate) and the graph check. Prefer the narrowest scope that proves the change ([Token efficiency](token-efficiency.md)). CI runs non-`runtime` packages with `-race` and `./runtime/...` without it, because the race detector runs out of memory on the 7 GiB runners. Locally, `go test -race` on the package you changed is enough.
 - `make lint` - `go vet ./...`, then `golangci-lint run`.
-- **Formatting:** run `gofmt -w` on the Go files you touch. CI doesn't enforce `gofmt`, and some existing files are not gofmt-clean, so never reformat files you aren't otherwise changing.
+- **Formatting:** the tree is gofmt-clean (since #189), but CI doesn't enforce it. Run `gofmt -w` on the Go files you touch, and check that `gofmt -l .` prints nothing before pushing.
 
 ## Release builds
 

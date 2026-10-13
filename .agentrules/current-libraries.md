@@ -2,11 +2,11 @@
 
 Before adding a dependency or writing against an older API, use what the pinned toolchain ships (Go 1.25, per `go.mod`). Take dependencies and SDKs at their current version.
 
-**Why:** Every third-party package or superseded API is code we will migrate later. The newer standard library usually removes a dependency and brings stricter, better-maintained defaults. Precedent: #72 (#75) replaced `github.com/pkg/errors` with the standard `errors` package and typed wrappers. Writing new code against the old API only makes the eventual migration bigger.
+**Why:** Every third-party package or superseded API is code we will migrate later. The newer standard library usually removes a dependency and brings stricter, better-maintained defaults. Precedents: #72 (#75) replaced `github.com/pkg/errors` with the standard `errors` package and typed wrappers, and #184 (#188) replaced `golang.org/x/exp` with the standard `maps` and `slices`. Writing new code against the old API only makes the eventual migration bigger.
 
 **How to apply:**
 
-- **Check the toolchain first.** `go doc <pkg>` on the pinned version shows what the standard library covers. For example, `slices`, `maps` and `cmp` cover most of what `golang.org/x/exp` once provided, and `errors.Join` covers multi-error wrapping.
+- **Check the toolchain first.** `go doc <pkg>` on the pinned version shows what the standard library covers. For example, `slices`, `maps` and `cmp` cover what `golang.org/x/exp` provided here, and `errors.Join` covers multi-error wrapping. The standard `maps.Keys` and `maps.Values` return iterators, so wrap them in `slices.Collect` where a slice is needed.
 - **New code uses the current API**, even where the code around it still uses the older one.
 - **Don't convert existing code in passing.** A newer API can change behaviour that other code depends on. Migrating existing code is its own issue and PR, with the behaviour checked.
 - **Keep one generation per file.** Where new code meets old, convert at the boundary rather than importing both the old and the new package into one file.
