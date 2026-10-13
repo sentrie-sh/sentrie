@@ -68,11 +68,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # setup-go's own cache is off: its single go.sum-keyed entry cannot be
+      # layered. The module and build caches below replace it.
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: true
+          cache: false
+
+      # Saved only on an exact miss, so a PR saves one only when go.sum differs from main's.
+      - name: Go module cache
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: gomod-${{ runner.os }}-go${{ env.GO_VERSION }}-${{ hashFiles('go.sum') }}
+
+      # Most specific first: this ref's own earlier run, then main's, then the
+      # latest for this Go version. A fallback restore only saves time; Go keys
+      # every entry on its exact inputs.
+      - name: Restore Go build cache
+        id: gobuild
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/go-build
+          key: gobuild-test-${{ runner.os }}-go${{ env.GO_VERSION }}-${{ hashFiles('go.sum') }}-${{ github.ref }}-${{ github.run_id }}
+          restore-keys: |
+            gobuild-test-${{ runner.os }}-go${{ env.GO_VERSION }}-${{ hashFiles('go.sum') }}-${{ github.ref }}-
+            gobuild-test-${{ runner.os }}-go${{ env.GO_VERSION }}-${{ hashFiles('go.sum') }}-refs/heads/main-
+            gobuild-test-${{ runner.os }}-go${{ env.GO_VERSION }}-
 
       - name: Download dependencies
         run: go mod download
@@ -128,6 +151,15 @@ jobs:
             exit 0
           fi
           exit 1
+
+      # main saves on every run. A branch saves only from a passing run, and only
+      # when it did not restore its own entry (once per dependency set).
+      - name: Save Go build cache
+        if: ${{ success() && (github.ref == 'refs/heads/main' || !startsWith(steps.gobuild.outputs.cache-matched-key, format('gobuild-test-{0}-go{1}-{2}-{3}-', runner.os, env.GO_VERSION, hashFiles('go.sum'), github.ref))) }}
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/go-build
+          key: ${{ steps.gobuild.outputs.cache-primary-key }}
 
       - name: Upload coverage to Codecov
         if: success()
