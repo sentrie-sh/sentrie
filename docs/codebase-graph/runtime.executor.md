@@ -43,7 +43,7 @@ The top-level driver: it owns the index, the JS registry, and the two caches, an
 - **Signature:** `(*executorImpl).ExecPolicy(ctx, namespace, policy, facts) -> ([]*ExecutorOutput, error)`
   - **Behavior:** Resolves the policy and launches one goroutine per exported rule via `wg.Go`, appending results under a mutex and joining errors.
   - **Side Effects:** Full concurrent evaluation; JS execution; cache population.
-  - **Exceptions:** Policy resolution failure; joined per-rule errors; a synthesized `panic in ExecRule: …` error.
+  - **Exceptions:** Policy resolution failure; joined per-rule errors; a synthesized `panic in ExecRule "<rule>": …` error joined with the others.
 
 - **Signature:** `(*executorImpl).ExecRule(ctx, namespace, policy, rule, injectedFacts) -> (*ExecutorOutput, error)`
   - **Behavior:** Verifies the rule is exported, creates the context, then for each declared fact: uses the injected value if present, errors if a required fact is missing, or evaluates the declared default. Binds lets, binds `use` modules, and delegates to `execRule`. On error with no decision, substitutes an `Unknown` decision so the envelope is always populated.
