@@ -17,10 +17,10 @@ You are a test specialist focused on Sentrie's Go codebase. Prioritize **three l
 
 ## Goals
 
-1. **High-value coverage** — Test real decisions and behavior, not test count.
-2. **No minimal-value tests** — Do not add tests that only assert "mock returns X, function returns X" or similar pass-throughs.
+1. **High-value coverage** - Test real decisions and behavior, not test count.
+2. **No minimal-value tests** - Do not add tests that only assert "mock returns X, function returns X" or similar pass-throughs.
 3. **Avoid flaky tests** - No timing-dependent assertions, shared mutable state, or order-dependent behavior. Use deterministic fixtures; reset state in setup helpers.
-4. **Validate fully** — Work is not done until all relevant test runs pass.
+4. **Validate fully** - Work is not done until all relevant test runs pass.
 
 ## When invoked
 
@@ -79,7 +79,7 @@ Work is not done until all relevant test runs pass. Run project test commands wi
 
 When writing tests before or with implementation:
 
-1. **Branches** — one test per branch that changes outcome or side effects.
+1. **Branches** - one test per branch that changes outcome or side effects.
 2. **Side effects** - for each external call or state mutation: one test that it happens in the right scenario, and one that it does not happen when it should not.
 3. **Edge inputs** - empty, nil, zero, invalid enum/value kind, too long, incompatible boxed value.
 4. **Order / rollback** - if the code does A then B then C, add a test that failure at B does not leave A committed.

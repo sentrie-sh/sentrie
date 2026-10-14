@@ -2,63 +2,56 @@ The name of the project is "Sentrie"
 
 ---
 
-**Read `docs/codebase-graph/overview.md` before exploring the codebase.** It is a knowledge graph of every package, file, and boundary in the repository: what each one is for, what it depends on, its public contract, and its known defects and gotchas. Start at the overview and follow the wiki-links to the areas you need.
+Rules for any agent (human or AI) working in this repository. Before starting work, read the relevant rule files listed in the index below - they are mandatory conventions for this repo, not suggestions.
 
-Use it instead of grepping blindly. If you change architecture, dependencies, or public contracts, update the affected node files in the same change — the graph is only useful while it is true. `make docs-graph` validates it, and the schema it enforces is documented at the top of the overview.
+Use this index as the source of truth for working conventions from here on out. If you're looking for a specific convention and don't see it by name, scan the "Relevant keywords" in each entry before assuming no rule exists. When a new convention is established, add a rule file under `.agentrules/` and link it under the right section here. Sections listed as having no rules yet are intentional placeholders: fill them in rather than inventing a new section.
 
----
+## How I work here
 
-Use the `sandbox.go` file to write sandboxed programs you need to run to test your code.
+- [Always work in a worktree](.agentrules/work-in-worktree.md) - implementation work happens in a `git worktree add` checkout under `worktrees/<branch>`, never the primary one. Relevant keywords: git worktree, worktrees directory, main checkout, primary checkout, implementation work.
+- [Batch origin access](.agentrules/origin-access.md) - any `origin` operation may block on a human prompt, so batch them, never fetch speculatively, and prefer `gh` API reads. Relevant keywords: origin, remote, push, fetch, pull, unattended, batching, hardware key, biometric, passphrase, 2FA, credential prompt.
+- [Trace data flow for race/guard audits](.agentrules/trace-data-flow-for-races.md) - audit concurrency by following the data's actual read/write paths, not by pattern-matching for missing locks. Relevant keywords: race condition, concurrency, missing guard, locking, code review, code audit, thread safety, executor, exec_ctx, go test -race.
+- [Parallelize with subagents](.agentrules/parallelize-with-subagents.md) - split independent work across concurrent subagents; each one is billed separately from a cold start, so pass `model` on every spawn from the job-to-model table (Haiku for checkable lookups, Sonnet for code against a clear spec, Opus for concurrency, foreign-code and network boundaries, language semantics and derive purity, Fable only on request), escalate one tier at most, and give it a tight, self-contained prompt with an output contract. Relevant keywords: subagent, sub-agent, agent, parallelize, parallelism, fan-out, delegation, model selection, model choice, model tier, Haiku, Sonnet, Opus, Fable, model pricing, escalation, cheaper model, cold start, subagent prompt, tight prompt, output contract, continue agent, cost, economy, budget, accuracy, Task tool, Agent tool, code-reviewer, test-writer, .cursor/agents.
+- [Token efficiency](.agentrules/token-efficiency.md) - tool output is re-billed every turn: read `docs/codebase-graph/` before sources, run the narrowest test scope, use quiet flags, redirect long output to a file. Relevant keywords: token efficiency, context window, context budget, tool output, cost, narrow tests, go test -run, quiet flags, log redirection, prompt cache, handoff, retry limit, delegation.
 
-**IMPORTANT: After testing is complete, RESET `sandbox.go` to its template state:**
+## Writing things down
 
-- Remove all test code from the `main()` function
-- Remove any imports that were added for testing
-- Restore the `main()` function to only contain the template code:
-  ```go
-  func main() {
-      ctx := context.Background()
-      // Your test code here
-      fmt.Println("Sandbox test")
-      os.Exit(0)
-  }
-  ```
-- Keep only the standard imports (context, fmt, os) unless they're needed for the template
+- [Codebase knowledge graph](.agentrules/codebase-knowledge-graph.md) - read `docs/codebase-graph/overview.md` before exploring; it holds a node per package and significant file, and is updated in the same change as any package, contract, edge or `go.mod` change. Relevant keywords: knowledge graph, codebase graph, docs/codebase-graph, overview.md, nodes, edges, predicates, wiki-links, architecture map, agent context, docsgraph, make docs-graph, staleness, defects found while indexing.
+- [Journal convention](.agentrules/journal-convention.md) - append-only timestamped journal at `journal/<branchname>.md`, grouped by git identity, written as the work happens. Relevant keywords: journal, worklog, journal entry, `journal/` directory, timestamped entries, author attribution, git identity, superseded decisions, merge conflicts, institutional knowledge, token usage, model.
+- [License headers and copyright year](.agentrules/license-headers.md) - source files carry the two-line SPDX header; touched files get the current year, and legacy headers are rewritten on touch, never in bulk. Relevant keywords: license header, SPDX, SPDX-FileCopyrightText, SPDX-License-Identifier, Apache-2.0, copyright year, legacy header, boilerplate, source file extensions.
+- [Plan source paths](.agentrules/plan-source-paths.md) - plan files link source with repo-root-relative paths, never machine-local absolute ones. Relevant keywords: plan, plan file, .cursor/plans, markdown links, relative path, absolute path, multi-root workspace.
+- [No em dashes](.agentrules/no-em-dash.md) - never use an em dash (U+2014) anywhere; use a hyphen or restructure the sentence. Relevant keywords: em dash, mdash, punctuation, hyphen, writing style.
+- [No agentic signatures](.agentrules/no-agentic-signatures.md) - no AI-authorship lines from any tool in commits, PRs, or any other output. Relevant keywords: commit message, attribution, co-authored-by, AI signature, generated with, Cursor signature, Claude signature.
 
----
+## Starting work
 
-When you make any changes, update the **PR_DESCRIPTION_<branch_name>.md** file describing all the changes in the branch comprehensively.
+- [Check open PRs before starting work](.agentrules/check-open-prs.md) - run `gh pr list` (and `git worktree list`) before touching an area, so work isn't duplicated. Relevant keywords: open PRs, in-flight work, duplicate work, before starting.
+- [Issue workflow](.agentrules/issue-workflow.md) - the issue pickup sequence, built around a single origin touch: branch and worktree in one command, journal, PR description file, commit, then push and draft PR together; picking up an issue authorizes its commits. Relevant keywords: starting an issue, picking up a ticket, branch naming, `<issue_number>-short-name`, draft PR, new branch, worktree, single push, origin touch, commit authorization.
 
-**PR_DESCRIPTION_<branch_name>.md MUST describe only the changes introduced in this barnch** (compared to the base branch, e.g. origin/main). Do not include ot summarize wirk that already exists on the base or that was merged from other branches, To determine scope, get the list of commits and files changes using `git log base..HEAD` and `git diff base..HEAD` (base is typically origin/main), then document only those changes.
+## Merging
 
-- Do not include changes for code/logic that were added in the branch and then removed and never re-added
-- Summarize in a PR description format
+- [Commits](.agentrules/commits.md) - commit only when told (an issue pickup counts), never commit `PR_DESCRIPTION_*.md`, one logical change per commit, short imperative subjects with no conventional-commit prefix. Relevant keywords: commit, commit message, commit scope, small commits, imperative mood, conventional commits, feat, refactor, markdown files, when to commit.
+- [PR description file](.agentrules/pr-description-file.md) - draft the PR in an uncommitted `PR_DESCRIPTION_<branch>.md` (first line is the `#` title), scoped to this branch's diff, and feed it to `gh pr create --body-file`. Relevant keywords: PR description, PR_DESCRIPTION, pull request body, draft description, body-file, branch scope, Review notes, Changes by area, gitignore.
+- [PR title/description conventions](.agentrules/pr-conventions.md) - PR title and body rules: `Closes` vs `Updates` issue references, when to wire the Development link, no issue at all for conventions PRs, the `[AgentRule]` title prefix for rule changes and `[Workflow]` for GitHub Actions workflow changes, and the standard sections. Relevant keywords: pull request, PR title, PR description, `gh pr create`, Closes issue, Updates issue, follow-up PR, PR sections, Dependency changes, THIRD_PARTY_POLICY, Development section, AgentRule, Workflow, title prefix, rule change, workflow change, CI change.
+- [Stacked PRs](.agentrules/stacked-prs.md) - split any change over about 800 hand-written lines into a stack of individually testable PRs, merged bottom up into `main`. Relevant keywords: stacked PRs, PR stack, large PR, split PR, PR size, reviewability, rebase --onto, retarget base, squash merge, merge-async, GitHub PR stack, native stack, restack, force-with-lease, draft until next, layer, Updates vs Closes, branch rename, branch naming, closed PR, tests in same layer, tests-only PR.
 
-The PR description should cover:
-- **PR title** (see below)
-- Summary
-- What this PR does
-- Changes by area
-- Review notes
-- Testing notes
-- Dependency changes
+## CI gates that bite
 
-Use short, bulleted points so it is easy to scan; one main idea per bullet. Lean toward sub-sullets over paragraphs.
+- [GitHub Actions](.agentrules/github-actions.md) - CI runs only when it tells us something (public repo, so the cost is speed and noise, not money): drafts run nothing, per-job path filters, prose-only paths ignored, superseded runs cancelled, `timeout-minutes` everywhere, `uses:` pinned to a major tag, layered caches. Relevant keywords: GitHub Actions, workflow, `uses:`, ci.yml, lint, golangci-lint, docs-graph job, test job, race, codecov, cla-check, deps-policy-check, protected files, release.yml, path filter, paths-ignore, docs-only, draft PR, ready for review, workflow_dispatch, duplicate runs, mark ready, stack layers, run history, timeout-minutes, concurrency, cancel-in-progress, cache, actions/cache, GOCACHE, GOMODCACHE, build cache, module cache, restore-keys, cache eviction, setup-go cache.
 
-For `## Changes By Area`, format each area as a Markdown `###` subheading (for example, `### Runtime evaluator and execution`) followed by bullets, instead of bold bullet area titles.
+## Domain references
 
-**PR title:** Put the actual pull request title **once** as the first line of the file: a single `#` heading whose text is the full title string (for Bitbucket/Github). **Do not** add a separate `# Title` section or any second top-level title - the first `#` line **is** the PR title, not a placeholder heading above the different title. The title **must end with** the issue number from the branch (the number prefix, e.g. branch `64-replace-pervas...` -> `64`). The title **must be suffixed** by `Closes #<issue_number>`
+- [`evalDerive` resolution](.agentrules/evalderive-resolution.md) - inside a derive body every resolution path in `runtime/eval_call.go` and `runtime/eval_ident.go` must explicitly allow or deny, never fall through to an unrestricted path. Relevant keywords: derive, evalDerive, derive body, purity, deterministic, impure builtin, TypeScript module, eval_call, eval_ident, derive_purity, resolution.
 
-**Review notes:** Always make sure that `Review Notes` in the PR description is up to date and covers all the critical areas that reviewers should concentrate on.
+## Deploy and release
 
---
+No rules yet.
 
-**License Headers:** Make sure that all sources files have the correct license headers.
+## Tooling
 
---
-
-**Code commits:** Do not commit unless explicitly told to do so. **NEVER** commit any `*.md` files. Whenever you commit, do not add cursor signatures in the commit messages. Prefer small(ish), focused commits over large bundles; when practical, make one logical change per commit. Combine work into a single commit only when the changes are inseparable—for example the same fix, the same slice of a feature, or the same mechanical rename. If you group edits in one commit, they must be tightly coupled; do not bundle unrelated changes.
-
-**Commit messages:** Use short imperative subject lines. Do not use conventional commit prefixes (e.g. no `refactor(scope):`, `feat(scope):` etc.). Prefer plain imperative messages: "Align X with Y", "Wire policy loading with parsing". Do not add further descriptions to the message if it doesn't add value.
-
---
+- [gh CLI](.agentrules/gh-cli.md) - GitHub work goes through `gh` rather than the web UI; covers the commands the other rules depend on and the token scopes that trip people up. Relevant keywords: gh, GitHub CLI, gh auth, token scopes, gh pr, gh issue, gh label, gh api, GitHub Projects.
+- [Build and test](.agentrules/build-and-test.md) - everything builds from the root with `make`: prerequisites, `GOWORK=off` (exported by the Makefile), `make build`, `make test`, `make lint`, `make docs-graph`, `make gen`, and how release builds differ. Relevant keywords: build, make, make help, make build, make test, make lint, make gen, make docs-graph, make clean-git, go test, go vet, gofmt, golangci-lint, GOWORK, go.work, toolchain, local setup, goreleaser, release build, reproducible build.
+- [Go project layout](.agentrules/go-project-layout.md) - one module and one `sentrie` binary: root `main.go`, `cmd` with `cling` not Cobra, flat per-stage packages, `internal/` for repo tooling only. Relevant keywords: Go, project layout, main.go, cmd package, cling, subcommand, package structure, pipeline stages, internal, lang_test, example_pack, sandbox.go, testify.
+- [Go test conventions](.agentrules/go-test-conventions.md) - test-scoped contexts (`t.Context()`, `s.T().Context()`) and extending each package's existing testify suite, `RuntimeTestSuite` in `runtime/`. Relevant keywords: Go tests, _test.go, testify, suite, RuntimeTestSuite, t.Context, context.Background, test conventions.
+- [Sandbox programs](.agentrules/sandbox.md) - one-off programs go in `sandbox.go` (`go run -tags sandbox sandbox.go`) and the file is reset to its template afterwards. Relevant keywords: sandbox, sandbox.go, scratch program, go run, build tag, reset template, experiment.
+- [Prefer the current standard library and up-to-date SDKs](.agentrules/current-libraries.md) - use what the Go 1.25 toolchain ships before a third-party package or an older API, take dependencies at their current version under `THIRD_PARTY_POLICY.md`, and migrate existing code in its own issue rather than in passing. Relevant keywords: standard library, stdlib, Go 1.25, toolchain, dependency, third-party, licence, THIRD_PARTY_POLICY, SDK, up to date, current version, upgrade, deprecated API, migration.
