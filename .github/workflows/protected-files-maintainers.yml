@@ -10,6 +10,13 @@ on:
       - "LICENSE-DUAL.md"
       - "THIRD_PARTY_POLICY.md"
       - ".github/**"
+      - "AGENTS.md"
+      - ".agentrules/**"
+      - ".cursor/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -18,7 +25,9 @@ permissions:
 jobs:
   protected-files:
     name: Enforce maintainer-only edits for protected files
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Checkout base (main) branch
@@ -73,7 +82,7 @@ jobs:
           set -euo pipefail
 
           echo "Non-maintainer editing protected files. Adding PR comment and failing workflow."
-          echo "Only maintainers listed in MAINTAINERS may change CLA, license, policy, or workflow files."
+          echo "Only maintainers listed in MAINTAINERS may change CLA, license, policy, workflow, or agent-rule files."
 
           MARKER="[Sentrie Protected Files]"
 
@@ -91,7 +100,10 @@ jobs:
             COMMENT_BODY+="- LICENSE\n"
             COMMENT_BODY+="- LICENSE-DUAL.md\n"
             COMMENT_BODY+="- THIRD_PARTY_POLICY.md\n"
-            COMMENT_BODY+="- .github/**\n\n"
+            COMMENT_BODY+="- .github/**\n"
+            COMMENT_BODY+="- AGENTS.md\n"
+            COMMENT_BODY+="- .agentrules/**\n"
+            COMMENT_BODY+="- .cursor/**\n\n"
             COMMENT_BODY+="If you believe this is incorrect, please reach out to the Sentrie maintainers or ask a maintainer to make the changes on your behalf.\n"
 
             # Use printf to interpret \n escape sequences as actual newlines

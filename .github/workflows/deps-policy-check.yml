@@ -4,6 +4,14 @@ on:
   pull_request:
     branches: ["main"]
     types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/deps-policy-check.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -11,7 +19,9 @@ permissions:
 
 jobs:
   dependency-policy:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     env:
       REPO: ${{ github.repository }}
@@ -66,16 +76,18 @@ jobs:
           echo "${BODY}"
           echo "---------------------------------"
 
-          # Very simple heuristic: section header plus something other than '- None'
+          # Very simple heuristic: section header plus something other than '- None'.
+          # The template names it "## Dependency changes"; older PRs use "## Dependencies".
+          header_re='^## Dependenc(ies|y changes)[[:space:]]*$'
           has_section="false"
-          if grep -q "## Dependencies" <<< "${BODY}"; then
+          if grep -Eq "${header_re}" <<< "${BODY}"; then
             has_section="true"
           fi
 
           has_content="false"
-          if grep -q "## Dependencies" <<< "${BODY}"; then
+          if grep -Eq "${header_re}" <<< "${BODY}"; then
             # Get everything after the Dependencies header
-            after=$(awk '/^## Dependencies/{flag=1;next}/^## /{flag=0}flag' <<< "${BODY}" || true)
+            after=$(awk '/^## Dependenc(ies|y changes)[[:space:]]*$/{flag=1;next}/^## /{flag=0}flag' <<< "${BODY}" || true)
             # Check if the block is not just '- None'
             trimmed=$(echo "${after}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' || true)
             if [[ -n "${trimmed}" && "${trimmed}" != "- None" ]]; then
@@ -94,7 +106,7 @@ jobs:
           set -euo pipefail
 
           echo "Dependency files changed but PR does not contain a filled Dependencies section."
-          echo "Please describe the new/changed dependencies and their licenses under '## Dependencies'."
+          echo "Please describe the new/changed dependencies and their licenses under '## Dependency changes'."
           exit 1
 
       - name: Dependency Review

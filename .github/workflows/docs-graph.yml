@@ -1,0 +1,57 @@
+name: Knowledge graph
+
+# Asserts the schema documented in docs/codebase-graph/overview.md: front-matter
+# shape, closed predicate set, link resolution, edge locality, no orphans.
+# Same path filter as ci.yml, except that graph nodes are re-included: a
+# graph-only change runs this and nothing else.
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "**"
+      - "!**.md"
+      - "docs/codebase-graph/**"
+      - "!journal/**"
+      - "!.agentrules/**"
+      - "!.cursor/**"
+      - "!LICENSE"
+  pull_request:
+    branches: ["main"]
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - "**"
+      - "!**.md"
+      - "docs/codebase-graph/**"
+      - "!journal/**"
+      - "!.agentrules/**"
+      - "!.cursor/**"
+      - "!LICENSE"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  docs-graph:
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: false
+
+      - name: Go module cache
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: gomod-${{ runner.os }}-go1.25-${{ hashFiles('go.sum') }}
+
+      - name: Validate knowledge graph
+        run: make docs-graph

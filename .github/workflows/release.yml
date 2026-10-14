@@ -33,6 +33,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     outputs:
       major: ${{ steps.ver.outputs.major }}
       minor: ${{ steps.ver.outputs.minor }}
@@ -174,6 +175,7 @@ jobs:
     # Only run for stable releases (skip prereleases)
     if: needs.release.outputs.prerelease == ''
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
       VERSION: ${{ github.ref_name }}
