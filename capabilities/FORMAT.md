@@ -16,12 +16,14 @@ is granted, which is how Sentrie behaved before the file existed.
   "version": 1,
   "builtins": ["all", "any", "count", "filter", "merge"],
   "modules": ["@sentrie/hash", "@sentrie/jwt", "@sentrie/net"],
-  "local_modules": false
+  "local_modules": false,
+  "deterministic_js": true
 }
 ```
 
 This pack may call five builtins and load three builtin modules, and it may not
-load any TypeScript or JavaScript files of its own.
+load any TypeScript or JavaScript files of its own. JavaScript sees a pinned clock
+and a seeded random source.
 
 ## Fields
 
@@ -31,6 +33,7 @@ load any TypeScript or JavaScript files of its own.
 | `builtins` | array of strings | every builtin is granted | Builtins the pack may call, by name (`"count"`, `"now"`). `[]` grants none. |
 | `modules` | array of strings | every builtin module is granted | Builtin modules the pack may load, by full specifier (`"@sentrie/hash"`). `[]` grants none. |
 | `local_modules` | boolean | `true` | Whether the pack may load its own TypeScript or JavaScript files. |
+| `deterministic_js` | boolean | `false` | Whether `Date` and `Math.random` in every JavaScript runtime are replaced by deterministic shims (below). |
 
 `null` counts as absent. Unknown fields, any other `version`, an empty builtin name,
 and a module entry without the `@sentrie/` prefix are errors, and the command
@@ -74,3 +77,22 @@ Runtime denials wrap the same `not granted by the capabilities file` error.
 whether or not a capabilities file is given. These sources are the `now` builtin,
 `@sentrie/time.now`, `@sentrie/uuid.v4`, `v6` and `v7`, and `@sentrie/js.now` and
 `random`. To forbid them, leave them out of `builtins` and `modules`.
+
+## Deterministic JavaScript
+
+With `"deterministic_js": true`, every JavaScript runtime gets these replacements
+before any module code runs:
+
+- `Date.now()`, `new Date()` and `Date()` return the execution's start time, which
+  is the same instant the `now` builtin and `@sentrie/time.now` report. Every other
+  form, such as `new Date(0)`, `Date.parse` and `Date.UTC`, behaves as usual.
+- `Math.random()` draws from a pseudo-random stream seeded from the execution
+  start time and the module function being called.
+
+Each module call is therefore reproducible from its execution start time. The
+stream restarts on every call, so two calls to the same function in one
+execution see the same sequence. Module top-level code runs once, when the
+module first loads, before any execution: there the clock reads `0`.
+
+These shims make the nondeterministic sources deterministic, but `sentrie
+validate` still warns about them.

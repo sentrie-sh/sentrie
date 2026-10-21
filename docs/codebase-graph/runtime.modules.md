@@ -19,7 +19,7 @@ The foreign-function boundary between Sentrie and embedded JavaScript. A `Module
 | `runtime.modules` | `IMPORTS` | `ext.jackc.puddle` | Pools `*JSInstance` per binding. |
 | `runtime.modules` | `IMPORTS` | `ext.fatih.structs` | Converts struct returns to `map[string]any`. |
 | `runtime.modules` | `DEPENDS_ON` | [[box]] | `IsBoundaryUndefined` drives undefined normalization on the way in. |
-| `runtime.modules` | `DEPENDS_ON` | [[constants]] | `ExecutionStartTimeUnixKey` is the global injected into every VM. |
+| `runtime.modules` | `CALLS` | [[runtime.js]] | `js.BeginCall` pins the execution-start global (and, with `deterministic_js`, `Date.now` and the `Math.random` seed) before every call. |
 | `runtime.modules` | `READS_FROM` | [[runtime.exec_ctx]] | Reads `CreatedAt()` so JS-side time matches Go-side time. |
 | [[runtime.executor]] | `CALLS` | [[runtime.modules]] | Constructs bindings and their pools during `bindUses`. |
 | [[runtime.eval_call]] | `CALLS` | [[runtime.modules]] | A field-access callee on a bound alias dispatches to `Call`. |
@@ -32,7 +32,7 @@ The foreign-function boundary between Sentrie and embedded JavaScript. A `Module
   - **Exceptions:** N/A.
 
 - **Signature:** `(ModuleBinding).Call(ctx, ec, fn string, args ...any) -> (any, error)`
-  - **Behavior:** Acquires a pooled VM, sets the execution-start global, looks the export up, asserts it is callable, spawns a watchdog goroutine that interrupts the VM on context cancellation, marshals arguments, invokes, then maps `undefined` and `null` returns to boundary sentinels before checking the return's reflect kind against an allowlist (map, slice, array, string, int64, float64, bool, struct) and exporting other values.
+  - **Behavior:** Acquires a pooled VM, calls `js.BeginCall(vm, ec.CreatedAt(), CanonicalKey, fn)` (the execution-start global, plus the deterministic shim state when installed), looks the export up, asserts it is callable, spawns a watchdog goroutine that interrupts the VM on context cancellation, marshals arguments, invokes, then maps `undefined` and `null` returns to boundary sentinels before checking the return's reflect kind against an allowlist (map, slice, array, string, int64, float64, bool, struct) and exporting other values.
   - **Side Effects:** Executes arbitrary JavaScript; mutates the VM's global scope; releases the instance back to the pool.
   - **Exceptions:** `module has no JS binding`; pool acquisition failure; `function %s not found in module %q`; `export '%q' is not callable`; `unexpected return type %s`; any JS exception or interrupt.
 

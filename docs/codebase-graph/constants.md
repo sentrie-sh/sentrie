@@ -17,8 +17,7 @@ tags: configuration, environment, conventions, cross-cutting
 | :--- | :--- | :--- | :--- |
 | [[main]] | `DEPENDS_ON` | [[constants]] | Reads `EnvDebug` and `EnvLogLevel` to configure the `slog` JSON handler at startup. |
 | [[loader]] | `LAYERED_ON` | [[constants]] | Uses `PackFileExtension` and `PolicyFileExtension` to discover pack manifests and policy sources on disk. |
-| [[runtime]] | `LAYERED_ON` | [[constants]] | Seeds the execution context with `ExecutionStartTimeUnixKey`. |
-| [[runtime.js]] | `LAYERED_ON` | [[constants]] | JS `time` builtins read the injected execution start time to keep clock reads deterministic within one evaluation. |
+| [[runtime.js]] | `LAYERED_ON` | [[constants]] | `js.BeginCall` injects `ExecutionStartTimeUnixKey` before every module call (on behalf of [[runtime]]), and the JS `time` builtins read it to keep clock reads deterministic within one evaluation. |
 
 ## 3. Interface Contracts & Public Surface
 

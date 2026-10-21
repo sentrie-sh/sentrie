@@ -100,3 +100,22 @@ func (s *CapabilitiesTestSuite) TestLoad() {
 	_, err = Load(filepath.Join(dir, "missing.json"))
 	s.Require().Error(err)
 }
+
+func (s *CapabilitiesTestSuite) TestDeterministicJS() {
+	var c *Capabilities
+	s.False(c.DeterministicJS())
+
+	for src, want := range map[string]bool{
+		`{"version": 1}`: false,
+		`{"version": 1, "deterministic_js": false}`: false,
+		`{"version": 1, "deterministic_js": null}`:  false,
+		`{"version": 1, "deterministic_js": true}`:  true,
+	} {
+		c, err := Parse([]byte(src))
+		s.Require().NoError(err, src)
+		s.Equal(want, c.DeterministicJS(), src)
+	}
+
+	_, err := Parse([]byte(`{"version": 1, "deterministic_js": "yes"}`))
+	s.Require().Error(err)
+}
