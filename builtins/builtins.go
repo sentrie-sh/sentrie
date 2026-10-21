@@ -21,7 +21,9 @@ import (
 //
 // DeriveSafe means: deterministic output within a single policy execution.
 // It does NOT mean deterministic across executions - now is DeriveSafe
-// because ExecutionStart is pinned per execution.
+// because ExecutionStart is pinned per execution. Cross-execution
+// determinism is tracked separately by Decl.Nondeterministic, and a derive
+// may only call a builtin that is both (see Decl.PermittedInDerive).
 type Env interface {
 	Call(ctx context.Context, fn box.Value, args []box.Value) (box.Value, error)
 	CallableArity(fn box.Value) (int, error)
@@ -67,7 +69,21 @@ type Decl struct {
 	Description string
 	Sig         Sig
 	DeriveSafe  bool
-	Impl        Fn
+	// Nondeterministic marks a builtin whose result can differ between two
+	// executions given the same arguments, because it reads a clock or a
+	// random source. `sentrie validate` warns on every call, and derive
+	// bodies reject it even when DeriveSafe is set. Any new clock or random
+	// builtin must set it.
+	Nondeterministic bool
+	Impl             Fn
+}
+
+// PermittedInDerive reports whether a derive body may call d: it must be
+// deterministic within an execution (DeriveSafe) and across executions
+// (not Nondeterministic). The static purity walk in index and the runtime
+// guard in runtime/eval_call.go both read this, so they cannot drift.
+func (d *Decl) PermittedInDerive() bool {
+	return d != nil && d.DeriveSafe && !d.Nondeterministic
 }
 
 var (
@@ -98,17 +114,37 @@ var Table = map[string]*Decl{
 	"reduce":         declReduce,
 }
 
-// IsDeriveSafe reports whether name is a builtin allowed inside derive bodies.
+// IsDeriveSafe reports whether name is a builtin allowed inside derive bodies
+// (see Decl.PermittedInDerive).
 func IsDeriveSafe(name string) bool {
 	d, ok := Table[name]
-	return ok && d.DeriveSafe
+	return ok && d.PermittedInDerive()
 }
 
-// DeriveSafeNames returns a sorted copy of derive-safe builtin names.
+// DeriveSafeNames returns a sorted copy of the builtin names allowed inside
+// derive bodies.
 func DeriveSafeNames() []string {
 	out := make([]string, 0, len(Table))
 	for name, d := range Table {
-		if d.DeriveSafe {
+		if d.PermittedInDerive() {
+			out = append(out, name)
+		}
+	}
+	slices.Sort(out)
+	return out
+}
+
+// IsNondeterministic reports whether name is a builtin marked Nondeterministic.
+func IsNondeterministic(name string) bool {
+	d, ok := Table[name]
+	return ok && d.Nondeterministic
+}
+
+// NondeterministicNames returns a sorted copy of the nondeterministic builtin names.
+func NondeterministicNames() []string {
+	out := make([]string, 0, len(Table))
+	for name, d := range Table {
+		if d.Nondeterministic {
 			out = append(out, name)
 		}
 	}

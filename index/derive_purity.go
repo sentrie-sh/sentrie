@@ -292,6 +292,12 @@ func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[str
 			}
 			return nil
 		}
+		// Mirrors the runtime guard in getTarget (runtime/eval_call.go): a
+		// builtin that is derive-safe within an execution is still refused when
+		// its result can differ between executions.
+		if builtins.IsNondeterministic(name) {
+			return fmt.Errorf("builtin %q is nondeterministic and is not permitted inside a derive", name)
+		}
 	}
 	if err := walkDeriveExprSeen(idx, d, c.Callee, scope, seen); err != nil {
 		return err
