@@ -9,7 +9,7 @@ tags: javascript, ffi, sandboxing, pooling, boundary-codec, security
 # Node: runtime.ModuleBinding (JavaScript Call Boundary)
 
 ## 1. Architectural Role & Intent
-The foreign-function boundary between Sentrie and embedded JavaScript. A `jsModule` is one resolved module path, shared by every `use` of that path, and loads a fresh `JSInstance` VM for every call; a `ModuleBinding` is one `use` statement's view of it (alias plus requested export names). `Call` acquires a fresh instance (its execution start time pinned at load), marshals arguments into goja values, installs a context-cancellation interrupt, invokes the export, and validates and unmarshals the return. It is where policy evaluation leaves the Go type system and comes back.
+The foreign-function boundary between Sentrie and embedded JavaScript. A `jsModule` is one resolved module path, shared by every `use` of that path, and loads a fresh `JSInstance` VM for every call; a `ModuleBinding` is one `use` statement's view of it (alias plus requested export names). `Call` acquires a fresh instance (its execution start time pinned at load), marshals arguments into goja values, installs a context-cancellation interrupt, invokes the export, and converts the return through `jsToSentrie`. It is where policy evaluation leaves the Go type system and comes back.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -19,7 +19,6 @@ The foreign-function boundary between Sentrie and embedded JavaScript. A `jsModu
 | `runtime.modules` | `CALLS` | [[runtime.js]] | `InterruptOnDone` bounds each call by its context. |
 | `runtime.modules` | `IMPORTS` | `ext.fatih.structs` | Converts struct returns to `map[string]any`. |
 | `runtime.modules` | `DEPENDS_ON` | [[box]] | `IsBoundaryUndefined` drives undefined normalization on the way in. |
-| `runtime.modules` | `DEPENDS_ON` | [[constants]] | `ExecutionStartTimeUnixKey` is the global injected into every VM. |
 | `runtime.modules` | `READS_FROM` | [[runtime.exec_ctx]] | Reads `CreatedAt()` so JS-side time matches Go-side time. |
 | [[runtime.executor]] | `CALLS` | [[runtime.modules]] | Constructs bindings and their pools during `bindUses`. |
 | [[runtime.eval_call]] | `CALLS` | [[runtime.modules]] | A field-access callee on a bound alias dispatches to `Call`. |
@@ -42,7 +41,7 @@ The foreign-function boundary between Sentrie and embedded JavaScript. A `jsModu
   - **Exceptions:** `module %s missing required export %q`.
 
 - **Signature:** `(ModuleBinding).Call(ctx, ec, fn string, args ...any) -> (any, error)`
-  - **Behavior:** Acquires a fresh VM, looks the export up through this binding's projection, asserts it is callable, installs `js.InterruptOnDone` for the call, marshals arguments, invokes, then maps `undefined` and `null` returns to boundary sentinels before checking the return's reflect kind against an allowlist (map, slice, array, string, int64, float64, bool, struct) and exporting other values.
+  - **Behavior:** Acquires a fresh VM, looks the export up through this binding's projection, asserts it is callable, installs `js.InterruptOnDone` for the call, marshals arguments, invokes, then converts the return with `jsToSentrie` (`runtime/js_values.go`): `undefined` (also nested) to boundary undefined, `null` to null, primitives as-is, arrays to lists, plain objects and string-keyed `Map`s to dicts, `Date` to Unix seconds (as `@sentrie/time.now()`), and an error naming the path for anything else (functions, symbols, BigInt, `Set`, non-string `Map` keys, `RegExp`, `Error`, invalid `Date`, cycles). Go values wrapped by builtins keep the old kind allowlist and struct-to-map export.
   - **Side Effects:** Executes the module body and the export in a VM nobody else sees; frees its slot on return.
   - **Exceptions:** `module has no JS binding`; slot wait or module load failure; `function %s not found in module %q`; `export '%q' is not callable`; `unexpected return type %s`; any JS exception or interrupt.
 
@@ -56,5 +55,5 @@ The foreign-function boundary between Sentrie and embedded JavaScript. A `jsModu
 - **Performance/Scale Notes:** A call costs a VM construction plus the module body: about 30 us and 55 KB for a small module, against about 1 us for the old pooled reuse. Compilation is still once per module. At most 10 VMs per module are live at once; further calls wait. Argument marshalling deep-copies lists and maps.
 - **Dependencies Risk:**
   - **Module authors cannot rely on module state between calls.** Anything that must persist across calls has to come in through arguments or facts. A module whose top level is expensive pays that cost on every call.
-  - **The return-type allowlist rejects by kind, not by contract.** `reflect.Int64` is listed but JS numbers export as `float64`, and any unlisted kind produces `unexpected return type` naming the reflect type rather than the JS value - an opaque message for module authors.
+  - **goja reports `Map`, `Set`, `Promise` and `WeakMap` as class `Object`.** The converter tells them apart by export type, so a `WeakMap` reads as an empty dict; typed arrays fall into the wrapped-Go path.
   - **This is the sandbox boundary.** Permissions are applied when the VM is constructed in [[runtime.js]]; nothing in `Call` re-checks them, and every fresh VM is built with the same pack permissions.
