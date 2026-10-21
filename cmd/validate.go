@@ -10,7 +10,6 @@ import (
 	"github.com/binaek/cling"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/loader"
-	"github.com/sentrie-sh/sentrie/runtime"
 )
 
 func addValidateCmd(cli *cling.CLI) {
@@ -31,7 +30,8 @@ func addValidateCmd(cli *cling.CLI) {
 				WithDefault("{}").
 				WithDescription("Facts to execute the rule with").
 				AsFlag(),
-			),
+			).
+			WithFlag(capabilitiesFlag()),
 	)
 }
 
@@ -39,6 +39,7 @@ type validateCmdArgs struct {
 	PackLocation string `cling-name:"pack-location"`
 	Rule         string `cling-name:"rule"`
 	Facts        string `cling-name:"facts"`
+	Capabilities string `cling-name:"capabilities"`
 }
 
 func validateCmd(ctx context.Context, args []string) error {
@@ -73,7 +74,7 @@ func validateCmd(ctx context.Context, args []string) error {
 		return err
 	}
 
-	if _, err := runtime.NewExecutor(idx); err != nil {
+	if _, err := newGrantedExecutor(ctx, idx, input.Capabilities); err != nil {
 		return err
 	}
 

@@ -40,6 +40,11 @@ tags: error-taxonomy, diagnostics, sentinel-errors, failure-modes
   - **Side Effects:** None.
   - **Exceptions:** All three implement `Unwrap()` for chain traversal.
 
+- **Signature:** `ErrNotGranted` (sentinel) / `ErrCapability(at: tokens.Range, message: string) -> error` / `CapabilityError{At, Message}`
+  - **Behavior:** Operator capabilities denials ([[capabilities]]). `CapabilityError` is the span-anchored, index-time form and unwraps to both `ErrNotGranted` and `ErrIndex`. Runtime denials from builtin dispatch and the JS registry wrap `ErrNotGranted` with `%w`.
+  - **Side Effects:** None.
+  - **Exceptions:** N/A.
+
 - **Signature:** `ErrPolicyNotFound(fqn)` / `ErrRuleNotFound(fqn)` / `ErrShapeNotFound(name)` / `ErrNamespaceNotFound(name)` / `ErrNotExported(fqn)`
   - **Behavior:** Resolution failures keyed by fully-qualified name. `ErrNotExported` distinguishes "exists but is not part of the public surface" from "does not exist", which matters for the [[api]] decision endpoint.
   - **Side Effects:** None.
