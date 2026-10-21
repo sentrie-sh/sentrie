@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -37,10 +24,20 @@ import (
 
 type NewExecutorOption func(*executorImpl)
 
-// The number of Megabytes to allocate for the call memoize cache
-func WithCallMemoizeCacheSize(size int) NewExecutorOption {
+const (
+	// moduleBindingCacheEntries bounds the module-binding cache. Bindings are keyed by
+	// module path, so this only needs to cover the distinct `use` targets loading at once.
+	moduleBindingCacheEntries = 1024
+
+	// defaultCallMemoizeCacheEntries bounds the call memoization cache unless
+	// overridden with WithCallMemoizeCacheSize.
+	defaultCallMemoizeCacheEntries = 10_000
+)
+
+// WithCallMemoizeCacheSize sets the maximum number of entries in the call memoization cache.
+func WithCallMemoizeCacheSize(entries int) NewExecutorOption {
 	return func(e *executorImpl) {
-		e.callMemoizePerch = perch.New[any](size << 20 /* size in megabytes */)
+		e.callMemoizePerch = perch.New[any](entries)
 	}
 }
 
@@ -76,8 +73,8 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 	exec := &executorImpl{
 		index:              idx,
 		jsRegistry:         js.NewRegistry(idx.Pack.Location),
-		moduleBindingPerch: perch.New[*ModuleBinding](100 << 20 /* 100 MB */), // --> (policy.useAlias) -> module binding
-		callMemoizePerch:   perch.New[any](10 << 20 /* 10 MB */),
+		moduleBindingPerch: perch.New[*ModuleBinding](moduleBindingCacheEntries), // --> (policy.useAlias) -> module binding
+		callMemoizePerch:   perch.New[any](defaultCallMemoizeCacheEntries),
 	}
 
 	exec.jsRegistry.RegisterGoBuiltin("uuid", js.BuiltinUuidGo)
@@ -101,11 +98,6 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 	for _, opt := range opts {
 		opt(exec)
 	}
-
-	// Reserve the cache slots
-	exec.moduleBindingPerch.Reserve()
-
-	exec.callMemoizePerch.Reserve()
 
 	return exec, nil
 }

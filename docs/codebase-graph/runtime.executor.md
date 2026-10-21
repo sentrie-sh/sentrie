@@ -31,12 +31,13 @@ The top-level driver: it owns the index, the JS registry, and the two caches, an
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `NewExecutor(idx *index.Index, opts ...NewExecutorOption) -> (Executor, error)`
-  - **Behavior:** Constructs the executor, registers fourteen Go builtin modules (`uuid`, `crypto`, `time`, `encoding`, `collection`, `jwt`, `regex`, `net`, `hash`, `url`, `string`, `json`, `semver`, `math`) and the TypeScript `js` shim, applies options, and reserves both caches.
-  - **Side Effects:** Allocates a 100 MB module-binding cache and a 10 MB memoization cache.
+  - **Behavior:** Constructs the executor, registers fourteen Go builtin modules (`uuid`, `crypto`, `time`, `encoding`, `collection`, `jwt`, `regex`, `net`, `hash`, `url`, `string`, `json`, `semver`, `math`) and the TypeScript `js` shim, creates both caches, and applies options.
+  - **Side Effects:** Creates a module-binding cache of 1,024 entries and a memoization cache of 10,000 entries. `perch` allocates entries lazily, so construction costs a few kilobytes regardless of either bound.
   - **Exceptions:** Returns `error` in its signature but **never returns a non-nil error**. It **panics** when `idx.Pack` is nil.
 
-- **Signature:** `WithCallMemoizeCacheSize(size int) -> NewExecutorOption`
-  - **Behavior:** Replaces the memoization cache with one of `size` megabytes. Note this **allocates a replacement** rather than resizing, so the default 10 MB cache is discarded.
+- **Signature:** `WithCallMemoizeCacheSize(entries int) -> NewExecutorOption`
+  - **Behavior:** Replaces the memoization cache with one bounded at `entries` entries. The default cache it replaces holds nothing yet, so the swap is cheap.
+  - **Exceptions:** Panics (inside `perch.New`) when `entries` is <= 0.
   - **Side Effects:** Allocation.
   - **Exceptions:** None.
 
@@ -67,11 +68,12 @@ The top-level driver: it owns the index, the JS registry, and the two caches, an
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Long-lived and shared. Caches and VM pools outlive individual executions and are reused across concurrent calls.
-- **Performance/Scale Notes:** Every exported rule of a policy runs in parallel against shared caches. VM pools cap at 10 instances per module, so contention appears as latency, not errors. Module binding happens per `ExecRule`, but the underlying pool is cache-hit after the first use.
+- **Performance/Scale Notes:** Every exported rule of a policy runs in parallel against shared caches. VM pools cap at 10 instances per module, so contention appears as latency, not errors. Module binding happens per `ExecRule`, and the binding is **not** retained: see the gotcha below.
 - **Dependencies Risk:**
   - **Panic recovery in `ExecPolicy` holds the mutex and joins errors**, including the panicking rule's name in the message, so concurrent rule failures are not lost or raced.
   - **`ExecPolicy` output order is nondeterministic.** It ranges over the `RuleExports` map and appends as goroutines finish, so callers must not rely on ordering.
-  - **Module bindings are cached by module path alone.** The perch key is `ms.KeyOrPath()`, but the export restriction comes from the *first* `use` statement to populate that key. Two policies importing different named exports from the same module share one binding, so the second can observe a narrower exports map than it asked for.
+  - **Module bindings are never actually cached** ([sentrie-sh/sentrie#191](https://github.com/sentrie-sh/sentrie/issues/191)). `getModuleBinding` passes `ttl = -1`, which `perch` treats as "do not cache": concurrent loads of the same key are deduplicated, then the entry is dropped. Every `ExecRule` therefore builds a new `puddle` pool and warms a VM per `use`, and the old pool is never closed.
+  - **Module bindings are keyed by module path alone.** The perch key is `ms.KeyOrPath()`, but the export restriction comes from the *first* `use` statement to populate that key. Two policies importing different named exports from the same module share one binding, so the second can observe a narrower exports map than it asked for.
   - **`defer done()` inside the attachment loop** accumulates trace closures until `execRule` returns rather than closing each span promptly; the same pattern appears in `evaluateRuleOutcome`.
   - **The `when` gate treats `Unknown` as "not true".** A guard that evaluates to `Unknown` silently takes the default branch rather than propagating uncertainty into the body.
   - **`NewExecutor`'s error return is vestigial**, so a caller's error handling gives false assurance while the real failure mode is a nil-pack panic.

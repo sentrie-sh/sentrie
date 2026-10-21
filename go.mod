@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/binaek/cling v0.3.8
 	github.com/binaek/gocoll v0.2.0
-	github.com/binaek/perch v0.0.3
+	github.com/binaek/perch v0.1.0
 	github.com/dop251/goja v0.0.0-20251008123653-cf18d89f3cf6
 	github.com/evanw/esbuild v0.25.11
 	github.com/fatih/structs v1.1.0

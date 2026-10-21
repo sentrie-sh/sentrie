@@ -26,15 +26,15 @@ tags: evaluation, execution, sandboxing, javascript, concurrency, back-end
 | `runtime` | `LAYERED_ON` | [[runtime.trace]] | Builds the decision explanation tree alongside evaluation. |
 | `runtime` | `IMPORTS` | `ext.dop251.goja` | Embedded ECMAScript interpreter for `use` modules. |
 | `runtime` | `IMPORTS` | `ext.jackc.puddle` | Pools JS VM instances per module binding. |
-| `runtime` | `IMPORTS` | `ext.binaek.perch` | Size-bounded caches for module bindings and memoized calls. |
+| `runtime` | `IMPORTS` | `ext.binaek.perch` | Entry-count-bounded caches for module bindings and memoized calls. |
 | [[cmd]] | `CALLS` | [[runtime]] | The `exec` command builds an executor and runs a policy or rule. |
 | [[api]] | `CALLS` | [[runtime]] | Serves evaluation requests against a long-lived executor. |
 
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `NewExecutor(idx *index.Index, opts ...NewExecutorOption) -> (Executor, error)`
-  - **Behavior:** Builds the executor, registers all fourteen Go-backed `@sentra/*` builtin modules plus the TypeScript `js` shim, and reserves both caches. See [[runtime.executor]].
-  - **Side Effects:** Allocates two `perch` caches (100 MB module bindings, 10 MB memoization by default).
+  - **Behavior:** Builds the executor, registers all fourteen Go-backed `@sentra/*` builtin modules plus the TypeScript `js` shim, and creates both caches. See [[runtime.executor]].
+  - **Side Effects:** Creates two `perch` caches bounded by entry count (1,024 module bindings, 10,000 memoized calls by default). Neither allocates entries until used.
   - **Exceptions:** **Panics** if `idx.Pack` is nil - it dereferences `idx.Pack.Location` before any nil check.
 
 - **Signature:** `Executor` interface - `ExecPolicy(ctx, namespace, policy, facts) -> ([]*ExecutorOutput, error)`, `ExecRule(ctx, namespace, policy, rule, facts) -> (*ExecutorOutput, error)`, `Index() -> *index.Index`
@@ -77,7 +77,7 @@ tags: evaluation, execution, sandboxing, javascript, concurrency, back-end
 - **Performance/Scale Notes:**
   - `ExecPolicy` runs every exported rule in parallel goroutines against a **shared executor**, so all cache and VM-pool concurrency issues are exercised on every policy run.
   - JS VM instances are pooled at **MaxSize 10** per module binding; a policy with heavy module use across many concurrent evaluations will block on acquisition.
-  - Module bindings are cached globally by canonical module path, and memoized calls share a 10 MB budget by default - evictions are silent.
+  - Module bindings are cached globally by canonical module path, and memoized calls share a 10,000-entry LRU by default - evictions are silent.
 - **Dependencies Risk:**
   - **This package converts static guarantees into runtime behaviour.** Everything [[index.validate]] could not prove - type conformance, arity of dynamic callables, module export presence - fails here, at request time, in front of a user.
   - **Concurrency correctness is not fully established.** `ExecPolicy`'s panic recovery writes shared state without holding its mutex, and attached child contexts share the parent's `modules` map while locking their own mutex. See [[runtime.executor]] and [[runtime.exec_ctx]].

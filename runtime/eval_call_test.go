@@ -311,9 +311,8 @@ func (s *RuntimeTestSuite) TestEvalCallMemoizedBypassesCacheForUnhashableArgumen
 	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	exec := &executorImpl{
-		callMemoizePerch: perch.New[any](1 << 20),
+		callMemoizePerch: perch.New[any](16),
 	}
-	exec.callMemoizePerch.Reserve()
 
 	const builtinName = "test_unhashable_memo_builtin"
 	original, hadOriginal := builtins.Table[builtinName]

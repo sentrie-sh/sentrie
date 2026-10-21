@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -255,7 +242,8 @@ func (s *RuntimeTestSuite) TestEvaluateRuleOutcomeWhenEvaluationFailureReturnsEr
 func (s *RuntimeTestSuite) TestWithCallMemoizeCacheSizeAndToTrinaryHelpers() {
 	exec := &executorImpl{}
 	WithCallMemoizeCacheSize(2)(exec)
-	s.NotNil(exec.callMemoizePerch)
+	s.Require().NotNil(exec.callMemoizePerch)
+	s.Equal(2, exec.callMemoizePerch.Cap())
 
 	out := &ExecutorOutput{Decision: DecisionOf(box.Trinary(trinary.True))}
 	s.Equal(trinary.True, out.ToTrinary())
@@ -263,6 +251,32 @@ func (s *RuntimeTestSuite) TestWithCallMemoizeCacheSizeAndToTrinaryHelpers() {
 	s.Panics(func() {
 		_ = (&ExecutorOutput{}).ToTrinary()
 	})
+}
+
+// newExecutorAllocBudget bounds the bytes NewExecutor may allocate. The caches used to be
+// reserved eagerly and cost several gigabytes per process; they now allocate on first use.
+const newExecutorAllocBudget = 1 << 20
+
+func (s *RuntimeTestSuite) TestNewExecutorDoesNotPreallocateCaches() {
+	idx := index.CreateIndex()
+	idx.Pack = &pack.PackFile{Location: "."}
+
+	var before, after runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&before)
+	exec, err := NewExecutor(idx)
+	runtime.ReadMemStats(&after)
+	s.Require().NoError(err)
+
+	allocated := after.TotalAlloc - before.TotalAlloc
+	s.T().Logf("NewExecutor allocated %d bytes", allocated)
+	s.Less(allocated, uint64(newExecutorAllocBudget))
+
+	impl := exec.(*executorImpl)
+	s.Equal(moduleBindingCacheEntries, impl.moduleBindingPerch.Cap())
+	s.Equal(defaultCallMemoizeCacheEntries, impl.callMemoizePerch.Cap())
+	s.Zero(impl.moduleBindingPerch.Stats().Size)
+	s.Zero(impl.callMemoizePerch.Stats().Size)
 }
 
 // newPanickingPolicyExecutor returns an executor over a single policy whose
@@ -319,12 +333,10 @@ func testExecutorForModuleBinding() *executorImpl {
 	exec := &executorImpl{
 		index:              idx,
 		jsRegistry:         js.NewRegistry("."),
-		moduleBindingPerch: perch.New[*ModuleBinding](1 << 20),
-		callMemoizePerch:   perch.New[any](1 << 20),
+		moduleBindingPerch: perch.New[*ModuleBinding](16),
+		callMemoizePerch:   perch.New[any](16),
 	}
 	exec.jsRegistry.RegisterGoBuiltin("hash", js.BuiltinHashGo)
-	exec.moduleBindingPerch.Reserve()
-	exec.callMemoizePerch.Reserve()
 	return exec
 }
 

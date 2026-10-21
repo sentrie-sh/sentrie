@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -115,9 +102,8 @@ func (s *RuntimeTestSuite) TestEvalCallMemoizedHitAndMiss() {
 	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	exec := &executorImpl{
-		callMemoizePerch: perch.New[any](1 << 20),
+		callMemoizePerch: perch.New[any](16),
 	}
-	exec.callMemoizePerch.Reserve()
 
 	const builtinName = "test_wave2_memoized_builtin"
 	original, hadOriginal := builtins.Table[builtinName]
@@ -178,9 +164,8 @@ func (s *RuntimeTestSuite) TestEvalCallInjectedErrorPassthrough() {
 	ctx := s.T().Context()
 	p := newEvalTestPolicy()
 	exec := &executorImpl{
-		callMemoizePerch: perch.New[any](1 << 20),
+		callMemoizePerch: perch.New[any](16),
 	}
-	exec.callMemoizePerch.Reserve()
 	ec := NewExecutionContext(p, exec)
 
 	call := ast.NewCallExpression(

@@ -59,7 +59,7 @@ The busiest node in the evaluator. It evaluates arguments, resolves the callee t
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless per call, but reads and writes the executor's shared memoization cache.
-- **Performance/Scale Notes:** Memoized calls default to a **5 minute TTL** and share a 10 MB budget, so eviction is silent and a hot policy can thrash. Every module call marshals all arguments across the boundary. The `Precheck`/`Impl` split lets builtins short-circuit before doing work.
+- **Performance/Scale Notes:** Memoized calls default to a **5 minute TTL** and share a 10,000-entry LRU (configurable with `WithCallMemoizeCacheSize`), so eviction is silent and a hot policy can thrash. Every module call marshals all arguments across the boundary. The `Precheck`/`Impl` split lets builtins short-circuit before doing work.
 - **Dependencies Risk:**
   - **Unhashable memoized arguments bypass the cache.** When `calculateHashKey` fails, the call is invoked directly rather than cached under an empty key.
   - **The precedence ladder must stay in sync with [[index.builtin_kind]]'s `isBuiltinCall`.** Static checking assumes local binding > derive > builtin; this function implements derive > builtin with locals handled earlier in [[runtime.eval_ident]]. Drift means checks are applied to a different callee than the one invoked.
