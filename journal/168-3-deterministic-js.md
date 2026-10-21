@@ -16,3 +16,16 @@
 - Recording nondeterministic values into decision logs is still out of scope (#171 does not exist yet).
 - `make test`, `make lint` and `go test -race ./runtime/js/ ./capabilities/` pass.
 - _Model: claude-opus-5-5_
+
+### 22:35 - Review fixes (pr-206)
+- Critical: the `Date` wrapper called `Function.prototype.bind.apply` and `Array.prototype.slice/concat` at call time, so pack code that replaced those intrinsics received the real `Date` and with it the wall clock. The wrapper now captures `Date`, `Reflect.construct` and `Object.defineProperty` at install time (before any pack code runs) and builds every form with `construct(RealDate, args, new.target)`, with no lookups on shared prototypes. A regression test replaces `bind`, `apply`, `concat`, `slice` and `Reflect.construct` before constructing, and asserts that no real `Date` leaks. Kept it in JavaScript with captured intrinsics instead of a Go constructor: same guarantee, much less code.
+- Hit and fixed a hoisting trap on the way: naming the inner function `Date` made `var RealDate = Date` capture the wrapper itself (infinite recursion). The inner function is `SentrieDate`, and `name` is defined as `"Date"`.
+- Forwarding `new.target` makes `class X extends Date` instances `instanceof X` again. `Date.name` is `"Date"` and `Date.length` matches the real one (7).
+- Shim state moved off the global scope into a Go-side map weakly keyed by `*goja.Runtime`, with `runtime.AddCleanup` deleting entries when a VM is collected. The values never reference the VM, so pooled VMs are not kept alive. This lines up with #215's no-internals-on-globals direction; when #215 lands, `BeginCall` should call its `SetExecutionStart` instead of setting `ExecutionStartTimeUnixKey`.
+- Docs: `@sentrie/uuid` stays nondeterministic with the flag on (the earlier wording overstated it); the clock is described against `@sentrie/time.now` rather than the `now` builtin, whose unit #204 changes; the seed uses nanoseconds, so a replay must carry that precision.
+- The end-to-end test now compares `floor(js.now() / 1000)` with `@sentrie/time.now` instead of the `now` builtin, so #204's unit change cannot break it.
+- New tests: top-level module code reads the clock as 0; the shims add no globals.
+- Left the field name `Deterministic`: `DeterministicJS` is the method, and Go does not allow a field and a method with the same name.
+- The FORMAT.md line "to forbid them, leave them out of builtins and modules" is corrected in layer 2, not here, to avoid two edits of one line across the stack.
+- `make test`, `make lint` and `go test -race ./runtime/js/` pass.
+- _Model: claude-opus-5-5_
