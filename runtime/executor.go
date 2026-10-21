@@ -16,6 +16,7 @@ import (
 	"github.com/binaek/perch"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
+	"github.com/sentrie-sh/sentrie/capabilities"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/js"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
@@ -107,6 +108,7 @@ type executorImpl struct {
 	jsRegistry       *js.Registry
 	callMemoizePerch *perch.Perch[any]
 	evalTimeout      time.Duration
+	capabilities     *capabilities.Capabilities // operator grant; nil allows everything (WithCapabilities)
 
 	// modules holds every loaded module for the executor's lifetime, keyed by
 	// module path. Its size is bounded by the pack's distinct `use` targets, so
