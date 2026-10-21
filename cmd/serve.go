@@ -93,15 +93,10 @@ func serveCmd(ctx context.Context, args []string) error {
 		return err
 	}
 
-	grant, err := loadAndCheckCapabilities(ctx, input.Capabilities, idx)
-	if err != nil {
-		return err
-	}
-
 	// The API hands every request its deadline (the default, or Sentrie-Timeout
 	// within the ceiling), which replaces the executor's own: one deadline per
 	// request.
-	exec, err := runtime.NewExecutor(idx, runtime.WithEvalTimeout(evalTimeout), runtime.WithCapabilities(grant))
+	exec, err := newGrantedExecutor(ctx, idx, input.Capabilities, runtime.WithEvalTimeout(evalTimeout))
 	if err != nil {
 		return err
 	}

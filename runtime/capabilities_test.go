@@ -5,9 +5,14 @@ package runtime
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/capabilities"
+	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/pack"
+	"github.com/sentrie-sh/sentrie/parser"
 	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/sentrie-sh/sentrie/xerr"
 )
@@ -62,4 +67,44 @@ policy pol {
 	out, err := granted.ExecRule(ctx, "com/ex", "pol", "ok", nil)
 	s.Require().NoError(err)
 	s.Equal(trinary.True, out.Decision.State)
+}
+
+// A granted local module that requires an ungranted builtin module fails at
+// load time through CheckModuleGrants, and, if that check is skipped, when the
+// require runs, with ErrNotGranted surviving goja's error wrapping.
+func (s *RuntimeTestSuite) TestLocalModuleRequireOfUngrantedModule() {
+	ctx := s.T().Context()
+	packRoot := s.T().TempDir()
+	s.Require().NoError(os.WriteFile(filepath.Join(packRoot, "helper.ts"),
+		[]byte("import { v4 } from \"@sentrie/uuid\";\nexport const id = () => v4();"), 0o644))
+	src := `namespace com/ex
+policy pol {
+  use { id } from "./helper.ts" as helper
+  rule ok = { yield helper.id() != "" }
+  export decision of ok
+}`
+	idx := index.CreateIndex()
+	s.Require().NoError(idx.SetPack(ctx, &pack.PackFile{Location: packRoot}))
+	prog, err := parser.NewParserFromString(src, filepath.Join(packRoot, "policy.sentrie")).ParseProgram(ctx)
+	s.Require().NoError(err)
+	s.Require().NoError(idx.AddProgram(ctx, prog))
+	s.Require().NoError(idx.Validate(ctx))
+
+	grant := s.mustGrant(`{"version": 1, "modules": [], "local_modules": true}`)
+	s.Require().NoError(idx.CheckCapabilities(ctx, grant), "the index cannot see require() in TypeScript")
+
+	exec, err := NewExecutor(idx, WithCapabilities(grant))
+	s.Require().NoError(err)
+	err = CheckModuleGrants(exec)
+	s.Require().Error(err)
+	s.True(errors.Is(err, xerr.ErrNotGranted))
+	s.Contains(err.Error(), `module "@sentrie/uuid"`)
+
+	_, err = exec.ExecRule(ctx, "com/ex", "pol", "ok", nil)
+	s.Require().Error(err)
+	s.True(errors.Is(err, xerr.ErrNotGranted), "%T: %v", err, err)
+
+	open, err := NewExecutor(idx)
+	s.Require().NoError(err)
+	s.NoError(CheckModuleGrants(open))
 }

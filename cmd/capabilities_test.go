@@ -90,3 +90,30 @@ func (s *CmdTestSuite) TestCommandsDocumentTheCapabilitiesFlag() {
 		s.Contains(out, "--capabilities")
 	}
 }
+
+// require() inside pack TypeScript is checked when the pack loads, not first
+// on the request that reaches it.
+func (s *CmdTestSuite) TestCommandsCheckTypeScriptRequiresAtLoad() {
+	dir := s.writeTestPack(`namespace com/ex
+policy pol {
+  use { id } from "./helper.ts" as helper
+  rule ok = { yield helper.id() != "" }
+  export decision of ok
+}
+`)
+	s.Require().NoError(os.WriteFile(filepath.Join(dir, "helper.ts"),
+		[]byte("import { v4 } from \"@sentrie/uuid\";\nexport const id = () => v4();"), 0o600))
+	caps := s.writeCapabilities(`{"version": 1, "modules": ["@sentrie/hash"], "local_modules": true}`)
+
+	err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir, "--capabilities", caps})
+	s.Require().Error(err)
+	s.True(errors.Is(err, xerr.ErrNotGranted))
+	s.Contains(err.Error(), `require("@sentrie/uuid")`)
+
+	err = runServeCLI(s.T().Context(), []string{"--pack-location", dir, "--capabilities", caps})
+	s.Require().Error(err)
+	s.True(errors.Is(err, xerr.ErrNotGranted))
+
+	granted := s.writeCapabilities(`{"version": 1, "modules": ["@sentrie/uuid"]}`)
+	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir, "--capabilities", granted}))
+}
