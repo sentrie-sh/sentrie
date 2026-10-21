@@ -4,6 +4,8 @@
 package runtime
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -31,14 +33,58 @@ import (
 // Anything else (functions, symbols, BigInt, Set, a Map with a non-string key,
 // RegExp, Error, Promise, typed arrays, an invalid Date, a cyclic value) is an
 // error rather than a lossy value.
-func jsToSentrie(vm *goja.Runtime, v goja.Value) (any, error) {
-	c := jsConverter{vm: vm, onPath: map[*goja.Object]struct{}{}}
-	return c.convert(v, "return value")
+//
+// Conversion reads the value through goja from Go, which can run module code
+// (getters, Proxy traps). A JS exception, an interrupt from the deadline or a
+// stack overflow raised there becomes an error naming the path, never a panic,
+// and ctx is checked as the walk goes so a huge value cannot outlive it.
+func jsToSentrie(ctx context.Context, vm *goja.Runtime, v goja.Value) (_ any, err error) {
+	c := jsConverter{ctx: ctx, vm: vm, onPath: map[*goja.Object]struct{}{}, at: "return value"}
+	defer func() {
+		if r := recover(); r != nil {
+			jsErr, ok := r.(error)
+			if !ok || !isGojaThrow(jsErr) {
+				panic(r)
+			}
+			err = fmt.Errorf("converting %s: %w", c.at, jsErr)
+		}
+	}()
+	return c.convert(v, c.at)
+}
+
+// maxReturnedListLen bounds the length of an array a module may return. A
+// sparse array is cheap in JS but would be walked, and allocated, in full here.
+const maxReturnedListLen = 1 << 20
+
+// convertCheckEvery is how many values the walk converts between ctx checks.
+const convertCheckEvery = 1024
+
+// isGojaThrow reports whether a recovered panic is goja raising a JS throw,
+// an interrupt or a stack overflow from Go-side property access.
+func isGojaThrow(err error) bool {
+	var ex *goja.Exception
+	var interrupted *goja.InterruptedError
+	var overflow *goja.StackOverflowError
+	return errors.As(err, &ex) || errors.As(err, &interrupted) || errors.As(err, &overflow)
 }
 
 type jsConverter struct {
+	ctx    context.Context
 	vm     *goja.Runtime
 	onPath map[*goja.Object]struct{}
+	at     string // path being converted, for errors raised by a panic
+	steps  int
+}
+
+// step counts one converted value and checks ctx every convertCheckEvery.
+func (c *jsConverter) step(at string) error {
+	c.steps++
+	if c.steps%convertCheckEvery == 0 {
+		if err := c.ctx.Err(); err != nil {
+			return fmt.Errorf("converting %s: %w", at, err)
+		}
+	}
+	return nil
 }
 
 func unsupportedJS(what, at, why string) error {
@@ -46,6 +92,10 @@ func unsupportedJS(what, at, why string) error {
 }
 
 func (c *jsConverter) convert(v goja.Value, at string) (any, error) {
+	c.at = at
+	if err := c.step(at); err != nil {
+		return nil, err
+	}
 	if v == nil || goja.IsUndefined(v) {
 		return box.ToBoundaryAny(box.Undefined()), nil
 	}
@@ -80,7 +130,10 @@ func (c *jsConverter) convert(v goja.Value, at string) (any, error) {
 		return t.Unix(), nil
 	case "Array":
 		n := obj.Get("length").ToInteger()
-		out := make([]any, 0, n)
+		if n > maxReturnedListLen {
+			return nil, unsupportedJS("Array", at, fmt.Sprintf("length %d exceeds the limit of %d", n, maxReturnedListLen))
+		}
+		out := make([]any, 0, min(n, convertCheckEvery))
 		for i := range n {
 			item, err := c.convert(obj.Get(strconv.FormatInt(i, 10)), fmt.Sprintf("%s[%d]", at, i))
 			if err != nil {
@@ -92,7 +145,7 @@ func (c *jsConverter) convert(v goja.Value, at string) (any, error) {
 	case "String":
 		return obj.String(), nil
 	case "Number":
-		return c.convert(c.vm.ToValue(obj.ToNumber().Export()), at)
+		return obj.ToNumber().Export(), nil
 	case "Boolean":
 		return obj.ToBoolean(), nil
 	case "Object":
@@ -103,6 +156,8 @@ func (c *jsConverter) convert(v goja.Value, at string) (any, error) {
 			return c.convertMap(obj, at)
 		case reflect.TypeFor[[]any]():
 			return nil, unsupportedJS("Set", at, "convert it to an array first")
+		case reflect.TypeFor[goja.Proxy]():
+			return nil, unsupportedJS("Proxy", at, "return the target object instead")
 		case reflect.TypeFor[map[string]any]():
 		default:
 			// A Go value a builtin wrapped (struct, typed map or slice).
@@ -127,36 +182,35 @@ func (c *jsConverter) convert(v goja.Value, at string) (any, error) {
 func (c *jsConverter) convertMap(obj *goja.Object, at string) (any, error) {
 	out := map[string]any{}
 	var convErr error
-	if ex := c.vm.Try(func() {
-		c.vm.ForOf(obj, func(entry goja.Value) bool {
-			pair := entry.ToObject(c.vm)
-			key := pair.Get("0")
-			if _, isObj := key.(*goja.Object); isObj || key.ExportType() == nil || key.ExportType().Kind() != reflect.String {
-				convErr = unsupportedJS("Map", at, fmt.Sprintf("key %s is not a string", key.String()))
-				return false
-			}
-			k := key.String()
-			item, err := c.convert(pair.Get("1"), at+".get("+strconv.Quote(k)+")")
-			if err != nil {
-				convErr = err
-				return false
-			}
-			out[k] = item
-			return true
-		})
-	}); ex != nil {
-		return nil, ex
-	}
+	// ForOf panics on a JS throw; jsToSentrie's recover turns that into an error.
+	c.vm.ForOf(obj, func(entry goja.Value) bool {
+		pair := entry.ToObject(c.vm)
+		key := pair.Get("0")
+		if _, isObj := key.(*goja.Object); isObj || key.ExportType() == nil || key.ExportType().Kind() != reflect.String {
+			convErr = unsupportedJS("Map", at, fmt.Sprintf("key %s is not a string", key.String()))
+			return false
+		}
+		k := key.String()
+		item, err := c.convert(pair.Get("1"), at+".get("+strconv.Quote(k)+")")
+		if err != nil {
+			convErr = err
+			return false
+		}
+		out[k] = item
+		return true
+	})
 	if convErr != nil {
 		return nil, convErr
 	}
 	return out, nil
 }
 
+// acceptedGoKinds are the Go kinds a builtin-wrapped value may have.
+var acceptedGoKinds = []reflect.Kind{reflect.Map, reflect.Slice, reflect.Array, reflect.String, reflect.Int64, reflect.Float64, reflect.Bool, reflect.Struct}
+
 // exportGoValue keeps the pre-#154 handling for Go values wrapped by builtins.
 func exportGoValue(obj *goja.Object, at string) (any, error) {
-	accepted := []reflect.Kind{reflect.Map, reflect.Slice, reflect.Array, reflect.String, reflect.Int64, reflect.Float64, reflect.Bool, reflect.Struct}
-	if !slices.Contains(accepted, obj.ExportType().Kind()) {
+	if !slices.Contains(acceptedGoKinds, obj.ExportType().Kind()) {
 		return nil, unsupportedJS(obj.ExportType().String(), at, "unsupported Go value")
 	}
 	result := obj.Export()

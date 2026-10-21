@@ -4,6 +4,10 @@
 package runtime
 
 import (
+	"context"
+	"fmt"
+	"time"
+
 	"github.com/dop251/goja"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/trinary"
@@ -13,7 +17,7 @@ func (s *RuntimeTestSuite) convertJS(src string) (any, error) {
 	rt := goja.New()
 	v, err := rt.RunString(src)
 	s.Require().NoError(err)
-	return jsToSentrie(rt, v)
+	return jsToSentrie(s.T().Context(), rt, v)
 }
 
 // TestJSToSentrieConversionTable covers #154's table: Date and Map convert
@@ -48,6 +52,11 @@ func (s *RuntimeTestSuite) TestJSToSentrieConversionTable() {
 		`new Date(NaN)`:          "invalid Date",
 		`/x/`:                    "RegExp",
 		`(() => { const o = {}; o.self = o; return o; })()`: "cyclic",
+		`({ get x() { throw new Error("boom"); } })`:        "boom",
+		`new Proxy({ a: 1 }, {})`:                           "Proxy",
+		`new Array(2 ** 32 - 1)`:                            "exceeds the limit",
+		`(() => { const a = [1]; Object.defineProperty(a, 0, { get() { throw new Error("idx"); } }); return a; })()`: "idx",
+		`new Map([["k", { get v() { throw new Error("deep"); } }]])`:                                                 "deep",
 	}
 	for src, want := range bad {
 		_, err := s.convertJS(src)
@@ -92,5 +101,44 @@ policy p {
 		out, err := exec.ExecRule(ctx, "internals/test", "p", rule, map[string]any{})
 		s.Require().NoError(err, rule)
 		s.Equal(trinary.True, out.Decision.State, rule)
+	}
+}
+
+// TestConversionStopsAtTheDeadline covers the #215 review finding: a getter
+// that loops while the result is converted is interrupted by the call's
+// deadline and reported as an error, not a panic or a hang.
+func (s *RuntimeTestSuite) TestConversionStopsAtTheDeadline() {
+	exec := s.newTempPackExecutor(map[string]string{
+		"m.ts": `export function f(): any { return { get x() { while (true) {} } }; }`,
+		"policy.sentrie": `namespace conv/test
+
+policy p {
+  use { f } from "./m" as m
+  rule r = { yield m.f() }
+  export decision of r
+}
+`,
+	})
+	defer func() { s.NoError(exec.Close()) }()
+
+	ctx, cancel := context.WithTimeout(s.T().Context(), 100*time.Millisecond)
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				done <- fmt.Errorf("panicked: %v", r)
+			}
+		}()
+		_, err := exec.ExecRule(ctx, "conv/test", "p", "r", map[string]any{})
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		s.Require().Error(err)
+		s.NotContains(err.Error(), "panicked")
+		s.ErrorIs(err, context.DeadlineExceeded)
+	case <-time.After(5 * time.Second):
+		s.FailNow("conversion did not stop at the deadline")
 	}
 }
