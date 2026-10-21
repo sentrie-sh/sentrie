@@ -54,3 +54,4 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
   - **`net` deliberately has no I/O.** It is CIDR arithmetic over `net.ParseCIDR`, not a network client. Preserving that is what keeps the sandbox claim honest.
   - **Argument counts are checked exactly**, so an extra argument is an error rather than being ignored - stricter than JavaScript convention and a likely source of surprise for module authors.
   - **`crypto` and `jwt` are security-critical surfaces.** Their failures throw like every other builtin's (#111).
+  - **`crypto.sha256` returns the lowercase hex digest**, the same encoding as `hash.sha256`, and throws on a wrong argument count (#138). Before #138 it returned the input bytes with the empty-string digest appended.
