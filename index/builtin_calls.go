@@ -12,8 +12,10 @@ import (
 	"github.com/sentrie-sh/sentrie/xerr"
 )
 
-// builtinCallVisitor receives every call that resolves to a native builtin.
-type builtinCallVisitor func(decl *builtins.Decl, call *ast.CallExpression)
+// builtinCallVisitor receives every call that resolves to a native builtin,
+// with the scope it was resolved in (checkBuiltinCalls needs it to resolve
+// argument kinds; other visitors ignore it).
+type builtinCallVisitor func(k *kindCheckCtx, decl *builtins.Decl, call *ast.CallExpression)
 
 // forEachBuiltinCall visits every call to a native builtin in the index: fact
 // defaults, policy lets, rule default, when and body slots, export attachments
@@ -33,6 +35,9 @@ func (idx *Index) forEachBuiltinCall(ctx context.Context, visit builtinCallVisit
 	}
 
 	for _, ns := range idx.Namespaces {
+		if err := cancelled(); err != nil {
+			return err
+		}
 		for _, policy := range ns.Policies {
 			if err := cancelled(); err != nil {
 				return err
@@ -73,7 +78,9 @@ func (idx *Index) forEachBuiltinCall(ctx context.Context, visit builtinCallVisit
 	return nil
 }
 
-// visitBuiltinCalls walks e with the scoping rules of walkExpr.
+// visitBuiltinCalls walks e, tracking the bindings that shadow builtins: a
+// block binds each let after walking its initializer, and a lambda pushes its
+// parameters.
 func (k *kindCheckCtx) visitBuiltinCalls(e ast.Expression, visit builtinCallVisitor) {
 	if e == nil {
 		return
@@ -82,7 +89,7 @@ func (k *kindCheckCtx) visitBuiltinCalls(e ast.Expression, visit builtinCallVisi
 	switch n := e.(type) {
 	case *ast.CallExpression:
 		if decl, ok := k.isBuiltinCall(n); ok {
-			visit(decl, n)
+			visit(k, decl, n)
 		}
 		k.visitBuiltinCalls(n.Callee, visit)
 		for _, a := range n.Arguments {
@@ -102,6 +109,17 @@ func (k *kindCheckCtx) visitBuiltinCalls(e ast.Expression, visit builtinCallVisi
 		child.visitBuiltinCalls(n.Yield, visit)
 	case *ast.LambdaExpression:
 		k.pushLambdaScope(n).visitBuiltinCalls(n.Body, visit)
+	case *ast.ImportClause:
+		// A rule body of the form `import decision r from p with f as <expr>`.
+		// Each with expression is evaluated in the importing rule's context
+		// (runtime ImportDecision), so it is checked in this scope.
+		// forEachDeriveExprChild has no case for it, since a derive cannot
+		// contain one.
+		for _, with := range n.Withs {
+			if with != nil {
+				k.visitBuiltinCalls(with.Expr, visit)
+			}
+		}
 	default:
 		_ = forEachDeriveExprChild(e, func(child ast.Expression) error {
 			k.visitBuiltinCalls(child, visit)
