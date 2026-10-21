@@ -39,7 +39,7 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
   - **Exceptions:** Per-function argument-count and parse errors, returned rather than thrown.
 
 - **Signature:** `time.now() -> number`
-  - **Behavior:** Reads the `ExecutionStartTimeUnixKey` VM global and returns it, so JavaScript observes the **same pinned instant** as the policy evaluator. Falls back to `time.Now().Unix()` when the global is absent.
+  - **Behavior:** Reads the `ExecutionStartTimeUnixKey` VM global and returns it, so JavaScript observes the **same pinned instant** as the policy evaluator. Falls back to `time.Now().Unix()` when the global is absent. `js.BeginCall` sets the global before every module call.
   - **Side Effects:** None.
   - **Exceptions:** Argument-count error if given any argument.
 
