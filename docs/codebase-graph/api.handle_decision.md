@@ -26,13 +26,13 @@ The only functional endpoint in the service and the whole reason the API exists:
 - **Signature:** `POST /decision/{namespace}/{policy}[/{rule}]`
   - **Request:** `DecisionRequest` - `{"facts": {"name": <any>, ...}}`. Query parameters are collected into a `runConfig` map.
   - **Response:** `DecisionResponse` - `{"decisions": [ExecutorOutput...]}` on success; RFC 9457 Problem Details on evaluation failure.
-  - **Behavior:** Sets CORS headers, validates the path, short-circuits `OPTIONS`, rejects non-POST, resolves segments, parses query parameters, decodes the body, evaluates, and encodes.
+  - **Behavior:** Derives a request context with the API's `requestTimeout` deadline, so evaluation stops when it passes even if the client stays connected. Sets CORS headers, validates the path, short-circuits `OPTIONS`, rejects non-POST, resolves segments, parses query parameters, decodes the body, evaluates, and encodes.
   - **Side Effects:** Full policy evaluation - JavaScript execution, memoization cache writes, fresh JS VMs per module call.
-  - **Exceptions:** Problem Details for missing path (400), unresolvable path (404), wrong method (405), unparseable JSON (400), and evaluation failures (400 for invalid invocation, 500 otherwise).
+  - **Exceptions:** Problem Details for missing path (400), unresolvable path (404), wrong method (405), unparseable JSON (400), and evaluation failures (400 for invalid invocation, 503 when the deadline passed, 500 otherwise).
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless per request; all state lives in the shared executor.
-- **Performance/Scale Notes:** Unbounded work per request. The body is decoded without a size limit, facts flow into evaluation where collection builtins multiply over them, and the trace tree allocates a node per evaluation step. Request cost is a function of both payload size and policy complexity, neither of which is capped.
+- **Performance/Scale Notes:** Time per request is bounded by the request deadline, and JS call depth by `js.MaxCallStackSize`; memory is not (see [[runtime.executor]]). The body is decoded without a size limit, facts flow into evaluation where collection builtins multiply over them, and the trace tree allocates a node per evaluation step. Request cost is a function of both payload size and policy complexity, neither of which is capped.
 - **Dependencies Risk:**
   - **`runConfig` is built from query parameters and never used.** Dead code that reads as though per-request configuration is supported.
   - **`strings.TrimPrefix(path, "/decision/")` is a no-op.** `r.PathValue("target")` already excludes the route prefix.
