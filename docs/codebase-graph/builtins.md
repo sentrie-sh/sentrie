@@ -30,7 +30,7 @@ The single registry of Sentrie's native functions and the declarative machinery 
   - **Exceptions:** Propagated from the callee.
 
 - **Signature:** `Table map[string]*Decl`
-  - **Behavior:** Fifteen builtins. Collection higher-order functions - `all`, `any`, `filter`, `first`, `collect`, `reduce`, `distinct`; list shaping - `as_list`, `normalise_list`, `flatten`, `flatten_deep`, `count`, `merge`; and two specials - `now` and `error`. The map key **must** equal `Decl.Name`, enforced by a test.
+  - **Behavior:** Sixteen builtins. Collection higher-order functions - `all`, `any`, `filter`, `first`, `collect`, `reduce`, `distinct`; list shaping - `as_list`, `normalise_list`, `flatten`, `flatten_deep`, `count`, `merge`; the clock - `now` (Unix **seconds**) and `now_ms` (Unix milliseconds), both the pinned execution start; and `error`. `now` returned milliseconds until [#153](https://github.com/sentrie-sh/sentrie/issues/153) unified it with `@sentrie/time.now()` and JWT `exp`/`nbf`. The map key **must** equal `Decl.Name`, enforced by a test.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
