@@ -1,8 +1,15 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
 namespace test/js
 
 policy removedFunctionsTest {
-  -- Test that removed functions from @sentrie/math, @sentrie/string, @sentrie/json are no longer available
-  -- These should fail to compile/execute
+  -- The JavaScript-flavoured `round`, `length` and `parse` were removed from
+  -- @sentrie/math, @sentrie/string and @sentrie/json and now live only in
+  -- @sentrie/js, as plain re-exports of Math.round, String length and
+  -- JSON.parse. @sentrie/math has its own `round` (half away from zero),
+  -- @sentrie/string has no `length`, and @sentrie/json parses with `unmarshal`.
+  -- Each rule below calls the @sentrie/js version and is expected to work.
 
   fact value: number
   fact text: string
