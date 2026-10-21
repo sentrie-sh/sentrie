@@ -21,6 +21,25 @@ const (
 	cidrExpandMaxHosts    = 1 << cidrExpandMaxHostBits // 65,536
 )
 
+// classifyIP builds a classification predicate (isPrivate, isPublic,
+// isLoopback, isMulticast). Unlike the validity predicates isIPv4 and isIPv6,
+// which answer false for junk, these throw on input that is not an IP address:
+// policies negate them (`!isPrivate(ip)`), and a false for junk would make the
+// negation true and let a malformed address through (#213).
+func classifyIP(vm *goja.Runtime, name string, classify func(net.IP) bool) func(goja.FunctionCall) goja.Value {
+	return func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) != 1 {
+			return throwErr(vm, fmt.Errorf("%s requires exactly 1 argument", name))
+		}
+		ipStr := call.Argument(0).String()
+		ip := net.ParseIP(ipStr)
+		if ip == nil {
+			return throwErr(vm, fmt.Errorf("%s: invalid IP address: %q", name, ipStr))
+		}
+		return vm.ToValue(classify(ip))
+	}
+}
+
 var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 	ex := vm.NewObject()
 
@@ -208,57 +227,21 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		return vm.ToValue(ip.To4() == nil && ip.To16() != nil)
 	})
 
-	_ = ex.Set("isPrivate", func(call goja.FunctionCall) goja.Value {
-		if len(call.Arguments) != 1 {
-			return throwErr(vm, errors.New("isPrivate requires exactly 1 argument"))
-		}
-		ipStr := call.Argument(0).String()
+	_ = ex.Set("isPrivate", classifyIP(vm, "isPrivate", func(ip net.IP) bool {
+		return ip.IsPrivate()
+	}))
 
-		ip := net.ParseIP(ipStr)
-		if ip == nil {
-			return vm.ToValue(false)
-		}
-		return vm.ToValue(ip.IsPrivate())
-	})
+	_ = ex.Set("isPublic", classifyIP(vm, "isPublic", func(ip net.IP) bool {
+		return ip.IsGlobalUnicast() && !ip.IsPrivate() && !ip.IsLoopback()
+	}))
 
-	_ = ex.Set("isPublic", func(call goja.FunctionCall) goja.Value {
-		if len(call.Arguments) != 1 {
-			return throwErr(vm, errors.New("isPublic requires exactly 1 argument"))
-		}
-		ipStr := call.Argument(0).String()
+	_ = ex.Set("isLoopback", classifyIP(vm, "isLoopback", func(ip net.IP) bool {
+		return ip.IsLoopback()
+	}))
 
-		ip := net.ParseIP(ipStr)
-		if ip == nil {
-			return vm.ToValue(false)
-		}
-		return vm.ToValue(ip.IsGlobalUnicast() && !ip.IsPrivate() && !ip.IsLoopback())
-	})
-
-	_ = ex.Set("isLoopback", func(call goja.FunctionCall) goja.Value {
-		if len(call.Arguments) != 1 {
-			return throwErr(vm, errors.New("isLoopback requires exactly 1 argument"))
-		}
-		ipStr := call.Argument(0).String()
-
-		ip := net.ParseIP(ipStr)
-		if ip == nil {
-			return vm.ToValue(false)
-		}
-		return vm.ToValue(ip.IsLoopback())
-	})
-
-	_ = ex.Set("isMulticast", func(call goja.FunctionCall) goja.Value {
-		if len(call.Arguments) != 1 {
-			return throwErr(vm, errors.New("isMulticast requires exactly 1 argument"))
-		}
-		ipStr := call.Argument(0).String()
-
-		ip := net.ParseIP(ipStr)
-		if ip == nil {
-			return vm.ToValue(false)
-		}
-		return vm.ToValue(ip.IsMulticast())
-	})
+	_ = ex.Set("isMulticast", classifyIP(vm, "isMulticast", func(ip net.IP) bool {
+		return ip.IsMulticast()
+	}))
 
 	return ex, nil
 }
