@@ -32,9 +32,13 @@ load any TypeScript or JavaScript files of its own.
 | `modules` | array of strings | every builtin module is granted | Builtin modules the pack may load, by full specifier (`"@sentrie/hash"`). `[]` grants none. |
 | `local_modules` | boolean | `true` | Whether the pack may load its own TypeScript or JavaScript files. |
 
-`null` counts as absent. Unknown fields, any other `version`, an empty builtin name,
-and a module entry without the `@sentrie/` prefix are errors, and the command
-refuses to start.
+`null` counts as absent. These are errors, and the command refuses to start: an
+empty file, a top-level value that is not an object, a missing `version` or any
+other `version`, an unknown key, a key spelled with different case (`"Builtins"`),
+a key given twice, data after the object, an empty builtin name, and a module
+entry without the `@sentrie/` prefix. Syntax, type, unknown-key and duplicate-key
+errors name the line and column, for example
+`caps.json: capabilities: 3:21: invalid character ']' looking for beginning of value`.
 
 Names are not checked against the builtins and modules this build ships. A file
 written for a newer Sentrie still loads, and a name this build does not know grants
@@ -47,9 +51,11 @@ served, every use is checked against the grant. Each denial is reported with its
 source span, and the command fails:
 
 ```
-policy.sentrie:3:3-3:0: module "@sentrie/hash": not granted by the capabilities file
 policy.sentrie:4:21-26: builtin "count": not granted by the capabilities file
 ```
+
+A `use` that is not granted is reported the same way, at the `use` statement,
+as `module "@sentrie/hash"` or `local module "./helper"`.
 
 - **Builtins:** every call to a native builtin, in rules, policy `let`s, fact
   defaults, export attachments and derive bodies. A name shadowed by a `let`, a
@@ -57,14 +63,17 @@ policy.sentrie:4:21-26: builtin "count": not granted by the capabilities file
 - **Builtin modules:** every `use ... from @sentrie/<name>` statement.
 - **Local modules:** every `use ... from "./path"` and `use ... from @local/...`
   statement, when `local_modules` is `false`.
+- **`require()` in TypeScript:** every module a `use` loads is compiled, and each
+  static `require("...")` (every `import` compiles to one) in pack-local code is
+  checked against `modules` and `local_modules`, following pack-local requires
+  transitively. So `serve` refuses to start instead of failing the first request
+  that reaches the module.
 
 The runtime enforces the same grant again:
 
 - Builtin dispatch refuses a builtin that is not granted.
-- Module resolution refuses a module that is not granted. This also covers
-  `require()` inside TypeScript, which the load-time check cannot see: a granted
-  local module that requires `@sentrie/uuid` fails when it loads if `@sentrie/uuid`
-  is not granted.
+- Module resolution refuses a module that is not granted, including a dynamic
+  `require(expr)` that the load-time scan cannot see.
 
 Runtime denials wrap the same `not granted by the capabilities file` error.
 
@@ -73,4 +82,6 @@ Runtime denials wrap the same `not granted by the capabilities file` error.
 `sentrie validate` prints a warning for every nondeterministic source a pack uses,
 whether or not a capabilities file is given. These sources are the `now` builtin,
 `@sentrie/time.now`, `@sentrie/uuid.v4`, `v6` and `v7`, and `@sentrie/js.now` and
-`random`. To forbid them, leave them out of `builtins` and `modules`.
+`random`. To forbid them, leave them out of `builtins` and `modules`, and set
+`local_modules` to `false`: a pack's own TypeScript can call `Date.now()` and
+`Math.random()` directly.

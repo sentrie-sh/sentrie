@@ -59,7 +59,12 @@ The top-level driver: it owns the index, the JS registry, the loaded modules, an
 - **Signature:** `WithCapabilities(grant *capabilities.Capabilities) -> NewExecutorOption` (in `runtime/capabilities.go`)
   - **Behavior:** Stores the operator's grant ([[capabilities]]) for the builtin gate in [[runtime.eval_call]] and calls `jsRegistry.SetCapabilities`, so `bindUses` and every `require()` are held to it. These are the runtime halves of `index.CheckCapabilities`, which callers run at load time. A nil grant allows everything.
   - **Side Effects:** Mutates the executor and its registry during construction.
-  - **Exceptions:** None at construction; denials surface from `ExecRule` wrapping `xerr.ErrNotGranted`.
+  - **Exceptions:** None at construction; denials surface from `ExecRule` wrapping `xerr.ErrNotGranted` (goja's exception wrapping preserves it).
+
+- **Signature:** `CheckModuleGrants(exec Executor) -> error` (in `runtime/capabilities.go`)
+  - **Behavior:** Load-time check for TypeScript. For every `use` in the index (sorted), calls `jsRegistry.CheckUseRequires`, which compiles the module and checks each static `require("...")` in pack-local code, transitively, against the grant. Errors are prefixed with the `use` span, alias and policy, and joined. Returns nil without a grant.
+  - **Side Effects:** Compiles every used module (cached for the process).
+  - **Exceptions:** Grant denials wrapping `xerr.ErrNotGranted`; resolution and compile errors.
 
 - **Signature:** `(*executorImpl).ExecPolicy(ctx, namespace, policy, facts) -> ([]*ExecutorOutput, error)`
   - **Behavior:** Resolves the policy and launches one goroutine per exported rule via `wg.Go`, appending results under a mutex and joining errors.

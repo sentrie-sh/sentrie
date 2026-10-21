@@ -38,7 +38,7 @@ Defines the four user-facing commands and wires the loading pipeline behind each
   - **Exceptions:** **Panics** on a nil CLI - a deliberate programmer-error assertion.
 
 - **Signature:** `--capabilities <path>` on `serve`, `exec` and `validate`
-  - **Behavior:** Loads the operator's grant ([[capabilities]]) after `Validate`, fails with span-anchored `xerr.CapabilityError`s when the pack uses anything outside it, and hands the grant to the executor for the runtime gates. Empty (the default) grants everything. Shared through `capabilitiesFlag` and `loadAndCheckCapabilities` in `cmd/capabilities.go`.
+  - **Behavior:** Loads the operator's grant ([[capabilities]]) after `Validate`, fails with span-anchored `xerr.CapabilityError`s when the pack uses anything outside it, and hands the grant to the executor for the runtime gates. Empty (the default) grants everything. Shared through `capabilitiesFlag` and `newGrantedExecutor` in `cmd/capabilities.go`, which loads the grant, runs `index.CheckCapabilities`, builds the executor with `runtime.WithCapabilities`, and runs `runtime.CheckModuleGrants` so `require()` in pack TypeScript is checked before serving.
   - **Side Effects:** Reads the file.
   - **Exceptions:** Capabilities parse errors; joined capability denials.
 

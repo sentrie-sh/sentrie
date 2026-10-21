@@ -45,6 +45,11 @@ Owns module identity and compilation for the whole engine. It resolves `use` ref
   - **Side Effects:** Sets the grant. Like the `Register*` calls, it is unsynchronised and must happen during executor construction.
   - **Exceptions:** `module %q: not granted by the capabilities file` / `local module %q: ...`, wrapping `xerr.ErrNotGranted`.
 
+- **Signature:** `CheckUseRequires(localFrom, libFrom, fileDir) -> error` (in `capabilities.go`)
+  - **Behavior:** With a grant installed: `PrepareUse` (which checks the module itself), then for pack-local code a scan of `TranspiledCode` for static `require("...")` (esbuild emits every import that way), resolving each through `LoadRequire` (so `checkGrant` applies) and recursing into pack-local requires. A regex scan: it may over-match a `require("...")` inside a string literal, which fails closed, and it cannot see dynamic `require(expr)`, which the runtime gate still refuses.
+  - **Side Effects:** Compiles the modules it visits.
+  - **Exceptions:** `<module>: require(%q): <grant or resolution error>`.
+
 - **Signature:** `programFor(m *ModuleSpec) -> (*goja.Program, error)`
   - **Behavior:** Behind `sync.Once`: reads the source, transpiles, parses the source map, wraps as an IIFE factory, and compiles. A Go-backed module returns `(nil, nil)` because there is no program to run.
   - **Side Effects:** Populates `TranspiledCode`, `TranspiledMap`, and `Program` on the spec.
