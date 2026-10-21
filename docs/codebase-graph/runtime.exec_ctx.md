@@ -42,7 +42,7 @@ The per-execution scope chain: facts, policy lets, evaluated locals, module bind
   - **Exceptions:** None.
 
 - **Signature:** `(*ExecutionContext).DetachedChildContext() -> *ExecutionContext`
-  - **Behavior:** The purity boundary: **no parent**, no facts, no lets, no modules, fresh locals, cloned refStack (so derive→derive recursion is still caught across the boundary), and inherited `createdAt` so `now()` stays policy-stable inside derives.
+  - **Behavior:** The purity boundary: **no parent**, no facts, no lets, no modules, fresh locals, cloned refStack (so derive→derive recursion is still caught across the boundary), and inherited `createdAt` so the execution clock stays policy-stable inside derives (the `now` builtin itself is refused there since #168, being nondeterministic across executions).
   - **Side Effects:** Allocation.
   - **Exceptions:** None.
 

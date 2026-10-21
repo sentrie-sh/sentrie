@@ -46,7 +46,8 @@ func (s *RuntimeTestSuite) mustBuildDeriveExecutor(ctx context.Context, programs
 }
 
 func (s *RuntimeTestSuite) TestIsBuiltinAllowedInDerive() {
-	s.True(builtins.IsDeriveSafe("now"))
+	s.True(builtins.IsDeriveSafe("count"))
+	s.False(builtins.IsDeriveSafe("now"))
 	s.False(builtins.IsDeriveSafe("not_a_builtin"))
 }
 

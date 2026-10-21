@@ -249,7 +249,11 @@ func getTarget(_ context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 
 	if nameForBuiltin != "" {
 		if decl, ok := builtins.Table[nameForBuiltin]; ok {
-			if ec.evalDerive != nil && !decl.DeriveSafe {
+			// Paired with the static check in index/derive_purity.go.
+			if ec.evalDerive != nil && !decl.PermittedInDerive() {
+				if decl.Nondeterministic {
+					return nil, fmt.Errorf("builtin %q is nondeterministic and is not permitted inside a derive", nameForBuiltin)
+				}
 				return nil, fmt.Errorf("builtin %q is not permitted inside a derive - it cannot guarantee deterministic output within a single policy execution", nameForBuiltin)
 			}
 			return func(ctx context.Context, args ...box.Value) (box.Value, error) {

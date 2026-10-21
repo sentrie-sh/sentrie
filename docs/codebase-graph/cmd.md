@@ -17,7 +17,8 @@ Defines the four user-facing commands and wires the loading pipeline behind each
 | :--- | :--- | :--- | :--- |
 | `cmd` | `IMPORTS` | `ext.binaek.cling` | The CLI framework: command, flag, and argument definitions plus `Hydrate` for typed binding. |
 | `cmd` | `CALLS` | [[loader]] | `LoadPack` reads the manifest; `LoadPrograms` parses every policy file. |
-| `cmd` | `CALLS` | [[index]] | `CreateIndex`, `SetPack`, `AddProgram`, `Validate`. |
+| `cmd` | `CALLS` | [[index]] | `CreateIndex`, `SetPack`, `AddProgram`, `Validate`, and `NondeterminismWarnings` in `validate`. |
+| `cmd` | `READS_FROM` | [[runtime.js.registry]] | `validate` passes `js.IsNondeterministicExport` to the index's warning pass. |
 | `cmd` | `CALLS` | [[runtime.executor]] | `NewExecutor`, then `ExecPolicy` / `ExecRule`. |
 | `cmd` | `CALLS` | [[api.http]] | `serve` constructs and drives the HTTP API. |
 | `cmd` | `LAYERED_ON` | [[pack]] | `init` constructs and TOML-encodes a new pack manifest. |
@@ -46,7 +47,7 @@ Defines the four user-facing commands and wires the loading pipeline behind each
   - **Exceptions:** File read errors; JSON decode errors; evaluation errors.
 
 - **Signature:** `sentrie validate <rule> [--pack-location .] [--facts '{}']`
-  - **Behavior:** Runs the pipeline and constructs an executor, returning any error. Success means the pack parses, indexes, validates, and can be loaded.
+  - **Behavior:** Runs the pipeline and constructs an executor, returning any error. Success means the pack parses, indexes, validates, and can be loaded. It then prints one `warning: <span>: <message>` line to stderr per use of a nondeterministic builtin or builtin-module export (`index.NondeterminismWarnings` with `js.IsNondeterministicExport`); warnings never fail validation.
   - **Side Effects:** None beyond reading files.
   - **Exceptions:** Any pipeline error.
 

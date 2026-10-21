@@ -33,7 +33,7 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
     - **Pure computation** - `math`, `string`, `collection` (the largest at ~450 lines), `semver`, `json`, `encoding`, `base64`, `url`.
     - **Cryptographic** - `hash`, `crypto`, `jwt` (verification and claim extraction).
     - **Pattern and network** - `regex`, `net` (CIDR containment, intersection, validity - **arithmetic only, no sockets**).
-    - **Non-deterministic** - `uuid` (fresh values per call), `time` (clock-dependent).
+    - **Non-deterministic** - `uuid` (fresh values per call), `time` (clock-dependent). The exact exports are listed in `runtime/js/nondeterminism.go` (see [[runtime.js.registry]]): `uuid.v4`, `v6`, `v7`, `time.now`, and the `js` module's `now` (`Date.now`) and `random` (`Math.random`).
     - **TypeScript** - the `js` module, embedded from `ts_src/_sentrie_js.ts` rather than Go-implemented.
   - **Side Effects:** None escape the VM; no filesystem, network, or process access.
   - **Exceptions:** Per-function argument-count and parse errors, returned rather than thrown.
@@ -48,7 +48,7 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
 - **Performance/Scale Notes:** Native Go, so orders of magnitude faster than equivalent interpreted JavaScript - which is the main reason to prefer a builtin over a hand-rolled implementation in a pack. Object construction on each require is small but not free.
 - **Dependencies Risk:**
   - **Errors are returned, not thrown.** The functions `return vm.NewGoError(...)` as an ordinary return value rather than panicking with it. JavaScript callers therefore receive an **Error object as the result**, which is truthy and will flow onward as data unless the caller explicitly type-checks. A pattern like `if (net.cidrContains(a, b)) { … }` treats a malformed CIDR as a **match**. This is the most likely source of silently wrong policy outcomes involving module code, and it applies uniformly across the builtin family.
-  - **`uuid` and the `time` fallback are non-deterministic**, which is why module calls are forbidden inside derives (see [[runtime.eval_call]]) - a derive must be reproducible within an execution.
+  - **`uuid`, `time.now`, `js.now` and `js.random` are non-deterministic** (and `sentrie validate` warns on importing them), which is why module calls are forbidden inside derives (see [[runtime.eval_call]]) - a derive must be reproducible within an execution.
   - **The `time.now()` fallback is silent.** If the execution-start global is missing, JavaScript quietly gets wall-clock time and diverges from what the evaluator's own `now()` reports, with no signal.
   - **`net` deliberately has no I/O.** It is CIDR arithmetic over `net.ParseCIDR`, not a network client. Preserving that is what keeps the sandbox claim honest.
   - **Argument counts are checked exactly**, so an extra argument is an error rather than being ignored - stricter than JavaScript convention and a likely source of surprise for module authors.
