@@ -6,9 +6,11 @@ package runtime
 import (
 	"os"
 	"path/filepath"
+	"testing"
 
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/loader"
+	"github.com/stretchr/testify/require"
 )
 
 const testPackManifest = `[schema]
@@ -23,28 +25,35 @@ version = "0.0.1"
 // directory, runs the load, index and validate pipeline over it, and returns an
 // executor for the pack.
 func (s *RuntimeTestSuite) newTempPackExecutor(files map[string]string, opts ...NewExecutorOption) *executorImpl {
-	ctx := s.T().Context()
-	dir := s.T().TempDir()
-	s.Require().NoError(os.WriteFile(filepath.Join(dir, loader.PackFileName), []byte(testPackManifest), 0o644))
+	return buildTempPackExecutor(s.T(), files, opts...)
+}
+
+// buildTempPackExecutor is newTempPackExecutor for any testing.TB, so
+// benchmarks can build the same packs.
+func buildTempPackExecutor(tb testing.TB, files map[string]string, opts ...NewExecutorOption) *executorImpl {
+	r := require.New(tb)
+	ctx := tb.Context()
+	dir := tb.TempDir()
+	r.NoError(os.WriteFile(filepath.Join(dir, loader.PackFileName), []byte(testPackManifest), 0o644))
 	for name, content := range files {
 		path := filepath.Join(dir, name)
-		s.Require().NoError(os.MkdirAll(filepath.Dir(path), 0o755))
-		s.Require().NoError(os.WriteFile(path, []byte(content), 0o644))
+		r.NoError(os.MkdirAll(filepath.Dir(path), 0o755))
+		r.NoError(os.WriteFile(path, []byte(content), 0o644))
 	}
 
 	packFile, err := loader.LoadPack(ctx, dir)
-	s.Require().NoError(err)
+	r.NoError(err)
 	programs, err := loader.LoadPrograms(ctx, packFile)
-	s.Require().NoError(err)
+	r.NoError(err)
 
 	idx := index.CreateIndex()
-	s.Require().NoError(idx.SetPack(ctx, packFile))
+	r.NoError(idx.SetPack(ctx, packFile))
 	for _, program := range programs {
-		s.Require().NoError(idx.AddProgram(ctx, program))
+		r.NoError(idx.AddProgram(ctx, program))
 	}
-	s.Require().NoError(idx.Validate(ctx))
+	r.NoError(idx.Validate(ctx))
 
 	exec, err := NewExecutor(idx, opts...)
-	s.Require().NoError(err)
+	r.NoError(err)
 	return exec.(*executorImpl)
 }
