@@ -25,8 +25,8 @@ The operator's grant: a deployment-level JSON file, passed with `--capabilities`
 
 ## 3. Interface Contracts & Public Surface
 
-- **Signature:** `Capabilities` - `{ Version int, Builtins *[]string, Modules *[]string, LocalModules *bool }`
-  - **Behavior:** JSON keys `version`, `builtins`, `modules`, `local_modules`. A nil field (absent or `null`) leaves that dimension unrestricted; an empty list grants nothing. Module entries are full specifiers (`@sentrie/hash`).
+- **Signature:** `Capabilities` - `{ Version int, Builtins *[]string, Modules *[]string, LocalModules *bool, Deterministic *bool }`
+  - **Behavior:** JSON keys `version`, `builtins`, `modules`, `local_modules`, `deterministic_js` (field `Deterministic`). A nil field (absent or `null`) leaves that dimension unrestricted; an empty list grants nothing. Module entries are full specifiers (`@sentrie/hash`).
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -35,8 +35,8 @@ The operator's grant: a deployment-level JSON file, passed with `--capabilities`
   - **Side Effects:** `Load` reads the file.
   - **Exceptions:** Errors prefixed `capabilities:` (with `line:column` where known); `Load` prefixes every error, read or parse, with the path.
 
-- **Signature:** `(*Capabilities).AllowsBuiltin(name) -> bool` / `AllowsModule(key) -> bool` / `AllowsLocalModules() -> bool`
-  - **Behavior:** Membership tests. Every method is nil-safe and a nil receiver grants everything.
+- **Signature:** `(*Capabilities).AllowsBuiltin(name) -> bool` / `AllowsModule(key) -> bool` / `AllowsLocalModules() -> bool` / `DeterministicJS() -> bool`
+  - **Behavior:** Membership tests. Every method is nil-safe and a nil receiver grants everything. `DeterministicJS` (JSON `deterministic_js`, default false) turns on the seeded `Date`/`Math.random` shims in [[runtime.js.stdlib]].
   - **Side Effects:** None.
   - **Exceptions:** None.
 
