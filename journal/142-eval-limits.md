@@ -38,3 +38,16 @@
   2. "Add --eval-timeout to exec and serve and a request deadline to the HTTP API": `cmd/eval_timeout.go`, `cmd/eval_timeout_test.go`, `cmd/exec.go`, `cmd/serve.go`, `api/http.go`, `api/handle_decision.go`, `api/request_timeout_test.go`.
   3. "Document evaluation limits in the README and the graph": `README.md`, `docs/codebase-graph/{runtime.executor,runtime.js.alias_runtime,cmd,api,api.http,api.handle_decision}.md`, `journal/142-eval-limits.md`.
 - _Model: claude-opus-5-5_
+
+### 22:10 - Review fixes (PR #219)
+- Finding: three Go-side touches ran module code outside any interrupt, so the deadline did not bound them. They were `newJSInstance`'s `exports.Keys()` (a Proxy `ownKeys` trap), `checkExports`'s `probe.exports.Get` (an export getter, which also held `probeMu` and so blocked `Close`), and `lookupExport`, which ran before `Call` installed its interrupt.
+- Fix in `runtime/modules.go`: new `runGuardedJS(ctx, vm, f)` (`InterruptOnDone` plus `recoverUncaughtJS`, which turns goja throws, interrupts and stack overflows into errors).
+  - `loadJSInstance` captures the export keys under it.
+  - `checkExports` takes `ctx`, runs under it, and always clears the probe's interrupt afterwards (`probeMu` is held and the guard's stop has returned).
+  - `Call` installs `InterruptOnDone` before `lookupExport` and defers `recoverUncaughtJS`, so the lookup and the return conversion are covered too.
+- Duplication, by request: `recoverUncaughtJS` duplicates `isGojaThrow` plus the recover that `154-js-boundary-values` added to `jsToSentrie` (PR #215 fix), because this branch was cut from 154 before that fix and branches must not be merged. The names differ so the restack after #215 merges does not clash. Once both are in `main`, `jsToSentrie` can drop its own recover in favour of `Call`'s (follow-up).
+- `serve` keeps one deadline, the executor's. `handleDecision` no longer adds its own `context.WithTimeout` (it always fired first, so the "evaluation exceeded its ... deadline" message never reached clients, and it also charged body decoding to the budget). `WithRequestTimeout` now only sizes the write timeout. With `--eval-timeout 0` the 30s write timeout still caps a response; this is documented and pinned by a test.
+- The deadline prefix is now added only when the error itself wraps `context.DeadlineExceeded`, so a fact-validation error is not labelled a timeout. The `DefaultEvalTimeout` comment now says it bounds JavaScript only (#225).
+- README and the `runtime.executor`, `api.http`, `api.handle_decision` and `cmd` nodes are corrected to say where the deadline applies.
+- Tests: `TestDeadlineBoundsGoSideJSTouches` (a looping getter export and a looping Proxy `ownKeys`, both fail with `DeadlineExceeded` within the 5s guard, and `Close` returns afterwards). The API test now runs serve's configuration and asserts the deadline message. `TestWriteTimeoutCoversTheRequestDeadline` pins the `0` case.
+- _Model: claude-opus-5-5_

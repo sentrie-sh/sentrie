@@ -125,7 +125,8 @@ func recoverUncaughtJS(err *error) {
 	var ex *goja.Exception
 	var interrupted *goja.InterruptedError
 	var overflow *goja.StackOverflowError
-	if !ok || !(errors.As(jsErr, &ex) || errors.As(jsErr, &interrupted) || errors.As(jsErr, &overflow)) {
+	isJS := ok && (errors.As(jsErr, &ex) || errors.As(jsErr, &interrupted) || errors.As(jsErr, &overflow))
+	if !isJS {
 		panic(r)
 	}
 	*err = jsErr
