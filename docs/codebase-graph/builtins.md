@@ -20,7 +20,8 @@ The single registry of Sentrie's native functions and the declarative machinery 
 | [[runtime.eval_call]] | `CALLS` | `builtins` | Looks up `Table`, runs `Decl.Precheck`, then `Decl.Impl`. |
 | [[runtime.builtin_call]] | `INHERITS_FROM` | `builtins` | `CallSite` implements the `Env` interface. |
 | [[index.builtin_check]] | `READS_FROM` | `builtins` | Static arity and kind checking reads `Table` and each `Decl.Sig`. |
-| [[index.derive_purity]] | `READS_FROM` | `builtins` | `IsDeriveSafe` and `DeriveSafeNames` gate what may appear in a derive body. |
+| [[index.derive_purity]] | `READS_FROM` | `builtins` | `IsDeriveSafe` and `DeriveSafeNames` gate what may appear in a derive body; `IsNondeterministic` picks the targeted diagnostic. |
+| [[index]] | `READS_FROM` | `builtins` | `NondeterminismWarnings` reports every call to a `Decl.Nondeterministic` builtin for `sentrie validate`. |
 
 ## 3. Interface Contracts & Public Surface
 
@@ -34,7 +35,7 @@ The single registry of Sentrie's native functions and the declarative machinery 
   - **Side Effects:** None.
   - **Exceptions:** None.
 
-- **Signature:** `Decl` - `{Name, Description, Sig, DeriveSafe, Impl}`
+- **Signature:** `Decl` - `{Name, Description, Sig, DeriveSafe, Nondeterministic, Impl}`
   - **Behavior:** A builtin's complete declaration. `Sig` is rich enough for the static checker to validate call sites without executing anything: per-parameter allowed kinds, optionality, required callable arities, a per-parameter mismatch policy, and custom error strings.
   - **Side Effects:** None.
   - **Exceptions:** None.
@@ -44,8 +45,13 @@ The single registry of Sentrie's native functions and the declarative machinery 
   - **Side Effects:** May call `env.CallableArity`.
   - **Exceptions:** The signature's `TooFewError`, `TooManyError`, `KindError`, or `CallableArityError`.
 
-- **Signature:** `IsDeriveSafe(name string) -> bool` / `DeriveSafeNames() -> []string`
-  - **Behavior:** Purity gate. `DeriveSafe` means deterministic **within** a single execution, not across executions - the doc comment calls this out explicitly, which is why `now` qualifies.
+- **Signature:** `(*Decl).PermittedInDerive() -> bool` / `IsDeriveSafe(name string) -> bool` / `DeriveSafeNames() -> []string`
+  - **Behavior:** Purity gate. `DeriveSafe` means deterministic **within** a single execution; `Nondeterministic` means the result can differ **between** executions (a clock or random source). A derive may call a builtin only when it is `DeriveSafe` and not `Nondeterministic` (#168), so `now` is refused inside derives. `IsDeriveSafe` and `DeriveSafeNames` both apply `PermittedInDerive`, and the runtime guard in [[runtime.eval_call]] calls it directly.
+  - **Side Effects:** None.
+  - **Exceptions:** None.
+
+- **Signature:** `IsNondeterministic(name string) -> bool` / `NondeterministicNames() -> []string`
+  - **Behavior:** Nondeterminism metadata. Today only `now` is marked; a new clock or random builtin (for example #153's `now_ms`) needs only `Nondeterministic: true` to be warned on in `validate` and refused in derives.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -58,5 +64,5 @@ The single registry of Sentrie's native functions and the declarative machinery 
   - **The arity ceiling is not enforced for variadic builtins**, which is correct, but it means `error`'s only arity guard is the minimum.
   - **Undefined and null always reach the implementation**, bypassing kind checks entirely. Every `Impl` must therefore handle them, and the `Fn` doc comment says so - but nothing enforces it, so a new builtin that assumes a well-kinded argument will panic on undefined input.
   - **The clock is per rule execution, not per decision.** `ExecPolicy` runs each exported rule through its own `ExecRule`, and a rule import calls `ExecRule` again; each stamps a fresh `createdAt`. So an importing rule's `now()` and an imported rule's `now()` (or its `jwt.verify`) can disagree by milliseconds, and across a second boundary in seconds. Carrying the root start into nested `ExecRule` calls would close it; it is not done yet (see the #153 PR).
-  - **`DeriveSafe` is a hand-set boolean.** Nothing verifies that a builtin marked safe actually is; the guarantee rests on review, which is precisely why the `Env` interface is kept narrow enough that widening it is noticeable.
+  - **`DeriveSafe` and `Nondeterministic` are hand-set booleans.** Nothing verifies that a builtin marked safe actually is, or that a clock or random builtin is marked nondeterministic; the guarantee rests on review, which is precisely why the `Env` interface is kept narrow enough that widening it is noticeable.
   - **The static checker and the runtime dispatcher must agree.** [[index.builtin_check]] validates against `Sig` at index time and [[runtime.eval_call]] enforces it again at call time. A `Sig` change alters both simultaneously, which is the point - but a resolution-order difference between the two (see [[runtime.eval_call]]) means they can disagree about *which* callee they are checking.

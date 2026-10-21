@@ -16,7 +16,7 @@ The static gate that makes `derive` genuinely pure. It walks every derive body w
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `index.derive_purity` | `DEPENDS_ON` | [[ast]] | Exhaustive type-switches over every expression form; unknown forms are a hard error. |
-| `index.derive_purity` | `DEPENDS_ON` | [[builtins]] | `builtins.IsDeriveSafe(name)` is the allowlist for calls to native functions. |
+| `index.derive_purity` | `DEPENDS_ON` | [[builtins]] | `builtins.IsDeriveSafe(name)` is the allowlist for calls to native functions; `IsNondeterministic` selects the nondeterministic-builtin diagnostic. |
 | `index.derive_purity` | `CALLS` | [[index.derive_expr_walk]] | Delegates generic child traversal to `forEachDeriveExprChild`. |
 | `index.derive_purity` | `READS_FROM` | [[index.derive]] | Consults `DefineShort` / `DefineFQN` snapshots and `VisibleFromDeriveCaller`. |
 | `index.derive_purity` | `READS_FROM` | [[index.policy]] | Checks `Policy.Facts` and `Policy.Rules` purely to produce a *better error message*. |
@@ -55,9 +55,9 @@ The static gate that makes `derive` genuinely pure. It walks every derive body w
   - **Exceptions:** One of the four messages above.
 
 - **Signature:** `checkDeriveCall(idx, d, c, scope, seen) -> error`
-  - **Behavior:** Rejects field-access callees outright (that is the TypeScript module call form). Resolves slash-qualified callees of **three or more segments** through the snapshots then the global registry, enforcing visibility. Otherwise accepts in-scope callables, visible short-name derives, and derive-safe builtins. Everything else fails.
+  - **Behavior:** Rejects field-access callees outright (that is the TypeScript module call form). Resolves slash-qualified callees of **three or more segments** through the snapshots then the global registry, enforcing visibility. Otherwise accepts in-scope callables, visible short-name derives, and derive-safe builtins (`Decl.PermittedInDerive`). A builtin marked `Nondeterministic` (such as `now`) is refused with its own message, mirroring the runtime guard in [[runtime.eval_call]]. Everything else fails.
   - **Side Effects:** None.
-  - **Exceptions:** `TypeScript module calls are not permitted inside a derive`; `unknown derive %q`; visibility errors; `call is not permitted inside a derive (only visible derives and pure builtins)`.
+  - **Exceptions:** `TypeScript module calls are not permitted inside a derive`; `unknown derive %q`; visibility errors; `builtin %q is nondeterministic and is not permitted inside a derive`; `call is not permitted inside a derive (only visible derives and pure builtins)`.
 
 - **Signature:** `isAllowedDeriveCallbackArg(builtin string, argIdx int) -> bool`
   - **Behavior:** A hardcoded allowlist letting a single-parameter derive be passed as a callback in argument position 1 of `filter`, `collect`, `any`, `all`, `first`, and `distinct`.
