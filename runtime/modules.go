@@ -113,9 +113,37 @@ func (m *jsModule) acquire(ctx context.Context, start time.Time) (_ *JSInstance,
 	return instance, func() { <-m.slots }, nil
 }
 
+// recoverUncaughtJS turns a goja throw, interrupt or stack overflow that
+// panicked out of Go-side property access (getters, Proxy traps) into *err.
+// Other panics are re-raised. It must be deferred directly.
+func recoverUncaughtJS(err *error) {
+	r := recover()
+	if r == nil {
+		return
+	}
+	jsErr, ok := r.(error)
+	var ex *goja.Exception
+	var interrupted *goja.InterruptedError
+	var overflow *goja.StackOverflowError
+	if !ok || !(errors.As(jsErr, &ex) || errors.As(jsErr, &interrupted) || errors.As(jsErr, &overflow)) {
+		panic(r)
+	}
+	*err = jsErr
+}
+
+// runGuardedJS runs f, which touches vm from Go and so may run module code,
+// under ctx's interrupt and with uncaught JS turned into an error (#142).
+func runGuardedJS(ctx context.Context, vm *goja.Runtime, f func() error) (err error) {
+	stop := js.InterruptOnDone(ctx, vm)
+	defer stop()
+	defer recoverUncaughtJS(&err)
+	return f()
+}
+
 // checkExports verifies that the module provides every name in exports, so a
 // `use` naming a missing export fails when it is bound rather than when called.
-func (m *jsModule) checkExports(exports []string) error {
+// Reading an export may run a getter, so it runs under ctx's deadline.
+func (m *jsModule) checkExports(ctx context.Context, exports []string) error {
 	if len(exports) == 0 {
 		return nil
 	}
@@ -124,12 +152,18 @@ func (m *jsModule) checkExports(exports []string) error {
 	if m.closed {
 		return fmt.Errorf("%s: %w", m.key, errModuleClosed)
 	}
-	for _, name := range exports {
-		if m.probe.exports.Get(name) == nil {
-			return fmt.Errorf("module %s missing required export %q", m.key, name)
+	err := runGuardedJS(ctx, m.probe.rt, func() error {
+		for _, name := range exports {
+			if m.probe.exports.Get(name) == nil {
+				return fmt.Errorf("module %s missing required export %q", m.key, name)
+			}
 		}
-	}
-	return nil
+		return nil
+	})
+	// The probe outlives this check: never leave a fired interrupt on it. The
+	// guard's stop has returned, and probeMu is held, so nothing else runs.
+	m.probe.rt.ClearInterrupt()
+	return err
 }
 
 // ModuleBinding is one `use` statement's view of a shared jsModule: the alias
@@ -178,7 +212,7 @@ func normalizeBoundaryForJS(v any) any {
 	}
 }
 
-func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string, args ...any) (any, error) {
+func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string, args ...any) (_ any, err error) {
 	if m.module == nil {
 		return nil, fmt.Errorf("module has no JS binding")
 	}
@@ -188,6 +222,13 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 	}
 	defer release()
 
+	// Interrupt the call if ctx ends, from the export lookup (which may run a
+	// getter) through the return conversion. stop waits for an in-flight
+	// interrupt, so no goroutine touches the VM once Call returns.
+	stop := js.InterruptOnDone(ctx, instance.rt)
+	defer stop()
+	defer recoverUncaughtJS(&err)
+
 	val, ok := m.lookupExport(instance, fn)
 	if !ok {
 		return nil, fmt.Errorf("function %s not found in module %q", fn, m.Alias)
@@ -196,11 +237,6 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 	if !ok {
 		return nil, fmt.Errorf("export '%q' is not callable", fn)
 	}
-
-	// Interrupt the call if ctx ends. stop waits for an in-flight interrupt,
-	// so no goroutine touches the VM once Call returns.
-	stop := js.InterruptOnDone(ctx, instance.rt)
-	defer stop()
 
 	ga := make([]goja.Value, 0, len(args))
 	for _, a := range args {

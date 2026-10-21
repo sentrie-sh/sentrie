@@ -49,11 +49,11 @@ type HTTPAPI struct {
 // HTTPAPIOption configures an HTTPAPI.
 type HTTPAPIOption func(*HTTPAPI)
 
-// WithRequestTimeout bounds each decision request (#142). The request context
-// gets this deadline, so evaluation stops when it passes even if the client is
-// still connected; the server's write timeout is kept above it so the error
-// response can still be sent. A value <= 0 leaves requests bounded only by the
-// executor's own deadline and the client connection.
+// WithRequestTimeout tells the API the evaluation deadline its executor
+// enforces (#142; serve passes --eval-timeout to both). The executor owns the
+// deadline; the API uses it to keep the server's write timeout above it, so a
+// timed-out decision can still be answered. With a value <= 0 the write
+// timeout stays at 30 seconds, which then caps how long a response can take.
 func WithRequestTimeout(d time.Duration) HTTPAPIOption {
 	return func(api *HTTPAPI) {
 		api.requestTimeout = d

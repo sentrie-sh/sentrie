@@ -27,12 +27,10 @@ type DecisionResponse struct {
 
 // handleDecision handles POST /decision/{namespace...} requests
 func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
+	// The evaluation deadline is the executor's (--eval-timeout); r.Context()
+	// adds request-scoped cancellation when the client goes away. Keeping one
+	// deadline means a timeout reports "evaluation exceeded its ... deadline".
 	ctx := r.Context()
-	if api.requestTimeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, api.requestTimeout)
-		defer cancel()
-	}
 
 	// Set CORS headers
 	w.Header().Set("Access-Control-Allow-Origin", "*")

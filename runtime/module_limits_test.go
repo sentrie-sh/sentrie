@@ -112,3 +112,47 @@ func (s *RuntimeTestSuite) TestEveryRuntimeHasTheCallStackLimit() {
 	var overflow *goja.StackOverflowError
 	s.Require().ErrorAs(err, &overflow)
 }
+
+// TestDeadlineBoundsGoSideJSTouches covers the #219 review finding: module code
+// reached from Go (an export getter during the bind-time check, a Proxy
+// ownKeys trap during load) must stop at the deadline instead of spinning.
+func (s *RuntimeTestSuite) TestDeadlineBoundsGoSideJSTouches() {
+	cases := map[string]string{
+		"getter export": `declare const exports: any;
+Object.defineProperty(exports, "g", { get() { while (true) {} }, enumerable: true });
+`,
+		"proxy ownKeys": `declare const module: any;
+module.exports = new Proxy({ g() { return 1; } }, { ownKeys() { while (true) {} } });
+`,
+	}
+	for name, src := range cases {
+		s.Run(name, func() {
+			exec := s.newTempPackExecutor(map[string]string{
+				"m.ts": src,
+				"policy.sentrie": `namespace limits/test
+
+policy q {
+  use { g } from "./m" as m
+  rule r = { yield m.g() }
+  export decision of r
+}
+`,
+			}, WithEvalTimeout(100*time.Millisecond))
+			err := s.runBounded(5*time.Second, func() error {
+				_, err := exec.ExecRule(s.T().Context(), "limits/test", "q", "r", map[string]any{})
+				return err
+			})
+			s.Require().Error(err)
+			s.ErrorIs(err, context.DeadlineExceeded)
+
+			closed := make(chan error, 1)
+			go func() { closed <- exec.Close() }()
+			select {
+			case err := <-closed:
+				s.NoError(err)
+			case <-time.After(2 * time.Second):
+				s.FailNow("Close blocked after a bounded export check")
+			}
+		})
+	}
+}
