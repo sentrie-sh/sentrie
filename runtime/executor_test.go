@@ -242,7 +242,8 @@ func (s *RuntimeTestSuite) TestEvaluateRuleOutcomeWhenEvaluationFailureReturnsEr
 func (s *RuntimeTestSuite) TestWithCallMemoizeCacheSizeAndToTrinaryHelpers() {
 	exec := &executorImpl{}
 	WithCallMemoizeCacheSize(2)(exec)
-	s.NotNil(exec.callMemoizePerch)
+	s.Require().NotNil(exec.callMemoizePerch)
+	s.Equal(2, exec.callMemoizePerch.Cap())
 
 	out := &ExecutorOutput{Decision: DecisionOf(box.Trinary(trinary.True))}
 	s.Equal(trinary.True, out.ToTrinary())
@@ -250,6 +251,32 @@ func (s *RuntimeTestSuite) TestWithCallMemoizeCacheSizeAndToTrinaryHelpers() {
 	s.Panics(func() {
 		_ = (&ExecutorOutput{}).ToTrinary()
 	})
+}
+
+// newExecutorAllocBudget bounds the bytes NewExecutor may allocate. The caches used to be
+// reserved eagerly and cost several gigabytes per process; they now allocate on first use.
+const newExecutorAllocBudget = 1 << 20
+
+func (s *RuntimeTestSuite) TestNewExecutorDoesNotPreallocateCaches() {
+	idx := index.CreateIndex()
+	idx.Pack = &pack.PackFile{Location: "."}
+
+	var before, after runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&before)
+	exec, err := NewExecutor(idx)
+	runtime.ReadMemStats(&after)
+	s.Require().NoError(err)
+
+	allocated := after.TotalAlloc - before.TotalAlloc
+	s.T().Logf("NewExecutor allocated %d bytes", allocated)
+	s.Less(allocated, uint64(newExecutorAllocBudget))
+
+	impl := exec.(*executorImpl)
+	s.Equal(moduleBindingCacheEntries, impl.moduleBindingPerch.Cap())
+	s.Equal(defaultCallMemoizeCacheEntries, impl.callMemoizePerch.Cap())
+	s.Zero(impl.moduleBindingPerch.Stats().Size)
+	s.Zero(impl.callMemoizePerch.Stats().Size)
 }
 
 // newPanickingPolicyExecutor returns an executor over a single policy whose
