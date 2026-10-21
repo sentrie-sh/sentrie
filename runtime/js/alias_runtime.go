@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package js
 
@@ -24,7 +11,7 @@ import (
 	"github.com/dop251/goja"
 )
 
-// AliasRuntime hosts one clean VM per `use ... as alias` binding.
+// AliasRuntime hosts one clean VM for one loaded copy of a module.
 // It installs a CJS-like require() and caches module exports by resolved key.
 type AliasRuntime struct {
 	VM      *goja.Runtime
@@ -44,21 +31,31 @@ func NewAliasRuntime(reg *Registry, baseDir string) *AliasRuntime {
 	}
 }
 
-// installInterrupt wires context cancellation into goja's interrupt mechanism.
-func (ar *AliasRuntime) installInterrupt(ctx context.Context) (stop func()) {
+// InterruptOnDone interrupts vm with ctx.Err() if ctx ends before the returned
+// stop function is called. stop waits for an interrupt already in flight, so
+// nothing touches vm after stop returns. An interrupt that fired is left set:
+// the context is over, so nothing more should run on this VM, and an outer
+// frame sharing the VM must see it too.
+func InterruptOnDone(ctx context.Context, vm *goja.Runtime) (stop func()) {
 	if ctx == nil {
 		return func() {}
 	}
-	done := make(chan struct{})
-	ar.VM.ClearInterrupt() // clear previous
-	go func() {
-		select {
-		case <-ctx.Done():
-			ar.VM.Interrupt(ctx.Err())
-		case <-done:
+	fired := make(chan struct{})
+	stopAfter := context.AfterFunc(ctx, func() {
+		defer close(fired)
+		vm.Interrupt(ctx.Err())
+	})
+	return func() {
+		if !stopAfter() {
+			<-fired
 		}
-	}()
-	return func() { close(done); ar.VM.ClearInterrupt() }
+	}
+}
+
+// installInterrupt wires context cancellation into goja's interrupt mechanism
+// for the duration of one module load.
+func (ar *AliasRuntime) installInterrupt(ctx context.Context) (stop func()) {
+	return InterruptOnDone(ctx, ar.VM)
 }
 
 // Require implements CommonJS require(spec) with caching.
