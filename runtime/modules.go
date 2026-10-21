@@ -71,6 +71,12 @@ func newJSModule(ctx context.Context, key string, load instanceLoader) (*jsModul
 	if err != nil {
 		return nil, err
 	}
+	// The load succeeded, but ctx may have ended in the window between the
+	// module factory returning and the load's interrupt being stopped, which
+	// leaves the interrupt set (js.InterruptOnDone keeps a fired interrupt).
+	// The probe outlives this call and runs export getters later, so clear it;
+	// the load's stop has returned, so nothing else touches the VM now.
+	probe.rt.ClearInterrupt()
 	return &jsModule{
 		key:   key,
 		load:  load,
