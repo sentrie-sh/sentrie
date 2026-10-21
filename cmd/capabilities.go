@@ -9,6 +9,7 @@ import (
 	"github.com/binaek/cling"
 	"github.com/sentrie-sh/sentrie/capabilities"
 	"github.com/sentrie-sh/sentrie/index"
+	"github.com/sentrie-sh/sentrie/runtime"
 )
 
 const capabilitiesFlagName = "capabilities"
@@ -22,11 +23,13 @@ func capabilitiesFlag() cling.CmdFlag {
 		AsFlag()
 }
 
-// loadAndCheckCapabilities loads the capabilities file at path (none when
-// empty) and checks the validated index against it, so a pack that uses
-// something outside the grant fails at load time with the offending spans.
-// The returned grant is handed to the executor for the runtime gates.
-func loadAndCheckCapabilities(ctx context.Context, path string, idx *index.Index) (*capabilities.Capabilities, error) {
+// newGrantedExecutor loads the capabilities file at path (none when empty),
+// checks the validated index against it, builds the executor with the grant
+// installed, and then checks every static require() in the pack's local
+// TypeScript against the grant. A pack that uses something outside the grant
+// therefore fails at load time, naming the offending span or module, rather
+// than on the first request that reaches it. opts are passed to NewExecutor.
+func newGrantedExecutor(ctx context.Context, idx *index.Index, path string, opts ...runtime.NewExecutorOption) (runtime.Executor, error) {
 	grant, err := capabilities.Load(path)
 	if err != nil {
 		return nil, err
@@ -34,5 +37,12 @@ func loadAndCheckCapabilities(ctx context.Context, path string, idx *index.Index
 	if err := idx.CheckCapabilities(ctx, grant); err != nil {
 		return nil, err
 	}
-	return grant, nil
+	exec, err := runtime.NewExecutor(idx, append(opts, runtime.WithCapabilities(grant))...)
+	if err != nil {
+		return nil, err
+	}
+	if err := runtime.CheckModuleGrants(exec); err != nil {
+		return nil, err
+	}
+	return exec, nil
 }

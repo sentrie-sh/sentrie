@@ -19,7 +19,11 @@ func (s *JSTestSuite) mustGrant(src string) *capabilities.Capabilities {
 }
 
 func (s *JSTestSuite) newGrantTestRegistry() (*Registry, string) {
-	packRoot := s.T().TempDir()
+	// Resolve the temp dir: on macOS it sits behind a symlink, and nested
+	// relative requires from a symlinked pack root are refused (a
+	// pre-existing confineToPackRoot limitation, reported separately).
+	packRoot, err := filepath.EvalSymlinks(s.T().TempDir())
+	s.Require().NoError(err)
 	s.Require().NoError(os.WriteFile(filepath.Join(packRoot, "plain.ts"), []byte("export const x = 1;"), 0o644))
 	s.Require().NoError(os.WriteFile(filepath.Join(packRoot, "needs_uuid.ts"),
 		[]byte("const u = require('@sentrie/uuid');\nexport const id = () => u.v4();"), 0o644))
@@ -93,4 +97,30 @@ func (s *JSTestSuite) TestRequireInsideTypeScriptIsHeldToTheGrant() {
 	ar = NewAliasRuntime(reg, packRoot)
 	_, err = ar.Require(s.T().Context(), packRoot, "./plain")
 	s.Require().NoError(err)
+}
+
+// The load-time scan finds static require() calls in pack TypeScript, also
+// through pack-local requires, before any request runs the code.
+func (s *JSTestSuite) TestCheckUseRequiresScansLocalTypeScript() {
+	reg, packRoot := s.newGrantTestRegistry()
+	s.Require().NoError(os.WriteFile(filepath.Join(packRoot, "outer.ts"),
+		[]byte("import { id } from \"./needs_uuid\";\nexport const f = () => id();"), 0o644))
+
+	// Nil grant: nothing to check.
+	s.Require().NoError(reg.CheckUseRequires("./outer", nil, packRoot))
+
+	reg.SetCapabilities(s.mustGrant(`{"version": 1, "modules": ["@sentrie/hash"]}`))
+	err := reg.CheckUseRequires("./needs_uuid", nil, packRoot)
+	s.Require().Error(err)
+	s.True(errors.Is(err, xerr.ErrNotGranted))
+	s.Contains(err.Error(), `require("@sentrie/uuid")`)
+
+	err = reg.CheckUseRequires("./outer", nil, packRoot)
+	s.Require().Error(err, "transitive local require")
+	s.True(errors.Is(err, xerr.ErrNotGranted), "%v", err)
+
+	s.Require().NoError(reg.CheckUseRequires("./plain", nil, packRoot))
+	s.Require().NoError(reg.CheckUseRequires("", []string{"sentrie", "hash"}, packRoot))
+	err = reg.CheckUseRequires("", []string{"sentrie", "uuid"}, packRoot)
+	s.True(errors.Is(err, xerr.ErrNotGranted))
 }

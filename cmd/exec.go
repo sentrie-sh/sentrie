@@ -110,12 +110,7 @@ func execCmd(ctx context.Context, args []string) error {
 		return err
 	}
 
-	grant, err := loadAndCheckCapabilities(ctx, input.Capabilities, idx)
-	if err != nil {
-		return err
-	}
-
-	exec, err := runtime.NewExecutor(idx, runtime.WithCapabilities(grant))
+	exec, err := newGrantedExecutor(ctx, idx, input.Capabilities)
 	if err != nil {
 		return err
 	}

@@ -10,7 +10,6 @@ import (
 	"github.com/sentrie-sh/sentrie/api"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/loader"
-	"github.com/sentrie-sh/sentrie/runtime"
 )
 
 func addServeCmd(cli *cling.CLI) {
@@ -80,12 +79,7 @@ func serveCmd(ctx context.Context, args []string) error {
 		return err
 	}
 
-	grant, err := loadAndCheckCapabilities(ctx, input.Capabilities, idx)
-	if err != nil {
-		return err
-	}
-
-	exec, err := runtime.NewExecutor(idx, runtime.WithCapabilities(grant))
+	exec, err := newGrantedExecutor(ctx, idx, input.Capabilities)
 	if err != nil {
 		return err
 	}
