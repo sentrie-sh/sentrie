@@ -255,6 +255,18 @@ func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[str
 	}
 	if id, ok := c.Callee.(*ast.Identifier); ok {
 		name := id.Value
+		// The runtime (getTarget) resolves a call by name to a DefineShort
+		// derive, then to a builtin, and never to a local binding. So a
+		// parameter or let named like a builtin does not shadow it for calls:
+		// refuse the builtin here exactly as the runtime guard would.
+		if d.DefineShort == nil || d.DefineShort[name] == nil {
+			if decl, ok := builtins.Table[name]; ok && !decl.PermittedInDerive() {
+				if decl.Nondeterministic {
+					return fmt.Errorf("builtin %q is nondeterministic and is not permitted inside a derive", name)
+				}
+				return fmt.Errorf("builtin %q is not permitted inside a derive", name)
+			}
+		}
 		if _, ok := scope[name]; ok {
 			for _, a := range c.Arguments {
 				if err := walkDeriveExprSeen(idx, d, a, scope, seen); err != nil {
@@ -291,6 +303,12 @@ func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[str
 				}
 			}
 			return nil
+		}
+		// Mirrors the runtime guard in getTarget (runtime/eval_call.go): a
+		// builtin that is derive-safe within an execution is still refused when
+		// its result can differ between executions.
+		if builtins.IsNondeterministic(name) {
+			return fmt.Errorf("builtin %q is nondeterministic and is not permitted inside a derive", name)
 		}
 	}
 	if err := walkDeriveExprSeen(idx, d, c.Callee, scope, seen); err != nil {

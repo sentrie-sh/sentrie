@@ -66,17 +66,37 @@ func TestTableWellFormed(t *testing.T) {
 func TestDeriveSafeNamesMatchTable(t *testing.T) {
 	t.Parallel()
 	names := DeriveSafeNames()
-	require.Equal(t, len(Table), len(names))
+	require.Equal(t, len(Table)-len(NondeterministicNames()), len(names))
 	for _, name := range names {
 		require.Contains(t, Table, name)
+		require.False(t, Table[name].Nondeterministic, "builtin %q", name)
 	}
 }
 
 func TestIsDeriveSafe(t *testing.T) {
 	t.Parallel()
 	require.True(t, IsDeriveSafe("count"))
-	require.True(t, IsDeriveSafe("now"))
+	require.False(t, IsDeriveSafe("now"), "nondeterministic builtins are not permitted in derives")
 	require.False(t, IsDeriveSafe("not_a_builtin"))
+}
+
+// The clock and randomness sources are the nondeterministic builtins. A new
+// builtin that reads either must be added here and marked Nondeterministic.
+func TestNondeterministicNames(t *testing.T) {
+	t.Parallel()
+	require.Equal(t, []string{"now"}, NondeterministicNames())
+	require.True(t, IsNondeterministic("now"))
+	require.False(t, IsNondeterministic("count"))
+	require.False(t, IsNondeterministic("not_a_builtin"))
+}
+
+func TestPermittedInDerive(t *testing.T) {
+	t.Parallel()
+	require.True(t, (&Decl{DeriveSafe: true}).PermittedInDerive())
+	require.False(t, (&Decl{DeriveSafe: false}).PermittedInDerive())
+	require.False(t, (&Decl{DeriveSafe: true, Nondeterministic: true}).PermittedInDerive())
+	var nilDecl *Decl
+	require.False(t, nilDecl.PermittedInDerive())
 }
 
 func TestGoldenBehavior(t *testing.T) {
