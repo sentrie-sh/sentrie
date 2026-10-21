@@ -48,11 +48,13 @@ declare module "@sentrie/collection" {
   export function list_sort(arr: any[]): any[];
 
   /**
-   * Removes duplicate values from an array.
-   * Uses equality comparison to detect duplicates.
+   * Removes duplicate values from an array, keeping the first occurrence of
+   * each in order. Elements are compared by value: arrays and objects are
+   * equal when their contents are (object key order does not matter), `1` and
+   * `"1"` differ, and NaN equals NaN as in a Set.
    * @param arr - The array to deduplicate
    * @returns A new array with unique values (original array is not modified)
-   * @throws Error if the input is not an array
+   * @throws Error if the input is not an array, or an element (such as a function) has no comparable value
    */
   export function list_unique(arr: any[]): any[];
 
