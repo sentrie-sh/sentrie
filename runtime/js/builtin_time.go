@@ -28,7 +28,7 @@ var BuiltinTimeGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 		// The pinned execution start, in Unix seconds. A VM without it is a
 		// programming error, never a reason to read the wall clock (#153).
-		now, err := executionStartUnix(vm)
+		now, err := executionStartSeconds(vm)
 		if err != nil {
 			return throwErr(vm, err)
 		}
