@@ -26,3 +26,7 @@
 - Carried from #197: `decode(rs256, undefined)` is fixed on `139-1-jwt-claims` (uncommitted there, like this). This layer does not have that change yet, so the RS-flavoured undefined-key test waits until the stack restacks.
 - Signing refused the commit, so these changes are left uncommitted.
 - _Model: claude-opus-5-5_
+
+### 2026-10-21 22:33 - Review fixes committed
+- Signing worked again on a later attempt, so the review fixes above are committed as be7814f ("Address review findings"). That supersedes the "left uncommitted" lines in the entry above. It is one commit rather than one per finding, because splitting it now would need an amend, and the review-fix rules forbid that.
+- _Model: claude-opus-5-5_
