@@ -17,7 +17,6 @@ Fourteen Go-implemented modules, plus the TypeScript `js` module, exposed to Jav
 | :--- | :--- | :--- | :--- |
 | `runtime.js.builtins` | `IMPORTS` | `ext.dop251.goja` | Every function is a `func(goja.FunctionCall) goja.Value` set on a VM object. |
 | `runtime.js.builtins` | `IMPORTS` | `ext.binaek.perch` | `regex` keeps its process-global compiled-pattern cache in a `perch` LRU of `regexCacheEntries` (1024) entries. |
-| `runtime.js.builtins` | `LAYERED_ON` | [[constants]] | `ExecutionStartTimeUnixKey` is read by `time.now()` and by `jwt`'s `exp`/`nbf` checks to pin the clock. |
 | [[runtime.executor]] | `MUTATES` | `runtime.js.builtins` | Registers each provider by name at executor construction. |
 | [[runtime.js.registry]] | `CALLS` | `runtime.js.builtins` | Go providers short-circuit compilation entirely in `programFor`. |
 | [[runtime.js.alias_runtime]] | `CALLS` | `runtime.js.builtins` | Invokes the provider on every `require` of a builtin. |
@@ -45,7 +44,7 @@ Fourteen Go-implemented modules, plus the TypeScript `js` module, exposed to Jav
   - **Exceptions:** `decode` throws on any failure, including expiry. `verify` answers `false` for a malformed, mismatched, badly signed, expired or not-yet-valid token, and throws for `none` or an unsupported `algorithm`, a key that does not suit the algorithm, bad options, or a VM with no execution start time.
 
 - **Signature:** `time.now() -> number`
-  - **Behavior:** Returns the `ExecutionStartTimeUnixKey` VM global through `executionStartUnix`, so JavaScript observes the **same pinned instant**, in the same unit (Unix seconds), as the policy evaluator's builtin `now()` within the same rule execution (`ExecRule`).
+  - **Behavior:** Reads the start time pinned for this VM by `js.SetExecutionStart` (a Go-side lookup keyed by a weak pointer to the VM, invisible to module code since #154) through `executionStartSeconds`, so JavaScript observes the **same pinned instant**, in the same unit (Unix seconds), as the policy evaluator's builtin `now()` within the same rule execution (`ExecRule`). A VM with no pinned start throws rather than reading the wall clock (#153).
   - **Side Effects:** None.
   - **Exceptions:** Argument-count error if given any argument; `execution start time is not set on this VM` when the global is missing. There is no wall-clock fallback (#153).
 
