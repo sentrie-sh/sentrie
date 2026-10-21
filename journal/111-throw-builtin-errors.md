@@ -17,3 +17,15 @@
 - Kept out: `@sentrie/time.now()` keeps its wall-clock fallback here; #153 removes it on a later branch. `BuiltinBase64Go` is never registered with the executor, so it gets the mechanical swap only.
 - The module guide is not in this repo: `README.md` links to sentrie.sh, whose source is the separate `website` repo (`src/content/docs/reference/typescript_modules/`). This branch documents the conventions in the graph node and the `.d.ts` declarations; the website needs its own change.
 - _Model: claude-opus-5-5_
+
+### 2026-10-21 22:26 - Record the test work behind the first commits
+- Written after the fact, as review asked: the first entry covered only the plan.
+- Added `TestBuiltinFailuresThrow` (per module: a failure is caught by `try`/`catch` with the expected message, and surfaces as a `*goja.Exception` when uncaught), `TestBuiltinPredicatesAndNoResult`, and the policy-level `TestJSBuiltinFailuresFailClosed` for the issue's reproduction.
+- Checked the first, line-based guard by planting `return vm.NewGoError(nil)` in a scratch file; it failed at that line.
+- _Model: claude-opus-5-5_
+
+### 2026-10-21 22:26 - Review fixes for PR #195
+- The guard matched only the spelling `return vm.NewGoError(`. Review showed `e := vm.NewGoError(err); return e`, `return (vm.NewGoError(err))`, `vm.ToValue(vm.NewGoError(err))` and `vm.ToValue(errors.New(...))` all got through. I inverted it: `errorObjectViolations` walks the AST and allows a `NewGoError`/`NewTypeError` call only as the argument of `panic`. It also flags `ToValue` wrapping `errors.New`, `errors.Join`, `fmt.Errorf` or `err`. Today it allows exactly `builtin_errors.go` (`throwErr`) and `alias_runtime.go:125`.
+- Moved the guard to `builtin_errors_guard_test.go` and added `TestErrorObjectGuardCatchesEverySpelling`, which runs the matcher over in-memory snippets: nine bad spellings are each flagged once, and four throwing or plain forms are not.
+- `semver.satisfies("1.0.0", "~~bad")` checked `Contains(got, "")`, which always passes; it now pins `improper constraint: ~~bad`.
+- _Model: claude-opus-5-5_
