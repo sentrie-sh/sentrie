@@ -249,7 +249,7 @@ graph TD
 - [[runtime.executor]] - top-level execution driver
 - [[runtime.js.alias_runtime]] - CommonJS VM host
 - [[runtime.js.registry]] - module resolution and compilation
-- [[runtime.modules]] - JavaScript module binding and VM pooling
+- [[runtime.modules]] - JavaScript module binding and per-call VMs
 
 ### Function / Endpoint
 
