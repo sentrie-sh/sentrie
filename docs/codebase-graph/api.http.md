@@ -24,8 +24,13 @@ Owns the HTTP surface: route registration, multi-address listener setup, server 
 
 ## 3. Interface Contracts & Public Surface
 
+- **Signature:** `NewHTTPAPI(executor runtime.Executor, opts ...HTTPAPIOption) -> *HTTPAPI` / `WithRequestTimeout(d time.Duration) -> HTTPAPIOption`
+  - **Behavior:** `requestTimeout` defaults to `runtime.DefaultEvalTimeout` (10s); `serve` sets it from `--eval-timeout`. [[api.handle_decision]] gives every request context that deadline ([#142](https://github.com/sentrie-sh/sentrie/issues/142)). A value <= 0 disables it.
+  - **Side Effects:** None.
+  - **Exceptions:** None.
+
 - **Signature:** `Setup(ctx context.Context, port int, listen []string) -> error`
-  - **Behavior:** Registers `POST /decision/{target...}` (Go 1.22+ pattern routing with a wildcard tail) and `GET /health`, resolves bindings, and opens a listener per address with a 30-second read and write timeout. On any bind failure it closes every already-opened listener and clears the slice, so a partial bind never leaves sockets dangling.
+  - **Behavior:** Registers `POST /decision/{target...}` (Go 1.22+ pattern routing with a wildcard tail) and `GET /health`, resolves bindings, and opens a listener per address with a 30-second read timeout and a write timeout of `max(30s, requestTimeout + 5s)`, so a request that hits its deadline can still be answered. On any bind failure it closes every already-opened listener and clears the slice, so a partial bind never leaves sockets dangling.
   - **Side Effects:** Binds sockets; populates `api.listeners`.
   - **Exceptions:** `failed to listen on %s: %w`; binding-resolution errors.
 
@@ -51,7 +56,7 @@ Owns the HTTP surface: route registration, multi-address listener setup, server 
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Holds the listener slice; not safe for concurrent `Setup`/`Stop`. One executor is shared by all handlers.
-- **Performance/Scale Notes:** Timeouts are hardcoded at 30 seconds each way and are not configurable, so a policy that legitimately takes longer is cut off mid-evaluation with the response half-written. There is no `IdleTimeout` or `ReadHeaderTimeout`, leaving the server open to slow-header connection exhaustion.
+- **Performance/Scale Notes:** The read timeout is fixed at 30 seconds. Evaluation is bounded by the request deadline, and the write timeout is derived from it, so a slow policy fails with a 503 rather than a half-written response. There is no `IdleTimeout` or `ReadHeaderTimeout`, leaving the server open to slow-header connection exhaustion.
 - **Dependencies Risk:**
   - **`StartServer` cannot report a serve error.** Errors go into `errChan`, and the deferred `wg.Wait()` followed by `close(errChan)` runs immediately - the function returns without waiting, and nothing ever reads the channel. A listener that fails after startup dies silently. `serve` in [[cmd]] launches this in a goroutine and then blocks on `ctx.Done()`, so the process stays alive with no listeners.
   - **`StopServer` is not a graceful shutdown.** It calls `Close`, which terminates active connections immediately, rather than `http.Server.Shutdown`, which drains them. An in-flight decision is dropped at exit.

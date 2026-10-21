@@ -24,7 +24,7 @@ Hosts exactly one `goja.Runtime` per `use … as alias` binding and implements C
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `NewAliasRuntime(reg *Registry, baseDir string) -> *AliasRuntime`
-  - **Behavior:** Creates a fresh VM with an empty exports cache. No standard library is installed yet.
+  - **Behavior:** Creates a fresh VM with an empty exports cache and `SetMaxCallStackSize(MaxCallStackSize)` (10,000 frames, #142), so deep recursion throws `*goja.StackOverflowError` instead of growing the heap. No standard library is installed yet.
   - **Side Effects:** Allocates a `goja.Runtime`.
   - **Exceptions:** None.
 
