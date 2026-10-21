@@ -216,7 +216,7 @@ Populate `Sig.Result.Kinds` for every entry (validate-time propagation):
 |--------------|----------|
 | `{bool}` | `all`, `any` |
 | `{list}` | `as_list`, `filter`, `collect`, `flatten`, `flatten_deep`, `normalise_list`, `distinct` |
-| `{number}` | `count`, `now` |
+| `{number}` | `count`, `now`, `now_ms` |
 | `{dict}` | `merge` |
 | `nil` (any) | `error`, `first`, `reduce` |
 
@@ -236,7 +236,7 @@ type Env interface {
 |--------|-----|
 | `Call` | Invoke predicate/transform/reducer callables (HOFs) |
 | `CallableArity` | Usually only needed inside `Precheck`; HOFs call once per invocation |
-| `ExecutionStart` | `now()` - `box.Number(float64(env.ExecutionStart().UnixMilli()))` |
+| `ExecutionStart` | `now()` - `box.Number(float64(env.ExecutionStart().Unix()))`; `now_ms()` uses `UnixMilli()` |
 
 At runtime, `Env` is `*runtime.CallSite`. In tests, use `noopEnv()` or a custom fake
 (see [`test_helpers_test.go`](test_helpers_test.go)).
@@ -332,7 +332,8 @@ Must flow through real `eval_call` dispatch, not bypass it.
 | `flatten`, `flatten_deep` | scalar | 1–2 / 1 | depth optional |
 | `merge` | scalar | 2 | strict dict |
 | `normalise_list` | scalar | 1 | |
-| `now` | scalar | 0 | `ExecutionStart().UnixMilli()` |
+| `now` | scalar | 0 | `ExecutionStart().Unix()`: seconds, like `@sentrie/time.now()` and JWT `exp` |
+| `now_ms` | scalar | 0 | `ExecutionStart().UnixMilli()` |
 | `reduce` | collection | 3 | reducer arity 2 or 3 |
 
 ---
