@@ -85,6 +85,12 @@ var BuiltinMathGo = func(vm *goja.Runtime) (*goja.Object, error) {
 	return ex, nil
 }
 
+// mathMaxArrayLength caps the number of elements min and max read from an
+// array argument. The length of a JS array is caller-controlled (a sparse
+// `a.length = 2**32 - 1` costs nothing in JS), so it is checked before
+// anything is allocated for it.
+const mathMaxArrayLength = 1 << 20
+
 // mathThrow throws a JS exception carrying a Go error.
 func mathThrow(vm *goja.Runtime, format string, args ...any) {
 	panic(vm.NewGoError(fmt.Errorf(format, args...)))
@@ -124,13 +130,17 @@ func mathValues(vm *goja.Runtime, call goja.FunctionCall, name string) []float64
 		if len(args) != 1 {
 			mathThrow(vm, "%s: an array must be the only argument, got %d arguments", name, len(args))
 		}
-		n := int(obj.Get("length").ToInteger())
+		n := obj.Get("length").ToInteger()
 		if n == 0 {
 			mathThrow(vm, "%s: the array must not be empty", name)
 		}
-		out := make([]float64, n)
-		for i := range n {
-			out[i] = mathNumber(vm, obj.Get(strconv.Itoa(i)), "%s: array element %d", name, i)
+		if n < 0 || n > mathMaxArrayLength {
+			mathThrow(vm, "%s: the array has %d elements, more than the limit of %d", name, n, mathMaxArrayLength)
+		}
+		// Grow while validating, so a bad element throws before a large buffer exists.
+		out := make([]float64, 0, min(n, 64))
+		for i := range int(n) {
+			out = append(out, mathNumber(vm, obj.Get(strconv.Itoa(i)), "%s: array element %d", name, i))
 		}
 		return out
 	}

@@ -56,18 +56,20 @@ declare module "@sentrie/math" {
 
   /**
    * Returns the smallest of the given numbers. Accepts one or more numbers,
-   * or a single non-empty array of numbers (such as a list from policy code).
-   * @throws Error if there are no values, an array is empty or is not the only
-   *   argument, or any value is not a finite number
+   * or a single non-empty array of at most 1,048,576 (2^20) numbers (such as
+   * a list from policy code).
+   * @throws Error if there are no values, an array is empty, longer than 2^20
+   *   or is not the only argument, or any value is not a finite number
    */
   export function min(...values: number[]): number;
   export function min(values: number[]): number;
 
   /**
    * Returns the largest of the given numbers. Accepts one or more numbers, or
-   * a single non-empty array of numbers (such as a list from policy code).
-   * @throws Error if there are no values, an array is empty or is not the only
-   *   argument, or any value is not a finite number
+   * a single non-empty array of at most 1,048,576 (2^20) numbers (such as a
+   * list from policy code).
+   * @throws Error if there are no values, an array is empty, longer than 2^20
+   *   or is not the only argument, or any value is not a finite number
    */
   export function max(...values: number[]): number;
   export function max(values: number[]): number;
