@@ -31,9 +31,9 @@ The operator's grant: a deployment-level JSON file, passed with `--capabilities`
   - **Exceptions:** None.
 
 - **Signature:** `Parse(data []byte) -> (*Capabilities, error)` / `Load(path string) -> (*Capabilities, error)` / `CurrentVersion = 1`
-  - **Behavior:** `Parse` rejects unknown fields, trailing data, any version other than `CurrentVersion`, empty builtin names, and module entries without the `@sentrie/` prefix. It deliberately does not check names against this build's builtins and modules, so a file written for a newer build loads and an unknown name grants nothing. `Load("")` returns `(nil, nil)`, meaning no file was given.
+  - **Behavior:** `Parse` first walks the top-level object with a `json.Decoder` token pass (`checkTopLevelKeys`), because `encoding/json` matches keys case-insensitively and lets a later duplicate win: it rejects an empty file, a non-object value, unknown or differently-cased keys (the exact spellings come from the struct tags), duplicate keys, trailing data and a missing `version`. It then rejects any version other than `CurrentVersion`, empty builtin names, and module entries without the `@sentrie/` prefix. Syntax, type and key errors carry a 1-based `line:column`. It deliberately does not check names against this build's builtins and modules, so a file written for a newer build loads and an unknown name grants nothing. `Load("")` returns `(nil, nil)`, meaning no file was given.
   - **Side Effects:** `Load` reads the file.
-  - **Exceptions:** Decode, version and entry errors prefixed `capabilities:`; `Load` prefixes the path.
+  - **Exceptions:** Errors prefixed `capabilities:` (with `line:column` where known); `Load` prefixes every error, read or parse, with the path.
 
 - **Signature:** `(*Capabilities).AllowsBuiltin(name) -> bool` / `AllowsModule(key) -> bool` / `AllowsLocalModules() -> bool`
   - **Behavior:** Membership tests. Every method is nil-safe and a nil receiver grants everything.
@@ -43,6 +43,6 @@ The operator's grant: a deployment-level JSON file, passed with `--capabilities`
 ## 4. Operational Context & Gotchas
 - **Statefulness:** A parsed grant is read-only after `Load` and is shared by the index check, the executor and the JS registry.
 - **Nil means allow, unlike pack permissions.** [[pack]]'s `Permissions` must be read as "deny when nil", because a missing `[permissions]` table must not open the sandbox. A missing capabilities file must keep today's behaviour, so here nil grants everything. Do not copy one convention into the other.
-- **The load-time check is only half.** `index.CheckCapabilities` cannot see `require()` calls inside TypeScript, so the registry gate is what holds TypeScript to the grant. Dropping either half opens a gap.
+- **Three checks, two times.** `index.CheckCapabilities` covers Sentrie source; `runtime.CheckModuleGrants` scans static `require("...")` calls in compiled pack TypeScript at load; the registry gate in `LoadRequire` catches everything at run time, including dynamic `require(expr)`. Dropping the runtime gate opens a gap; dropping the load-time scan only delays the failure to the first request.
 - **Membership is a linear scan.** That is fine for hand-written lists, and it runs once per builtin dispatch.
 - **Pack permissions are not yet intersected with the grant.** #157 tracks enforcing `[permissions]`. A future change could refuse a pack whose declared `env`, `fs_read` or `net` requests exceed the grant.
