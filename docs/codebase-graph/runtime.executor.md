@@ -21,6 +21,7 @@ The top-level driver: it owns the index, the JS registry, the loaded modules, an
 | `runtime.executor` | `CALLS` | [[runtime.decision]] | Wraps the final value via `DecisionOf`. |
 | `runtime.executor` | `CALLS` | [[runtime.modules]] | Loads one `jsModule` per module path and builds a per-`use` `ModuleBinding` over it. |
 | `runtime.executor` | `CALLS` | [[runtime.js]] | `NewRegistry`, `RegisterGoBuiltin`, `PrepareUse`, `NewAliasRuntime`, `SetupStdLib`, `Require`. |
+| `runtime.executor` | `READS_FROM` | [[capabilities]] | `WithCapabilities` keeps the grant for builtin dispatch and installs it on the JS registry. |
 | `runtime.executor` | `MUTATES` | `ext.binaek.perch` | Populates the call-memoization cache. |
 | `runtime.executor` | `CALLS` | [[runtime.trace]] | Opens `rule-outcome`, `rule`, `rule-when`, `rule-default`, `rule-body`, and `attachment` nodes. |
 | [[runtime.imports]] | `CALLS` | [[runtime.executor]] | Cross-policy decision imports re-enter through `ExecRule`. |
@@ -54,6 +55,11 @@ The top-level driver: it owns the index, the JS registry, the loaded modules, an
   - **Behavior:** Drops every loaded module and rejects later module loads with `ErrExecutorClosed`. Modules are collected under `modulesMu` and closed after it is released; `jsModule.close` is a lock-free atomic flag, so a module whose export check is stuck in its own code cannot block Close or other loads. A binding made before Close fails at call time with an error matching `errors.Is(err, ErrExecutorClosed)`. Idempotent. A module call already running keeps its own VM and finishes normally. `exec`, `validate` and `serve` in [[cmd]] call it.
   - **Side Effects:** Clears the module map.
   - **Exceptions:** Always nil today.
+
+- **Signature:** `WithCapabilities(grant *capabilities.Capabilities) -> NewExecutorOption` (in `runtime/capabilities.go`)
+  - **Behavior:** Stores the operator's grant ([[capabilities]]) for the builtin gate in [[runtime.eval_call]] and calls `jsRegistry.SetCapabilities`, so `bindUses` and every `require()` are held to it. These are the runtime halves of `index.CheckCapabilities`, which callers run at load time. A nil grant allows everything.
+  - **Side Effects:** Mutates the executor and its registry during construction.
+  - **Exceptions:** None at construction; denials surface from `ExecRule` wrapping `xerr.ErrNotGranted`.
 
 - **Signature:** `(*executorImpl).ExecPolicy(ctx, namespace, policy, facts) -> ([]*ExecutorOutput, error)`
   - **Behavior:** Resolves the policy and launches one goroutine per exported rule via `wg.Go`, appending results under a mutex and joining errors.

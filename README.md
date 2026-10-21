@@ -116,6 +116,16 @@ curl -i -X POST http://localhost:7529/decision/sh/sentrie/example/user_access \
 - The write timeout is sized from the ceiling (ceiling + 5s, at least 30s), so a request that asks for the longest deadline can still get its response.
 - A caller-chosen deadline lets any client that can reach the port hold an evaluation for up to the ceiling. Keep the ceiling to what your callers need, and put `serve` behind authentication ([#115](https://github.com/sentrie-sh/sentrie/issues/115)).
 
+### Restrict What a Pack May Use
+
+Operators can limit the builtins and modules a pack may use with a capabilities file:
+
+```bash
+sentrie serve --capabilities caps.json
+```
+
+A pack that uses anything outside the grant fails to load, and the error names the offending source span. `exec` and `validate` take the same flag. See [`capabilities/FORMAT.md`](capabilities/FORMAT.md) for the file format.
+
 ## Learn More
 
 - **[Getting Started](https://sentrie.sh/getting-started/)** - Write your first policy

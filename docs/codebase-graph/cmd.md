@@ -19,6 +19,7 @@ Defines the four user-facing commands and wires the loading pipeline behind each
 | `cmd` | `CALLS` | [[loader]] | `LoadPack` reads the manifest; `LoadPrograms` parses every policy file. |
 | `cmd` | `CALLS` | [[index]] | `CreateIndex`, `SetPack`, `AddProgram`, `Validate`, and `NondeterminismWarnings` in `validate`. |
 | `cmd` | `READS_FROM` | [[runtime.js.registry]] | `validate` passes `js.IsNondeterministicExport` to the index's warning pass. |
+| `cmd` | `CALLS` | [[capabilities]] | `exec`, `serve` and `validate` load `--capabilities`, run `index.CheckCapabilities`, and pass `runtime.WithCapabilities` to the executor. |
 | `cmd` | `CALLS` | [[runtime.executor]] | `NewExecutor`, then `ExecPolicy` / `ExecRule`. |
 | `cmd` | `CALLS` | [[api.http]] | `serve` constructs and drives the HTTP API. |
 | `cmd` | `LAYERED_ON` | [[pack]] | `init` constructs and TOML-encodes a new pack manifest. |
@@ -35,6 +36,11 @@ Defines the four user-facing commands and wires the loading pipeline behind each
   - **Behavior:** Delegates to `cli.Run`.
   - **Side Effects:** Whatever the command does.
   - **Exceptions:** **Panics** on a nil CLI - a deliberate programmer-error assertion.
+
+- **Signature:** `--capabilities <path>` on `serve`, `exec` and `validate`
+  - **Behavior:** Loads the operator's grant ([[capabilities]]) after `Validate`, fails with span-anchored `xerr.CapabilityError`s when the pack uses anything outside it, and hands the grant to the executor for the runtime gates. Empty (the default) grants everything. Shared through `capabilitiesFlag` and `loadAndCheckCapabilities` in `cmd/capabilities.go`.
+  - **Side Effects:** Reads the file.
+  - **Exceptions:** Capabilities parse errors; joined capability denials.
 
 - **Signature:** `sentrie serve [--http-port 7529] [--pack-location ./] [--http-listen local] [--eval-timeout 10s] [--eval-max-timeout <d>]`
   - **Behavior:** Runs the full load-and-validate pipeline, constructs the executor, sets up listeners, starts serving in a goroutine, and blocks on context cancellation before stopping. The default port `7529` spells "PLCY" on a phone keypad.
