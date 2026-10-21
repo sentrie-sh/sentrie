@@ -94,16 +94,22 @@ whether or not a capabilities file is given. These sources are the `now` builtin
 With `"deterministic_js": true`, every JavaScript runtime gets these replacements
 before any module code runs:
 
-- `Date.now()`, `new Date()` and `Date()` return the execution's start time, which
-  is the same instant the `now` builtin and `@sentrie/time.now` report. Every other
-  form, such as `new Date(0)`, `Date.parse` and `Date.UTC`, behaves as usual.
+- `Date.now()`, `new Date()` and `Date()` return the execution's start time in
+  milliseconds, the same instant `@sentrie/time.now` reports in seconds. Every
+  other form, such as `new Date(0)`, `Date.parse` and `Date.UTC`, behaves as
+  usual, and `class X extends Date` keeps working. Pack code cannot recover the
+  real `Date` by replacing `Function.prototype.bind`, `apply` or other shared
+  intrinsics: the shim captures what it needs before any pack code runs.
 - `Math.random()` draws from a pseudo-random stream seeded from the execution
-  start time and the module function being called.
+  start time (to the nanosecond, so a replay must carry nanosecond precision)
+  and the module function being called.
 
 Each module call is therefore reproducible from its execution start time. The
 stream restarts on every call, so two calls to the same function in one
 execution see the same sequence. Module top-level code runs once, when the
 module first loads, before any execution: there the clock reads `0`.
 
-These shims make the nondeterministic sources deterministic, but `sentrie
-validate` still warns about them.
+Only `Date` and `Math.random` are covered. `@sentrie/uuid.v4`, `v6` and `v7`
+still return fresh values on every call; to forbid them, leave `@sentrie/uuid`
+out of `modules`. `sentrie validate` warns about every nondeterministic source
+whether or not the shims are on.
