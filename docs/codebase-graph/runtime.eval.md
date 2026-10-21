@@ -50,7 +50,7 @@ The central dispatch of the tree-walking evaluator. Every expression in Sentrie 
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless dispatch; all state lives in the execution context.
-- **Performance/Scale Notes:** A `trace.Node` is allocated for **every** literal and every expression, so trace cost scales with total AST nodes evaluated, not with interesting decisions. Deep recursion mirrors AST depth and there is no depth limit here - runaway nesting relies on the parser and on `PushRefStack` rather than on this walker.
+- **Performance/Scale Notes:** A `trace.Node` is allocated for **every** literal and every expression, so trace cost scales with total AST nodes evaluated, not with interesting decisions. `eval` itself does not check the context: deadline checks sit at rule, derive and lambda entry ([[runtime.callable]], [[runtime.derive_invoke]]), per iteration rather than per node ([#225](https://github.com/sentrie-sh/sentrie/issues/225)). Deep recursion mirrors AST depth and there is no depth limit here - runaway nesting relies on the parser and on `PushRefStack` rather than on this walker.
 - **Dependencies Risk:**
   - **Integer and float both box to `box.Number`.** The distinction the parser preserved is erased at the first evaluation step, so no downstream code can recover it.
   - **Duplicate map keys silently collapse.** The parser retains duplicates in `MapLiteral.Entries`, but this loop writes into a Go map, so the last write wins with no diagnostic.

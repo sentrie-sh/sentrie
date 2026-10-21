@@ -89,7 +89,7 @@ TypeScript and JavaScript modules run inside Sentrie, so evaluation is bounded b
 | JavaScript call depth | 10,000 frames per module call; deeper recursion throws a stack overflow | Not configurable |
 | Memory | **Not bounded per evaluation.** goja has no per-VM heap cap | Set a process limit, for example `GOMEMLIMIT=1GiB`, plus a container or cgroup memory limit |
 
-The deadline stops JavaScript and module loading. Sentrie's own expression evaluation is not interrupted mid-expression; it ends when it next calls into a module, or when it finishes.
+The deadline stops JavaScript, module loading and Sentrie's own expression evaluation. The evaluator checks it at every rule and derive it enters and at every lambda it applies, which includes each element a collection operator such as `filter` or `any` visits, so a policy with no module calls is bounded too. A single step between those points (one comparison, one `in` over a list) still runs to its end.
 
 ## Learn More
 

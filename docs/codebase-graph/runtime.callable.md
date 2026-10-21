@@ -38,9 +38,9 @@ Unifies the two things Sentrie can invoke - an anonymous lambda and a named deri
   - **Exceptions:** None.
 
 - **Signature:** `(*lambdaCallable).Invoke(ctx, site, args) -> (box.Value, error)`
-  - **Behavior:** Pads and validates arguments, builds an attached child of the **capture** context (not the call site's context), force-binds parameters as locals, evaluates the body, then validates the declared return type if present.
+  - **Behavior:** Returns `ctx.Err()` first if the context has ended. Collection builtins invoke a callable once per element, so this is the evaluator's per-iteration deadline check ([#225](https://github.com/sentrie-sh/sentrie/issues/225)); it costs about 2 ns against about 1 us per invocation. Then pads and validates arguments, builds an attached child of the **capture** context (not the call site's context), force-binds parameters as locals, evaluates the body, then validates the declared return type if present.
   - **Side Effects:** Body evaluation, including any module calls the body performs.
-  - **Exceptions:** Arity errors; parameter type-validation errors; `lambda return: …` on return-type mismatch.
+  - **Exceptions:** the context error; arity errors; parameter type-validation errors; `lambda return: …` on return-type mismatch.
 
 - **Signature:** `(*deriveCallable).Invoke(ctx, site, args) -> (box.Value, error)` / `Arity() -> int`
   - **Behavior:** Delegates to `invokeDerive` with the call site's context, which builds a **detached** child. `Arity` is nil-safe and returns 0 for a nil derive.
