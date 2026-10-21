@@ -38,6 +38,11 @@ This node exposes no callable surface. Its "interface" is the set of productions
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 
+- **Signature:** `execSource ::= STRING | ('@' modulePathSegment ('/' modulePathSegment)*)`
+  - **Behavior:** The source of a `use` statement. `modulePathSegment ::= IDENT | KEYWORD`, so modules named after keywords (`@sentrie/string`) are importable; this is the only position where the grammar treats a keyword as a name (#158).
+  - **Side Effects:** N/A.
+  - **Exceptions:** N/A.
+
 - **Signature:** `expr ::= ternaryExpr` → `orExpr` → `xorExpr` → `andExpr` → `unaryExpr` → `cmpExpr` → `addExpr` → …
   - **Behavior:** The authoritative operator precedence chain, including the elvis form `a ? : b` and the pipeline operator `|>` with its `#` hole.
   - **Side Effects:** N/A.

@@ -17,6 +17,7 @@ Parses `use { f, g } from ("./mod.js" | @pkg/mod) [as alias]` - the bridge betwe
 | :--- | :--- | :--- | :--- |
 | `parser.use` | `CALLS` | [[parser.parser]] | Uses `advanceExpected`, `expect`, `canExpect`, `canExpectAnyOf`, `errorf`. |
 | `parser.use` | `CALLS` | [[ast]] | Emits `ast.NewUseStatement(modules, relativeFrom, libFrom, alias, span)`. |
+| `parser.use` | `CALLS` | [[tokens]] | `IsKeyword` decides whether an `@` path segment is a keyword token, and whether a default alias would be one. |
 | `parser.use` | `IMPORTS` | `std.strings` | Splits a relative path on `/` to derive the default alias. |
 | [[parser.policy]] | `CALLS` | [[parser.use]] | Registered for `tokens.KeywordUse` in the policy-scope table - `use` is policy-scoped, not namespace-scoped. |
 | [[runtime.js]] | `DEPENDS_ON` | [[parser.use]] | Resolves and loads the named module, exposing the listed exports under the alias. |
@@ -25,9 +26,9 @@ Parses `use { f, g } from ("./mod.js" | @pkg/mod) [as alias]` - the bridge betwe
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `parseUseStatement(ctx: context.Context, p: *Parser) -> ast.Statement`
-  - **Behavior:** Consumes `use`, then a **required non-empty** brace list of identifiers separated by commas, then `from`, then either a `String` (stored as `RelativeFrom`) or `@ident (/ ident)*` (stored as `LibFrom` segments). The default alias is the last path segment of whichever form was used; an explicit `as <ident>` overrides it.
+  - **Behavior:** Consumes `use`, then a **required non-empty** brace list of identifiers separated by commas, then `from`, then either a `String` (stored as `RelativeFrom`) or `@segment (/ segment)*` (stored as `LibFrom` segments), where a segment is an identifier **or a keyword** (`@sentrie/string`, #158). The default alias is the last path segment of whichever form was used; an explicit `as <ident>` overrides it.
   - **Side Effects:** Consumes tokens; may record errors.
-  - **Exceptions:** Returns `nil` for a missing `use`/`{`/`}`/`from`, a non-identifier in the import list, a missing comma between entries, a source that is neither string nor `@`, or a missing identifier after `as`. The source-form failure reports `expected string or '@' for module import`.
+  - **Exceptions:** Returns `nil` for a missing `use`/`{`/`}`/`from`, a non-identifier in the import list, a missing comma between entries, a source that is neither string nor `@`, or a missing identifier after `as`, or an `@` path whose last segment is a keyword with no `as` (`default alias %q is a keyword; add 'as <alias>'`). The source-form failure reports `expected string or '@' for module import`.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless.
@@ -37,5 +38,6 @@ Parses `use { f, g } from ("./mod.js" | @pkg/mod) [as alias]` - the bridge betwe
   - **Unterminated brace list can run away.** The loop condition tests only for `}` - not EOF - so a missing closing brace relies on `expect(PunctComma)` failing to break out. The resulting diagnostic points at whatever token followed, not at the `use`.
   - **Two mutually exclusive source fields.** Consumers must check `RelativeFrom != ""` before falling back to `LibFrom`; exactly one is populated, and nothing in the AST enforces that invariant.
   - **Alias derivation assumes a path shape.** For a relative source the alias is the substring after the last `/`, including any file extension - `from "./util.js"` defaults the alias to `util.js`, not `util`. Explicit `as` is advisable for file-path imports.
+  - **Keywords are names only inside the `@` path.** `advanceModulePathSegment` accepts a keyword token there and nowhere else; the import list and the `as` alias still require `Ident`. A keyword as the last segment cannot become the default alias, because call sites (`string.lower(x)`) would lex it as the keyword, so the parser demands an explicit `as` instead.
   - **`/` inside `@pkg/mod` reuses the division token**, the same overload noted in [[parser.fqn]].
   - **Nothing is resolved here.** Whether the module exists, exports the named symbols, or is permitted by the pack's [[pack]] permissions is determined at runtime.

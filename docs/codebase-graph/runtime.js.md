@@ -56,5 +56,5 @@ Everything required to run TypeScript and JavaScript inside the policy engine: m
   - **The sandbox is defined by omission, not by policy.** goja provides no filesystem, network, or process access by default, and this package adds none - the `net` builtin is pure CIDR arithmetic with no sockets. The boundary therefore holds only as long as no future builtin introduces real I/O. There is no allowlist enforcing that.
   - **Environment access is the one deliberate hole**, gated per-key by pack permissions. A nil permissions block exposes nothing, which is the correct default.
   - **`time.now()` is pinned to the execution start timestamp** injected as a VM global, so JavaScript sees the same clock as the policy evaluator - with a silent fallback to the real wall clock if the global is missing.
-  - **Builtins return error objects rather than throwing.** See [[runtime.js.builtins]]; this is the most likely source of quiet incorrect behaviour in module code.
+  - **Builtins return error objects rather than throwing** (all but `string` and `math`, which throw). See [[runtime.js.builtins]]; this is the most likely source of quiet incorrect behaviour in module code.
   - **VMs are pooled without reset**, so module-level state persists across evaluations. Filed as [#105](https://github.com/sentrie-sh/sentrie/issues/105); see [[runtime.modules]].
