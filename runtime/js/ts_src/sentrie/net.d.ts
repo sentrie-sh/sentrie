@@ -67,14 +67,14 @@ declare module "@sentrie/net" {
   /**
    * Checks if an IP address is IPv4.
    * @param ip - The IP address to check
-   * @returns true if the IP is IPv4, false otherwise
+   * @returns true if the IP is IPv4, false otherwise, including for input that is not an IP address
    */
   export function isIPv4(ip: string): boolean;
 
   /**
    * Checks if an IP address is IPv6.
    * @param ip - The IP address to check
-   * @returns true if the IP is IPv6, false otherwise
+   * @returns true if the IP is IPv6, false otherwise, including for input that is not an IP address
    */
   export function isIPv6(ip: string): boolean;
 
@@ -83,6 +83,9 @@ declare module "@sentrie/net" {
    * Private ranges include: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, and IPv6 equivalents.
    * @param ip - The IP address to check
    * @returns true if the IP is private, false otherwise
+   * @throws Error if the input is not an IP address. Classification predicates throw
+   * rather than answer false, so a negated check (`!isPrivate(ip)`) fails for junk
+   * instead of passing. Check `isIPv4`/`isIPv6` first to handle untrusted input.
    */
   export function isPrivate(ip: string): boolean;
 
@@ -91,6 +94,9 @@ declare module "@sentrie/net" {
    * Public addresses are globally routable unicast addresses that are not private or loopback.
    * @param ip - The IP address to check
    * @returns true if the IP is public, false otherwise
+   * @throws Error if the input is not an IP address. Classification predicates throw
+   * rather than answer false, so a negated check (`!isPrivate(ip)`) fails for junk
+   * instead of passing. Check `isIPv4`/`isIPv6` first to handle untrusted input.
    */
   export function isPublic(ip: string): boolean;
 
@@ -99,6 +105,9 @@ declare module "@sentrie/net" {
    * Loopback addresses include 127.0.0.0/8 for IPv4 and ::1 for IPv6.
    * @param ip - The IP address to check
    * @returns true if the IP is a loopback address, false otherwise
+   * @throws Error if the input is not an IP address. Classification predicates throw
+   * rather than answer false, so a negated check (`!isPrivate(ip)`) fails for junk
+   * instead of passing. Check `isIPv4`/`isIPv6` first to handle untrusted input.
    */
   export function isLoopback(ip: string): boolean;
 
@@ -106,6 +115,9 @@ declare module "@sentrie/net" {
    * Checks if an IP address is a multicast address.
    * @param ip - The IP address to check
    * @returns true if the IP is multicast, false otherwise
+   * @throws Error if the input is not an IP address. Classification predicates throw
+   * rather than answer false, so a negated check (`!isPrivate(ip)`) fails for junk
+   * instead of passing. Check `isIPv4`/`isIPv6` first to handle untrusted input.
    */
   export function isMulticast(ip: string): boolean;
 }

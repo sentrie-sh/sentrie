@@ -43,3 +43,61 @@ func (s *JSTestSuite) TestNetCidrExpandSmallRanges() {
 		})
 	}
 }
+
+// TestNetClassificationThrowsOnJunk pins #213: classification predicates
+// throw on input that is not an IP address, so a negated check fails the
+// rule instead of passing for junk.
+func (s *JSTestSuite) TestNetClassificationThrowsOnJunk() {
+	for _, name := range []string{"isPrivate", "isPublic", "isLoopback", "isMulticast"} {
+		for _, expr := range []string{
+			`m.` + name + `("not-an-ip")`,
+			`!m.` + name + `("not-an-ip")`,
+			`m.` + name + `("")`,
+			`m.` + name + `("10.0.0.0/8")`,
+		} {
+			s.Run(expr, func() {
+				_, err := s.runBuiltinScript(BuiltinNetGo, expr)
+				s.Require().Error(err)
+				s.Contains(err.Error(), name+": invalid IP address")
+			})
+		}
+	}
+
+	// The throw is a catchable JavaScript exception.
+	got, err := s.runBuiltinScript(BuiltinNetGo, `(function () {
+		try { return "returned:" + !m.isPrivate("junk"); } catch (e) { return "threw"; }
+	})()`)
+	s.Require().NoError(err)
+	s.Equal("threw", got.String())
+}
+
+// TestNetPredicatesOnValidInput checks the split leaves real answers alone:
+// classification on valid addresses, and validity predicates answering false
+// for junk.
+func (s *JSTestSuite) TestNetPredicatesOnValidInput() {
+	cases := []struct {
+		expr string
+		want string
+	}{
+		{`m.isPrivate("10.1.2.3")`, "true"},
+		{`!m.isPrivate("8.8.8.8")`, "true"},
+		{`m.isPublic("8.8.8.8")`, "true"},
+		{`m.isPublic("192.168.0.1")`, "false"},
+		{`m.isLoopback("127.0.0.1")`, "true"},
+		{`m.isLoopback("::1")`, "true"},
+		{`m.isMulticast("224.0.0.1")`, "true"},
+		{`m.isMulticast("10.0.0.1")`, "false"},
+		{`m.isIPv4("not-an-ip")`, "false"},
+		{`m.isIPv6("not-an-ip")`, "false"},
+		{`m.cidrIsValid("not-a-cidr")`, "false"},
+		{`m.isIPv4("10.0.0.1")`, "true"},
+		{`m.isIPv6("::1")`, "true"},
+	}
+	for _, tc := range cases {
+		s.Run(tc.expr, func() {
+			got, err := s.runBuiltinScript(BuiltinNetGo, tc.expr)
+			s.Require().NoError(err)
+			s.Equal(tc.want, got.String())
+		})
+	}
+}
