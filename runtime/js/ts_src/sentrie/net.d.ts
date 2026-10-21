@@ -38,10 +38,14 @@ declare module "@sentrie/net" {
   export function cidrIsValid(cidr: string): boolean;
 
   /**
-   * Expands a CIDR block to a list of all host IP addresses within that block.
+   * Expands a CIDR block to a list of every IP address within that block,
+   * network and broadcast addresses included.
+   * Ranges are limited to 65,536 addresses (a /16 in IPv4, a /112 in IPv6);
+   * larger ones throw without being enumerated. Use cidrContains to test
+   * membership in a larger range.
    * @param cidr - The CIDR block to expand (e.g., "192.168.1.0/28")
    * @returns Array of all IP addresses in the CIDR block
-   * @throws Error if the CIDR notation is invalid
+   * @throws Error if the CIDR notation is invalid or the range holds more than 65,536 addresses
    */
   export function cidrExpand(cidr: string): string[];
 
