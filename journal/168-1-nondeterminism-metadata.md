@@ -18,3 +18,12 @@
 - Found while reading: `use { x } from "@sentrie/js"` (quoted) is resolved by the registry as a pack-relative file, not the builtin. Several `lang_test` fixtures use that form; they only parse and index, so nothing fails. Left alone and reported.
 - `make test` and `make lint` (golangci-lint v2.4.0 on go1.25.0) pass.
 - _Model: claude-opus-5-5_
+
+### 22:34 - Review fixes (pr-200)
+- Walker gap: `visitBuiltinCalls` fell through to `forEachDeriveExprChild`, which has no case for `ImportClause`/`WithClause` and returns an error that was ignored, so `import decision ... with t as now()` was never visited. Added both cases to the walker itself rather than to `forEachDeriveExprChild`, which derive cycle detection and `checkBuiltinCalls` share (#218 is reworking the latter).
+- Shadowing parity: `getTarget` never resolves a call through a local binding (derive, then builtin, then module alias), but the walker used `isBuiltinCall`, which lets locals shadow. So `(now) => { yield now() }` got no warning even though it calls the builtin at runtime. Chose to make the static side match the runtime: a new `runtimeBuiltinCallee` (derive, then builtin, no locals). Left `isBuiltinCall` alone; it is pre-existing and #218's area. Applied the same parity in `checkDeriveCall`: a builtin not `PermittedInDerive` is refused even when a parameter of the same name is in scope, exactly as the runtime guard refuses it.
+- Local TypeScript: every `use` of a pack-local module now gets one warning that its code can read `Date.now()`/`Math.random()`. Chose this minimum over scanning the transpiled code, which would pull `runtime/js` into the warning pass; layer 2 adds a load-time `require` scan for the grant.
+- Noted in `runtime/js/nondeterminism.go` that JWT `exp`/`nbf` exports (#197, #202) belong in the table once they land.
+- Signing refused the first commit attempts ("agent refused operation"), so the work waited uncommitted until signing came back. A signing probe then created an empty local commit by mistake; I removed it with a soft reset before it was pushed or built on.
+- `make test` and `make lint` pass.
+- _Model: claude-opus-5-5_
