@@ -130,8 +130,14 @@ func (p *Parser) peek() tokens.Instance {
 
 // errorf adds a formatted error
 func (p *Parser) errorf(format string, args ...interface{}) {
+	p.errorAtf(p.current.Range, format, args...)
+}
+
+// errorAtf records an error at rnge, for a construct whose own span is a
+// better location than the current token's.
+func (p *Parser) errorAtf(rnge tokens.Range, format string, args ...interface{}) {
 	format = "parsing error at %s: " + format
-	args = append([]any{p.current.Range.String()}, args...)
+	args = append([]any{rnge.String()}, args...)
 
 	p.err = errors.Join(
 		p.err,

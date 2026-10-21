@@ -13,6 +13,9 @@ import (
 )
 
 // 'use' '{' func (',' func)* '}' 'from' moduleName 'as' alias
+//
+// moduleName is either `@segment (/ segment)*` or a quoted file path, which
+// must not start with `@`.
 func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 	head, found := p.advanceExpected(tokens.KeywordUse)
 	if !found {
@@ -64,7 +67,20 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 	libFrom := []string{}
 
 	if p.canExpect(tokens.String) {
-		fromModule, _ := p.advanceExpected(tokens.String)
+		fromModule := p.head()
+		// A quoted path is a file relative to the policy, so a quoted
+		// `"@sentrie/js"` would look for a file of that name rather than the
+		// module (#217). Only the unquoted form names an `@` module; a file
+		// whose name starts with `@` is still reachable as "./@name".
+		if strings.HasPrefix(fromModule.Value, "@") {
+			p.errorAtf(
+				tokens.NewRange(fromModule.Range.File, fromModule.Range.From, tokenEnd(fromModule)),
+				"quoted module path %q is read as a file next to the policy; drop the quotes to import the module: from %s",
+				fromModule.Value, fromModule.Value,
+			)
+			return nil
+		}
+		p.advance()
 		relativeFrom = fromModule.Value
 		rnge.To = tokenEnd(fromModule)
 	} else {
