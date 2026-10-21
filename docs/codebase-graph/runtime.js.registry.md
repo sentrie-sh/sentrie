@@ -35,7 +35,7 @@ Owns module identity and compilation for the whole engine. It resolves `use` ref
   - **Exceptions:** `unsupported library from: %v`; `module %s not found`; compilation errors.
 
 - **Signature:** `LoadRequire(fromDir, spec string) -> (*ModuleSpec, error)`
-  - **Behavior:** The `require()` counterpart. Handles `@sentrie/…` builtins, `@local/…` pack-relative paths, and `./` or `/` relative paths. All on-disk resolution goes through `relativeToLocal`, which rejects `..` traversal and symlink escapes outside `PackRoot`. Bare specifiers are rejected - there is no `node_modules` resolution.
+  - **Behavior:** The `require()` counterpart. Successful resolutions are memoised per `(fromDir, spec)`, because every module call loads into a fresh VM and would otherwise repeat the containment and symlink checks on disk. Handles `@sentrie/…` builtins, `@local/…` pack-relative paths, and `./` or `/` relative paths. All on-disk resolution goes through `relativeToLocal`, which rejects `..` traversal and symlink escapes outside `PackRoot`. Bare specifiers are rejected - there is no `node_modules` resolution.
   - **Side Effects:** As above.
   - **Exceptions:** `unsupported require spec: %q`; `relative path is outside the packroot: %s`; `module %s not found`.
 
@@ -43,6 +43,11 @@ Owns module identity and compilation for the whole engine. It resolves `use` ref
   - **Behavior:** Behind `sync.Once`: reads the source, transpiles, parses the source map, wraps as an IIFE factory, and compiles. A Go-backed module returns `(nil, nil)` because there is no program to run.
   - **Side Effects:** Populates `TranspiledCode`, `TranspiledMap`, and `Program` on the spec.
   - **Exceptions:** `builtin not found: %s`; file read errors; esbuild errors; source-map unmarshal errors; goja compile errors.
+
+- **Signature:** `(*Registry).CompiledPrograms() -> int64`
+  - **Behavior:** How many module programs this registry has compiled; one per module for the registry's lifetime.
+  - **Side Effects:** None.
+  - **Exceptions:** None.
 
 - **Signature:** `(*ModuleSpec).KeyOrPath() -> string`
   - **Behavior:** The canonical identifier - key if set, otherwise path. Used as the cache key throughout the system.

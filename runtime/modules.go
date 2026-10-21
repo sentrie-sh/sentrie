@@ -8,12 +8,13 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"sync"
+	"time"
 
 	"github.com/dop251/goja"
 	"github.com/fatih/structs"
-	"github.com/jackc/puddle/v2"
 	"github.com/sentrie-sh/sentrie/box"
-	"github.com/sentrie-sh/sentrie/constants"
+	"github.com/sentrie-sh/sentrie/runtime/js"
 )
 
 // JSInstance is one loaded copy of a module, in its own VM.
@@ -35,11 +36,85 @@ func newJSInstance(rt *goja.Runtime, exports *goja.Object) *JSInstance {
 	return &JSInstance{rt: rt, exports: exports, keys: keys}
 }
 
-// jsModule is a loaded module and its VM pool, shared by every `use` of the
-// same resolved path. It carries no export restriction.
+// maxLiveInstances bounds how many VMs one module may have running at once.
+// Calls beyond it wait for a slot, so contention shows as latency.
+const maxLiveInstances = 10
+
+// instanceLoader builds a fresh VM and loads the module into it, with the
+// module's notion of "now" pinned to start.
+type instanceLoader func(ctx context.Context, start time.Time) (*JSInstance, error)
+
+// jsModule is a loaded module, shared by every `use` of the same resolved path.
+// It carries no export restriction.
+//
+// Every call runs in a VM that no other call has touched (#105): acquire loads
+// the module into a fresh goja.Runtime, reusing the compiled goja.Program the
+// registry holds, and the VM is dropped after the call. Module-level state such
+// as a counter or a memo table therefore lives for exactly one call, whatever
+// the evaluation order or concurrency.
 type jsModule struct {
-	key  string
-	pool *puddle.Pool[*JSInstance]
+	key   string
+	load  instanceLoader
+	slots chan struct{}
+
+	// probe is one loaded instance kept to answer export checks at bind time.
+	// It never serves a call. probeMu serialises access, since a goja.Runtime
+	// is single-threaded and reading an export may run a getter.
+	probeMu sync.Mutex
+	probe   *JSInstance
+}
+
+// newJSModule loads the module once, which both verifies that it loads and
+// gives the module its probe instance.
+func newJSModule(ctx context.Context, key string, load instanceLoader) (*jsModule, error) {
+	probe, err := load(ctx, time.Now())
+	if err != nil {
+		return nil, err
+	}
+	// The load succeeded, but ctx may have ended in the window between the
+	// module factory returning and the load's interrupt being stopped, which
+	// leaves the interrupt set (js.InterruptOnDone keeps a fired interrupt).
+	// The probe outlives this call and runs export getters later, so clear it;
+	// the load's stop has returned, so nothing else touches the VM now.
+	probe.rt.ClearInterrupt()
+	return &jsModule{
+		key:   key,
+		load:  load,
+		slots: make(chan struct{}, maxLiveInstances),
+		probe: probe,
+	}, nil
+}
+
+// acquire loads a fresh, never-used instance of the module for one call. The
+// caller must call release once it is done with the instance.
+func (m *jsModule) acquire(ctx context.Context, start time.Time) (_ *JSInstance, release func(), _ error) {
+	select {
+	case m.slots <- struct{}{}:
+	case <-ctx.Done():
+		return nil, nil, ctx.Err()
+	}
+	instance, err := m.load(ctx, start)
+	if err != nil {
+		<-m.slots
+		return nil, nil, err
+	}
+	return instance, func() { <-m.slots }, nil
+}
+
+// checkExports verifies that the module provides every name in exports, so a
+// `use` naming a missing export fails when it is bound rather than when called.
+func (m *jsModule) checkExports(exports []string) error {
+	if len(exports) == 0 {
+		return nil
+	}
+	m.probeMu.Lock()
+	defer m.probeMu.Unlock()
+	for _, name := range exports {
+		if m.probe.exports.Get(name) == nil {
+			return fmt.Errorf("module %s missing required export %q", m.key, name)
+		}
+	}
+	return nil
 }
 
 // ModuleBinding is one `use` statement's view of a shared jsModule: the alias
@@ -66,25 +141,6 @@ func (m ModuleBinding) lookupExport(instance *JSInstance, name string) (goja.Val
 	return v, v != nil
 }
 
-// checkExports verifies that the module provides every name in exports, so a
-// `use` naming a missing export fails when it is bound rather than when called.
-func (m *jsModule) checkExports(ctx context.Context, exports []string) error {
-	if len(exports) == 0 {
-		return nil
-	}
-	res, err := m.pool.Acquire(ctx)
-	if err != nil {
-		return err
-	}
-	defer res.Release()
-	for _, name := range exports {
-		if res.Value().exports.Get(name) == nil {
-			return fmt.Errorf("module %s missing required export %q", m.key, name)
-		}
-	}
-	return nil
-}
-
 func normalizeBoundaryForJS(v any) any {
 	if box.IsBoundaryUndefined(v) {
 		return goja.Undefined()
@@ -108,19 +164,14 @@ func normalizeBoundaryForJS(v any) any {
 }
 
 func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string, args ...any) (any, error) {
-	if m.module == nil || m.module.pool == nil {
+	if m.module == nil {
 		return nil, fmt.Errorf("module has no JS binding")
 	}
-	poolInstance, err := m.module.pool.Acquire(ctx)
+	instance, release, err := m.module.acquire(ctx, ec.CreatedAt())
 	if err != nil {
 		return nil, err
 	}
-	defer poolInstance.Release()
-
-	instance := poolInstance.Value()
-	if err := instance.rt.Set(constants.ExecutionStartTimeUnixKey, ec.CreatedAt().UTC().Unix()); err != nil {
-		return nil, err
-	}
+	defer release()
 
 	val, ok := m.lookupExport(instance, fn)
 	if !ok {
@@ -131,21 +182,10 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 		return nil, fmt.Errorf("export '%q' is not callable", fn)
 	}
 
-	// Install an interrupt to honor context cancel
-	done := make(chan struct{})
-	if ctx != nil {
-		instance.rt.ClearInterrupt()
-		go func() {
-			select {
-			case <-ctx.Done():
-				instance.rt.Interrupt(ctx.Err())
-			case <-done:
-				// clear the interrupt
-				instance.rt.ClearInterrupt()
-			}
-		}()
-		defer close(done)
-	}
+	// Interrupt the call if ctx ends. stop waits for an in-flight interrupt,
+	// so no goroutine touches the VM once Call returns.
+	stop := js.InterruptOnDone(ctx, instance.rt)
+	defer stop()
 
 	ga := make([]goja.Value, 0, len(args))
 	for _, a := range args {
