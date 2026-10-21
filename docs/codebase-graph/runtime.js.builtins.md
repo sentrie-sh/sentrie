@@ -39,12 +39,12 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
   - **Exceptions:** Per-function argument-count and parse errors, returned rather than thrown - except `string` and `math`, which throw (see below).
 
 - **Signature:** `@sentrie/string` - `lower`, `upper`, `trim`, `trimStart`, `trimEnd`, `startsWith`, `endsWith`, `includes`, `split`, `join`, `replace`, `replaceAll`, `equalFold`, `format`
-  - **Behavior:** Go `strings` over UTF-8 code points: `split(s, "")` yields code points, trims strip Unicode White_Space, case mapping and folding are Go's simple one-to-one mappings. `replace` replaces the first occurrence only. `format` is a closed verb set (`%s %q %d %f %.Nf %v %%`, no flags or widths, precision 0 to 20) and requires the argument count to equal the verbs that consume one. `join` takes a JS array or a goja-wrapped Go slice. The contract is documented in `ts_src/sentrie/string.d.ts`.
+  - **Behavior:** Go `strings` over UTF-8 code points: `split(s, "")` yields code points, trims strip Unicode White_Space, case mapping and folding are Go's simple one-to-one mappings. `replace` replaces the first occurrence only. `format` is a closed verb set (`%s %q %d %f %.Nf %v %%`, no flags or widths, precision 0 to 20) and requires the argument count to equal the verbs that consume one. `join` takes a JS array or a goja-wrapped Go slice of at most `stringMaxListLength` (2^20) elements; negative zero prints as `0` under every numeric verb. The contract is documented in `ts_src/sentrie/string.d.ts`.
   - **Side Effects:** None.
   - **Exceptions:** **Thrown**, never returned: exact argument counts, string-typed arguments with no coercion, unsupported `format` verbs or mismatched verb arguments.
 
 - **Signature:** `@sentrie/math` - `abs`, `floor`, `ceil`, `round`, `trunc`, `min`, `max`, `pow`, `sqrt`, `clamp`
-  - **Behavior:** No non-finite value in or out: arguments must be finite numbers, a NaN or infinite result throws, and negative zero is returned as 0. `round` is half away from zero (unlike JS `Math.round`). `min`/`max` take one or more numbers or a single non-empty array. `clamp` requires `lo <= hi`. The contract is documented in `ts_src/sentrie/math.d.ts`.
+  - **Behavior:** No non-finite value in or out: arguments must be finite numbers, a NaN or infinite result throws, and negative zero is returned as 0. `round` is half away from zero (unlike JS `Math.round`). `min`/`max` take one or more numbers or a single non-empty array of at most `mathMaxArrayLength` (2^20) elements. `clamp` requires `lo <= hi`. The contract is documented in `ts_src/sentrie/math.d.ts`.
   - **Side Effects:** None.
   - **Exceptions:** **Thrown**, never returned: exact argument counts, non-number or non-finite arguments, `sqrt` of a negative, non-finite `pow` results, `clamp` with `lo > hi`.
 
@@ -61,6 +61,7 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
   - **`uuid` and the `time` fallback are non-deterministic**, which is why module calls are forbidden inside derives (see [[runtime.eval_call]]) - a derive must be reproducible within an execution.
   - **The `time.now()` fallback is silent.** If the execution-start global is missing, JavaScript quietly gets wall-clock time and diverges from what the evaluator's own `now()` reports, with no signal.
   - **`net` deliberately has no I/O.** It is CIDR arithmetic over `net.ParseCIDR`, not a network client. Preserving that is what keeps the sandbox claim honest.
+  - **Array arguments are length-checked before allocation.** A JS array's `length` is caller-controlled (`a.length = 2**32 - 1` is free), so `join`, `min` and `max` reject lengths over 2^20 and grow their buffers while validating elements. Sizing a buffer straight from `length` would let one line of module code trigger an unrecoverable Go out-of-memory fatal error.
   - **`@sentrie/string` needs an explicit alias.** `string` is a keyword, so [[parser.use]] accepts it as a path segment but rejects it as the default alias; `use { lower } from @sentrie/string as str` is the working form.
   - **Argument counts are checked exactly**, so an extra argument is an error rather than being ignored - stricter than JavaScript convention and a likely source of surprise for module authors.
   - **`crypto` and `jwt` are security-critical surfaces** with the same return-don't-throw hazard: a failed verification that returns an Error object is truthy, so an unguarded check inverts the intended outcome.

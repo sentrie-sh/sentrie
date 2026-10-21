@@ -89,6 +89,16 @@ func (s *JSTestSuite) TestMathMinMax() {
 	s.mathEvalThrows(`m.max(1, NaN)`, "max: argument 2 must be a finite number, got NaN")
 }
 
+func (s *JSTestSuite) TestMathMinMaxBoundsArrayLength() {
+	// A sparse array with a huge length costs nothing in JS; min and max must
+	// refuse it before allocating, not size a buffer from the length.
+	s.mathEvalThrows(`var a = []; a.length = 2**32 - 1; m.min(a)`,
+		"min: the array has 4294967295 elements, more than the limit of 1048576")
+	// Within the limit, a missing element throws at that element.
+	s.mathEvalThrows(`var a = []; a.length = 1048576; m.max(a)`,
+		"max: array element 0 must be a number, got undefined")
+}
+
 func (s *JSTestSuite) TestMathMinMaxAcceptsGoSlice() {
 	// Lists arriving from policy code are Go slices wrapped by goja, not JS arrays.
 	vm := s.mathModuleVM()
