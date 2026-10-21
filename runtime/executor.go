@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/puddle/v2"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
+	"github.com/sentrie-sh/sentrie/capabilities"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/js"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
@@ -66,6 +67,7 @@ type executorImpl struct {
 	jsRegistry         *js.Registry
 	moduleBindingPerch *perch.Perch[*ModuleBinding] // --> (policy.useAlias) -> module binding
 	callMemoizePerch   *perch.Perch[any]
+	capabilities       *capabilities.Capabilities // operator grant; nil allows everything (WithCapabilities)
 }
 
 // NewExecutor builds an Executor with built-in @sentra/* modules registered.

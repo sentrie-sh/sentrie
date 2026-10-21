@@ -22,6 +22,7 @@ The busiest node in the evaluator. It evaluates arguments, resolves the callee t
 | `runtime.eval_call` | `CALLS` | [[runtime.modules]] | Module calls marshal arguments and invoke `ModuleBinding.Call`. |
 | `runtime.eval_call` | `CALLS` | [[runtime.builtin_call]] | Constructs a `CallSite` per builtin invocation. |
 | `runtime.eval_call` | `MUTATES` | `ext.binaek.perch` | Reads and populates the executor's call-memoization cache. |
+| `runtime.eval_call` | `READS_FROM` | [[capabilities]] | The executor's grant gates builtin dispatch. |
 | `runtime.eval_call` | `READS_FROM` | [[runtime.exec_ctx]] | `ec.Module(alias)` and the `evalDerive` purity marker. |
 | [[runtime.eval]] | `CALLS` | [[runtime.eval_call]] | All `ast.CallExpression` nodes dispatch here. |
 
@@ -35,7 +36,7 @@ The busiest node in the evaluator. It evaluates arguments, resolves the callee t
 - **Signature:** `getTarget(_, ec, exec, p, c) -> (func(context.Context, ...box.Value) (box.Value, error), error)`
   - **Behavior:** The precedence ladder. A slash-qualified callee of **three or more segments** is tried as a derive FQN first (the segment floor exists to avoid mistaking a two-part division chain for an FQN). Then an identifier callee is tried as a short-name derive, then as a builtin, then as `alias.fn` against bound modules.
   - **Side Effects:** None; returns a closure.
-  - **Exceptions:** `builtin %q is nondeterministic and is not permitted inside a derive` (for `Decl.Nondeterministic`, paired with [[index.derive_purity]]); `builtin %q is not permitted inside a derive`; `TypeScript module calls like %q are not permitted inside a derive`; `xerr.ErrImportResolution`; `xerr.ErrModuleInvocation`; derive visibility and export errors.
+  - **Exceptions:** `builtin %q: not granted by the capabilities file` (wrapping `xerr.ErrNotGranted`) when the executor's [[capabilities]] grant omits the builtin, the runtime half of `index.CheckCapabilities`; `builtin %q is nondeterministic and is not permitted inside a derive` (for `Decl.Nondeterministic`, paired with [[index.derive_purity]]); `builtin %q is not permitted inside a derive`; `TypeScript module calls like %q are not permitted inside a derive`; `xerr.ErrImportResolution`; `xerr.ErrModuleInvocation`; derive visibility and export errors.
 
 - **Signature:** `lookupDeriveByIdentifier(ec, p, name) -> *index.Derive`
   - **Behavior:** Inside a derive, resolves **only** through the caller derive's `DefineShort` snapshot; outside, checks the policy's derives then the namespace's. The two paths are deliberately disjoint.

@@ -79,6 +79,16 @@ curl -X POST http://localhost:7529/decision/user_management/user_access/allow \
   -d '{"facts":{"user":{"role":"admin","status":"active"}}}'
 ```
 
+### Restrict What a Pack May Use
+
+Operators can limit the builtins and modules a pack may use with a capabilities file:
+
+```bash
+sentrie serve --capabilities caps.json
+```
+
+A pack that uses anything outside the grant fails to load, and the error names the offending source span. `exec` and `validate` take the same flag. See [`capabilities/FORMAT.md`](capabilities/FORMAT.md) for the file format.
+
 ## Learn More
 
 - **[Getting Started](https://sentrie.sh/getting-started/)** - Write your first policy

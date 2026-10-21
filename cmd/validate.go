@@ -31,7 +31,8 @@ func addValidateCmd(cli *cling.CLI) {
 				WithDefault("{}").
 				WithDescription("Facts to execute the rule with").
 				AsFlag(),
-			),
+			).
+			WithFlag(capabilitiesFlag()),
 	)
 }
 
@@ -39,6 +40,7 @@ type validateCmdArgs struct {
 	PackLocation string `cling-name:"pack-location"`
 	Rule         string `cling-name:"rule"`
 	Facts        string `cling-name:"facts"`
+	Capabilities string `cling-name:"capabilities"`
 }
 
 func validateCmd(ctx context.Context, args []string) error {
@@ -73,7 +75,12 @@ func validateCmd(ctx context.Context, args []string) error {
 		return err
 	}
 
-	if _, err := runtime.NewExecutor(idx); err != nil {
+	grant, err := loadAndCheckCapabilities(ctx, input.Capabilities, idx)
+	if err != nil {
+		return err
+	}
+
+	if _, err := runtime.NewExecutor(idx, runtime.WithCapabilities(grant)); err != nil {
 		return err
 	}
 
