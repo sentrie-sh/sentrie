@@ -116,8 +116,8 @@ func (s *JSTestSuite) TestBuiltinPredicatesAndNoResult() {
 		want     string
 	}{
 		{BuiltinNetGo, `m.cidrIsValid("not-a-cidr")`, "false"},
-		{BuiltinNetGo, `m.isPrivate("not-an-ip")`, "false"},
-		{BuiltinNetGo, `m.isPublic("not-an-ip")`, "false"},
+		{BuiltinNetGo, `m.isIPv4("not-an-ip")`, "false"},
+		{BuiltinNetGo, `m.isIPv6("not-an-ip")`, "false"},
 		{BuiltinNetGo, `m.parseIP("not-an-ip") === null`, "true"},
 		{BuiltinJsonGo, `m.isValid("{")`, "false"},
 		{BuiltinSemverGo, `m.isValid("not-a-version")`, "false"},
