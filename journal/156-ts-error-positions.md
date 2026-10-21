@@ -17,3 +17,14 @@
 - Tests in `registry_errors_test.go` on `JSTestSuite`: syntax error at a known line and column, every esbuild error reported, a throw on line 5 reported as `@local/thrower.ts:5:` in both `Error()` and the full stack, recompile after a fix (and the same error value while unchanged, and a kept success after a later edit), read error retried, 16 concurrent first callers sharing one program, and the parse-error label. `go test -race ./runtime/js/` passes; `make test` and `make lint` (go1.25 golangci-lint v2.4.0) pass.
 - Compiling modules during `sentrie validate` stays with #155; the registry node now links it.
 - _Model: claude-opus-5-5_
+
+### 22:25 - Review fixes for PR #198
+- Review (`worktrees/_reviews/pr-198.md`) confirmed that mapped columns broke `SourceError`'s 1-based contract: goja's `file.File.Position` hands back the source map library's 0-based column unchanged, so `compileError` reported `delete y;` one short and dropped the column entirely for an error in column 1. This corrects my 14:40 and 14:43 note, which wrote it off as "can be one short" upstream: it is always one short, and esbuild-sourced errors from the same file were 1-based, so the two disagreed.
+- Fix: `compileError` adds one to the mapped column. Every program `programFor` compiles carries esbuild's inline map, so the `se.File != nil` branch always sees a mapped position; the unmapped fallback (1-based) would only be hit for an offset in the banner or footer, which no compile error points at.
+- New test `TestProgramFor_CompileErrorNamesSourcePosition`: `.js` modules with `delete y;` (line 5, column 8) and `with (o)` (line 3, column 1) pass esbuild and fail in goja's compiler, so they reach the mapped `CompilerSyntaxError` branch through `PrepareUse`. Checked that it fails (7 and 0) with the fix reverted.
+- New test `TestProgramFor_ConcurrentCallersRecoverAfterFix`: 16 concurrent callers on a broken module all get an error; after the fix all get one shared program. Passes under `-race`.
+- Graph: tscompile gotcha now says the skew remains only in goja's own stack frames. Registry gotchas gain two review suggestions: the source read under `compileMu` serializes concurrent callers on a broken module, and an in-place editor save can be read half-written and pinned as a success.
+- Not taken: unexporting `ModuleSpec.Program` / `TranspiledCode`. Tests read `Program`, nothing else does, and unexporting is an API change beyond the review fix; left as is, with the publication rule documented on the fields.
+- Merge plan with #194 (`105-isolate-pooled-vms`) and its stack recorded in the PR Review notes: `r.compiled.Add(1)` goes right after a successful `compileModule`, before `m.compiled.Store`, and one of the two `compiled` fields is renamed.
+- `make test`, `make lint` (go1.25 golangci-lint v2.4.0), `make docs-graph` and `go test -race ./runtime/js/` pass.
+- _Model: claude-opus-5-5_
