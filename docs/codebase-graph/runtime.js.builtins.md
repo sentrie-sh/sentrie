@@ -43,6 +43,16 @@ Fourteen Go-implemented modules, plus the TypeScript `js` module, exposed to Jav
   - **Side Effects:** None.
   - **Exceptions:** `decode` throws on any failure, including expiry. `verify` answers `false` for a malformed, mismatched, badly signed, expired or not-yet-valid token, and throws for `none` or an unsupported `algorithm`, an empty or non-string secret, bad options, or a VM with no execution start time.
 
+- **Signature:** `@sentrie/string` - `lower`, `upper`, `trim`, `trimStart`, `trimEnd`, `startsWith`, `endsWith`, `includes`, `split`, `join`, `replace`, `replaceAll`, `equalFold`, `format`
+  - **Behavior:** Go `strings` over UTF-8 code points: `split(s, "")` yields code points, trims strip Unicode White_Space, case mapping and folding are Go's simple one-to-one mappings. `replace` replaces the first occurrence only. `format` is a closed verb set (`%s %q %d %f %.Nf %v %%`, no flags or widths, precision 0 to 20) and requires the argument count to equal the verbs that consume one. `join` takes a JS array or a goja-wrapped Go slice. The contract is documented in `ts_src/sentrie/string.d.ts`.
+  - **Side Effects:** None.
+  - **Exceptions:** **Thrown**, never returned: exact argument counts, string-typed arguments with no coercion, unsupported `format` verbs or mismatched verb arguments.
+
+- **Signature:** `@sentrie/math` - `abs`, `floor`, `ceil`, `round`, `trunc`, `min`, `max`, `pow`, `sqrt`, `clamp`
+  - **Behavior:** No non-finite value in or out: arguments must be finite numbers, a NaN or infinite result throws, and negative zero is returned as 0. `round` is half away from zero (unlike JS `Math.round`). `min`/`max` take one or more numbers or a single non-empty array. `clamp` requires `lo <= hi`. The contract is documented in `ts_src/sentrie/math.d.ts`.
+  - **Side Effects:** None.
+  - **Exceptions:** **Thrown**, never returned: exact argument counts, non-number or non-finite arguments, `sqrt` of a negative, non-finite `pow` results, `clamp` with `lo > hi`.
+
 - **Signature:** `time.now() -> number`
   - **Behavior:** Reads the `ExecutionStartTimeUnixKey` VM global and returns it, so JavaScript observes the **same pinned instant** as the policy evaluator. Falls back to `time.Now().Unix()` when the global is absent.
   - **Side Effects:** None.
@@ -58,6 +68,7 @@ Fourteen Go-implemented modules, plus the TypeScript `js` module, exposed to Jav
   - **The `time.now()` fallback is silent.** If the execution-start global is missing, JavaScript quietly gets wall-clock time and diverges from what the evaluator's own `now()` reports, with no signal.
   - **JWT time checks trust the execution-start global.** Module code can still overwrite `__executionStartTimeUnix` before calling `jwt.verify`, which would move the clock the checks use; making internal globals unreachable is [#154](https://github.com/sentrie-sh/sentrie/issues/154).
   - **`net` deliberately has no I/O.** It is CIDR arithmetic over `net.ParseCIDR`, not a network client. Preserving that is what keeps the sandbox claim honest.
+  - **`@sentrie/string` needs an explicit alias.** `string` is a keyword, so [[parser.use]] accepts it as a path segment but rejects it as the default alias; `use { lower } from @sentrie/string as str` is the working form.
   - **Argument counts are checked exactly**, so an extra argument is an error rather than being ignored - stricter than JavaScript convention and a likely source of surprise for module authors.
   - **`crypto` and `jwt` are security-critical surfaces.** Their failures throw like every other builtin's (#111).
   - **`crypto.sha256` returns the lowercase hex digest**, the same encoding as `hash.sha256`, and throws on a wrong argument count (#138). Before #138 it returned the input bytes with the empty-string digest appended.
