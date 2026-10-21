@@ -30,3 +30,7 @@
 - Signing refused the commit (agent refused operation), so these changes are left uncommitted.
 - _Model: claude-opus-5-5_
 - Follow-up in the same session: the memo test now asserts `now()!60 == now()` in each of two executions rather than comparing values across them. That stays true whatever unit `now()` has, so it keeps passing once #153 switches `now()` to seconds. `clockDependentBuiltins` already lists `now_ms` so #153 needs no change in `eval_call.go`.
+
+### 2026-10-21 22:33 - Review fixes committed
+- Signing worked again on a later attempt, so the review fixes above are committed as f5c1f3c ("Address review findings"). That supersedes the "left uncommitted" lines in the entry above. It is one commit rather than one per finding, because splitting it now would need an amend, and the review-fix rules forbid that.
+- _Model: claude-opus-5-5_
