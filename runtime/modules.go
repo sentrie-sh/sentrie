@@ -5,6 +5,7 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -62,6 +63,7 @@ type jsModule struct {
 	// is single-threaded and reading an export may run a getter.
 	probeMu sync.Mutex
 	probe   *JSInstance
+	closed  bool // set by close; guarded by probeMu
 }
 
 // newJSModule loads the module once, which both verifies that it loads and
@@ -85,9 +87,27 @@ func newJSModule(ctx context.Context, key string, load instanceLoader) (*jsModul
 	}, nil
 }
 
+// errModuleClosed is returned by acquire after the owning executor closed.
+var errModuleClosed = errors.New("module is closed")
+
+// close drops the probe and makes later acquisitions fail. Calls already
+// running are unaffected: each holds its own VM.
+func (m *jsModule) close() {
+	m.probeMu.Lock()
+	defer m.probeMu.Unlock()
+	m.closed = true
+	m.probe = nil
+}
+
 // acquire loads a fresh, never-used instance of the module for one call. The
 // caller must call release once it is done with the instance.
 func (m *jsModule) acquire(ctx context.Context, start time.Time) (_ *JSInstance, release func(), _ error) {
+	m.probeMu.Lock()
+	closed := m.closed
+	m.probeMu.Unlock()
+	if closed {
+		return nil, nil, fmt.Errorf("%s: %w", m.key, errModuleClosed)
+	}
 	select {
 	case m.slots <- struct{}{}:
 	case <-ctx.Done():
@@ -109,6 +129,9 @@ func (m *jsModule) checkExports(exports []string) error {
 	}
 	m.probeMu.Lock()
 	defer m.probeMu.Unlock()
+	if m.closed {
+		return fmt.Errorf("%s: %w", m.key, errModuleClosed)
+	}
 	for _, name := range exports {
 		if m.probe.exports.Get(name) == nil {
 			return fmt.Errorf("module %s missing required export %q", m.key, name)
