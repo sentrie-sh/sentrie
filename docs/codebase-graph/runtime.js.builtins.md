@@ -36,7 +36,17 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
     - **Non-deterministic** - `uuid` (fresh values per call), `time` (clock-dependent).
     - **TypeScript** - the `js` module, embedded from `ts_src/_sentrie_js.ts` rather than Go-implemented.
   - **Side Effects:** None escape the VM; no filesystem, network, or process access.
-  - **Exceptions:** Per-function argument-count and parse errors, returned rather than thrown.
+  - **Exceptions:** Per-function argument-count and parse errors, returned rather than thrown - except `string` and `math`, which throw (see below).
+
+- **Signature:** `@sentrie/string` - `lower`, `upper`, `trim`, `trimStart`, `trimEnd`, `startsWith`, `endsWith`, `includes`, `split`, `join`, `replace`, `replaceAll`, `equalFold`, `format`
+  - **Behavior:** Go `strings` over UTF-8 code points: `split(s, "")` yields code points, trims strip Unicode White_Space, case mapping and folding are Go's simple one-to-one mappings. `replace` replaces the first occurrence only. `format` is a closed verb set (`%s %q %d %f %.Nf %v %%`, no flags or widths, precision 0 to 20) and requires the argument count to equal the verbs that consume one. `join` takes a JS array or a goja-wrapped Go slice. The contract is documented in `ts_src/sentrie/string.d.ts`.
+  - **Side Effects:** None.
+  - **Exceptions:** **Thrown**, never returned: exact argument counts, string-typed arguments with no coercion, unsupported `format` verbs or mismatched verb arguments.
+
+- **Signature:** `@sentrie/math` - `abs`, `floor`, `ceil`, `round`, `trunc`, `min`, `max`, `pow`, `sqrt`, `clamp`
+  - **Behavior:** No non-finite value in or out: arguments must be finite numbers, a NaN or infinite result throws, and negative zero is returned as 0. `round` is half away from zero (unlike JS `Math.round`). `min`/`max` take one or more numbers or a single non-empty array. `clamp` requires `lo <= hi`. The contract is documented in `ts_src/sentrie/math.d.ts`.
+  - **Side Effects:** None.
+  - **Exceptions:** **Thrown**, never returned: exact argument counts, non-number or non-finite arguments, `sqrt` of a negative, non-finite `pow` results, `clamp` with `lo > hi`.
 
 - **Signature:** `time.now() -> number`
   - **Behavior:** Reads the `ExecutionStartTimeUnixKey` VM global and returns it, so JavaScript observes the **same pinned instant** as the policy evaluator. Falls back to `time.Now().Unix()` when the global is absent.
@@ -47,9 +57,10 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
 - **Statefulness:** Providers are stateless factories, but they are re-invoked on **every** `require` of a builtin because [[runtime.js.alias_runtime]] checks the provider branch before the cache. Two requires of the same builtin in one VM produce two distinct objects.
 - **Performance/Scale Notes:** Native Go, so orders of magnitude faster than equivalent interpreted JavaScript - which is the main reason to prefer a builtin over a hand-rolled implementation in a pack. Object construction on each require is small but not free.
 - **Dependencies Risk:**
-  - **Errors are returned, not thrown.** The functions `return vm.NewGoError(...)` as an ordinary return value rather than panicking with it. JavaScript callers therefore receive an **Error object as the result**, which is truthy and will flow onward as data unless the caller explicitly type-checks. A pattern like `if (net.cidrContains(a, b)) { … }` treats a malformed CIDR as a **match**. This is the most likely source of silently wrong policy outcomes involving module code, and it applies uniformly across the builtin family.
+  - **Errors are returned, not thrown.** The functions `return vm.NewGoError(...)` as an ordinary return value rather than panicking with it. JavaScript callers therefore receive an **Error object as the result**, which is truthy and will flow onward as data unless the caller explicitly type-checks. A pattern like `if (net.cidrContains(a, b)) { … }` treats a malformed CIDR as a **match**. This is the most likely source of silently wrong policy outcomes involving module code, and it applies across the builtin family except `string` and `math`, which were written to throw from the start (#158) ahead of the conversion tracked in [#111](https://github.com/sentrie-sh/sentrie/issues/111).
   - **`uuid` and the `time` fallback are non-deterministic**, which is why module calls are forbidden inside derives (see [[runtime.eval_call]]) - a derive must be reproducible within an execution.
   - **The `time.now()` fallback is silent.** If the execution-start global is missing, JavaScript quietly gets wall-clock time and diverges from what the evaluator's own `now()` reports, with no signal.
   - **`net` deliberately has no I/O.** It is CIDR arithmetic over `net.ParseCIDR`, not a network client. Preserving that is what keeps the sandbox claim honest.
+  - **`@sentrie/string` needs an explicit alias.** `string` is a keyword, so [[parser.use]] accepts it as a path segment but rejects it as the default alias; `use { lower } from @sentrie/string as str` is the working form.
   - **Argument counts are checked exactly**, so an extra argument is an error rather than being ignored - stricter than JavaScript convention and a likely source of surprise for module authors.
   - **`crypto` and `jwt` are security-critical surfaces** with the same return-don't-throw hazard: a failed verification that returns an Error object is truthy, so an unguarded check inverts the intended outcome.
