@@ -31,12 +31,13 @@ The top-level driver: it owns the index, the JS registry, and the two caches, an
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `NewExecutor(idx *index.Index, opts ...NewExecutorOption) -> (Executor, error)`
-  - **Behavior:** Constructs the executor, registers fourteen Go builtin modules (`uuid`, `crypto`, `time`, `encoding`, `collection`, `jwt`, `regex`, `net`, `hash`, `url`, `string`, `json`, `semver`, `math`) and the TypeScript `js` shim, applies options, and reserves both caches.
-  - **Side Effects:** Allocates a 100 MB module-binding cache and a 10 MB memoization cache.
+  - **Behavior:** Constructs the executor, registers fourteen Go builtin modules (`uuid`, `crypto`, `time`, `encoding`, `collection`, `jwt`, `regex`, `net`, `hash`, `url`, `string`, `json`, `semver`, `math`) and the TypeScript `js` shim, creates both caches, and applies options.
+  - **Side Effects:** Creates a module-binding cache of 1,024 entries and a memoization cache of 10,000 entries. `perch` allocates entries lazily, so construction costs a few kilobytes regardless of either bound.
   - **Exceptions:** Returns `error` in its signature but **never returns a non-nil error**. It **panics** when `idx.Pack` is nil.
 
-- **Signature:** `WithCallMemoizeCacheSize(size int) -> NewExecutorOption`
-  - **Behavior:** Replaces the memoization cache with one of `size` megabytes. Note this **allocates a replacement** rather than resizing, so the default 10 MB cache is discarded.
+- **Signature:** `WithCallMemoizeCacheSize(entries int) -> NewExecutorOption`
+  - **Behavior:** Replaces the memoization cache with one bounded at `entries` entries. The default cache it replaces holds nothing yet, so the swap is cheap.
+  - **Exceptions:** Panics (inside `perch.New`) when `entries` is <= 0.
   - **Side Effects:** Allocation.
   - **Exceptions:** None.
 

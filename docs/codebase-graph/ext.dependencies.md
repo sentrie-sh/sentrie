@@ -33,7 +33,7 @@ The complete external surface of the Sentrie module, declared in `go.mod` agains
 - **Signature:** Direct requirements - the load-bearing set
   - **`goja`** (pinned to a commit, not a tag) - a pure-Go ECMAScript 5.1 interpreter with some later features. **No JIT**, so JavaScript is markedly slower than Go. Supplies the `Interrupt` mechanism that makes policy JavaScript cancellable.
   - **`esbuild` v0.25.11** - used only through `api.Transform`, never the bundler. Targets ES2019.
-  - **`perch` v0.0.3 / `puddle` v2.2.2** - caching and pooling. `perch` is a v0.0.x dependency owned by the same author as this project.
+  - **`perch` v0.1.0 / `puddle` v2.2.2** - caching and pooling. `perch` is a pre-1.0 dependency owned by the same author as this project. Since v0.1.0, `perch.New` takes an entry count and allocates entries lazily; v0.0.x took a byte budget and `Reserve()` preallocated every slot.
   - **`cling` v0.3.8** - likewise a pre-1.0 dependency by the same author; the entire CLI surface rests on it.
   - **`gojsonschema` v1.2.0** - JSON Schema validation of the pack manifest.
   - **`go-toml/v2` v2.2.4** - manifest read and write.
@@ -50,7 +50,7 @@ The complete external surface of the Sentrie module, declared in `go.mod` agains
 - **Performance/Scale Notes:** `goja` is the dominant performance consideration in the whole system: interpreted, non-JIT, single-threaded per VM. Any policy hot path expressed in JavaScript rather than in a native builtin pays for it. `esbuild` is fast but runs on first load of each module.
 - **Dependencies Risk:**
   - **`goja` is pinned to a bare commit, not a released version.** Reproducibility depends entirely on the module proxy and `go.sum`. Upgrading requires re-verifying the whole JavaScript surface, since goja's version numbering gives no compatibility signal.
-  - **Three direct dependencies are pre-1.0 and authored by this project's own maintainer** - `perch` (v0.0.3), `cling` (v0.3.8), and `gocoll` (v0.2.0). They sit on critical paths: caching, the entire CLI, and address resolution. A breaking change is a coordinated release rather than an external event, which is an advantage, but the version numbers offer no stability guarantee to downstream consumers.
+  - **Three direct dependencies are pre-1.0 and authored by this project's own maintainer** - `perch` (v0.1.0), `cling` (v0.3.8), and `gocoll` (v0.2.0). They sit on critical paths: caching, the entire CLI, and address resolution. A breaking change is a coordinated release rather than an external event, which is an advantage, but the version numbers offer no stability guarantee to downstream consumers.
   - **Two regex engines are in play.** Go's RE2-based `regexp` serves the policy language's `matches` operator and the string constraints; `regexp2` serves JavaScript. RE2 has no backtracking (and so no catastrophic backtracking), while `regexp2` does - meaning a regex in module JavaScript can hang in ways the same pattern in a policy cannot. The goja `Interrupt` watchdog is the only mitigation.
   - **`fatih/structs` v1.1.0 is effectively unmaintained**, with no release in years. It sits at the value boundary in [[box]].
   - **`xeipuuv/gojsonschema` is likewise dormant** and implements an older JSON Schema draft; manifest validation is bounded by whatever draft it supports.
