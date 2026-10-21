@@ -65,7 +65,7 @@ type Executor interface {
 type executorImpl struct {
 	index              *index.Index
 	jsRegistry         *js.Registry
-	moduleBindingPerch *perch.Perch[*jsModule] // module path -> loaded module and its VM pool
+	moduleBindingPerch *perch.Perch[*jsModule] // module path -> loaded module
 	callMemoizePerch   *perch.Perch[any]
 }
 
@@ -349,7 +349,7 @@ func (e *executorImpl) bindUses(ctx context.Context, ec *ExecutionContext, p *in
 }
 
 // getModuleBinding returns the binding for one `use` statement. The loaded
-// module (its VM pool) is shared by every `use` of the same path; the export
+// module is shared by every `use` of the same path; the export
 // projection and the "missing required export" check belong to this `use` alone.
 func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStatement, ms *js.ModuleSpec) (*ModuleBinding, error) {
 	module, err := e.getModule(ctx, ms)
