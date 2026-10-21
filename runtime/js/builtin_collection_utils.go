@@ -25,7 +25,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		arr := arrVal.Export()
 		arrValue := reflect.ValueOf(arr)
 		if arrValue.Kind() != reflect.Slice && arrValue.Kind() != reflect.Array {
-			return vm.ToValue(false)
+			return throwErr(vm, errors.New("list_includes requires an array"))
 		}
 
 		itemExport := item.Export()
@@ -48,7 +48,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		arr := arrVal.Export()
 		arrValue := reflect.ValueOf(arr)
 		if arrValue.Kind() != reflect.Slice && arrValue.Kind() != reflect.Array {
-			return vm.ToValue(-1)
+			return throwErr(vm, errors.New("list_indexOf requires an array"))
 		}
 
 		itemExport := item.Export()
@@ -71,7 +71,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		arr := arrVal.Export()
 		arrValue := reflect.ValueOf(arr)
 		if arrValue.Kind() != reflect.Slice && arrValue.Kind() != reflect.Array {
-			return vm.ToValue(-1)
+			return throwErr(vm, errors.New("list_lastIndexOf requires an array"))
 		}
 
 		itemExport := item.Export()
@@ -268,7 +268,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		mp := mapVal.Export()
 		mapValue := reflect.ValueOf(mp)
 		if mapValue.Kind() != reflect.Map {
-			return vm.ToValue(false)
+			return throwErr(vm, errors.New("map_has requires a map"))
 		}
 
 		keyValue := reflect.ValueOf(key.Export())
@@ -293,10 +293,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		mp := mapVal.Export()
 		mapValue := reflect.ValueOf(mp)
 		if mapValue.Kind() != reflect.Map {
-			if defaultValue != nil && defaultValue != goja.Undefined() {
-				return defaultValue
-			}
-			return goja.Undefined()
+			return throwErr(vm, errors.New("map_get requires a map"))
 		}
 
 		keyValue := reflect.ValueOf(key.Export())

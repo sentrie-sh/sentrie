@@ -107,9 +107,11 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		switch v := addrsExported.(type) {
 		case []interface{}:
 			for _, item := range v {
-				if str, ok := item.(string); ok {
-					addrs = append(addrs, str)
+				str, ok := item.(string)
+				if !ok {
+					return throwErr(vm, errors.New("cidrMerge requires an array of IPs/CIDRs"))
 				}
+				addrs = append(addrs, str)
 			}
 		case []string:
 			addrs = v

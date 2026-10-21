@@ -100,6 +100,11 @@ var BuiltinJwtGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		if len(call.Arguments) > 2 && call.Argument(2) != goja.Undefined() && call.Argument(2) != goja.Null() {
 			algorithm = call.Argument(2).String()
 		}
+		switch algorithm {
+		case "HS256", "HS384", "HS512":
+		default:
+			return throwErr(vm, errors.New("unsupported algorithm: "+algorithm))
+		}
 
 		parts := strings.Split(tokenStr, ".")
 		if len(parts) != 3 {
@@ -135,7 +140,7 @@ var BuiltinJwtGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		case "HS512":
 			h = hmac.New(sha512.New, []byte(secret))
 		default:
-			return vm.ToValue(false)
+			return throwErr(vm, errors.New("unsupported algorithm: "+algorithm))
 		}
 
 		h.Write([]byte(message))
