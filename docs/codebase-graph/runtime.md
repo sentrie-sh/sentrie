@@ -80,7 +80,7 @@ tags: evaluation, execution, sandboxing, javascript, concurrency, back-end
   - Module bindings are cached globally by canonical module path, and memoized calls share a 10,000-entry LRU by default - evictions are silent.
 - **Dependencies Risk:**
   - **This package converts static guarantees into runtime behaviour.** Everything [[index.validate]] could not prove - type conformance, arity of dynamic callables, module export presence - fails here, at request time, in front of a user.
-  - **Concurrency correctness is not fully established.** `ExecPolicy`'s panic recovery writes shared state without holding its mutex, and attached child contexts share the parent's `modules` map while locking their own mutex. See [[runtime.executor]] and [[runtime.exec_ctx]].
+  - **Concurrency correctness is not fully established.** Attached child contexts share the parent's `modules` map by reference while locking their own mutex, so a bind on a child and a read on the parent would take different locks over the same map. It is latent: modules are bound on the root context before evaluation begins. See [[runtime.exec_ctx]].
   - **Several nil-dereference paths are reachable from policy input**, notably the fact alias/name mismatch in [[runtime.executor]] and the unchecked `output.RuleNode` in [[runtime.imports]].
   - **The JS sandbox is the trust boundary.** Module permissions come from the pack manifest, but once a VM is bound, cache keying decides which export set a policy actually sees - see the canonical-key caveat in [[runtime.executor]].
   - **Failure is biased toward `Unknown`, not toward denial.** A rule that errors yields an `Unknown` decision envelope alongside the error; callers that ignore the error read a permissive-looking result.
