@@ -19,7 +19,7 @@ policy call "filter(xs, f)"
         │
         ▼
 runtime/eval_call.go          lookup builtins.Table["filter"]
-        │                     derive guard: decl.DeriveSafe
+        │                     derive guard: decl.PermittedInDerive()
         ▼
 decl.Precheck(site, args)     arity, kind, callable-arity
         │                     undefined/null args pass through
@@ -69,7 +69,8 @@ Every builtin is exactly one `&Decl{...}`:
 var declExample = &Decl{
     Name:        "example",
     Description: "One sentence for docs and reviewers.",
-    DeriveSafe:  true, // see [DeriveSafe](#derivesafe)
+    DeriveSafe:  true, // see [DeriveSafe](#6-set-derivesafe-and-nondeterministic)
+    // Nondeterministic: true, // only for clock or random sources
     Sig: Sig{
         Params: []ParamSig{ /* see below */ },
         Variadic: nil,              // or &ParamSig{...} for variadic tail (e.g. error)
@@ -138,15 +139,22 @@ Use `env.CallableArity(fn)` once per call (not per iteration if arity is loop-in
 See [Strict vs lenient profiles](#strict-vs-lenient-profiles). This determines what you
 delete from `Impl` vs what you keep after moving checks to `Precheck`.
 
-### 6. Set `DeriveSafe`
+### 6. Set `DeriveSafe` and `Nondeterministic`
 
-| Value | Meaning |
-|-------|---------|
-| `true` | Deterministic **within a single policy execution** (pinned `ExecutionStart` for time). Required for use inside `derive` bodies. |
-| `false` | Not allowed in derives; runtime and `index` purity walker reject it. |
+| Field | Value | Meaning |
+|-------|-------|---------|
+| `DeriveSafe` | `true` | Deterministic **within a single policy execution** (pinned `ExecutionStart` for time). |
+| `DeriveSafe` | `false` | Not allowed in derives; runtime and `index` purity walker reject it. |
+| `Nondeterministic` | `true` | The result can differ **between** executions given the same arguments, because it reads a clock or a random source (today: `now`). `sentrie validate` warns on every call, and derives reject it even when `DeriveSafe` is set. |
+| `Nondeterministic` | `false` (default) | Same arguments, same result in every execution. |
 
-If you widen `Env`, reconsider `DeriveSafe` for every builtin - widening `Env` is a
-deliberate review event.
+A derive may call a builtin only when `Decl.PermittedInDerive()` holds: `DeriveSafe`
+and not `Nondeterministic`. Any new builtin that reads the clock or a random source
+(for example a `now_ms`) must set `Nondeterministic: true` and be added to
+`TestNondeterministicNames` in [`table_test.go`](table_test.go).
+
+If you widen `Env`, reconsider `DeriveSafe` and `Nondeterministic` for every builtin -
+widening `Env` is a deliberate review event.
 
 ### 7. Update tests
 
@@ -160,8 +168,10 @@ You do **not** need to change `runtime/eval_call.go` for a new name - dispatch i
 
 ### 8. Index / static metadata consumers
 
-- `index/derive_purity.go` uses `builtins.IsDeriveSafe(name)` - no change needed if
-  `DeriveSafe: true`.
+- `index/derive_purity.go` uses `builtins.IsDeriveSafe(name)` (that is,
+  `PermittedInDerive`) - no change needed for a deterministic `DeriveSafe: true` builtin.
+- `index/nondeterminism.go` warns on calls to `Nondeterministic` builtins - no change
+  needed beyond setting the flag.
 - Future validate-time checking (Issue B) reads `Table[name].Sig` - populate `Result.Kinds`
   and param `Kinds` correctly now.
 
@@ -298,7 +308,7 @@ Must flow through real `eval_call` dispatch, not bypass it.
 1. Edit **only** its `Decl` literal and `impl*` function in `builtins/`.
 2. If arity/kind/callable rules change, update `Sig` and **grep-verify** error strings.
 3. If behavior changes, update golden tests - byte-for-byte for errors, value-for-value for results.
-4. If `DeriveSafe` flips to `false`, expect derive purity and runtime derive-guard failures in tests.
+4. If `DeriveSafe` flips to `false`, or `Nondeterministic` to `true`, expect derive purity and runtime derive-guard failures in tests.
 5. Do **not** add a second registration site or `init()` hook.
 
 ---
@@ -332,7 +342,7 @@ Must flow through real `eval_call` dispatch, not bypass it.
 | `flatten`, `flatten_deep` | scalar | 1–2 / 1 | depth optional |
 | `merge` | scalar | 2 | strict dict |
 | `normalise_list` | scalar | 1 | |
-| `now` | scalar | 0 | `ExecutionStart().UnixMilli()` |
+| `now` | scalar | 0 | `ExecutionStart().UnixMilli()`; `Nondeterministic`, so not callable in derives |
 | `reduce` | collection | 3 | reducer arity 2 or 3 |
 
 ---
