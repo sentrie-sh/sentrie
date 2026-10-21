@@ -26,8 +26,10 @@ declare module "@sentrie/time" {
 
   /**
    * Returns the evaluation's execution start time as a Unix timestamp.
-   * Every call within one evaluation returns the same value, which equals the policy builtin `now()`
-   * (also seconds; use the builtin `now_ms()` for milliseconds).
+   * Every call within one rule execution returns the same value, which equals the policy builtin `now()`
+   * (also seconds; use the builtin `now_ms()` for milliseconds). A decision that runs several exported
+   * rules, or imports a rule from another policy, starts each rule execution separately, so their
+   * clocks can differ by a few milliseconds.
    * @returns Unix timestamp (seconds since epoch) as a number
    * @throws Error if the module was invoked without an execution start time; there is no wall-clock fallback
    */

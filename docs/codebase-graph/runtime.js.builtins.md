@@ -44,7 +44,7 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
   - **Exceptions:** `decode` throws on any failure, including expiry. `verify` answers `false` for a malformed, mismatched, badly signed, expired or not-yet-valid token, and throws for `none` or an unsupported `algorithm`, a key that does not suit the algorithm, bad options, or a VM with no execution start time.
 
 - **Signature:** `time.now() -> number`
-  - **Behavior:** Returns the `ExecutionStartTimeUnixKey` VM global through `executionStartUnix`, so JavaScript observes the **same pinned instant**, in the same unit (Unix seconds), as the policy evaluator's builtin `now()`.
+  - **Behavior:** Returns the `ExecutionStartTimeUnixKey` VM global through `executionStartUnix`, so JavaScript observes the **same pinned instant**, in the same unit (Unix seconds), as the policy evaluator's builtin `now()` within the same rule execution (`ExecRule`).
   - **Side Effects:** None.
   - **Exceptions:** Argument-count error if given any argument; `execution start time is not set on this VM` when the global is missing. There is no wall-clock fallback (#153).
 
