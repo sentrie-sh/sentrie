@@ -76,7 +76,6 @@ func (s *JSTestSuite) TestJwtTimeClaims() {
 		{"expired does not verify", map[string]any{"exp": now - 10}, `m.verify(token, s)`, "false"},
 		{"exp equal to now is expired", map[string]any{"exp": now}, `m.verify(token, s)`, "false"},
 		{"expired decode throws", map[string]any{"exp": now - 10}, `m.decode(token, s)`, "threw:token is expired"},
-		{"expired decode without key throws", map[string]any{"exp": now - 10}, `m.decode(token)`, "threw:token is expired"},
 		{"leeway covers skew", map[string]any{"exp": now - 10}, `m.verify(token, s, "HS256", { leeway: 30 })`, "true"},
 		{"leeway too small", map[string]any{"exp": now - 10}, `m.verify(token, s, "HS256", { leeway: 5 })`, "false"},
 		{"decode leeway", map[string]any{"exp": now - 10}, `m.decode(token, s, { leeway: 30 }).exp`, "1699999990"},
@@ -88,6 +87,13 @@ func (s *JSTestSuite) TestJwtTimeClaims() {
 		{"verify opt-out", map[string]any{"exp": now - 10, "nbf": now + 10}, `m.verify(token, s, "HS256", { checkTime: false })`, "true"},
 		{"non-numeric exp does not verify", map[string]any{"exp": "tomorrow"}, `m.verify(token, s)`, "false"},
 		{"non-numeric exp decode throws", map[string]any{"exp": "tomorrow"}, `m.decode(token, s)`, "threw:exp claim must be a number"},
+		{"fractional exp just ahead", map[string]any{"exp": float64(now) + 0.5}, `m.verify(token, s)`, "true"},
+		{"fractional exp just behind", map[string]any{"exp": float64(now) - 0.5}, `m.verify(token, s)`, "false"},
+		{"fractional leeway covers fractional skew", map[string]any{"exp": float64(now) - 0.5}, `m.verify(token, s, "HS256", { leeway: 0.75 })`, "true"},
+		{"fractional leeway too small", map[string]any{"exp": float64(now) - 0.5}, `m.verify(token, s, "HS256", { leeway: 0.25 })`, "false"},
+		{"leeway at the cap", map[string]any{"exp": now - 86_000}, `m.verify(token, s, "HS256", { leeway: 86400 })`, "true"},
+		{"leeway over the cap throws", map[string]any{"exp": now - 10}, `m.verify(token, s, "HS256", { leeway: 86401 })`, "threw:options.leeway must be between 0 and 86400 seconds"},
+		{"leeway in milliseconds throws", map[string]any{"exp": now - 10}, `m.decode(token, s, { leeway: 3600000 })`, "threw:options.leeway must be between 0 and 86400 seconds"},
 	}
 	for _, tc := range cases {
 		s.Run(tc.name, func() {
@@ -115,6 +121,7 @@ func (s *JSTestSuite) TestJwtSignatureChecks() {
 	tamperedPayload := parts[0] + "." + forged[1] + "." + parts[2]
 
 	none := s.jwtUnsigned(map[string]any{"alg": "none"}, map[string]any{"sub": "alice"}) + "."
+	forgedSig := s.jwtUnsigned(map[string]any{"alg": "HS256"}, map[string]any{"sub": "admin"}) + ".AAAA"
 
 	cases := []struct {
 		name string
@@ -137,7 +144,12 @@ func (s *JSTestSuite) TestJwtSignatureChecks() {
 		{"empty secret decode throws", valid, `m.decode(token, "")`, "threw:secret must not be empty"},
 		{"non-string secret throws", valid, `m.verify(token, 42)`, "threw:secret must be a string"},
 		{"unknown option throws", valid, `m.verify(token, "test-secret", "HS256", { checktime: false })`, `threw:unknown option "checktime"`},
-		{"negative leeway throws", valid, `m.decode(token, "test-secret", { leeway: -1 })`, "threw:options.leeway must be a non-negative number of seconds"},
+		{"negative leeway throws", valid, `m.decode(token, "test-secret", { leeway: -1 })`, "threw:options.leeway must be between 0 and 86400 seconds"},
+		{"decode without a key throws", valid, `m.decode(token)`, "threw:decode requires 2 or 3 arguments; use getPayload or getHeader to read a token without verifying it"},
+		{"forged token with undefined key throws", forgedSig, `m.decode(token, undefined)`, "threw:decode requires a key, got undefined; use getPayload or getHeader to read a token without verifying it"},
+		{"forged token with null key throws", forgedSig, `m.decode(token, null)`, "threw:decode requires a key, got null; use getPayload or getHeader to read a token without verifying it"},
+		{"none token with undefined key throws", none, `m.decode(token, undefined, { checkTime: false })`, "threw:decode requires a key, got undefined; use getPayload or getHeader to read a token without verifying it"},
+		{"getPayload still inspects", forgedSig, `m.getPayload(token).sub`, `"admin"`},
 		{"non-object options throw", valid, `m.decode(token, "test-secret", "yes")`, "threw:options must be an object"},
 	}
 	for _, tc := range cases {

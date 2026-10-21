@@ -10,7 +10,7 @@ declare module "@sentrie/jwt" {
    * Time-claim validation settings for decode() and verify().
    */
   export interface VerifyOptions {
-    /** Clock skew tolerated on exp and nbf, in seconds (default: 0). */
+    /** Clock skew tolerated on exp and nbf, in seconds (default: 0, at most 86400). */
     leeway?: number;
     /**
      * Validate exp and nbf (default: true). Set false only to inspect a token
@@ -20,18 +20,19 @@ declare module "@sentrie/jwt" {
   }
 
   /**
-   * Decodes a JWT token, verifying its signature when a secret is given.
+   * Verifies a JWT token's signature and returns its payload. A key is required: use getPayload()
+   * or getHeader() to read a token without verifying it.
    * The exp and nbf claims are validated against the evaluation's execution start time
    * (the same Unix-seconds clock as `@sentrie/time.now()`) unless `options.checkTime` is false.
    * @param token - The JWT token string to decode
-   * @param secret - Optional secret for signature verification; the header's alg picks the algorithm
+   * @param secret - The secret for signature verification; the header's alg picks the algorithm
    * @param options - Optional time-claim settings
    * @returns The decoded payload as an object
    * @throws Error if the token is malformed, the signature is invalid, the algorithm is "none" or unsupported,
-   * the token is expired or not yet valid, or the secret or options are invalid
+   * the token is expired or not yet valid, or the secret is missing (undefined or null) or invalid, or the options are invalid
    * @remarks Supported algorithms: HS256, HS384, HS512
    */
-  export function decode(token: string, secret?: string | null, options?: VerifyOptions): Record<string, any>;
+  export function decode(token: string, secret: string, options?: VerifyOptions): Record<string, any>;
 
   /**
    * Verifies a JWT token's signature and its exp and nbf claims.
