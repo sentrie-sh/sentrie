@@ -136,3 +136,59 @@ func (s *JSTestSuite) TestCompileError_ParseErrorNamesModule() {
 	s.Contains(wrapped.Error(), "transpiled output")
 	s.ErrorIs(wrapped, err)
 }
+
+func (s *JSTestSuite) TestProgramFor_CompileErrorNamesSourcePosition() {
+	// Both pass esbuild and fail in goja's compiler, so they reach the
+	// mapped CompilerSyntaxError path of compileError.
+	cases := []struct {
+		name, src    string
+		line, column int
+	}{
+		{"delete.js", "var y = 1;\nfunction f() {\n  return y;\n}\ndelete y;\n", 5, 8},
+		{"with.js", "var o = { a: 1 };\n\nwith (o) { a; }\n", 3, 1},
+	}
+	for _, tc := range cases {
+		reg, packRoot := s.writeModule(tc.name, tc.src)
+		_, err := reg.PrepareUse("", []string{"local", tc.name}, packRoot)
+		s.Require().Error(err, tc.name)
+
+		var se *SourceError
+		s.Require().ErrorAs(err, &se, tc.name)
+		var cse *goja.CompilerSyntaxError
+		s.Require().ErrorAs(err, &cse, tc.name)
+		s.Equal("@local/"+tc.name, se.File, tc.name)
+		s.Equal(tc.line, se.Line, tc.name)
+		s.Equal(tc.column, se.Column, tc.name)
+	}
+}
+
+func (s *JSTestSuite) TestProgramFor_ConcurrentCallersRecoverAfterFix() {
+	reg, packRoot := s.writeModule("flaky.ts", "export const x = ;\n")
+	modPath := filepath.Join(packRoot, "flaky.ts")
+	mod := reg.getOrCreateModule("@local/flaky.ts", modPath, packRoot, false)
+	s.Require().NotNil(mod)
+
+	const callers = 16
+	run := func() ([]*goja.Program, []error) {
+		pgms := make([]*goja.Program, callers)
+		errs := make([]error, callers)
+		var wg sync.WaitGroup
+		for i := range callers {
+			wg.Go(func() { pgms[i], errs[i] = reg.programFor(mod) })
+		}
+		wg.Wait()
+		return pgms, errs
+	}
+
+	_, errs := run()
+	for i := range callers {
+		s.Require().Error(errs[i])
+	}
+
+	s.Require().NoError(os.WriteFile(modPath, []byte("export const x = 1;\n"), 0o644))
+	pgms, errs := run()
+	for i := range callers {
+		s.Require().NoError(errs[i])
+		s.Same(pgms[0], pgms[i])
+	}
+}

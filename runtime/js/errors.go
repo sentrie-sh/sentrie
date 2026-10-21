@@ -35,8 +35,11 @@ func (e *SourceError) Unwrap() error { return e.Err }
 
 // compileError wraps a goja compile failure. A compile-phase
 // CompilerSyntaxError carries its file, whose positions goja maps through the
-// inline source map. A parse error carries only a message whose position is
-// in the transpiled output, because goja attaches the source map after parsing.
+// inline source map. The mapped column is 0-based (goja passes the source map
+// library's column through unchanged), so it is made 1-based here; every
+// program programFor compiles carries esbuild's map, so the position is always
+// a mapped one. A parse error carries only a message whose position is in the
+// transpiled output, because goja attaches the source map after parsing.
 func compileError(name string, err error) error {
 	var se *goja.CompilerSyntaxError
 	if !errors.As(err, &se) {
@@ -44,7 +47,7 @@ func compileError(name string, err error) error {
 	}
 	if se.File != nil {
 		pos := se.File.Position(se.Offset)
-		return &SourceError{File: pos.Filename, Line: pos.Line, Column: pos.Column, Message: "SyntaxError: " + se.Message, Err: err}
+		return &SourceError{File: pos.Filename, Line: pos.Line, Column: pos.Column + 1, Message: "SyntaxError: " + se.Message, Err: err}
 	}
 	return &SourceError{File: name, Message: "SyntaxError (position in transpiled output): " + se.Message, Err: err}
 }
