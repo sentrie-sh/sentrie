@@ -5,6 +5,8 @@ package parser
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/sentrie-sh/sentrie/ast"
@@ -61,6 +63,7 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 
 	relativeFrom := ""
 	libFrom := []string{}
+	var lastSegment tokens.Instance
 
 	if p.canExpect(tokens.String) {
 		fromModule, _ := p.advanceExpected(tokens.String)
@@ -77,6 +80,8 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 		if !found {
 			return nil
 		}
+		lastSegment = fromPackage
+		rnge.To = fromPackage.Range.To
 		from := []string{fromPackage.Value}
 		for p.canExpect(tokens.TokenDiv) {
 			p.advance() // consume '/'
@@ -84,6 +89,7 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 			if !found {
 				return nil
 			}
+			lastSegment = fromModule
 			rnge.To = fromModule.Range.To
 			from = append(from, fromModule.Value)
 		}
@@ -116,7 +122,9 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 		// that call sites use. Ask for an explicit one here rather than let
 		// `string.lower(x)` fail later with an unrelated expression error.
 		if _, isKeyword := tokens.IsKeyword(alias); isKeyword {
-			p.errorf("module @%s: default alias %q is a keyword; add 'as <alias>'", strings.Join(libFrom, "/"), alias)
+			// Reported at the segment itself, not at the token after the statement.
+			p.err = errors.Join(p.err, fmt.Errorf("parsing error at %s: module @%s: default alias %q is a keyword; add 'as <alias>'",
+				lastSegment.Range.String(), strings.Join(libFrom, "/"), alias))
 			return nil
 		}
 	}
