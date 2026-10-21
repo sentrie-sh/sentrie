@@ -4,6 +4,7 @@
 package runtime
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -29,8 +30,9 @@ import (
 //	String/Number/Boolean obj -> the wrapped primitive
 //
 // Anything else (functions, symbols, BigInt, Set, a Map with a non-string key,
-// RegExp, Error, Promise, typed arrays, an invalid Date, a cyclic value) is an
-// error rather than a lossy value.
+// WeakMap, WeakSet, RegExp, Error, Promise, typed arrays, ArrayBuffer,
+// DataView, an invalid Date, a cyclic value) is an error rather than a lossy
+// value. goja has no WeakRef or FinalizationRegistry, so neither can reach here.
 func jsToSentrie(vm *goja.Runtime, v goja.Value) (any, error) {
 	c := jsConverter{vm: vm, onPath: map[*goja.Object]struct{}{}}
 	return c.convert(v, "return value")
@@ -39,6 +41,108 @@ func jsToSentrie(vm *goja.Runtime, v goja.Value) (any, error) {
 type jsConverter struct {
 	vm     *goja.Runtime
 	onPath map[*goja.Object]struct{}
+	brands *jsBrandChecks // resolved on first use
+}
+
+// jsBrandChecks holds native intrinsics that test for a built-in's internal
+// slot. goja reports WeakMap, WeakSet, DataView and typed arrays as class
+// "Object" with export types shared by plain objects or Go slices, so neither
+// ClassName nor ExportType can tell them apart (#224). A brand check catches
+// subclasses and objects whose prototype was swapped, and none of these
+// functions runs module code.
+//
+// They are read from the VM's globals when a conversion first needs them. A
+// module that overwrites those globals only gets back the {} it could have
+// returned directly, so this is not a trust boundary.
+type jsBrandChecks struct {
+	weakMapHas goja.Callable // WeakMap.prototype.has: throws without the slot
+	weakSetHas goja.Callable // WeakSet.prototype.has: throws without the slot
+	isView     goja.Callable // ArrayBuffer.isView: typed arrays and DataView
+	isViewThis goja.Value
+}
+
+func (c *jsConverter) brandChecks() *jsBrandChecks {
+	if c.brands != nil {
+		return c.brands
+	}
+	global := c.vm.GlobalObject()
+	method := func(owner goja.Value, name string) goja.Callable {
+		obj, ok := owner.(*goja.Object)
+		if !ok {
+			return nil
+		}
+		fn, _ := goja.AssertFunction(obj.Get(name))
+		return fn
+	}
+	prototypeMethod := func(ctor, name string) goja.Callable {
+		ctorObj, ok := global.Get(ctor).(*goja.Object)
+		if !ok {
+			return nil
+		}
+		return method(ctorObj.Get("prototype"), name)
+	}
+	arrayBuffer := global.Get("ArrayBuffer")
+	c.brands = &jsBrandChecks{
+		weakMapHas: prototypeMethod("WeakMap", "has"),
+		weakSetHas: prototypeMethod("WeakSet", "has"),
+		isView:     method(arrayBuffer, "isView"),
+		isViewThis: arrayBuffer,
+	}
+	return c.brands
+}
+
+// hasSlot reports whether calling the brand check with obj as its receiver
+// succeeds. An interrupt (the call's context ended) is returned, not read as
+// "no slot".
+func hasSlot(check goja.Callable, obj *goja.Object) (bool, error) {
+	if check == nil {
+		return false, nil
+	}
+	_, err := check(obj, obj)
+	if err == nil {
+		return true, nil
+	}
+	var interrupted *goja.InterruptedError
+	if errors.As(err, &interrupted) {
+		return false, err
+	}
+	return false, nil
+}
+
+// opaqueBuiltin names the built-in obj is when it is one whose contents cannot
+// be read as a plain object: a WeakMap, WeakSet, ArrayBuffer, typed array or
+// DataView. It returns "" for anything else.
+func (c *jsConverter) opaqueBuiltin(obj *goja.Object) (string, error) {
+	if obj.ExportType() == reflect.TypeFor[goja.ArrayBuffer]() {
+		return "ArrayBuffer", nil
+	}
+	b := c.brandChecks()
+	if b.isView != nil {
+		isView, err := b.isView(b.isViewThis, obj)
+		if err != nil {
+			return "", err
+		}
+		if isView.ToBoolean() {
+			// Typed arrays and DataView carry their name as Symbol.toStringTag.
+			if tag := obj.GetSymbol(goja.SymToStringTag); tag != nil && !goja.IsUndefined(tag) {
+				return tag.String(), nil
+			}
+			return "ArrayBuffer view", nil
+		}
+	}
+	for _, check := range []struct {
+		name string
+		fn   goja.Callable
+	}{{"WeakMap", b.weakMapHas}, {"WeakSet", b.weakSetHas}} {
+		ok, err := hasSlot(check.fn, obj)
+		if err != nil {
+			return "", err
+		}
+		if ok {
+			return check.name, nil
+		}
+	}
+	return "", nil
 }
 
 func unsupportedJS(what, at, why string) error {
@@ -97,7 +201,19 @@ func (c *jsConverter) convert(v goja.Value, at string) (any, error) {
 		return obj.ToBoolean(), nil
 	case "Object":
 		// goja reports Map, Set and Promise as class "Object"; their export
-		// types tell them apart from plain objects and wrapped Go values.
+		// types tell them apart from plain objects and wrapped Go values. The
+		// built-ins whose export type does not (#224) need a brand check.
+		switch obj.ExportType() {
+		case reflect.TypeFor[[][2]any](), reflect.TypeFor[[]any]():
+		default:
+			what, err := c.opaqueBuiltin(obj)
+			if err != nil {
+				return nil, err
+			}
+			if what != "" {
+				return nil, unsupportedJS(what, at, opaqueHint(what))
+			}
+		}
 		switch obj.ExportType() {
 		case reflect.TypeFor[[][2]any]():
 			return c.convertMap(obj, at)
@@ -121,6 +237,15 @@ func (c *jsConverter) convert(v goja.Value, at string) (any, error) {
 		return nil, unsupportedJS("Function", at, "functions cannot cross into Sentrie")
 	default:
 		return nil, unsupportedJS(class, at, "convert it to a plain object, array or primitive first")
+	}
+}
+
+func opaqueHint(what string) string {
+	switch what {
+	case "WeakMap", "WeakSet":
+		return "its entries cannot be enumerated; return a Map, array or plain object instead"
+	default:
+		return "binary data does not cross into Sentrie; convert it with Array.from first"
 	}
 }
 

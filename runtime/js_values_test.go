@@ -56,6 +56,87 @@ func (s *RuntimeTestSuite) TestJSToSentrieConversionTable() {
 	}
 }
 
+// TestJSToSentrieRejectsOpaqueBuiltins covers #224: goja reports WeakMap,
+// WeakSet, DataView, ArrayBuffer and typed arrays as class "Object", so they
+// used to convert to {} (or pass through as raw Go slices). Each is now an
+// error naming the value's path.
+func (s *RuntimeTestSuite) TestJSToSentrieRejectsOpaqueBuiltins() {
+	bad := map[string]string{
+		`new WeakMap()`:                   "unexpected return type WeakMap at return value",
+		`new WeakSet()`:                   "unexpected return type WeakSet at return value",
+		`({ w: new WeakMap() })`:          "WeakMap at return value.w",
+		`[1, new WeakSet()]`:              "WeakSet at return value[1]",
+		`new Map([["k", new WeakMap()]])`: `WeakMap at return value.get("k")`,
+		`(() => { class W extends WeakMap {}; return new W(); })()`: "WeakMap",
+		`Object.setPrototypeOf(new WeakSet(), Object.prototype)`:    "WeakSet",
+		`new ArrayBuffer(4)`:                                            "ArrayBuffer at return value",
+		`new Uint8Array([1, 2])`:                                        "Uint8Array at return value",
+		`new Float64Array(1)`:                                           "Float64Array",
+		`new BigInt64Array(1)`:                                          "BigInt64Array",
+		`new DataView(new ArrayBuffer(4))`:                              "DataView",
+		`({ bytes: new Uint8Array(1) })`:                                "Uint8Array at return value.bytes",
+		`(() => { class B extends Uint8Array {}; return new B(1); })()`: "Uint8Array",
+	}
+	for src, want := range bad {
+		_, err := s.convertJS(src)
+		s.Require().Error(err, src)
+		s.Contains(err.Error(), want, src)
+	}
+
+	ok := map[string]any{
+		// No internal slot, so it is an ordinary object with no own keys.
+		`Object.create(WeakMap.prototype)`: map[string]any{},
+		// The explicit route for binary data.
+		`Array.from(new Uint8Array([1, 2]))`: []any{int64(1), int64(2)},
+		// goja has no WeakRef or FinalizationRegistry, so a module cannot
+		// return one. If goja adds them, extend opaqueBuiltin and this test.
+		`typeof WeakRef + "," + typeof FinalizationRegistry`: "undefined,undefined",
+	}
+	for src, want := range ok {
+		got, err := s.convertJS(src)
+		s.Require().NoError(err, src)
+		s.Equal(want, got, src)
+	}
+
+	// A Go byte slice a builtin returns (for example a digest) is not a typed
+	// array and still takes the wrapped-Go path.
+	rt := goja.New()
+	got, err := jsToSentrie(rt, rt.ToValue([]byte{1, 2}))
+	s.Require().NoError(err)
+	s.Equal([]any{int64(1), int64(2)}, got)
+
+	// Overwritten globals disable the check but must not break conversion.
+	s.NotPanics(func() {
+		_, err := s.convertJS(`(() => { const w = new WeakMap(); delete globalThis.WeakMap; delete globalThis.ArrayBuffer; return { w }; })()`)
+		s.NoError(err)
+	})
+}
+
+// TestModuleReturningWeakMapIsAnError is #224's reproduction end to end: a rule
+// calling an export that returns a WeakMap fails instead of yielding {}.
+func (s *RuntimeTestSuite) TestModuleReturningWeakMapIsAnError() {
+	ctx := s.T().Context()
+	exec := s.newTempPackExecutor(map[string]string{
+		"weak.ts": `export function f() { return new WeakMap(); }
+`,
+		"policy.sentrie": `namespace weak/test
+
+policy p {
+  use { f } from "./weak" as m
+
+  rule r = { yield m.f() }
+
+  export decision of r
+}
+`,
+	})
+	defer func() { s.NoError(exec.Close()) }()
+
+	_, err := exec.ExecRule(ctx, "weak/test", "p", "r", map[string]any{})
+	s.Require().Error(err)
+	s.Contains(err.Error(), "unexpected return type WeakMap at return value")
+}
+
 // TestInternalGlobalsAreNotReachableFromModules covers #154 part 2: neither
 // __require nor the execution start time is a global a module can read or
 // overwrite, and overwriting the old name does not move time.now().
