@@ -5,6 +5,7 @@ package index
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/parser"
@@ -33,9 +34,15 @@ policy pol {
     let now = 5
     yield now > 1
   }
-  rule viaLambda = { yield any([1], (now) => { yield now > 0 }) }
+  rule viaLambda = { yield any([1], (now) => { yield now() > 0 }) }
+  rule viaImport = import decision ok from com/ex/auth with t as now()
   rule ok = default false when now() > 0 { yield count([1]) > 0 }
   export decision of ok attach at as now()
+}
+policy auth {
+  fact t?: number as t
+  rule ok = { yield true }
+  export decision of ok
 }`
 	idx := s.indexFromSource("nondet.sentrie", src)
 
@@ -45,30 +52,43 @@ policy pol {
 	warnings, err := idx.NondeterminismWarnings(s.T().Context(), lookup)
 	s.Require().NoError(err)
 
-	var msgs []string
+	var got []string
 	for _, w := range warnings {
 		s.Equal("nondet.sentrie", w.At.File)
-		msgs = append(msgs, w.Message)
+		got = append(got, fmt.Sprintf("%d %s", w.At.From.Line, w.Message))
 	}
 	nowMsg := `builtin "now" is nondeterministic: its result can differ between executions`
 	s.Equal([]string{
-		nowMsg, // fact default (line 3)
-		"@sentrie/uuid.v4 is nondeterministic: its result can differ between executions",
-		"@sentrie/uuid.v7 is nondeterministic: its result can differ between executions",
-		nowMsg, // let (line 7)
-		nowMsg, // rule when (line 13)
-		nowMsg, // attachment (line 14)
-	}, msgs)
+		"2 " + nowMsg, // fact default (From.Line is 0-based)
+		"3 @sentrie/uuid.v4 is nondeterministic: its result can differ between executions",
+		"3 @sentrie/uuid.v7 is nondeterministic: its result can differ between executions",
+		`5 local module "./helper" runs pack code, which can read Date.now() and Math.random() directly`,
+		"6 " + nowMsg, // policy let
+		// A lambda parameter named now does not shadow the builtin for calls:
+		// the runtime's getTarget never resolves a call through a local.
+		"11 " + nowMsg,
+		"12 " + nowMsg, // import ... with t as now()
+		"13 " + nowMsg, // rule when
+		"14 " + nowMsg, // attachment
+	}, got)
 
-	// Sorted by position.
-	for i := 1; i < len(warnings); i++ {
-		s.LessOrEqual(warnings[i-1].At.From.Line, warnings[i].At.From.Line)
-	}
-
-	// Without a module lookup only builtin calls are reported.
+	// Without a module lookup, builtin calls and local modules are still reported.
 	warnings, err = idx.NondeterminismWarnings(s.T().Context(), nil)
 	s.Require().NoError(err)
-	s.Len(warnings, 4)
+	s.Len(warnings, 7)
+}
+
+func (s *IndexTestSuite) TestNondeterminismWarningsReportLocalModuleSources() {
+	idx := s.indexFromSource("local.sentrie", `namespace com/ex
+policy pol {
+  use { helper } from @local/lib/helper as lib
+  rule ok = { yield true }
+  export decision of ok
+}`)
+	warnings, err := idx.NondeterminismWarnings(s.T().Context(), nil)
+	s.Require().NoError(err)
+	s.Require().Len(warnings, 1)
+	s.Contains(warnings[0].Message, `local module "@local/lib/helper"`)
 }
 
 func (s *IndexTestSuite) TestNondeterminismWarningsEmptyForDeterministicPack() {

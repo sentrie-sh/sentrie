@@ -17,7 +17,8 @@ import (
 // imports one of these.
 //
 // Any export added to a builtin module that reads the clock or a random source
-// must be listed here. TestNondeterministicExportsExist in runtime checks that
+// must be listed here. That includes exports that compare against the
+// execution clock, such as JWT `exp`/`nbf` checks (#197, #202) once they land. TestNondeterministicExportsExist in runtime checks that
 // every listed module is registered and every listed export exists.
 var nondeterministicExports = map[string][]string{
 	// Date.now and Math.random, re-exported from the JavaScript globals.

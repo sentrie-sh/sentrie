@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/builtins"
@@ -44,6 +45,10 @@ func UseBuiltinModuleKey(use *ast.UseStatement) (string, bool) {
 // registry, so the caller supplies that lookup (js.IsNondeterministicExport);
 // a nil lookup skips module imports.
 //
+// Every `use` of a pack-local TypeScript or JavaScript module also gets one
+// warning, because that code can read Date.now() and Math.random() (and
+// require nondeterministic builtin modules) where the index cannot see it.
+//
 // Warnings are sorted by file and position so output is stable.
 func (idx *Index) NondeterminismWarnings(ctx context.Context, isNondeterministicExport func(moduleKey, export string) bool) ([]Warning, error) {
 	var out []Warning
@@ -59,6 +64,19 @@ func (idx *Index) NondeterminismWarnings(ctx context.Context, isNondeterministic
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	for _, ns := range idx.Namespaces {
+		for _, policy := range ns.Policies {
+			for _, use := range policy.Uses {
+				if from, ok := localModuleSource(use); ok {
+					out = append(out, Warning{
+						At:      use.Span(),
+						Message: fmt.Sprintf("local module %q runs pack code, which can read Date.now() and Math.random() directly", from),
+					})
+				}
+			}
+		}
 	}
 
 	if isNondeterministicExport != nil {
@@ -91,4 +109,20 @@ func (idx *Index) NondeterminismWarnings(ctx context.Context, isNondeterministic
 		)
 	})
 	return out, nil
+}
+
+// localModuleSource reports the source a use statement names when it loads a
+// pack-local file (`from "./x"` or `from @local/x`), mirroring how
+// js.Registry.resolveUse classifies it.
+func localModuleSource(use *ast.UseStatement) (string, bool) {
+	if use == nil {
+		return "", false
+	}
+	if use.RelativeFrom != "" {
+		return use.RelativeFrom, true
+	}
+	if len(use.LibFrom) > 0 && use.LibFrom[0] == "local" {
+		return "@" + strings.Join(use.LibFrom, "/"), true
+	}
+	return "", false
 }
