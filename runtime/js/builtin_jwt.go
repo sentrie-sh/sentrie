@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/dop251/goja"
@@ -114,6 +115,11 @@ func checkJWTAlgorithm(alg string) error {
 // parseJWTKey returned for the same alg. A signature that does not match is
 // errJWTSignature.
 func verifyJWTSignature(tok *jwtToken, alg string, key any) error {
+	if _, present := tok.header["crit"]; present {
+		// RFC 7515 4.1.11: reject critical extensions this verifier does not
+		// understand, which is all of them.
+		return errors.New("unsupported crit header")
+	}
 	a := jwtAlgorithms[alg]
 	sig, err := base64.RawURLEncoding.DecodeString(tok.signature)
 	if err != nil {
@@ -161,6 +167,9 @@ type jwtOptions struct {
 	leeway float64
 	// checkTime validates exp and nbf; false is the inspect-only opt-out.
 	checkTime bool
+	// algorithms pins the header algorithms decode accepts; nil means the
+	// algorithms of the key's family (jwtKeyAlgorithms).
+	algorithms []string
 }
 
 func parseJWTOptions(v goja.Value) (jwtOptions, error) {
@@ -186,6 +195,22 @@ func parseJWTOptions(v goja.Value) (jwtOptions, error) {
 				return opts, errors.New("options.checkTime must be a boolean")
 			}
 			opts.checkTime = checkTime
+		case "algorithms":
+			list, ok := val.([]any)
+			if !ok || len(list) == 0 {
+				return opts, errors.New("options.algorithms must be a non-empty array of algorithm names")
+			}
+			opts.algorithms = make([]string, 0, len(list))
+			for _, item := range list {
+				alg, ok := item.(string)
+				if !ok {
+					return opts, errors.New("options.algorithms must be a non-empty array of algorithm names")
+				}
+				if err := checkJWTAlgorithm(alg); err != nil {
+					return opts, err
+				}
+				opts.algorithms = append(opts.algorithms, alg)
+			}
 		default:
 			return opts, fmt.Errorf("unknown option %q", name)
 		}
@@ -293,6 +318,19 @@ var BuiltinJwtGo = func(vm *goja.Runtime) (*goja.Object, error) {
 			if err := checkJWTAlgorithm(alg); err != nil {
 				return throwErr(vm, err)
 			}
+			// The header is attacker-controlled, so it never picks the
+			// algorithm family on its own: it must be one the caller allowed,
+			// or, by default, one the key's own family supports.
+			allowed := opts.algorithms
+			if allowed == nil {
+				allowed, err = jwtKeyAlgorithms(key)
+				if err != nil {
+					return throwErr(vm, err)
+				}
+			}
+			if !slices.Contains(allowed, alg) {
+				return throwErr(vm, fmt.Errorf("token algorithm %s is not allowed for this key (allowed: %s); pass options.algorithms to choose", alg, strings.Join(allowed, ", ")))
+			}
 			parsed, err := parseJWTKey(alg, key)
 			if err != nil {
 				return throwErr(vm, err)
@@ -327,6 +365,9 @@ var BuiltinJwtGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		opts, err := parseJWTOptions(call.Argument(3))
 		if err != nil {
 			return throwErr(vm, err)
+		}
+		if opts.algorithms != nil {
+			return throwErr(vm, errors.New("options.algorithms applies to decode; verify takes the algorithm as its third argument"))
 		}
 		now, err := clock(opts)
 		if err != nil {

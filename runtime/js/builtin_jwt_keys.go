@@ -19,8 +19,56 @@ import (
 	"github.com/dop251/goja"
 )
 
-// jwtMinRSABits is the smallest RSA modulus accepted (RFC 7518 section 3.3).
-const jwtMinRSABits = 2048
+// jwtMinRSABits is the smallest RSA modulus accepted (RFC 7518 section 3.3);
+// jwtMaxRSABits bounds the cost of each verification.
+const (
+	jwtMinRSABits = 2048
+	jwtMaxRSABits = 8192
+)
+
+// keyText normalises key text for form detection: surrounding whitespace and
+// a leading byte-order mark (common in keys saved by Windows editors) are
+// ignored, so a BOM cannot hide a PEM block from the HMAC guard.
+func keyText(s string) string {
+	return strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(s), "\uFEFF"))
+}
+
+// looksLikePublicKey reports whether key is given in a public-key form: a JWK
+// object, or text that is a PEM block or a JSON object.
+func looksLikePublicKey(key goja.Value) bool {
+	switch v := key.Export().(type) {
+	case map[string]any:
+		return true
+	case string:
+		t := keyText(v)
+		return strings.HasPrefix(t, "-----BEGIN") || strings.HasPrefix(t, "{")
+	}
+	return false
+}
+
+// jwtKeyAlgorithms is decode's default allow-list: the algorithms of the
+// key's own family. A shared secret allows HS*, an RSA key RS*, and an EC key
+// the one ES* algorithm of its curve.
+func jwtKeyAlgorithms(key goja.Value) ([]string, error) {
+	if !looksLikePublicKey(key) {
+		return []string{"HS256", "HS384", "HS512"}, nil
+	}
+	pub, err := jwtPublicKey("", key)
+	if err != nil {
+		return nil, err
+	}
+	switch k := pub.(type) {
+	case *rsa.PublicKey:
+		return []string{"RS256", "RS384", "RS512"}, nil
+	case *ecdsa.PublicKey:
+		for _, alg := range []string{"ES256", "ES384", "ES512"} {
+			if jwtAlgorithms[alg].curve == k.Curve {
+				return []string{alg}, nil
+			}
+		}
+	}
+	return nil, errors.New("unsupported public key type")
+}
 
 // parseJWTKey turns the key argument into what verifyJWTSignature needs for
 // alg: a []byte secret for HMAC, an *rsa.PublicKey for RS*, or an
@@ -46,8 +94,8 @@ func parseJWTKey(alg string, key goja.Value) (any, error) {
 		if !ok {
 			return nil, fmt.Errorf("%s needs an RSA public key", alg)
 		}
-		if rsaKey.N.BitLen() < jwtMinRSABits {
-			return nil, fmt.Errorf("%s needs an RSA key of at least %d bits", alg, jwtMinRSABits)
+		if bits := rsaKey.N.BitLen(); bits < jwtMinRSABits || bits > jwtMaxRSABits {
+			return nil, fmt.Errorf("%s needs an RSA key of %d to %d bits", alg, jwtMinRSABits, jwtMaxRSABits)
 		}
 		return rsaKey, nil
 	case jwtECDSA:
@@ -69,7 +117,11 @@ func hmacSecret(alg string, key goja.Value) ([]byte, error) {
 	if secret == "" {
 		return nil, errors.New("secret must not be empty")
 	}
-	if trimmed := strings.TrimSpace(secret); strings.HasPrefix(trimmed, "-----BEGIN") || strings.HasPrefix(trimmed, "{") {
+	// Any trace of a public-key form is refused, not just a leading one, so
+	// this guard and looksLikePublicKey cannot drift apart.
+	var asJSON map[string]any
+	t := keyText(secret)
+	if strings.Contains(secret, "-----BEGIN") || strings.HasPrefix(t, "{") || json.Unmarshal([]byte(t), &asJSON) == nil {
 		return nil, fmt.Errorf("%s needs a shared secret, not a public key", alg)
 	}
 	return []byte(secret), nil
@@ -80,7 +132,7 @@ func hmacSecret(alg string, key goja.Value) ([]byte, error) {
 func jwtPublicKey(alg string, key goja.Value) (any, error) {
 	switch v := key.Export().(type) {
 	case string:
-		trimmed := strings.TrimSpace(v)
+		trimmed := keyText(v)
 		switch {
 		case strings.HasPrefix(trimmed, "-----BEGIN"):
 			return pemPublicKey(trimmed)
@@ -125,7 +177,10 @@ var jwkCurves = map[string]elliptic.Curve{
 
 // jwkPublicKey parses an RSA or EC public JWK (RFC 7517, RFC 7518 section 6).
 func jwkPublicKey(alg string, jwk map[string]any) (any, error) {
-	if jwkAlg, present := jwk["alg"]; present && jwkAlg != alg {
+	if _, present := jwk["d"]; present {
+		return nil, errors.New("invalid JWK: private key material (d) is not accepted; pass the public key")
+	}
+	if jwkAlg, present := jwk["alg"]; present && alg != "" && jwkAlg != alg {
 		return nil, fmt.Errorf("JWK alg %v does not match %s", jwkAlg, alg)
 	}
 	if use, present := jwk["use"]; present && use != "sig" {
