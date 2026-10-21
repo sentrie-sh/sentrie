@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"slices"
 	"strings"
 
@@ -53,21 +54,26 @@ type Capabilities struct {
 
 var modulePrefix = "@" + constants.APPNAME + "/"
 
-// Parse decodes and checks a capabilities file. Unknown fields, a missing or
-// unsupported version, trailing data, empty names, and module entries without
-// the "@sentrie/" prefix are errors. Names are not checked against the
-// builtins and modules this build ships, so a file written for a newer build
-// still loads: a name this build does not know grants nothing.
+// Parse decodes and checks a capabilities file. An empty file, a top-level
+// value that is not an object, a missing or unsupported version, unknown,
+// differently-cased or duplicate keys, trailing data, empty names, and module
+// entries without the "@sentrie/" prefix are errors. Syntax and type errors
+// name the line and column. Names are not checked against the builtins and
+// modules this build ships, so a file written for a newer build still loads:
+// a name this build does not know grants nothing.
 func Parse(data []byte) (*Capabilities, error) {
+	if len(bytes.TrimSpace(data)) == 0 {
+		return nil, errors.New("capabilities: empty file")
+	}
+	if err := checkTopLevelKeys(data); err != nil {
+		return nil, err
+	}
+
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
-
 	var c Capabilities
 	if err := dec.Decode(&c); err != nil {
-		return nil, fmt.Errorf("capabilities: %w", err)
-	}
-	if err := dec.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		return nil, fmt.Errorf("capabilities: unexpected data after the top-level object")
+		return nil, positioned(data, dec.InputOffset(), err)
 	}
 
 	if c.Version != CurrentVersion {
@@ -90,15 +96,124 @@ func Parse(data []byte) (*Capabilities, error) {
 	return &c, nil
 }
 
+// knownKeys are the exact JSON keys of Capabilities. encoding/json matches
+// keys case-insensitively and lets a later duplicate win, which is unsafe for
+// an allow-list, so checkTopLevelKeys holds the file to these spellings.
+var knownKeys = func() map[string]bool {
+	out := map[string]bool{}
+	t := reflect.TypeFor[Capabilities]()
+	for i := range t.NumField() {
+		if name, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ","); name != "" && name != "-" {
+			out[name] = true
+		}
+	}
+	return out
+}()
+
+// checkTopLevelKeys walks the top-level object once, rejecting a non-object
+// value, unknown or differently-cased keys, duplicate keys, a missing
+// "version" and trailing data, each with its position.
+func checkTopLevelKeys(data []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	tok, err := dec.Token()
+	if err != nil {
+		return positioned(data, dec.InputOffset(), err)
+	}
+	if tok != json.Delim('{') {
+		return fmt.Errorf("capabilities: the top-level value must be an object")
+	}
+
+	seen := map[string]bool{}
+	for dec.More() {
+		at := skipSeparators(data, dec.InputOffset())
+		tok, err := dec.Token()
+		if err != nil {
+			return positioned(data, dec.InputOffset(), err)
+		}
+		key, _ := tok.(string)
+		switch {
+		case !knownKeys[key]:
+			return fmt.Errorf("capabilities: %s: unknown field %q", lineCol(data, at), key)
+		case seen[key]:
+			return fmt.Errorf("capabilities: %s: duplicate field %q", lineCol(data, at), key)
+		}
+		seen[key] = true
+		var value json.RawMessage
+		if err := dec.Decode(&value); err != nil {
+			return positioned(data, dec.InputOffset(), err)
+		}
+	}
+	if _, err := dec.Token(); err != nil {
+		return positioned(data, dec.InputOffset(), err)
+	}
+	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
+		return fmt.Errorf("capabilities: %s: unexpected data after the top-level object", lineCol(data, dec.InputOffset()))
+	}
+	if !seen["version"] {
+		return errors.New(`capabilities: missing "version"`)
+	}
+	return nil
+}
+
+// positioned prefixes a decode error with its line and column. Syntax and
+// type errors carry their own offset; anything else uses fallback.
+func positioned(data []byte, fallback int64, err error) error {
+	offset := fallback
+	var syntaxErr *json.SyntaxError
+	var typeErr *json.UnmarshalTypeError
+	switch {
+	case errors.As(err, &syntaxErr):
+		offset = syntaxErr.Offset
+	case errors.As(err, &typeErr):
+		offset = typeErr.Offset
+	case errors.Is(err, io.ErrUnexpectedEOF), errors.Is(err, io.EOF):
+		offset = int64(len(data))
+		err = errors.New("unexpected end of file")
+	}
+	return fmt.Errorf("capabilities: %s: %w", lineCol(data, offset), err)
+}
+
+// skipSeparators advances offset past whitespace and commas, to the start of
+// the next key.
+func skipSeparators(data []byte, offset int64) int64 {
+	for offset < int64(len(data)) {
+		switch data[offset] {
+		case ' ', '\t', '\r', '\n', ',':
+			offset++
+		default:
+			return offset
+		}
+	}
+	return offset
+}
+
+// lineCol renders a byte offset into data as a 1-based "line:column".
+func lineCol(data []byte, offset int64) string {
+	if offset > int64(len(data)) {
+		offset = int64(len(data))
+	}
+	line, col := 1, 1
+	for _, b := range data[:offset] {
+		if b == '\n' {
+			line++
+			col = 1
+			continue
+		}
+		col++
+	}
+	return fmt.Sprintf("%d:%d", line, col)
+}
+
 // Load reads and parses the capabilities file at path. An empty path means no
-// file was given and returns nil, which grants everything.
+// file was given and returns nil, which grants everything. Every error is
+// prefixed with the path.
 func Load(path string) (*Capabilities, error) {
 	if path == "" {
 		return nil, nil
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("capabilities: %w", err)
+		return nil, fmt.Errorf("%s: capabilities: %w", path, err)
 	}
 	c, err := Parse(data)
 	if err != nil {
