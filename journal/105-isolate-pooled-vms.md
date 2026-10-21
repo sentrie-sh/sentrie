@@ -25,3 +25,10 @@
   - The memo is safe for containment because a module's content is fixed by its first compile anyway (`sync.Once` in `programFor`).
   - `Registry.CompiledPrograms()` counts compiles; `TestFreshRuntimesReuseTheCompiledProgram` asserts exactly one across 20 rule evaluations.
 - _Model: claude-opus-5-5_
+
+### 22:05 - Review fix: clear the probe's interrupt after load (PR #194)
+- Review finding (pr-194): if the first caller's context ends between the module factory returning and `Require`'s deferred stop, the interrupt fires and, by `InterruptOnDone`'s design, stays set. The load still succeeds and the probe is kept (from #191 on, for the executor's lifetime). Every later `checkExports` then runs an esbuild export getter on an interrupted VM and panics with `*goja.InterruptedError` from plain Go code, permanently.
+- Fix: `newJSModule` calls `probe.rt.ClearInterrupt()` after a successful load. This is safe because the load's stop has returned and nothing else holds the VM. I chose clearing over failing the load because the module did load correctly.
+- Test: `TestProbeInterruptIsClearedAfterLoad` hands `newJSModule` an already-interrupted instance with a getter export. It panics without the fix (checked by commenting the line out) and passes with it.
+- Applied the trivial suggestion: inlined the one-caller `installInterrupt` wrapper into `Require`, and updated the `runtime.js.alias_runtime` node.
+- _Model: claude-opus-5-5_

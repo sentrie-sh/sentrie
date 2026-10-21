@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/dop251/goja"
 )
 
 // statefulModule accumulates state at module level: the reproduction from #105,
@@ -168,4 +170,23 @@ policy p {
 		s.Require().NoError(err)
 		s.Equal(float64(1), s.decisionNumber(out))
 	}
+}
+
+// TestProbeInterruptIsClearedAfterLoad covers the #194 review finding: if the
+// loader's context ends just after the module loads, the probe VM keeps a fired
+// interrupt, and a later export check (which runs esbuild getters) would panic.
+func (s *RuntimeTestSuite) TestProbeInterruptIsClearedAfterLoad() {
+	rt := goja.New()
+	v, err := rt.RunString(`(() => { const o = {}; Object.defineProperty(o, "g", { get() { return function () { return 1; }; }, enumerable: true }); return o; })()`)
+	s.Require().NoError(err)
+	instance := newJSInstance(rt, v.ToObject(rt))
+	rt.Interrupt(context.Canceled) // the state a late cancellation leaves behind
+
+	module, err := newJSModule(s.T().Context(), "m", func(context.Context, time.Time) (*JSInstance, error) {
+		return instance, nil
+	})
+	s.Require().NoError(err)
+	s.NotPanics(func() {
+		s.NoError(module.checkExports([]string{"g"}))
+	})
 }

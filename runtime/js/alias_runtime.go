@@ -52,12 +52,6 @@ func InterruptOnDone(ctx context.Context, vm *goja.Runtime) (stop func()) {
 	}
 }
 
-// installInterrupt wires context cancellation into goja's interrupt mechanism
-// for the duration of one module load.
-func (ar *AliasRuntime) installInterrupt(ctx context.Context) (stop func()) {
-	return InterruptOnDone(ctx, ar.VM)
-}
-
 // Require implements CommonJS require(spec) with caching.
 func (ar *AliasRuntime) Require(ctx context.Context, fromDir, spec string) (*goja.Object, error) {
 	// Resolve module
@@ -109,7 +103,7 @@ func (ar *AliasRuntime) Require(ctx context.Context, fromDir, spec string) (*goj
 		return nil, err
 	}
 
-	stop := ar.installInterrupt(ctx)
+	stop := InterruptOnDone(ctx, ar.VM)
 	defer stop()
 
 	// Install per-module bound require and clean it up afterwards

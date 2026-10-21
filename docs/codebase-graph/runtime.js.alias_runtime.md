@@ -39,8 +39,8 @@ Hosts exactly one `goja.Runtime` per `use … as alias` binding and implements C
   - **Side Effects:** Executes arbitrary module code; mutates the VM and the cache; registers a context `AfterFunc` for the interrupt.
   - **Exceptions:** Resolution and compilation errors; `module did not evaluate to a function`; any error thrown by the module body. Every failure path removes the placeholder from the cache.
 
-- **Signature:** `InterruptOnDone(ctx context.Context, vm *goja.Runtime) -> (stop func())` / `installInterrupt(ctx) -> (stop func())`
-  - **Behavior:** Registers a `context.AfterFunc` that calls `vm.Interrupt(ctx.Err())` when `ctx` ends. `stop` deregisters it and, if it already started, waits for it to finish, so nothing touches the VM after `stop` returns. An interrupt that fired is **left set**: the context is over, and a nested `require` must not clear the interrupt its parent frame relies on. A nil context yields a no-op. `installInterrupt` wraps it for one module load; [[runtime.modules]] uses it around each call.
+- **Signature:** `InterruptOnDone(ctx context.Context, vm *goja.Runtime) -> (stop func())`
+  - **Behavior:** Registers a `context.AfterFunc` that calls `vm.Interrupt(ctx.Err())` when `ctx` ends. `stop` deregisters it and, if it already started, waits for it to finish, so nothing touches the VM after `stop` returns. An interrupt that fired is **left set**: the context is over, and a nested `require` must not clear the interrupt its parent frame relies on. A nil context yields a no-op. `Require` uses it for each module load; [[runtime.modules]] uses it around each call and clears a fired interrupt on the long-lived probe VM after its load.
   - **Side Effects:** VM interrupt state.
   - **Exceptions:** None.
 
