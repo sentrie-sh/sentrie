@@ -50,6 +50,13 @@ type Capabilities struct {
 	// JavaScript files (`use ... from "./x"`, `@local/...`, relative require).
 	// Absent grants them.
 	LocalModules *bool `json:"local_modules,omitempty"`
+
+	// Deterministic, when true, replaces Date.now, zero-argument Date
+	// construction and Math.random in every JavaScript runtime with versions
+	// seeded from the execution, so module code cannot read the wall clock or
+	// an unseeded random source through them. Absent or false keeps the real
+	// globals.
+	Deterministic *bool `json:"deterministic_js,omitempty"`
 }
 
 var modulePrefix = "@" + constants.APPNAME + "/"
@@ -237,6 +244,11 @@ func (c *Capabilities) AllowsModule(key string) bool {
 		return true
 	}
 	return slices.Contains(*c.Modules, key)
+}
+
+// DeterministicJS reports whether the deterministic JavaScript shims are on.
+func (c *Capabilities) DeterministicJS() bool {
+	return c != nil && c.Deterministic != nil && *c.Deterministic
 }
 
 // AllowsLocalModules reports whether the grant lets a pack load its own
