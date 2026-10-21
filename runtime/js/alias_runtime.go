@@ -21,8 +21,14 @@ type AliasRuntime struct {
 	cache   map[string]*goja.Object // key -> module.exports object
 }
 
+// MaxCallStackSize bounds JavaScript call depth in every VM (#142). goja's own
+// default is effectively unlimited, so unbounded recursion grows the Go heap
+// until the process dies; past this depth a call throws a stack overflow.
+const MaxCallStackSize = 10_000
+
 func NewAliasRuntime(reg *Registry, baseDir string) *AliasRuntime {
 	rt := goja.New()
+	rt.SetMaxCallStackSize(MaxCallStackSize)
 	return &AliasRuntime{
 		VM:      rt,
 		Reg:     reg,
