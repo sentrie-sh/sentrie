@@ -16,8 +16,7 @@ import (
 )
 
 // loopingPackAPI serves a pack whose only rule calls a module that never
-// returns. The executor's own deadline is disabled, so only the request
-// deadline can stop the evaluation.
+// returns, with the executor and the API configured as serve does.
 func (s *APITestSuite) loopingPackAPI(requestTimeout time.Duration) *HTTPAPI {
 	ctx := s.T().Context()
 	dir := s.T().TempDir()
@@ -47,14 +46,14 @@ policy p {
 	}
 	s.Require().NoError(idx.Validate(ctx))
 
-	exec, err := runtimepkg.NewExecutor(idx, runtimepkg.WithEvalTimeout(0))
+	exec, err := runtimepkg.NewExecutor(idx, runtimepkg.WithEvalTimeout(requestTimeout))
 	s.Require().NoError(err)
 	s.T().Cleanup(func() { _ = exec.Close() })
 	return NewHTTPAPI(exec, WithRequestTimeout(requestTimeout))
 }
 
-// TestDecisionRequestStopsAtItsDeadline is #142's request-scoped cancellation:
-// evaluation stops when the request deadline passes and the client gets 503.
+// TestDecisionRequestStopsAtItsDeadline: evaluation stops when the deadline
+// passes, the client gets 503, and the message names the deadline.
 func (s *APITestSuite) TestDecisionRequestStopsAtItsDeadline() {
 	api := s.loopingPackAPI(100 * time.Millisecond)
 
@@ -64,6 +63,7 @@ func (s *APITestSuite) TestDecisionRequestStopsAtItsDeadline() {
 	case rec := <-done:
 		s.Equal(http.StatusServiceUnavailable, rec.Code)
 		s.Contains(rec.Body.String(), "deadline exceeded")
+		s.Contains(rec.Body.String(), "evaluation exceeded its 100ms deadline")
 	case <-time.After(5 * time.Second):
 		s.FailNow("decision request did not stop at its deadline")
 	}
@@ -72,4 +72,5 @@ func (s *APITestSuite) TestDecisionRequestStopsAtItsDeadline() {
 func (s *APITestSuite) TestWriteTimeoutCoversTheRequestDeadline() {
 	s.Equal(30*time.Second, NewHTTPAPI(nil).writeTimeout())
 	s.Equal(65*time.Second, NewHTTPAPI(nil, WithRequestTimeout(time.Minute)).writeTimeout())
+	s.Equal(30*time.Second, NewHTTPAPI(nil, WithRequestTimeout(0)).writeTimeout(), "--eval-timeout 0 keeps the 30s write cap")
 }

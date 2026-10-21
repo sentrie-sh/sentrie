@@ -27,8 +27,10 @@ type NewExecutorOption func(*executorImpl)
 
 const (
 	// DefaultEvalTimeout bounds one ExecRule or ExecPolicy call unless
-	// overridden with WithEvalTimeout (#142). When it passes, the running module
-	// call is interrupted and the evaluation fails with context.DeadlineExceeded.
+	// overridden with WithEvalTimeout (#142). When it passes while a module call
+	// or load is running, that JavaScript is interrupted and the evaluation fails
+	// with context.DeadlineExceeded. Sentrie's own expression evaluation does not
+	// check it (#225).
 	DefaultEvalTimeout = 10 * time.Second
 
 	// defaultCallMemoizeCacheEntries bounds the call memoization cache unless
@@ -185,7 +187,7 @@ func (e *executorImpl) withEvalDeadline(parent context.Context) (context.Context
 	ctx, cancel := context.WithTimeout(parent, e.evalTimeout)
 	return ctx, func(err error) error {
 		defer cancel()
-		if err != nil && parent.Err() == nil && stdErr.Is(ctx.Err(), context.DeadlineExceeded) {
+		if err != nil && parent.Err() == nil && stdErr.Is(ctx.Err(), context.DeadlineExceeded) && stdErr.Is(err, context.DeadlineExceeded) {
 			return fmt.Errorf("evaluation exceeded its %s deadline: %w", e.evalTimeout, err)
 		}
 		return err
@@ -411,7 +413,16 @@ func (e *executorImpl) loadJSInstance(ctx context.Context, ms *js.ModuleSpec, st
 	if err != nil {
 		return nil, err
 	}
-	return newJSInstance(ar.VM, exObj), nil
+	// Capturing the export keys may run a Proxy ownKeys trap, so it runs under
+	// the deadline too.
+	var instance *JSInstance
+	if err := runGuardedJS(ctx, ar.VM, func() error {
+		instance = newJSInstance(ar.VM, exObj)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return instance, nil
 }
 
 func (e *executorImpl) bindUses(ctx context.Context, ec *ExecutionContext, p *index.Policy) error {
@@ -445,7 +456,7 @@ func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStateme
 	if err != nil {
 		return nil, err
 	}
-	if err := module.checkExports(use.Modules); err != nil {
+	if err := module.checkExports(ctx, use.Modules); err != nil {
 		return nil, err
 	}
 	return &ModuleBinding{
