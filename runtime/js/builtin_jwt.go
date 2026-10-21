@@ -4,199 +4,322 @@
 package js
 
 import (
+	"crypto"
 	"crypto/hmac"
-	"crypto/sha256"
-	"crypto/sha512"
+	_ "crypto/sha256" // registers crypto.SHA256
+	_ "crypto/sha512" // registers crypto.SHA384 and crypto.SHA512
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"hash"
+	"fmt"
+	"math"
 	"strings"
 
 	"github.com/dop251/goja"
 )
 
+// jwtHMACAlgorithms maps each supported HMAC JWS algorithm to its hash.
+var jwtHMACAlgorithms = map[string]crypto.Hash{
+	"HS256": crypto.SHA256,
+	"HS384": crypto.SHA384,
+	"HS512": crypto.SHA512,
+}
+
+var (
+	errJWTSignature = errors.New("token signature is invalid")
+	errJWTExpired   = errors.New("token is expired")
+	errJWTNotYet    = errors.New("token is not valid yet")
+)
+
+// jwtToken is a JWT split into its decoded header and payload, the signing
+// input, and the still-encoded signature.
+type jwtToken struct {
+	header       map[string]any
+	payload      map[string]any
+	signingInput string
+	signature    string
+}
+
+func parseJWT(token string) (*jwtToken, error) {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return nil, errors.New("invalid token format")
+	}
+	header, err := decodeJWTSegment(parts[0], "header")
+	if err != nil {
+		return nil, err
+	}
+	payload, err := decodeJWTSegment(parts[1], "payload")
+	if err != nil {
+		return nil, err
+	}
+	return &jwtToken{
+		header:       header,
+		payload:      payload,
+		signingInput: parts[0] + "." + parts[1],
+		signature:    parts[2],
+	}, nil
+}
+
+func decodeJWTSegment(segment, name string) (map[string]any, error) {
+	raw, err := base64.RawURLEncoding.DecodeString(segment)
+	if err != nil {
+		return nil, fmt.Errorf("invalid token %s: %w", name, err)
+	}
+	var out map[string]any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, fmt.Errorf("invalid token %s: %w", name, err)
+	}
+	return out, nil
+}
+
+// checkJWTAlgorithm rejects "none" and any algorithm this module cannot verify.
+func checkJWTAlgorithm(alg string) error {
+	if alg == "none" {
+		return errors.New(`algorithm "none" is not allowed`)
+	}
+	if _, ok := jwtHMACAlgorithms[alg]; !ok {
+		return errors.New("unsupported algorithm: " + alg)
+	}
+	return nil
+}
+
+// hmacSecret validates the key argument for an HMAC algorithm.
+func hmacSecret(key goja.Value) ([]byte, error) {
+	secret, ok := key.Export().(string)
+	if !ok {
+		return nil, errors.New("secret must be a string")
+	}
+	if secret == "" {
+		return nil, errors.New("secret must not be empty")
+	}
+	return []byte(secret), nil
+}
+
+// verifyJWTSignature checks tok's signature under alg with key. Argument
+// problems (unsupported alg, bad key) come back as their own errors; a
+// signature that does not match is errJWTSignature.
+func verifyJWTSignature(tok *jwtToken, alg string, key goja.Value) error {
+	if err := checkJWTAlgorithm(alg); err != nil {
+		return err
+	}
+	secret, err := hmacSecret(key)
+	if err != nil {
+		return err
+	}
+	sig, err := base64.RawURLEncoding.DecodeString(tok.signature)
+	if err != nil {
+		return errJWTSignature
+	}
+	mac := hmac.New(jwtHMACAlgorithms[alg].New, secret)
+	mac.Write([]byte(tok.signingInput))
+	if !hmac.Equal(sig, mac.Sum(nil)) {
+		return errJWTSignature
+	}
+	return nil
+}
+
+// jwtOptions are the time-validation settings decode and verify accept.
+type jwtOptions struct {
+	// leeway is the clock skew, in seconds, tolerated on exp and nbf.
+	leeway float64
+	// checkTime validates exp and nbf; false is the inspect-only opt-out.
+	checkTime bool
+}
+
+func parseJWTOptions(v goja.Value) (jwtOptions, error) {
+	opts := jwtOptions{checkTime: true}
+	if v == nil || goja.IsUndefined(v) || goja.IsNull(v) {
+		return opts, nil
+	}
+	fields, ok := v.Export().(map[string]any)
+	if !ok {
+		return opts, errors.New("options must be an object")
+	}
+	for name, val := range fields {
+		switch name {
+		case "leeway":
+			leeway, ok := jsNumber(val)
+			if !ok || math.IsNaN(leeway) || math.IsInf(leeway, 0) || leeway < 0 {
+				return opts, errors.New("options.leeway must be a non-negative number of seconds")
+			}
+			opts.leeway = leeway
+		case "checkTime":
+			checkTime, ok := val.(bool)
+			if !ok {
+				return opts, errors.New("options.checkTime must be a boolean")
+			}
+			opts.checkTime = checkTime
+		default:
+			return opts, fmt.Errorf("unknown option %q", name)
+		}
+	}
+	return opts, nil
+}
+
+func jsNumber(v any) (float64, bool) {
+	switch n := v.(type) {
+	case int64:
+		return float64(n), true
+	case float64:
+		return n, true
+	}
+	return 0, false
+}
+
+// checkJWTTime validates the exp and nbf claims against now (Unix seconds).
+// Per RFC 7519 a token is valid while now < exp and once now >= nbf; leeway
+// widens both bounds.
+func checkJWTTime(payload map[string]any, now int64, leeway float64) error {
+	t := float64(now)
+	exp, ok, err := numericClaim(payload, "exp")
+	if err != nil {
+		return err
+	}
+	if ok && t >= exp+leeway {
+		return errJWTExpired
+	}
+	nbf, ok, err := numericClaim(payload, "nbf")
+	if err != nil {
+		return err
+	}
+	if ok && t+leeway < nbf {
+		return errJWTNotYet
+	}
+	return nil
+}
+
+func numericClaim(payload map[string]any, name string) (float64, bool, error) {
+	v, present := payload[name]
+	if !present {
+		return 0, false, nil
+	}
+	n, ok := v.(float64)
+	if !ok || math.IsNaN(n) || math.IsInf(n, 0) {
+		return 0, false, fmt.Errorf("%s claim must be a number", name)
+	}
+	return n, true, nil
+}
+
+func isAbsent(v goja.Value) bool {
+	return v == nil || goja.IsUndefined(v) || goja.IsNull(v)
+}
+
 var BuiltinJwtGo = func(vm *goja.Runtime) (*goja.Object, error) {
 	ex := vm.NewObject()
 
+	// clock returns the time exp and nbf are checked against: the execution
+	// start, the same instant @sentrie/time.now() reports. It is read before
+	// the token is looked at, so a VM without it fails on every call.
+	clock := func(opts jwtOptions) (int64, error) {
+		if !opts.checkTime {
+			return 0, nil
+		}
+		return executionStartUnix(vm)
+	}
+	timeCheck := func(payload map[string]any, now int64, opts jwtOptions) error {
+		if !opts.checkTime {
+			return nil
+		}
+		return checkJWTTime(payload, now, opts.leeway)
+	}
+
 	_ = ex.Set("decode", func(call goja.FunctionCall) goja.Value {
-		if len(call.Arguments) < 1 || len(call.Arguments) > 2 {
-			return throwErr(vm, errors.New("decode requires 1 or 2 arguments"))
+		if len(call.Arguments) < 1 || len(call.Arguments) > 3 {
+			return throwErr(vm, errors.New("decode requires 1 to 3 arguments"))
 		}
-		tokenStr := call.Argument(0).String()
-		var secret string
-		if len(call.Arguments) > 1 && call.Argument(1) != goja.Undefined() && call.Argument(1) != goja.Null() {
-			secret = call.Argument(1).String()
+		key := call.Argument(1)
+		opts, err := parseJWTOptions(call.Argument(2))
+		if err != nil {
+			return throwErr(vm, err)
 		}
-
-		parts := strings.Split(tokenStr, ".")
-		if len(parts) != 3 {
-			return throwErr(vm, errors.New("invalid token format"))
-		}
-
-		// Decode and parse header
-		headerBytes, err := base64.RawURLEncoding.DecodeString(parts[0])
+		now, err := clock(opts)
 		if err != nil {
 			return throwErr(vm, err)
 		}
 
-		var header map[string]interface{}
-		if err := json.Unmarshal(headerBytes, &header); err != nil {
-			return throwErr(vm, err)
-		}
-
-		// Decode and parse payload
-		payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
+		tok, err := parseJWT(call.Argument(0).String())
 		if err != nil {
 			return throwErr(vm, err)
 		}
 
-		var payload map[string]interface{}
-		if err := json.Unmarshal(payloadBytes, &payload); err != nil {
-			return throwErr(vm, err)
-		}
-
-		// If secret provided, verify signature
-		if secret != "" {
-			alg, ok := header["alg"].(string)
+		if !isAbsent(key) {
+			alg, ok := tok.header["alg"].(string)
 			if !ok {
 				return throwErr(vm, errors.New("algorithm not found in header"))
 			}
-
-			// Verify signature
-			message := parts[0] + "." + parts[1]
-			signature := parts[2]
-
-			var h hash.Hash
-			switch alg {
-			case "HS256":
-				h = hmac.New(sha256.New, []byte(secret))
-			case "HS384":
-				h = hmac.New(sha512.New384, []byte(secret))
-			case "HS512":
-				h = hmac.New(sha512.New, []byte(secret))
-			default:
-				return throwErr(vm, errors.New("unsupported algorithm: "+alg))
-			}
-
-			h.Write([]byte(message))
-			expectedSig := base64.RawURLEncoding.EncodeToString(h.Sum(nil))
-
-			if signature != expectedSig {
-				return throwErr(vm, errors.New("token signature is invalid"))
+			if err := verifyJWTSignature(tok, alg, key); err != nil {
+				return throwErr(vm, err)
 			}
 		}
 
-		return vm.ToValue(payload)
+		if err := timeCheck(tok.payload, now, opts); err != nil {
+			return throwErr(vm, err)
+		}
+		return vm.ToValue(tok.payload)
 	})
 
 	_ = ex.Set("verify", func(call goja.FunctionCall) goja.Value {
-		if len(call.Arguments) < 2 || len(call.Arguments) > 3 {
-			return throwErr(vm, errors.New("verify requires 2 or 3 arguments"))
+		if len(call.Arguments) < 2 || len(call.Arguments) > 4 {
+			return throwErr(vm, errors.New("verify requires 2 to 4 arguments"))
 		}
-		tokenStr := call.Argument(0).String()
-		secret := call.Argument(1).String()
+		key := call.Argument(1)
 		algorithm := "HS256"
-		if len(call.Arguments) > 2 && call.Argument(2) != goja.Undefined() && call.Argument(2) != goja.Null() {
+		if !isAbsent(call.Argument(2)) {
 			algorithm = call.Argument(2).String()
 		}
-		switch algorithm {
-		case "HS256", "HS384", "HS512":
-		default:
-			return throwErr(vm, errors.New("unsupported algorithm: "+algorithm))
+		if err := checkJWTAlgorithm(algorithm); err != nil {
+			return throwErr(vm, err)
+		}
+		if _, err := hmacSecret(key); err != nil {
+			return throwErr(vm, err)
+		}
+		opts, err := parseJWTOptions(call.Argument(3))
+		if err != nil {
+			return throwErr(vm, err)
+		}
+		now, err := clock(opts)
+		if err != nil {
+			return throwErr(vm, err)
 		}
 
-		parts := strings.Split(tokenStr, ".")
-		if len(parts) != 3 {
-			return vm.ToValue(false)
-		}
-
-		// Decode header to get algorithm
-		headerBytes, err := base64.RawURLEncoding.DecodeString(parts[0])
+		// From here on, anything wrong with the token is an answer, not an error.
+		tok, err := parseJWT(call.Argument(0).String())
 		if err != nil {
 			return vm.ToValue(false)
 		}
-
-		var header map[string]interface{}
-		if err := json.Unmarshal(headerBytes, &header); err != nil {
+		if alg, ok := tok.header["alg"].(string); !ok || alg != algorithm {
 			return vm.ToValue(false)
 		}
-
-		alg, ok := header["alg"].(string)
-		if !ok || alg != algorithm {
+		if err := verifyJWTSignature(tok, algorithm, key); err != nil {
 			return vm.ToValue(false)
 		}
-
-		// Verify signature
-		message := parts[0] + "." + parts[1]
-		signature := parts[2]
-
-		var h hash.Hash
-		switch algorithm {
-		case "HS256":
-			h = hmac.New(sha256.New, []byte(secret))
-		case "HS384":
-			h = hmac.New(sha512.New384, []byte(secret))
-		case "HS512":
-			h = hmac.New(sha512.New, []byte(secret))
-		default:
-			return throwErr(vm, errors.New("unsupported algorithm: "+algorithm))
+		if err := timeCheck(tok.payload, now, opts); err != nil {
+			return vm.ToValue(false)
 		}
-
-		h.Write([]byte(message))
-		expectedSig := base64.RawURLEncoding.EncodeToString(h.Sum(nil))
-
-		return vm.ToValue(signature == expectedSig)
+		return vm.ToValue(true)
 	})
 
 	_ = ex.Set("getPayload", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
 			return throwErr(vm, errors.New("getPayload requires exactly 1 argument"))
 		}
-		tokenStr := call.Argument(0).String()
-
-		parts := strings.Split(tokenStr, ".")
-		if len(parts) != 3 {
-			return throwErr(vm, errors.New("invalid token format"))
-		}
-
-		// Decode payload (second part)
-		decoded, err := base64.RawURLEncoding.DecodeString(parts[1])
+		tok, err := parseJWT(call.Argument(0).String())
 		if err != nil {
 			return throwErr(vm, err)
 		}
-
-		var payload map[string]interface{}
-		if err := json.Unmarshal(decoded, &payload); err != nil {
-			return throwErr(vm, err)
-		}
-
-		return vm.ToValue(payload)
+		return vm.ToValue(tok.payload)
 	})
 
 	_ = ex.Set("getHeader", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
 			return throwErr(vm, errors.New("getHeader requires exactly 1 argument"))
 		}
-		tokenStr := call.Argument(0).String()
-
-		parts := strings.Split(tokenStr, ".")
-		if len(parts) != 3 {
-			return throwErr(vm, errors.New("invalid token format"))
-		}
-
-		// Decode header (first part)
-		decoded, err := base64.RawURLEncoding.DecodeString(parts[0])
+		tok, err := parseJWT(call.Argument(0).String())
 		if err != nil {
 			return throwErr(vm, err)
 		}
-
-		var header map[string]interface{}
-		if err := json.Unmarshal(decoded, &header); err != nil {
-			return throwErr(vm, err)
-		}
-
-		return vm.ToValue(header)
+		return vm.ToValue(tok.header)
 	})
 
 	return ex, nil
