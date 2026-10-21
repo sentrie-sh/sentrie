@@ -26,3 +26,10 @@
 - `.d.ts`: `ts_src/sentrie/string.d.ts` and `math.d.ts` rewritten to the implemented surface. The old ones declared a different, never-implemented API (`toLowerCase`, `trimLeft`, `substring`, `padStart`, `sin`, `random`, constants, ...).
 - Tests: `JSTestSuite` cases per function in `builtin_string_test.go` / `builtin_math_test.go`, parser cases in `parser/use_test.go`, a `RuntimeTestSuite` rule-evaluation test in `runtime/js_string_math_test.go` (policy facts must precede `use` statements, which the index enforces), and fixture `lang_test/0048-string-math-modules.sentrie`. Ran the fixture's rules through the executor once with a throwaway test (deleted) to confirm every imported export binds and evaluates.
 - _Model: claude-opus-5-5_
+
+### 14:47 - Graph, tests, verification
+- Graph: `runtime.js.builtins` gains contract entries for both modules and notes that they throw, unlike the rest of the family until #111 lands; `runtime.js` gets the same exception, `lang_test.lang_test` now counts forty-four fixtures. `make docs-graph` passes.
+- Committed the runtime test and fixture (24fae02) and the graph update.
+- `make test` passes. `make lint` passes (0 issues) with golangci-lint v2.4.0 built on go1.25.0, per the coordinator's recipe, because the host binary panics on the newer local Go.
+- Not done here: the website user guide (`sentrie.sh/typescript-modules/`) has no page for these modules; it lives in a separate repo.
+- _Model: claude-opus-5-5_
