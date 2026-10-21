@@ -199,6 +199,7 @@ graph TD
 - [[ast]] - abstract syntax tree definitions
 - [[box]] - universal boxed value type
 - [[builtins]] - native function registry
+- [[capabilities]] - operator capabilities grant
 - [[cmd]] - command-line interface
 - [[constants]] - shared constant definitions
 - [[constraints]] - type refinement predicates

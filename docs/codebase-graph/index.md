@@ -21,6 +21,7 @@ tags: semantic-analysis, symbol-table, validation, dependency-graph, middle-end
 | `index` | `LAYERED_ON` | [[xerr]] | Every diagnostic is an `xerr` sentinel or `ErrConflict`, giving structured two-span conflict errors. |
 | `index` | `LAYERED_ON` | [[builtins]] | Reads builtin declarations and signatures to validate call sites; consults `IsDeriveSafe` for purity and `Decl.Nondeterministic` for warnings. |
 | `index` | `LAYERED_ON` | [[box]] | Uses `box.ValueKind` as the vocabulary for static argument-kind checking. |
+| `index` | `READS_FROM` | [[capabilities]] | `CheckCapabilities` tests every builtin call and `use` against the operator's grant. |
 | `index` | `IMPORTS` | `ext.masterminds.semver` | Parses and validates per-policy `version` metadata. |
 | [[loader]] | `LAYERED_ON` | [[index]] | Supplies the parsed programs that populate the index. |
 | [[runtime]] | `LAYERED_ON` | [[index]] | Resolves namespaces, policies, rules, and derives against the committed index during evaluation. |
@@ -48,6 +49,11 @@ tags: semantic-analysis, symbol-table, validation, dependency-graph, middle-end
   - **Behavior:** Non-fatal diagnostics for `sentrie validate`: one `Warning` per call to a `builtins.Decl.Nondeterministic` builtin, and one per name a `use` imports from a builtin module that the supplied lookup marks nondeterministic (the caller passes `js.IsNondeterministicExport`; nil skips modules). Sorted by file and position. Builtin calls are found by `forEachBuiltinCall` (`builtin_calls.go`), which walks fact defaults, policy lets, rule slots, export attachments and derive bodies with the same shadowing as [[index.builtin_check]].
   - **Side Effects:** None.
   - **Exceptions:** `validation cancelled` on context cancellation.
+
+- **Signature:** `(*Index).CheckCapabilities(ctx, grant *capabilities.Capabilities) -> error`
+  - **Behavior:** Load-time half of the operator's grant ([[capabilities]]). Reports, joined and sorted by position, one `xerr.CapabilityError` per builtin call the grant does not list (via `forEachBuiltinCall`, span on the callee), per `use ... from @sentrie/<name>` of an ungranted module, and per local `use` (`"./x"` or `@local/...`) when local modules are not granted. A nil grant returns nil. The runtime gates in [[runtime.eval_call]] and [[runtime.js.registry]] repeat the checks, and the registry also covers `require()` inside TypeScript.
+  - **Side Effects:** None.
+  - **Exceptions:** Joined `xerr.CapabilityError`s (wrapping `xerr.ErrNotGranted` and `xerr.ErrIndex`); `validation cancelled`.
 
 - **Signature:** `(*Index).Commit(ctx) -> error`
   - **Behavior:** Hydrates shape composition in topological order. See [[index.commit]].
