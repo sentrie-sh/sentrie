@@ -29,3 +29,7 @@
 - Moved the guard to `builtin_errors_guard_test.go` and added `TestErrorObjectGuardCatchesEverySpelling`, which runs the matcher over in-memory snippets: nine bad spellings are each flagged once, and four throwing or plain forms are not.
 - `semver.satisfies("1.0.0", "~~bad")` checked `Contains(got, "")`, which always passes; it now pins `improper constraint: ~~bad`.
 - _Model: claude-opus-5-5_
+
+### 2026-10-21 22:33 - Review fixes committed
+- Signing worked again on a later attempt, so the review fixes above are committed as 8edeea6 ("Address review findings"). That supersedes the "left uncommitted" lines in the entry above. It is one commit rather than one per finding, because splitting it now would need an amend, and the review-fix rules forbid that.
+- _Model: claude-opus-5-5_
