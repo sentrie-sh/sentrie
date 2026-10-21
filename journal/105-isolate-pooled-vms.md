@@ -32,3 +32,8 @@
 - Test: `TestProbeInterruptIsClearedAfterLoad` hands `newJSModule` an already-interrupted instance with a getter export. It panics without the fix (checked by commenting the line out) and passes with it.
 - Applied the trivial suggestion: inlined the one-caller `installInterrupt` wrapper into `Require`, and updated the `runtime.js.alias_runtime` node.
 - _Model: claude-opus-5-5_
+
+### 22:11 - Paused at the plan limit (handoff)
+- Another agent reported `TestFailedModuleLoadIsRetried` panicking with "context canceled at get" in `checkExports` on `154-js-boundary-values` at e379994 (33 of 300 runs). This has the same root cause as the PR #194 finding, and 9ab82f5 on this branch fixes it (`newJSModule` clears the probe's interrupt). 154 and 142 pick the fix up when this layer merges and GitHub restacks them.
+- Not yet done (the plan window hit 98%): confirm with `GOWORK=off go test ./runtime/ -run TestRuntimeTestSuite/TestFailedModuleLoadIsRetried -count=300` on `191-cache-module-bindings` (the first layer with that test, where 9ab82f5 is not an ancestor until restack). 142 also clears the probe after every export check (ed2d94a), so it should be clean there already.
+- _Model: claude-opus-5-5_
