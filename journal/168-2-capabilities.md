@@ -16,3 +16,14 @@
 - Pack `[permissions]` (#157) are not intersected with the grant yet; noted as a follow-up.
 - `make test` and `make lint` pass.
 - _Model: claude-opus-5-5_
+
+### 22:35 - Review fixes (pr-203)
+- `require()` in pack TypeScript is now checked at load, not first on the request that reaches it. `js.Registry.CheckUseRequires` compiles each `use` target and scans its transpiled code for static `require("...")` (esbuild emits every import that way), resolving each through `LoadRequire` so `checkGrant` applies, and follows pack-local requires transitively. `runtime.CheckModuleGrants(exec)` runs it for every `use` in sorted order. Chose a regex over transpiled output instead of a full JavaScript AST walk (goja has no visitor). It may over-match a `require("...")` inside a string literal, which fails closed, and dynamic `require(expr)` is still left to the runtime gate. An end-to-end test confirms `errors.Is(err, xerr.ErrNotGranted)` survives goja's exception wrapping.
+- `cmd`: replaced `loadAndCheckCapabilities` with `newGrantedExecutor(ctx, idx, path, opts...)` (load, index check, `NewExecutor` with the grant, module scan). Each command now has one call where it had two blocks. `opts` leaves room for #219's `WithEvalTimeout`.
+- Capabilities file errors: a `json.Decoder` token pre-pass (`checkTopLevelKeys`) rejects an empty file, a non-object value, unknown or differently-cased keys (exact spellings from the struct tags, so layer 3's `deterministic_js` is picked up automatically), duplicate keys, trailing data and a missing `version`. Syntax, type and key errors carry a 1-based `line:column`. `Load` now prefixes read and parse errors the same way (`<path>: capabilities: ...`).
+- FORMAT.md: removed the malformed `use` span from the example (#216 fixes the parser range); said that forbidding clock and random sources also needs `local_modules: false`; documented the load-time `require` scan and the error positions.
+- Inlined `joinLibFrom`.
+- Not done here: the reviewer's `import ... with` and shadowed-name capability cases. They are fixed in layer 1's shared walker (`forEachBuiltinCall`), and this branch inherits that when layer 1 restacks. Cherry-picking the fix here would duplicate commits across the stack.
+- Found: nested relative requires fail with "outside the packroot" when the pack root is behind a symlink (macOS temp dirs), because `ModuleSpec.Dir` is symlink-resolved but `PackRoot` is not. This predates the branch; the test resolves its temp dir, and the defect is reported.
+- `make test` and `make lint` pass.
+- _Model: claude-opus-5-5_
