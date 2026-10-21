@@ -505,6 +505,13 @@ func (e *executorImpl) loadModule(ctx context.Context, key string, ms *js.Module
 	}
 	e.moduleLoads.Add(1)
 	module, err := newJSModule(ctx, key, load)
+	if err == nil && ctx.Err() != nil {
+		// The loader's context ended while it loaded. Whether the load still
+		// finished, and whether its probe kept a fired interrupt (#194), is
+		// down to timing, so do not cache it: the next caller, or a waiter with
+		// a live context, loads again under its own context.
+		module, err = nil, ctx.Err()
+	}
 
 	e.modulesMu.Lock()
 	if err != nil {
