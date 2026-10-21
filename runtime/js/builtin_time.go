@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/dop251/goja"
-	"github.com/sentrie-sh/sentrie/constants"
 )
 
 var BuiltinTimeGo = func(vm *goja.Runtime) (*goja.Object, error) {
@@ -27,14 +26,13 @@ var BuiltinTimeGo = func(vm *goja.Runtime) (*goja.Object, error) {
 			return throwErr(vm, errors.New("now requires exactly 0 arguments"))
 		}
 
-		// Get execution timestamp from VM global if available
-		timestampVal := vm.Get(constants.ExecutionStartTimeUnixKey)
-		if timestampVal != nil && timestampVal != goja.Undefined() && timestampVal != goja.Null() {
-			return timestampVal
+		// The pinned execution start, in Unix seconds. A VM without it is a
+		// programming error, never a reason to read the wall clock (#153).
+		now, err := executionStartUnix(vm)
+		if err != nil {
+			return throwErr(vm, err)
 		}
-
-		// Fallback to current time if execution timestamp not set
-		return vm.ToValue(time.Now().Unix())
+		return vm.ToValue(now)
 	})
 
 	_ = ex.Set("parse", func(call goja.FunctionCall) goja.Value {
