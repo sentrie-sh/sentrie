@@ -43,7 +43,7 @@ Defines the four user-facing commands and wires the loading pipeline behind each
 - **Signature:** `sentrie exec <rule> [--pack-location .] [--facts '{}'] [--fact-file path] [--output table|json] [--eval-timeout 10s]`
   - **Behavior:** Same pipeline, then resolves the rule path and evaluates. Facts merge from two sources with the **`--facts` flag overriding the fact file**. An empty rule segment evaluates the whole policy.
   - **Side Effects:** Full evaluation; writes to stdout; closes the executor on return.
-  - **`--eval-timeout`:** a Go duration string (cling has no duration input), parsed by `parseEvalTimeout`; `0` disables the deadline and negative values are rejected. `serve` passes it to both the executor and `api.WithRequestTimeout`.
+  - **`--eval-timeout`:** a Go duration string (cling has no duration input), parsed by `parseEvalTimeout`; `0` disables the deadline and negative values are rejected. `serve` passes it to the executor (which owns the deadline) and to `api.WithRequestTimeout` (which sizes the write timeout from it).
   - **Exceptions:** File read errors; JSON decode errors; evaluation errors.
 
 - **Signature:** `sentrie validate <rule> [--pack-location .] [--facts '{}']`

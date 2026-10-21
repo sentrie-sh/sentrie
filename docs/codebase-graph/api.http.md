@@ -25,7 +25,7 @@ Owns the HTTP surface: route registration, multi-address listener setup, server 
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `NewHTTPAPI(executor runtime.Executor, opts ...HTTPAPIOption) -> *HTTPAPI` / `WithRequestTimeout(d time.Duration) -> HTTPAPIOption`
-  - **Behavior:** `requestTimeout` defaults to `runtime.DefaultEvalTimeout` (10s); `serve` sets it from `--eval-timeout`. [[api.handle_decision]] gives every request context that deadline ([#142](https://github.com/sentrie-sh/sentrie/issues/142)). A value <= 0 disables it.
+  - **Behavior:** `requestTimeout` defaults to `runtime.DefaultEvalTimeout` (10s); `serve` sets it from `--eval-timeout`. It is the executor's deadline ([#142](https://github.com/sentrie-sh/sentrie/issues/142)); the API only uses it to size the write timeout. With a value <= 0 the write timeout stays at 30 seconds, which then caps a response.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -56,7 +56,7 @@ Owns the HTTP surface: route registration, multi-address listener setup, server 
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Holds the listener slice; not safe for concurrent `Setup`/`Stop`. One executor is shared by all handlers.
-- **Performance/Scale Notes:** The read timeout is fixed at 30 seconds. Evaluation is bounded by the request deadline, and the write timeout is derived from it, so a slow policy fails with a 503 rather than a half-written response. There is no `IdleTimeout` or `ReadHeaderTimeout`, leaving the server open to slow-header connection exhaustion.
+- **Performance/Scale Notes:** The read timeout is fixed at 30 seconds. Evaluation is bounded by the executor deadline, and the write timeout is derived from it, so a slow policy fails with a 503 rather than a half-written response. There is no `IdleTimeout` or `ReadHeaderTimeout`, leaving the server open to slow-header connection exhaustion.
 - **Dependencies Risk:**
   - **`StartServer` cannot report a serve error.** Errors go into `errChan`, and the deferred `wg.Wait()` followed by `close(errChan)` runs immediately - the function returns without waiting, and nothing ever reads the channel. A listener that fails after startup dies silently. `serve` in [[cmd]] launches this in a goroutine and then blocks on `ctx.Done()`, so the process stays alive with no listeners.
   - **`StopServer` is not a graceful shutdown.** It calls `Close`, which terminates active connections immediately, rather than `http.Server.Shutdown`, which drains them. An in-flight decision is dropped at exit.
