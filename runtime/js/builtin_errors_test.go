@@ -10,12 +10,18 @@ import (
 	"strings"
 
 	"github.com/dop251/goja"
+	"github.com/sentrie-sh/sentrie/constants"
 )
 
-// runBuiltinScript installs provider as the global `m` in a fresh VM and runs
-// script against it.
+// testExecutionStartUnix is the execution start time the builtin tests pin,
+// standing in for the global runtime.ModuleBinding.Call sets.
+const testExecutionStartUnix int64 = 1_700_000_000
+
+// runBuiltinScript installs provider as the global `m` in a fresh VM, with
+// the execution start time set, and runs script against it.
 func (s *JSTestSuite) runBuiltinScript(provider ModuleProvider, script string) (goja.Value, error) {
 	vm := goja.New()
+	s.Require().NoError(vm.Set(constants.ExecutionStartTimeUnixKey, testExecutionStartUnix))
 	ex, err := provider(vm)
 	s.Require().NoError(err)
 	s.Require().NoError(vm.Set("m", ex))
@@ -68,7 +74,7 @@ func (s *JSTestSuite) TestBuiltinFailuresThrow() {
 		{"jwt", BuiltinJwtGo, `m.decode("x.y.z")`, "illegal base64 data"},
 		{"jwt", BuiltinJwtGo, `m.decode("not-a-token")`, "invalid token format"},
 		{"jwt", BuiltinJwtGo, `m.getPayload("a.b")`, "invalid token format"},
-		{"jwt", BuiltinJwtGo, `m.verify("a.b.c", "secret", "none")`, "unsupported algorithm: none"},
+		{"jwt", BuiltinJwtGo, `m.verify("a.b.c", "secret", "none")`, `algorithm "none" is not allowed`},
 		{"url", BuiltinUrlGo, `m.parse("://missing-scheme")`, "missing protocol scheme"},
 		{"url", BuiltinUrlGo, `m.join()`, "requires at least 1 argument"},
 		{"encoding", BuiltinEncodingGo, `m.base64Decode("!!!")`, "illegal base64 data"},
