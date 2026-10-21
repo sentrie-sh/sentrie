@@ -5,7 +5,10 @@ package js
 
 import (
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/hmac"
+	"crypto/rsa"
 	_ "crypto/sha256" // registers crypto.SHA256
 	_ "crypto/sha512" // registers crypto.SHA384 and crypto.SHA512
 	"encoding/base64"
@@ -13,16 +16,39 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 	"strings"
 
 	"github.com/dop251/goja"
 )
 
-// jwtHMACAlgorithms maps each supported HMAC JWS algorithm to its hash.
-var jwtHMACAlgorithms = map[string]crypto.Hash{
-	"HS256": crypto.SHA256,
-	"HS384": crypto.SHA384,
-	"HS512": crypto.SHA512,
+// jwtFamily is the signature scheme behind a JWS algorithm.
+type jwtFamily int
+
+const (
+	jwtHMAC jwtFamily = iota
+	jwtRSA
+	jwtECDSA
+)
+
+// jwtAlgorithm describes one supported JWS algorithm (RFC 7518 section 3).
+type jwtAlgorithm struct {
+	family jwtFamily
+	hash   crypto.Hash
+	// curve is the curve an ECDSA algorithm requires; nil otherwise.
+	curve elliptic.Curve
+}
+
+var jwtAlgorithms = map[string]jwtAlgorithm{
+	"HS256": {family: jwtHMAC, hash: crypto.SHA256},
+	"HS384": {family: jwtHMAC, hash: crypto.SHA384},
+	"HS512": {family: jwtHMAC, hash: crypto.SHA512},
+	"RS256": {family: jwtRSA, hash: crypto.SHA256},
+	"RS384": {family: jwtRSA, hash: crypto.SHA384},
+	"RS512": {family: jwtRSA, hash: crypto.SHA512},
+	"ES256": {family: jwtECDSA, hash: crypto.SHA256, curve: elliptic.P256()},
+	"ES384": {family: jwtECDSA, hash: crypto.SHA384, curve: elliptic.P384()},
+	"ES512": {family: jwtECDSA, hash: crypto.SHA512, curve: elliptic.P521()},
 }
 
 var (
@@ -78,43 +104,49 @@ func checkJWTAlgorithm(alg string) error {
 	if alg == "none" {
 		return errors.New(`algorithm "none" is not allowed`)
 	}
-	if _, ok := jwtHMACAlgorithms[alg]; !ok {
+	if _, ok := jwtAlgorithms[alg]; !ok {
 		return errors.New("unsupported algorithm: " + alg)
 	}
 	return nil
 }
 
-// hmacSecret validates the key argument for an HMAC algorithm.
-func hmacSecret(key goja.Value) ([]byte, error) {
-	secret, ok := key.Export().(string)
-	if !ok {
-		return nil, errors.New("secret must be a string")
-	}
-	if secret == "" {
-		return nil, errors.New("secret must not be empty")
-	}
-	return []byte(secret), nil
-}
-
-// verifyJWTSignature checks tok's signature under alg with key. Argument
-// problems (unsupported alg, bad key) come back as their own errors; a
-// signature that does not match is errJWTSignature.
-func verifyJWTSignature(tok *jwtToken, alg string, key goja.Value) error {
-	if err := checkJWTAlgorithm(alg); err != nil {
-		return err
-	}
-	secret, err := hmacSecret(key)
-	if err != nil {
-		return err
-	}
+// verifyJWTSignature checks tok's signature under alg with key, a value
+// parseJWTKey returned for the same alg. A signature that does not match is
+// errJWTSignature.
+func verifyJWTSignature(tok *jwtToken, alg string, key any) error {
+	a := jwtAlgorithms[alg]
 	sig, err := base64.RawURLEncoding.DecodeString(tok.signature)
 	if err != nil {
 		return errJWTSignature
 	}
-	mac := hmac.New(jwtHMACAlgorithms[alg].New, secret)
-	mac.Write([]byte(tok.signingInput))
-	if !hmac.Equal(sig, mac.Sum(nil)) {
-		return errJWTSignature
+	if a.family == jwtHMAC {
+		mac := hmac.New(a.hash.New, key.([]byte))
+		mac.Write([]byte(tok.signingInput))
+		if !hmac.Equal(sig, mac.Sum(nil)) {
+			return errJWTSignature
+		}
+		return nil
+	}
+
+	h := a.hash.New()
+	h.Write([]byte(tok.signingInput))
+	digest := h.Sum(nil)
+	switch a.family {
+	case jwtRSA:
+		if rsa.VerifyPKCS1v15(key.(*rsa.PublicKey), a.hash, digest, sig) != nil {
+			return errJWTSignature
+		}
+	case jwtECDSA:
+		// JWS carries an ECDSA signature as fixed-width R || S (RFC 7518 3.4).
+		size := (a.curve.Params().BitSize + 7) / 8
+		if len(sig) != 2*size {
+			return errJWTSignature
+		}
+		r := new(big.Int).SetBytes(sig[:size])
+		sv := new(big.Int).SetBytes(sig[size:])
+		if !ecdsa.Verify(key.(*ecdsa.PublicKey), digest, r, sv) {
+			return errJWTSignature
+		}
 	}
 	return nil
 }
@@ -258,7 +290,14 @@ var BuiltinJwtGo = func(vm *goja.Runtime) (*goja.Object, error) {
 			if !ok {
 				return throwErr(vm, errors.New("algorithm not found in header"))
 			}
-			if err := verifyJWTSignature(tok, alg, key); err != nil {
+			if err := checkJWTAlgorithm(alg); err != nil {
+				return throwErr(vm, err)
+			}
+			parsed, err := parseJWTKey(alg, key)
+			if err != nil {
+				return throwErr(vm, err)
+			}
+			if err := verifyJWTSignature(tok, alg, parsed); err != nil {
 				return throwErr(vm, err)
 			}
 		}
@@ -281,7 +320,8 @@ var BuiltinJwtGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		if err := checkJWTAlgorithm(algorithm); err != nil {
 			return throwErr(vm, err)
 		}
-		if _, err := hmacSecret(key); err != nil {
+		parsed, err := parseJWTKey(algorithm, key)
+		if err != nil {
 			return throwErr(vm, err)
 		}
 		opts, err := parseJWTOptions(call.Argument(3))
@@ -301,7 +341,7 @@ var BuiltinJwtGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		if alg, ok := tok.header["alg"].(string); !ok || alg != algorithm {
 			return vm.ToValue(false)
 		}
-		if err := verifyJWTSignature(tok, algorithm, key); err != nil {
+		if err := verifyJWTSignature(tok, algorithm, parsed); err != nil {
 			return vm.ToValue(false)
 		}
 		if err := timeCheck(tok.payload, now, opts); err != nil {
