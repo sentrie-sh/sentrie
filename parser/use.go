@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package parser
 
@@ -86,14 +73,14 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 		}
 		rnge.To = at.Range.To
 
-		fromPackage, found := p.advanceExpected(tokens.Ident)
+		fromPackage, found := advanceModulePathSegment(p)
 		if !found {
 			return nil
 		}
 		from := []string{fromPackage.Value}
 		for p.canExpect(tokens.TokenDiv) {
 			p.advance() // consume '/'
-			fromModule, found := p.advanceExpected(tokens.Ident)
+			fromModule, found := advanceModulePathSegment(p)
 			if !found {
 				return nil
 			}
@@ -123,7 +110,27 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 		}
 		alias = asAlias.Value
 		rnge.To = asAlias.Range.To
+	} else if relativeFrom == "" {
+		// A keyword segment such as `string` in `@sentrie/string` is a valid
+		// path segment but not a valid identifier, so it cannot be the alias
+		// that call sites use. Ask for an explicit one here rather than let
+		// `string.lower(x)` fail later with an unrelated expression error.
+		if _, isKeyword := tokens.IsKeyword(alias); isKeyword {
+			p.errorf("module @%s: default alias %q is a keyword; add 'as <alias>'", strings.Join(libFrom, "/"), alias)
+			return nil
+		}
 	}
 
 	return ast.NewUseStatement(modules, relativeFrom, libFrom, alias, rnge)
+}
+
+// advanceModulePathSegment consumes one segment of an `@scope/name` module
+// path. A segment is an identifier or a keyword, so modules can be named after
+// keywords (`@sentrie/string`). Keywords are accepted only here: everywhere else
+// they keep their keyword meaning.
+func advanceModulePathSegment(p *Parser) (tokens.Instance, bool) {
+	if kind, isKeyword := tokens.IsKeyword(p.head().Value); isKeyword && p.head().IsOfKind(kind) {
+		return p.advance(), true
+	}
+	return p.advanceExpected(tokens.Ident)
 }
