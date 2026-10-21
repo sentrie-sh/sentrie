@@ -17,3 +17,12 @@
 - `verify` validates the key against `algorithm` before looking at the token, so a key that does not suit the algorithm throws (argument error) rather than answering `false`.
 - Tests generate RSA 2048 and P-256/384/521 keys per run and sign tokens in Go; no fixed asymmetric vectors are checked in.
 - _Model: claude-opus-5-5_
+
+### 2026-10-21 22:31 - Review fixes for PR #202
+- Warning: the confusion guard was a prefix check after `TrimSpace`, and a PEM saved behind a byte-order mark got through: `decode` accepted HS256 tokens signed with that PEM text. I fixed the root cause, as review suggested. `decode` no longer lets the header choose the family: it accepts only `options.algorithms` when given, otherwise the key's own family (`jwtKeyAlgorithms`: HS* for a secret, RS* for an RSA key, the single ES* of an EC key's curve). `verify` already pins through its `algorithm` argument and rejects `options.algorithms`.
+- I hardened detection too, so the two detectors cannot drift. `keyText` strips whitespace and a leading BOM for both `looksLikePublicKey`/`jwtPublicKey` and `hmacSecret`. `hmacSecret` refuses any secret that contains `-----BEGIN` anywhere, starts with `{`, or parses as a JSON object. A genuine RS256 token now verifies against the BOM-prefixed PEM.
+- Suggestions taken (each trivial): a JWK with `d` is refused; the RSA modulus is capped at 8192 bits; any `crit` header fails verification (RFC 7515 4.1.11). Not taken: caching parsed keys (unmeasured) and the boxed-`String` message.
+- Tests: the BOM forgery against `decode` and `verify`, a PEM embedded mid-secret, `algorithms` pinning, allowing and rejecting `none`, the EC curve default, a CERTIFICATE PEM round trip, an ASN.1 DER ES256 signature (`false`), `crit`, a private JWK and an over-size modulus.
+- Carried from #197: `decode(rs256, undefined)` is fixed on `139-1-jwt-claims` (uncommitted there, like this). This layer does not have that change yet, so the RS-flavoured undefined-key test waits until the stack restacks.
+- Signing refused the commit, so these changes are left uncommitted.
+- _Model: claude-opus-5-5_

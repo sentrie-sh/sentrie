@@ -7,7 +7,8 @@
  *
  * Keys: HS* algorithms take a shared secret string. RS* and ES* take a public key as a PEM block
  * ("PUBLIC KEY", "RSA PUBLIC KEY" or "CERTIFICATE") or a JWK (object or JSON string). The key's
- * form must match the algorithm's family, which blocks algorithm-confusion forgeries.
+ * form must match the algorithm's family, which blocks algorithm-confusion forgeries. RSA keys must be
+ * 2048 to 8192 bits; private keys (PEM or a JWK with `d`) are refused, and a token with a `crit` header is rejected.
  */
 declare module "@sentrie/jwt" {
   /** A public JWK (RFC 7517): RSA with n and e, or EC with crv, x and y. */
@@ -24,6 +25,12 @@ declare module "@sentrie/jwt" {
      * whose validity window does not matter.
      */
     checkTime?: boolean;
+    /**
+     * decode() only: the header algorithms to accept. Defaults to the key's own family: HS* for a
+     * shared secret, RS* for an RSA key, and the ES* algorithm of an EC key's curve. The token header
+     * never chooses the family on its own.
+     */
+    algorithms?: string[];
   }
 
   /**
