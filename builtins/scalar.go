@@ -122,6 +122,8 @@ var (
 		Name:        "now",
 		Description: "Returns the policy execution start time as Unix seconds, the unit @sentrie/time.now() and JWT exp/nbf use.",
 		DeriveSafe:  true,
+		// Pinned within an execution, but differs between executions.
+		Nondeterministic: true,
 		Sig: Sig{
 			TooFewError:  "now requires 0 arguments",
 			TooManyError: "now requires 0 arguments",

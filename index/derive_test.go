@@ -503,3 +503,39 @@ policy polA {
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	require.NoError(s.T(), idx.Validate(ctx))
 }
+
+func (s *IndexTestSuite) TestDerivePurityRejectsNondeterministicBuiltin() {
+	ctx := s.T().Context()
+	idx := CreateIndex()
+	src := `namespace com/ex
+derive stamp = (): number => { yield now() }
+policy pol {
+  let _s = 0
+  rule r = { yield true }
+  export decision of r
+}
+`
+	prog, err := parser.NewParserFromString(src, "now.sentrie").ParseProgram(ctx)
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
+	err = idx.Validate(ctx)
+	require.Error(s.T(), err)
+	require.Contains(s.T(), err.Error(), `builtin "now" is nondeterministic and is not permitted inside a derive`)
+}
+
+func (s *IndexTestSuite) TestDerivePurityAllowsShadowedNondeterministicName() {
+	ctx := s.T().Context()
+	idx := CreateIndex()
+	src := `namespace com/ex
+derive pick = (now: number): number => { yield now }
+policy pol {
+  let _s = 0
+  rule r = { yield pick(1) == 1 }
+  export decision of r
+}
+`
+	prog, err := parser.NewParserFromString(src, "shadow.sentrie").ParseProgram(ctx)
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), idx.Validate(ctx))
+}
