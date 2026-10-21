@@ -95,6 +95,7 @@ var Table = map[string]*Decl{
 	"merge":          declMerge,
 	"normalise_list": declNormaliseList,
 	"now":            declNow,
+	"now_ms":         declNowMs,
 	"reduce":         declReduce,
 }
 

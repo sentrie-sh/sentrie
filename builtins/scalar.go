@@ -120,7 +120,7 @@ var (
 
 	declNow = &Decl{
 		Name:        "now",
-		Description: "Returns the policy execution start time as epoch milliseconds.",
+		Description: "Returns the policy execution start time as Unix seconds, the unit @sentrie/time.now() and JWT exp/nbf use.",
 		DeriveSafe:  true,
 		Sig: Sig{
 			TooFewError:  "now requires 0 arguments",
@@ -128,6 +128,18 @@ var (
 			Result:       ParamSig{Name: "result", Kinds: kindNumber},
 		},
 		Impl: implNow,
+	}
+
+	declNowMs = &Decl{
+		Name:        "now_ms",
+		Description: "Returns the policy execution start time as Unix milliseconds.",
+		DeriveSafe:  true,
+		Sig: Sig{
+			TooFewError:  "now_ms requires 0 arguments",
+			TooManyError: "now_ms requires 0 arguments",
+			Result:       ParamSig{Name: "result", Kinds: kindNumber},
+		},
+		Impl: implNowMs,
 	}
 )
 
@@ -366,7 +378,12 @@ func implNormaliseList(ctx context.Context, env Env, args ...box.Value) (box.Val
 	return box.List(result), nil
 }
 
+// implNow returns the pinned execution start in Unix seconds (#153).
 func implNow(ctx context.Context, env Env, _ ...box.Value) (box.Value, error) {
-	t := env.ExecutionStart()
-	return box.Number(float64(t.UnixMilli())), nil
+	return box.Number(float64(env.ExecutionStart().Unix())), nil
+}
+
+// implNowMs returns the pinned execution start in Unix milliseconds.
+func implNowMs(ctx context.Context, env Env, _ ...box.Value) (box.Value, error) {
+	return box.Number(float64(env.ExecutionStart().UnixMilli())), nil
 }

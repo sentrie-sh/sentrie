@@ -5,6 +5,7 @@ package builtins
 
 import (
 	"testing"
+	"time"
 
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/stretchr/testify/require"
@@ -29,6 +30,7 @@ func TestTableWellFormed(t *testing.T) {
 		"merge":          kindDict,
 		"normalise_list": kindList,
 		"now":            kindNumber,
+		"now_ms":         kindNumber,
 		"reduce":         nil,
 	}
 
@@ -135,11 +137,14 @@ func TestGoldenBehavior(t *testing.T) {
 		require.ErrorContains(t, err, "second argument is not a dict")
 	})
 
-	t.Run("now milliseconds", func(t *testing.T) {
-		fixed := &testEnv{startTime: env.ExecutionStart()}
+	t.Run("now seconds and now_ms milliseconds", func(t *testing.T) {
+		fixed := &testEnv{startTime: time.Unix(1_700_000_000, 123_000_000)}
 		v, err := Table["now"].Impl(ctx, fixed)
 		require.NoError(t, err)
-		require.Equal(t, float64(fixed.ExecutionStart().UnixMilli()), v.Any())
+		require.Equal(t, float64(1_700_000_000), v.Any())
+		v, err = Table["now_ms"].Impl(ctx, fixed)
+		require.NoError(t, err)
+		require.Equal(t, float64(1_700_000_000_123), v.Any())
 	})
 
 	t.Run("distinct undefined errors", func(t *testing.T) {
