@@ -83,7 +83,7 @@ func useDenied(grant *capabilities.Capabilities, use *ast.UseStatement) (string,
 	if isLocalUse(use) && !grant.AllowsLocalModules() {
 		from := use.RelativeFrom
 		if from == "" {
-			from = "@" + joinLibFrom(use.LibFrom)
+			from = "@" + strings.Join(use.LibFrom, "/")
 		}
 		return fmt.Sprintf("local module %q", from), true
 	}
@@ -95,8 +95,4 @@ func isLocalUse(use *ast.UseStatement) bool {
 		return true
 	}
 	return len(use.LibFrom) > 0 && use.LibFrom[0] == "local"
-}
-
-func joinLibFrom(parts []string) string {
-	return strings.Join(parts, "/")
 }
