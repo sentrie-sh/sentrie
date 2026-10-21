@@ -4,8 +4,15 @@
 /**
  * JWT module provides JSON Web Token decoding and verification utilities.
  * This module only decodes and verifies tokens; it does NOT create/generate tokens.
+ *
+ * Keys: HS* algorithms take a shared secret string. RS* and ES* take a public key as a PEM block
+ * ("PUBLIC KEY", "RSA PUBLIC KEY" or "CERTIFICATE") or a JWK (object or JSON string). The key's
+ * form must match the algorithm's family, which blocks algorithm-confusion forgeries.
  */
 declare module "@sentrie/jwt" {
+  /** A public JWK (RFC 7517): RSA with n and e, or EC with crv, x and y. */
+  export type JWK = Record<string, any>;
+
   /**
    * Time-claim validation settings for decode() and verify().
    */
@@ -24,28 +31,30 @@ declare module "@sentrie/jwt" {
    * The exp and nbf claims are validated against the evaluation's execution start time
    * (the same Unix-seconds clock as `@sentrie/time.now()`) unless `options.checkTime` is false.
    * @param token - The JWT token string to decode
-   * @param secret - Optional secret for signature verification; the header's alg picks the algorithm
+   * @param key - Optional secret or public key for signature verification; the header's alg picks the algorithm
    * @param options - Optional time-claim settings
    * @returns The decoded payload as an object
    * @throws Error if the token is malformed, the signature is invalid, the algorithm is "none" or unsupported,
-   * the token is expired or not yet valid, or the secret or options are invalid
-   * @remarks Supported algorithms: HS256, HS384, HS512
+   * the token is expired or not yet valid, or the key or options are invalid
+   * @remarks Supported algorithms: HS256, HS384, HS512, RS256, RS384, RS512, ES256, ES384, ES512
    */
-  export function decode(token: string, secret?: string | null, options?: VerifyOptions): Record<string, any>;
+  export function decode(token: string, key?: string | JWK | null, options?: VerifyOptions): Record<string, any>;
 
   /**
    * Verifies a JWT token's signature and its exp and nbf claims.
    * The token's alg header must equal `algorithm`. Time claims are checked against the
    * execution start time unless `options.checkTime` is false.
    * @param token - The JWT token string to verify
-   * @param secret - The secret used for signature verification; must be a non-empty string
-   * @param algorithm - Optional algorithm name (default: "HS256"). Supported: HS256, HS384, HS512
+   * @param key - A non-empty shared secret for HS*, or a PEM or JWK public key for RS* and ES*
+   * @param algorithm - Optional algorithm name (default: "HS256"). Supported: HS256, HS384, HS512, RS256, RS384,
+   * RS512, ES256, ES384, ES512
    * @param options - Optional time-claim settings
    * @returns true if the token is correctly signed and currently valid; false for a malformed, mismatched,
    * badly signed, expired or not-yet-valid token
-   * @throws Error if algorithm is "none" or unsupported, the secret or options are invalid, or on a wrong argument count
+   * @throws Error if algorithm is "none" or unsupported, the key does not suit the algorithm (RSA keys need at least
+   * 2048 bits), the options are invalid, or on a wrong argument count
    */
-  export function verify(token: string, secret: string, algorithm?: string, options?: VerifyOptions): boolean;
+  export function verify(token: string, key: string | JWK, algorithm?: string, options?: VerifyOptions): boolean;
 
   /**
    * Extracts the payload from a JWT token without verification.
