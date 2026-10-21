@@ -65,14 +65,16 @@ policy pol {
 }
 
 // With deterministic_js, Date.now inside module code reads the same pinned
-// clock as the now() builtin, and Math.random is reproducible per execution
-// and function.
+// execution clock as @sentrie/time.now (milliseconds against seconds, so the
+// check does not depend on the now() builtin's unit), and Math.random is
+// reproducible per execution and function.
 func (s *RuntimeTestSuite) TestExecRuleDeterministicJavaScriptShims() {
 	ctx := s.T().Context()
 	src := `namespace com/ex
 policy pol {
-  use { now, random } from @sentrie/js as js
-  rule ok = { yield now() == js.now() and js.random() == js.random() }
+  use { now, random, floor } from @sentrie/js as js
+  use { now } from @sentrie/time as clock
+  rule ok = { yield js.floor(js.now() / 1000) == clock.now() and js.random() == js.random() }
   export decision of ok
 }`
 	idx := s.mustBuildDeriveIndex(ctx, deriveTestProgram{name: "det.sentrie", src: src})
