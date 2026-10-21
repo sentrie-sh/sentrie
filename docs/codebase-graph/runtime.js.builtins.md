@@ -16,6 +16,7 @@ Fourteen Go-implemented modules, plus the TypeScript `js` module, exposed to Jav
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `runtime.js.builtins` | `IMPORTS` | `ext.dop251.goja` | Every function is a `func(goja.FunctionCall) goja.Value` set on a VM object. |
+| `runtime.js.builtins` | `IMPORTS` | `ext.binaek.perch` | `regex` keeps its process-global compiled-pattern cache in a `perch` LRU of `regexCacheEntries` (1024) entries. |
 | `runtime.js.builtins` | `LAYERED_ON` | [[constants]] | `ExecutionStartTimeUnixKey` is read by `time.now()` to pin the clock. |
 | [[runtime.executor]] | `MUTATES` | `runtime.js.builtins` | Registers each provider by name at executor construction. |
 | [[runtime.js.registry]] | `CALLS` | `runtime.js.builtins` | Go providers short-circuit compilation entirely in `programFor`. |
@@ -51,6 +52,7 @@ Fourteen Go-implemented modules, plus the TypeScript `js` module, exposed to Jav
   - **Predicates answer `false` for garbage.** `net.isPrivate("junk")` and `net.isPublic("junk")` are both `false`, so a negated predicate (`!isPrivate(ip)`) is `true` for unparseable input. Positive checks are the fail-closed form.
   - **`uuid` and the `time` fallback are non-deterministic**, which is why module calls are forbidden inside derives (see [[runtime.eval_call]]) - a derive must be reproducible within an execution.
   - **The `time.now()` fallback is silent.** If the execution-start global is missing, JavaScript quietly gets wall-clock time and diverges from what the evaluator's own `now()` reports, with no signal.
+  - **The `regex` pattern cache is process-global and bounded.** Every VM shares one `perch` LRU of `regexCacheEntries` (1024) compiled patterns; the least recently used is evicted and recompiled on next use, and compile errors are not cached. It was an unbounded map until [#210](https://github.com/sentrie-sh/sentrie/issues/210), so request-derived patterns grew it forever under `serve`. Pattern length is not limited; RE2 compile cost is linear in it.
   - **`regex.replace` replaces the first match only; `regex.replaceAll` replaces every match.** Until [#209](https://github.com/sentrie-sh/sentrie/issues/209) both called `ReplaceAllString`. The regexp package has no first-match replace, so `replaceFirst` in `builtin_regex.go` expands one match with `ExpandString`, keeping `$1`-style references identical between the two.
   - **`net` deliberately has no I/O.** It is CIDR arithmetic over `net.ParseCIDR`, not a network client. Preserving that is what keeps the sandbox claim honest.
   - **Argument counts are checked exactly**, so an extra argument is an error rather than being ignored - stricter than JavaScript convention and a likely source of surprise for module authors.
