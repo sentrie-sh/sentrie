@@ -19,7 +19,7 @@ The top-level driver: it owns the index, the JS registry, and the two caches, an
 | `runtime.executor` | `CALLS` | [[runtime.exec_ctx]] | Creates the per-run context and injects facts, lets, and module bindings. |
 | `runtime.executor` | `CALLS` | [[runtime.eval]] | Evaluates fact defaults, the `when` gate, the body, the `default` clause, and attachments. |
 | `runtime.executor` | `CALLS` | [[runtime.decision]] | Wraps the final value via `DecisionOf`. |
-| `runtime.executor` | `CALLS` | [[runtime.modules]] | Builds `ModuleBinding` values wrapping pooled `JSInstance` VMs. |
+| `runtime.executor` | `CALLS` | [[runtime.modules]] | Loads one `jsModule` (pooled `JSInstance` VMs) per module path and builds a per-`use` `ModuleBinding` over it. |
 | `runtime.executor` | `CALLS` | [[runtime.js]] | `NewRegistry`, `RegisterGoBuiltin`, `PrepareUse`, `NewAliasRuntime`, `SetupStdLib`, `Require`. |
 | `runtime.executor` | `MUTATES` | `ext.binaek.perch` | Populates the module-binding and call-memoization caches. |
 | `runtime.executor` | `IMPORTS` | `ext.jackc.puddle` | One VM pool per module binding, `MaxSize: 10`. |
@@ -61,10 +61,10 @@ The top-level driver: it owns the index, the JS registry, and the two caches, an
   - **Side Effects:** Trace nodes.
   - **Exceptions:** Propagated from the gate, default, or body.
 
-- **Signature:** `(*executorImpl).bindUses(ctx, ec, p) -> error` / `getModuleBinding(ctx, use, ms)` / `jsBindingConstructor(ctx, use, ms)`
-  - **Behavior:** Resolves each `use` to a module spec relative to the policy file's directory, gets or creates a cached binding backed by a warmed `puddle` pool, and binds it under the policy's alias. The constructor builds a per-alias VM, loads the module, and restricts the exports map to the requested identifiers (or takes all when none are named).
+- **Signature:** `(*executorImpl).bindUses(ctx, ec, p) -> error` / `getModuleBinding(ctx, use, ms) -> (*ModuleBinding, error)` / `getModule(ctx, ms) -> (*jsModule, error)` / `loadJSInstance(ctx, ms) -> (*JSInstance, error)`
+  - **Behavior:** Resolves each `use` to a module spec relative to the policy file's directory and binds it under the policy's alias. `getModule` loads the module into a warmed `puddle` pool keyed by **module path alone**; `loadJSInstance` is the pool constructor and builds a VM carrying the module's whole exports object. `getModuleBinding` then checks this `use`'s named exports against the module and returns a per-`use` `ModuleBinding` holding the alias and the requested names. The export projection is applied per binding at call time, so two `use`s of one module never see each other's restriction ([#102](https://github.com/sentrie-sh/sentrie/issues/102)).
   - **Side Effects:** Compiles and executes JavaScript at bind time; populates the module cache.
-  - **Exceptions:** Module resolution failures; `module %s missing required export %q`; pool warm-up failures.
+  - **Exceptions:** Module resolution failures; `module %s missing required export %q` (per `use`, at bind time); pool warm-up failures.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Long-lived and shared. Caches and VM pools outlive individual executions and are reused across concurrent calls.
@@ -72,8 +72,7 @@ The top-level driver: it owns the index, the JS registry, and the two caches, an
 - **Dependencies Risk:**
   - **Panic recovery in `ExecPolicy` holds the mutex and joins errors**, including the panicking rule's name in the message, so concurrent rule failures are not lost or raced.
   - **`ExecPolicy` output order is nondeterministic.** It ranges over the `RuleExports` map and appends as goroutines finish, so callers must not rely on ordering.
-  - **Module bindings are never actually cached** ([sentrie-sh/sentrie#191](https://github.com/sentrie-sh/sentrie/issues/191)). `getModuleBinding` passes `ttl = -1`, which `perch` treats as "do not cache": concurrent loads of the same key are deduplicated, then the entry is dropped. Every `ExecRule` therefore builds a new `puddle` pool and warms a VM per `use`, and the old pool is never closed.
-  - **Module bindings are keyed by module path alone.** The perch key is `ms.KeyOrPath()`, but the export restriction comes from the *first* `use` statement to populate that key. Two policies importing different named exports from the same module share one binding, so the second can observe a narrower exports map than it asked for.
+  - **Module bindings are never actually cached** ([sentrie-sh/sentrie#191](https://github.com/sentrie-sh/sentrie/issues/191)). `getModuleBinding` passes `ttl = -1`, which `perch` treats as "do not cache": concurrent loads of the same key are deduplicated, then the entry is dropped. Every `ExecRule` therefore builds a new `puddle` pool and warms a VM per distinct module path it uses, and the old pool is never closed.
   - **`defer done()` inside the attachment loop** accumulates trace closures until `execRule` returns rather than closing each span promptly; the same pattern appears in `evaluateRuleOutcome`.
   - **The `when` gate treats `Unknown` as "not true".** A guard that evaluates to `Unknown` silently takes the default branch rather than propagating uncertainty into the body.
   - **`NewExecutor`'s error return is vestigial**, so a caller's error handling gives false assurance while the real failure mode is a nil-pack panic.
