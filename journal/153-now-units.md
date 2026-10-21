@@ -15,3 +15,10 @@
 - Not changed, reported instead: `@sentrie/js` exports `now = Date.now`, a third `now` that is wall-clock milliseconds and not pinned.
 - The user docs for builtins live in the separate `website` repo (`src/content/docs/reference/functions.md`) and need the same unit change.
 - _Model: claude-opus-5-5_
+
+### 2026-10-21 22:33 - Review fixes for PR #204
+- Memoized clock reads crossing executions: fixed on `139-1-jwt-claims` (memo key includes the execution start for clock-dependent callees; the list already names `now_ms`). Nothing to change here. A `now_ms()!60` test can only run here after the restack brings that fix up.
+- Per-decision clock: `ExecPolicy` and rule imports start a fresh `ExecRule` with a fresh `createdAt`, so "every `now` in an evaluation is the same instant" was false across exports and imports. A real fix threads the root start time through `runtime/executor.go` (`ExecPolicy`, `ExecRule`) and `runtime/imports.go`. `executor.go` is owned by other open branches, so the fix is not contained; per the dispatch I filed nothing and described it in the PR Review notes. Corrected the claims: `time.d.ts`, `builtins` and `runtime.js.builtins` now say "one rule execution", and `builtins` has a gotcha for it.
+- Loud release note: the PR description now opens with a release-note block that spells out the fail-open case (`now() - issued_at_ms < 300000` always passes). There is no changelog in the repo to carry it. A validate-time warning for `now()` near millisecond-sized literals is left to the maintainer.
+- Signing refused the commit, so these changes are left uncommitted.
+- _Model: claude-opus-5-5_
