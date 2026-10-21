@@ -18,7 +18,7 @@ Everything required to run TypeScript and JavaScript inside the policy engine: m
 | `runtime.js` | `IMPORTS` | `ext.dop251.goja` | The JavaScript interpreter; every value crossing the boundary is a `goja.Value`. |
 | `runtime.js` | `IMPORTS` | `ext.evanw.esbuild` | Transpiles TypeScript to CommonJS JavaScript before compilation. |
 | `runtime.js` | `LAYERED_ON` | [[pack]] | `PackFile.Permissions` gates which environment variables the sandbox may see. |
-| `runtime.js` | `LAYERED_ON` | [[constants]] | `APPNAME` builds the `@sentrie/*` builtin namespace; `ExecutionStartTimeUnixKey` pins time. |
+| `runtime.js` | `LAYERED_ON` | [[constants]] | `APPNAME` builds the `@sentrie/*` builtin namespace. |
 | [[runtime.modules]] | `DEPENDS_ON` | [[runtime.js]] | The runtime loads a fresh `AliasRuntime` per module call and calls into module exports. |
 | [[runtime.executor]] | `CALLS` | [[runtime.js.registry]] | Registers every Go builtin and the TypeScript builtin at executor construction. |
 
