@@ -326,6 +326,11 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 }
 
 func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, namespace, policy, rule string) (*Decision, DecisionAttachments, *trace.Node, error) {
+	// Rule entry: a rule reached through another rule, or one ExecPolicy
+	// starts after the deadline, does not begin evaluating (#225).
+	if err := ctx.Err(); err != nil {
+		return nil, nil, nil, err
+	}
 	thePolicy, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
 		return nil, nil, nil, err
