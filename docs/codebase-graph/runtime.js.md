@@ -39,10 +39,15 @@ Everything required to run TypeScript and JavaScript inside the policy engine: m
   - **Side Effects:** Sets VM globals.
   - **Exceptions:** Propagated from the env installer.
 
-- **Signature:** `TranspileTS(module *ModuleSpec, source string) -> (TranspileResult, error)` / `WrapAsIIFE(js string) -> string`
-  - **Behavior:** esbuild transpilation and the module factory wrapper. See [[runtime.js.tscompile]].
+- **Signature:** `TranspileTS(module *ModuleSpec, source string) -> (TranspileResult, error)`
+  - **Behavior:** esbuild transpilation to the module factory expression with an inline source map. See [[runtime.js.tscompile]].
   - **Side Effects:** None.
-  - **Exceptions:** `esbuild: %v` on the first transform error.
+  - **Exceptions:** Every esbuild error as a `*SourceError` positioned in the original source.
+
+- **Signature:** `SourceError{File, Line, Column, Message, Err}`
+  - **Behavior:** A module load failure positioned in the original source, formatted `file:line:col: message`; `Unwrap` returns the underlying esbuild or goja error. `File` is `ModuleSpec.SourceName()`, for example `@local/lib/helpers.ts`.
+  - **Side Effects:** None.
+  - **Exceptions:** None.
 
 - **Signature:** `Builtin<Name>Go` - the Go module providers
   - **Behavior:** Sixteen `ModuleProvider` values (`uuid`, `crypto`, `time`, `encoding`, `collection`, `jwt`, `regex`, `net`, `hash`, `url`, `string`, `json`, `semver`, `math`, plus base64 and the TypeScript `js` module) that fabricate a `module.exports` object directly in the VM. See [[runtime.js.builtins]].
@@ -51,7 +56,7 @@ Everything required to run TypeScript and JavaScript inside the policy engine: m
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** The `Registry` is shared and long-lived, caching compiled programs. Each `AliasRuntime` owns exactly one VM with its own module-exports cache. VMs are pooled by [[runtime.modules]].
-- **Performance/Scale Notes:** Transpilation and compilation happen **once per module** behind a `sync.Once`; execution reuses the compiled `goja.Program`. VM creation is the expensive part, which is why VMs are pooled rather than created per call. goja is an interpreter - it does not JIT - so hot loops in JavaScript are markedly slower than the equivalent Go builtin.
+- **Performance/Scale Notes:** A successful transpile and compile happens **once per module** and the `goja.Program` is reused; a failure is not kept past an edit of the source (see [[runtime.js.registry]]). goja reads each program's inline source map, so runtime exception stacks name the `.ts` file and original line with no frame rewriting. VM creation is the expensive part, which is why VMs are pooled rather than created per call. goja is an interpreter - it does not JIT - so hot loops in JavaScript are markedly slower than the equivalent Go builtin.
 - **Dependencies Risk:**
   - **The sandbox is defined by omission, not by policy.** goja provides no filesystem, network, or process access by default, and this package adds none - the `net` builtin is pure CIDR arithmetic with no sockets. The boundary therefore holds only as long as no future builtin introduces real I/O. There is no allowlist enforcing that.
   - **Environment access is the one deliberate hole**, gated per-key by pack permissions. A nil permissions block exposes nothing, which is the correct default.
