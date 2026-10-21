@@ -13,7 +13,13 @@ import (
 )
 
 func testModuleBindingWithExports(rt *goja.Runtime, exports map[string]goja.Value) ModuleBinding {
-	instance := &JSInstance{rt: rt, exports: exports}
+	obj := rt.NewObject()
+	for name, v := range exports {
+		if err := obj.Set(name, v); err != nil {
+			panic(err)
+		}
+	}
+	instance := newJSInstance(rt, obj)
 	pool, err := puddle.NewPool(&puddle.Config[*JSInstance]{
 		Constructor: func(ctx context.Context) (*JSInstance, error) {
 			return instance, nil
@@ -27,8 +33,8 @@ func testModuleBindingWithExports(rt *goja.Runtime, exports map[string]goja.Valu
 		panic(err)
 	}
 	return ModuleBinding{
-		Alias:        "mod",
-		instancePool: pool,
+		Alias:  "mod",
+		module: &jsModule{key: "mod", pool: pool},
 	}
 }
 
@@ -87,7 +93,7 @@ func (s *RuntimeTestSuite) TestModuleBindingCallSuccessAndErrorPaths() {
 		MaxSize: 1,
 	})
 	s.Require().NoError(err)
-	failBinding := ModuleBinding{Alias: "mod", instancePool: failPool}
+	failBinding := ModuleBinding{Alias: "mod", module: &jsModule{key: "mod", pool: failPool}}
 	_, err = failBinding.Call(ctx, ec, "fn")
 	s.Require().Error(err)
 	s.Require().Equal("pool construct failed", err.Error())
