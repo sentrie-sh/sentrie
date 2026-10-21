@@ -119,6 +119,10 @@ func verifyJWTSignature(tok *jwtToken, alg string, key goja.Value) error {
 	return nil
 }
 
+// jwtMaxLeeway caps options.leeway at one day, so a value given in the wrong
+// unit (milliseconds) is an error rather than a silent disable of exp/nbf.
+const jwtMaxLeeway = 24 * 60 * 60
+
 // jwtOptions are the time-validation settings decode and verify accept.
 type jwtOptions struct {
 	// leeway is the clock skew, in seconds, tolerated on exp and nbf.
@@ -140,8 +144,8 @@ func parseJWTOptions(v goja.Value) (jwtOptions, error) {
 		switch name {
 		case "leeway":
 			leeway, ok := jsNumber(val)
-			if !ok || math.IsNaN(leeway) || math.IsInf(leeway, 0) || leeway < 0 {
-				return opts, errors.New("options.leeway must be a non-negative number of seconds")
+			if !ok || math.IsNaN(leeway) || leeway < 0 || leeway > jwtMaxLeeway {
+				return opts, fmt.Errorf("options.leeway must be between 0 and %d seconds", int64(jwtMaxLeeway))
 			}
 			opts.leeway = leeway
 		case "checkTime":
@@ -225,10 +229,16 @@ var BuiltinJwtGo = func(vm *goja.Runtime) (*goja.Object, error) {
 	}
 
 	_ = ex.Set("decode", func(call goja.FunctionCall) goja.Value {
-		if len(call.Arguments) < 1 || len(call.Arguments) > 3 {
-			return throwErr(vm, errors.New("decode requires 1 to 3 arguments"))
+		if len(call.Arguments) < 2 || len(call.Arguments) > 3 {
+			return throwErr(vm, errors.New("decode requires 2 or 3 arguments; use getPayload or getHeader to read a token without verifying it"))
 		}
 		key := call.Argument(1)
+		if isAbsent(key) {
+			// An unset secret (a missing env var, an absent fact) arrives as
+			// undefined. Skipping verification for it would hand back
+			// attacker-chosen claims, so a missing key is an error.
+			return throwErr(vm, errors.New("decode requires a key, got "+key.String()+"; use getPayload or getHeader to read a token without verifying it"))
+		}
 		opts, err := parseJWTOptions(call.Argument(2))
 		if err != nil {
 			return throwErr(vm, err)
