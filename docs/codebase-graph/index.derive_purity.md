@@ -55,7 +55,7 @@ The static gate that makes `derive` genuinely pure. It walks every derive body w
   - **Exceptions:** One of the four messages above.
 
 - **Signature:** `checkDeriveCall(idx, d, c, scope, seen) -> error`
-  - **Behavior:** Rejects field-access callees outright (that is the TypeScript module call form). Resolves slash-qualified callees of **three or more segments** through the snapshots then the global registry, enforcing visibility. Otherwise accepts in-scope callables, visible short-name derives, and derive-safe builtins (`Decl.PermittedInDerive`). A builtin marked `Nondeterministic` (such as `now`) is refused with its own message, mirroring the runtime guard in [[runtime.eval_call]]. Everything else fails.
+  - **Behavior:** Rejects field-access callees outright (that is the TypeScript module call form). Resolves slash-qualified callees of **three or more segments** through the snapshots then the global registry, enforcing visibility. Otherwise accepts in-scope callables, visible short-name derives, and derive-safe builtins (`Decl.PermittedInDerive`). A builtin marked `Nondeterministic` (such as `now`) is refused with its own message, mirroring the runtime guard in [[runtime.eval_call]]. Because the runtime never resolves a call through a local binding, a builtin that is not `PermittedInDerive` is refused even when a parameter or `let` of the same name is in scope (unless a `DefineShort` derive has the name). Everything else fails.
   - **Side Effects:** None.
   - **Exceptions:** `TypeScript module calls are not permitted inside a derive`; `unknown derive %q`; visibility errors; `builtin %q is nondeterministic and is not permitted inside a derive`; `call is not permitted inside a derive (only visible derives and pure builtins)`.
 

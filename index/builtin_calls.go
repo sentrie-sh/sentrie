@@ -16,11 +16,15 @@ import (
 type builtinCallVisitor func(decl *builtins.Decl, call *ast.CallExpression)
 
 // forEachBuiltinCall visits every call to a native builtin in the index: fact
-// defaults, policy lets, rule default, when and body slots, export attachments
-// and derive bodies. It resolves callees with the same scoping as
-// checkBuiltinCalls (local binding > derive > builtin, matching the runtime's
-// getTarget), so a name shadowed by a let, a parameter or a derive is not
-// reported as a builtin.
+// defaults, policy lets, rule default, when and body slots, export attachments,
+// `import decision ... with x as <expr>` clauses, and derive bodies.
+//
+// Callees resolve exactly as the runtime's getTarget resolves them: a visible
+// derive first, then a builtin. getTarget never resolves a call through a
+// local binding, so a let or lambda parameter named like a builtin does not
+// shadow it: `(now) => { yield now() }` still calls the builtin `now` at
+// runtime and is reported here. (checkBuiltinCalls' isBuiltinCall still
+// treats locals as shadowing, which is a separate, pre-existing difference.)
 func (idx *Index) forEachBuiltinCall(ctx context.Context, visit builtinCallVisitor) error {
 	cancelled := func() error {
 		if ctx.Err() != nil {
@@ -81,7 +85,7 @@ func (k *kindCheckCtx) visitBuiltinCalls(e ast.Expression, visit builtinCallVisi
 
 	switch n := e.(type) {
 	case *ast.CallExpression:
-		if decl, ok := k.isBuiltinCall(n); ok {
+		if decl, ok := k.runtimeBuiltinCallee(n); ok {
 			visit(decl, n)
 		}
 		k.visitBuiltinCalls(n.Callee, visit)
@@ -102,10 +106,35 @@ func (k *kindCheckCtx) visitBuiltinCalls(e ast.Expression, visit builtinCallVisi
 		child.visitBuiltinCalls(n.Yield, visit)
 	case *ast.LambdaExpression:
 		k.pushLambdaScope(n).visitBuiltinCalls(n.Body, visit)
+	case *ast.ImportClause:
+		// forEachDeriveExprChild has no case for import clauses (they cannot
+		// appear in a derive), so walk the `with` values here.
+		for _, w := range n.Withs {
+			k.visitBuiltinCalls(w, visit)
+		}
+	case *ast.WithClause:
+		k.visitBuiltinCalls(n.Expr, visit)
 	default:
 		_ = forEachDeriveExprChild(e, func(child ast.Expression) error {
 			k.visitBuiltinCalls(child, visit)
 			return nil
 		})
 	}
+}
+
+// runtimeBuiltinCallee reports the builtin a call dispatches to at runtime,
+// mirroring getTarget in runtime/eval_call.go: an identifier callee that does
+// not name a visible derive (DefineShort inside a derive, otherwise the
+// policy's then the namespace's derives) resolves to builtins.Table. Local
+// bindings are deliberately not consulted, because getTarget does not.
+func (k *kindCheckCtx) runtimeBuiltinCallee(c *ast.CallExpression) (*builtins.Decl, bool) {
+	id, ok := c.Callee.(*ast.Identifier)
+	if !ok {
+		return nil, false
+	}
+	if k.lookupDerive(id.Value) != nil {
+		return nil, false
+	}
+	decl, ok := builtins.Table[id.Value]
+	return decl, ok
 }

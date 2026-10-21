@@ -539,3 +539,25 @@ policy pol {
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	require.NoError(s.T(), idx.Validate(ctx))
 }
+
+// The runtime never resolves a call through a local binding, so a parameter
+// named now does not shadow the builtin for calls: now() still dispatches to
+// the builtin and the runtime guard refuses it. The static check matches.
+func (s *IndexTestSuite) TestDerivePurityRejectsNondeterministicCallThroughShadowingParam() {
+	ctx := s.T().Context()
+	idx := CreateIndex()
+	src := `namespace com/ex
+derive pick = (now: number): number => { yield now() }
+policy pol {
+  let _s = 0
+  rule r = { yield pick(1) == 1 }
+  export decision of r
+}
+`
+	prog, err := parser.NewParserFromString(src, "shadowcall.sentrie").ParseProgram(ctx)
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
+	err = idx.Validate(ctx)
+	require.Error(s.T(), err)
+	require.Contains(s.T(), err.Error(), `builtin "now" is nondeterministic and is not permitted inside a derive`)
+}
