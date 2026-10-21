@@ -41,7 +41,7 @@ The top-level driver: it owns the index, the JS registry, the loaded modules, an
   - **Exceptions:** None.
 
 - **Signature:** `(*executorImpl).Close() -> error`
-  - **Behavior:** Drops every loaded module (each `jsModule` is closed, so a later `acquire` fails) and rejects later module loads with `ErrExecutorClosed`. Idempotent. A module call already running keeps its own VM and finishes normally. `exec`, `validate` and `serve` in [[cmd]] call it.
+  - **Behavior:** Drops every loaded module and rejects later module loads with `ErrExecutorClosed`. Modules are collected under `modulesMu` and closed after it is released; `jsModule.close` is a lock-free atomic flag, so a module whose export check is stuck in its own code cannot block Close or other loads. A binding made before Close fails at call time with an error matching `errors.Is(err, ErrExecutorClosed)`. Idempotent. A module call already running keeps its own VM and finishes normally. `exec`, `validate` and `serve` in [[cmd]] call it.
   - **Side Effects:** Clears the module map.
   - **Exceptions:** Always nil today.
 

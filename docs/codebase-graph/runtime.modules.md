@@ -26,7 +26,7 @@ The foreign-function boundary between Sentrie and embedded JavaScript. A `jsModu
 
 ## 3. Interface Contracts & Public Surface
 
-- **Signature:** `JSInstance` - `{ rt *goja.Runtime, exports *goja.Object, keys map[string]struct{} }` / `jsModule` - `{ key string, load instanceLoader, slots chan struct{}, probeMu sync.Mutex, probe *JSInstance }` / `ModuleBinding` - `{ CanonicalKey, Alias string, exports []string, module *jsModule }`
+- **Signature:** `JSInstance` - `{ rt *goja.Runtime, exports *goja.Object, keys map[string]struct{} }` / `jsModule` - `{ key string, load instanceLoader, slots chan struct{}, probeMu sync.Mutex, probe *JSInstance, closed atomic.Bool }` / `ModuleBinding` - `{ CanonicalKey, Alias string, exports []string, module *jsModule }`
   - **Behavior:** A `JSInstance` carries the module's **whole** exports object plus its own enumerable keys captured at load; it holds no restriction. The restriction lives on the `ModuleBinding`: a `use` that names exports reaches only those names, and a `use` that names none reaches only the module's own enumerable exports. `CanonicalKey` is the resolved module path, the cache key of the shared `jsModule`.
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.

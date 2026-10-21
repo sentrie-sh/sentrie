@@ -24,3 +24,10 @@
 - Graph: `runtime.executor` no longer claims "never actually cached" and documents the map, singleflight, `Close`, and the no-eviction gotcha; `runtime`, `cmd` and `ext.dependencies` updated. This corrects the node text #140 (`140-perch-entry-count-caches`) wrote about bindings never being retained.
 - Fixed a stale catalog line in `overview.md` on `105-isolate-pooled-vms` and restacked this branch onto it.
 - _Model: claude-opus-5-5_
+
+### 22:06 - Review fixes (PR #205)
+- `Close` held `modulesMu` while calling `jsModule.close()`, which took `probeMu`. `checkExports` holds `probeMu` while running module getters with no interrupt (bounded on `142-eval-limits`), so one getter that never returns froze `Close` and every `getModule`. Now `Close` collects the modules under the lock and closes them after releasing it, and `jsModule.closed` is an `atomic.Bool`: `close` and `acquire` never take `probeMu`, and `checkExports` checks the flag before locking. `close` no longer nils the probe; the probe is freed with the module.
+- Errors after `Close` now wrap `ErrExecutorClosed` (`closedErr`), matching the `Executor.Close` doc; `errModuleClosed` is removed.
+- Not applied: the reviewer called the lazy `e.modules == nil` initialisation dead. It is reachable for zero-value executors built by hand in tests (the `modulesClosed` check returns first only after `Close`). Kept it, with a comment saying so.
+- New tests: `TestCloseDuringLoad` (both Close-while-loading branches), `TestWaiterRetriesAfterLoaderIsCancelled` (the `isContextError` retry, two loads), `TestCloseDoesNotWaitForABusyExportCheck` (`probeMu` held while Close returns), `TestCallOnABindingAfterCloseIsExecutorClosed`. These are adapted from the reviewer's scratch tests and pass under `-race -count=3`.
+- _Model: claude-opus-5-5_
