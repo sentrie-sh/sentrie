@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/dop251/goja"
 	"github.com/sentrie-sh/sentrie/constants"
@@ -46,6 +47,17 @@ type Registry struct {
 
 	modsMu sync.RWMutex
 	mods   map[string]*ModuleSpec
+
+	// resolved memoises successful LoadRequire resolutions, keyed by
+	// fromDir and spec. Every call loads its module into a fresh VM,
+	// so without it each call would redo the path containment and symlink
+	// checks on disk. A module's content is already fixed after its first
+	// compile, so a resolution is equally stable.
+	resolved sync.Map // string -> *ModuleSpec
+
+	// compiled counts goja programs compiled by programFor. Each module compiles
+	// once per registry; every fresh VM reuses the cached Program.
+	compiled atomic.Int64
 }
 
 func NewRegistry(packRoot string) *Registry {
@@ -253,6 +265,11 @@ func (r *Registry) PrepareUse(localFrom string, libFrom []string, fileDir string
 	return mod, err
 }
 
+// CompiledPrograms reports how many module programs this registry has compiled.
+func (r *Registry) CompiledPrograms() int64 {
+	return r.compiled.Load()
+}
+
 // programFor ensures the module is compiled to a goja.Program returning a factory function.
 func (r *Registry) programFor(m *ModuleSpec) (*goja.Program, error) {
 	if m.BuiltInProvider != nil {
@@ -298,6 +315,7 @@ func (r *Registry) programFor(m *ModuleSpec) (*goja.Program, error) {
 			return
 		}
 		m.Program = pgm
+		r.compiled.Add(1)
 	})
 	return m.Program, m.err
 }
@@ -311,6 +329,20 @@ func (m *ModuleSpec) KeyOrPath() string {
 
 // LoadRequire resolves & compiles a dependency of another module by spec.
 func (r *Registry) LoadRequire(fromDir, spec string) (*ModuleSpec, error) {
+	memoKey := fromDir + "\x00" + spec
+	if m, ok := r.resolved.Load(memoKey); ok {
+		mod := m.(*ModuleSpec)
+		_, err := r.programFor(mod)
+		return mod, err
+	}
+	mod, err := r.loadRequire(fromDir, spec)
+	if err == nil {
+		r.resolved.Store(memoKey, mod)
+	}
+	return mod, err
+}
+
+func (r *Registry) loadRequire(fromDir, spec string) (*ModuleSpec, error) {
 	key, path, dir, builtin, err := r.resolveRequire(fromDir, spec)
 	if err != nil {
 		return nil, err

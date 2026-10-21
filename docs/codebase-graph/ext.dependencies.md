@@ -9,7 +9,7 @@ tags: third-party, dependencies, supply-chain, manifest
 # Node: ext.dependencies (Third-Party Dependency Manifest)
 
 ## 1. Architectural Role & Intent
-The complete external surface of the Sentrie module, declared in `go.mod` against **Go 1.25.0**. The dependency set is deliberately small for a language runtime - 13 direct requirements - and every one of them sits at a specific architectural seam. This node exists so an agent can reason about which third-party failure affects which subsystem without re-reading the manifest.
+The complete external surface of the Sentrie module, declared in `go.mod` against **Go 1.25.0**. The dependency set is deliberately small for a language runtime - 12 direct requirements - and every one of them sits at a specific architectural seam. This node exists so an agent can reason about which third-party failure affects which subsystem without re-reading the manifest.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -18,7 +18,6 @@ The complete external surface of the Sentrie module, declared in `go.mod` agains
 | [[runtime.js]] | `IMPORTS` | `ext.dop251.goja` | `github.com/dop251/goja` - the JavaScript interpreter. |
 | [[runtime.js.tscompile]] | `IMPORTS` | `ext.evanw.esbuild` | `github.com/evanw/esbuild` - TypeScript to CommonJS transpilation. |
 | [[runtime.executor]] | `IMPORTS` | `ext.binaek.perch` | `github.com/binaek/perch` - TTL cache backing module bindings and call memoization. |
-| [[runtime.modules]] | `IMPORTS` | `ext.jackc.puddle` | `github.com/jackc/puddle/v2` - the JavaScript VM pool. |
 | [[cmd]] | `IMPORTS` | `ext.binaek.cling` | `github.com/binaek/cling` - CLI command, flag, and argument framework. |
 | [[loader]] | `IMPORTS` | `ext.xeipuuv.gojsonschema` | `github.com/xeipuuv/gojsonschema` - pack manifest schema validation. |
 | [[loader]] | `IMPORTS` | `ext.pelletier.go-toml` | `github.com/pelletier/go-toml/v2` - pack manifest parsing and encoding. |
@@ -33,7 +32,7 @@ The complete external surface of the Sentrie module, declared in `go.mod` agains
 - **Signature:** Direct requirements - the load-bearing set
   - **`goja`** (pinned to a commit, not a tag) - a pure-Go ECMAScript 5.1 interpreter with some later features. **No JIT**, so JavaScript is markedly slower than Go. Supplies the `Interrupt` mechanism that makes policy JavaScript cancellable.
   - **`esbuild` v0.25.11** - used only through `api.Transform`, never the bundler. Targets ES2019.
-  - **`perch` v0.1.0 / `puddle` v2.2.2** - caching and pooling. `perch` is a pre-1.0 dependency owned by the same author as this project. Since v0.1.0, `perch.New` takes an entry count and allocates entries lazily; v0.0.x took a byte budget and `Reserve()` preallocated every slot.
+  - **`perch` v0.1.0** - caching. `perch` is a pre-1.0 dependency owned by the same author as this project. Since v0.1.0, `perch.New` takes an entry count and allocates entries lazily; v0.0.x took a byte budget and `Reserve()` preallocated every slot.
   - **`cling` v0.3.8** - likewise a pre-1.0 dependency by the same author; the entire CLI surface rests on it.
   - **`gojsonschema` v1.2.0** - JSON Schema validation of the pack manifest.
   - **`go-toml/v2` v2.2.4** - manifest read and write.
@@ -54,4 +53,4 @@ The complete external surface of the Sentrie module, declared in `go.mod` agains
   - **Two regex engines are in play.** Go's RE2-based `regexp` serves the policy language's `matches` operator and the string constraints; `regexp2` serves JavaScript. RE2 has no backtracking (and so no catastrophic backtracking), while `regexp2` does - meaning a regex in module JavaScript can hang in ways the same pattern in a policy cannot. The goja `Interrupt` watchdog is the only mitigation.
   - **`fatih/structs` v1.1.0 is effectively unmaintained**, with no release in years. It sits at the value boundary in [[box]].
   - **`xeipuuv/gojsonschema` is likewise dormant** and implements an older JSON Schema draft; manifest validation is bounded by whatever draft it supports.
-  - **The dependency count is a security asset.** A policy engine benefits from a small supply chain, and 13 direct dependencies with no web framework, no ORM, and no logging library beyond the standard `slog` is a deliberate and defensible position worth preserving.
+  - **The dependency count is a security asset.** A policy engine benefits from a small supply chain, and 12 direct dependencies with no web framework, no ORM, and no logging library beyond the standard `slog` is a deliberate and defensible position worth preserving.

@@ -27,7 +27,7 @@ The only functional endpoint in the service and the whole reason the API exists:
   - **Request:** `DecisionRequest` - `{"facts": {"name": <any>, ...}}`. Query parameters are collected into a `runConfig` map.
   - **Response:** `DecisionResponse` - `{"decisions": [ExecutorOutput...]}` on success; RFC 9457 Problem Details on evaluation failure.
   - **Behavior:** Sets CORS headers, validates the path, short-circuits `OPTIONS`, rejects non-POST, resolves segments, parses query parameters, decodes the body, evaluates, and encodes.
-  - **Side Effects:** Full policy evaluation - JavaScript execution, memoization cache writes, VM pool acquisition.
+  - **Side Effects:** Full policy evaluation - JavaScript execution, memoization cache writes, fresh JS VMs per module call.
   - **Exceptions:** Problem Details for missing path (400), unresolvable path (404), wrong method (405), unparseable JSON (400), and evaluation failures (400 for invalid invocation, 500 otherwise).
 
 ## 4. Operational Context & Gotchas

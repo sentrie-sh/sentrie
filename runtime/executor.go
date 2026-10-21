@@ -10,11 +10,12 @@ import (
 	"path/filepath"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/binaek/perch"
-	"github.com/jackc/puddle/v2"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
+	"github.com/sentrie-sh/sentrie/constants"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/js"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
@@ -64,7 +65,7 @@ type Executor interface {
 type executorImpl struct {
 	index              *index.Index
 	jsRegistry         *js.Registry
-	moduleBindingPerch *perch.Perch[*jsModule] // module path -> loaded module and its VM pool
+	moduleBindingPerch *perch.Perch[*jsModule] // module path -> loaded module
 	callMemoizePerch   *perch.Perch[any]
 }
 
@@ -305,9 +306,13 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 // loadJSInstance builds a fresh VM and loads the module into it. The instance
 // carries the module's whole exports object; restriction to the names a `use`
 // asked for happens per binding (see ModuleBinding.lookupExport).
-func (e *executorImpl) loadJSInstance(ctx context.Context, ms *js.ModuleSpec) (*JSInstance, error) {
-	// Per-module VM with require cache
+func (e *executorImpl) loadJSInstance(ctx context.Context, ms *js.ModuleSpec, start time.Time) (*JSInstance, error) {
+	// Fresh VM with its own require cache; the compiled program is reused.
 	ar := js.NewAliasRuntime(e.jsRegistry, ms.Dir)
+	// Pin time before any module code runs, so top-level code and calls agree.
+	if err := ar.VM.Set(constants.ExecutionStartTimeUnixKey, start.UTC().Unix()); err != nil {
+		return nil, err
+	}
 	if err := ar.SetupStdLib(ctx, e.index.Pack); err != nil {
 		return nil, err
 	}
@@ -344,14 +349,14 @@ func (e *executorImpl) bindUses(ctx context.Context, ec *ExecutionContext, p *in
 }
 
 // getModuleBinding returns the binding for one `use` statement. The loaded
-// module (its VM pool) is shared by every `use` of the same path; the export
+// module is shared by every `use` of the same path; the export
 // projection and the "missing required export" check belong to this `use` alone.
 func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStatement, ms *js.ModuleSpec) (*ModuleBinding, error) {
 	module, err := e.getModule(ctx, ms)
 	if err != nil {
 		return nil, err
 	}
-	if err := module.checkExports(ctx, use.Modules); err != nil {
+	if err := module.checkExports(use.Modules); err != nil {
 		return nil, err
 	}
 	return &ModuleBinding{
@@ -362,31 +367,15 @@ func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStateme
 	}, nil
 }
 
-// getModule loads the module at ms into a warmed VM pool, keyed by path alone.
+// getModule returns the shared module for ms, keyed by path alone. Loading it
+// compiles the program once and runs it in a probe VM; calls then run in fresh
+// VMs (see jsModule).
 func (e *executorImpl) getModule(ctx context.Context, ms *js.ModuleSpec) (*jsModule, error) {
-	constructor := func(ctx context.Context) (*JSInstance, error) {
-		return e.loadJSInstance(ctx, ms)
+	load := func(ctx context.Context, start time.Time) (*JSInstance, error) {
+		return e.loadJSInstance(ctx, ms, start)
 	}
-
-	destructor := func(res *JSInstance) {
-		// clear the interrupt
-		res.rt.ClearInterrupt()
-	}
-
 	perchLoader := func(ctx context.Context, key string) (*jsModule, error) {
-		jsInstancePool, err := puddle.NewPool(&puddle.Config[*JSInstance]{
-			Constructor: constructor,
-			Destructor:  destructor,
-			MaxSize:     10,
-		})
-		if err != nil {
-			return nil, err
-		}
-		// warm up the pool - this will create a couple of VMs - and also verify that we can actually acquire them
-		if err := jsInstancePool.CreateResource(ctx); err != nil {
-			return nil, err
-		}
-		return &jsModule{key: key, pool: jsInstancePool}, nil
+		return newJSModule(ctx, key, load)
 	}
 
 	module, _, err := e.moduleBindingPerch.Get(ctx, ms.KeyOrPath(), -1, perchLoader)
