@@ -4,9 +4,9 @@
 package js
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -17,27 +17,26 @@ import (
 	"github.com/sentrie-sh/sentrie/constants"
 )
 
-type SourceMap struct {
-	Version  int
-	Sources  []string
-	Mappings string
-	Names    []string
-}
-
 type ModuleSpec struct {
 	Key      string        // canonical key used by registry (e.g., @sentra/math or /abs/path/to/mod.ts)
 	Path     string        // filesystem path if not builtin
 	Dir      string        // base dir for resolving relative requires
 	Builtin  bool          // this is a builtin module
 	SourceTS string        // original TS/JS (for builtins or disk)
-	Program  *goja.Program // compiled IIFE function returning factory (require,module,exports)=>void
+	Program  *goja.Program // compiled IIFE function returning factory (require,module,exports)=>void; read only after programFor succeeds
 
-	TranspiledCode string
-	TranspiledMap  *SourceMap
+	TranspiledCode string // the factory expression, with its inline source map; read only after programFor succeeds
 
 	BuiltInProvider ModuleProvider // if non-nil, this module is native Go-backed
-	once            sync.Once
-	err             error
+
+	// Compilation state. Only a success is kept for the process lifetime. A
+	// failure is remembered with the source text that produced it, so an
+	// unchanged broken module is not re-transpiled on every call, while an
+	// edited one is compiled again.
+	compiled     atomic.Pointer[goja.Program]
+	compileMu    sync.Mutex // serializes compile attempts; guards the fields below and Program, TranspiledCode
+	failedSource string
+	failedErr    error
 }
 
 type Registry struct {
@@ -56,9 +55,9 @@ type Registry struct {
 	// compile, so a resolution is equally stable.
 	resolved sync.Map // string -> *ModuleSpec
 
-	// compiled counts goja programs compiled by programFor. Each module compiles
-	// once per registry; every fresh VM reuses the cached Program.
-	compiled atomic.Int64
+	// programsCompiled counts goja programs compiled by programFor. Each module
+	// compiles once per registry; every fresh VM reuses the cached Program.
+	programsCompiled atomic.Int64
 
 	grant *capabilities.Capabilities // nil grants every module; see SetCapabilities
 }
@@ -273,57 +272,86 @@ func (r *Registry) PrepareUse(localFrom string, libFrom []string, fileDir string
 
 // CompiledPrograms reports how many module programs this registry has compiled.
 func (r *Registry) CompiledPrograms() int64 {
-	return r.compiled.Load()
+	return r.programsCompiled.Load()
 }
 
 // programFor ensures the module is compiled to a goja.Program returning a factory function.
+// A successful compile is reused for the process lifetime. A failure is returned again
+// only while the source is unchanged; a read error is never cached.
 func (r *Registry) programFor(m *ModuleSpec) (*goja.Program, error) {
 	if m.BuiltInProvider != nil {
 		// No JS program to run - Go provider will fabricate exports.
 		return nil, nil
 	}
-	m.once.Do(func() {
-		var raw string
-		if m.Builtin {
-			raw = m.SourceTS
-			if raw == "" {
-				m.err = fmt.Errorf("builtin not found: %s", m.Key)
-				return
-			}
-		} else {
-			b, err := os.ReadFile(m.Path)
-			if err != nil {
-				m.err = err
-				return
-			}
-			raw = string(b)
-		}
+	if pgm := m.compiled.Load(); pgm != nil {
+		return pgm, nil
+	}
 
-		out, err := TranspileTS(m, raw)
-		if err != nil {
-			m.err = err
-			return
-		}
-		m.TranspiledCode = out.Code
-		tm := SourceMap{}
-		err = json.Unmarshal([]byte(out.Map), &tm)
-		if err != nil {
-			m.err = err
-			return
-		}
-		m.TranspiledMap = &tm
-		wrapped := WrapAsIIFE(out.Code)
+	m.compileMu.Lock()
+	defer m.compileMu.Unlock()
+	if pgm := m.compiled.Load(); pgm != nil {
+		return pgm, nil
+	}
 
-		// Compile once to a reusable Program (returns function)
-		pgm, cerr := goja.Compile(m.KeyOrPath(), wrapped, true)
-		if cerr != nil {
-			m.err = cerr
-			return
+	raw, err := m.readSource()
+	if err != nil {
+		return nil, err
+	}
+	if m.failedErr != nil && raw == m.failedSource {
+		return nil, m.failedErr
+	}
+
+	code, pgm, err := compileModule(m, raw)
+	if err != nil {
+		m.failedSource, m.failedErr = raw, err
+		return nil, err
+	}
+	r.programsCompiled.Add(1)
+	m.failedSource, m.failedErr = "", nil
+	m.TranspiledCode = code
+	m.Program = pgm
+	m.compiled.Store(pgm) // publishes Program and TranspiledCode to lock-free readers
+	return pgm, nil
+}
+
+func (m *ModuleSpec) readSource() (string, error) {
+	if m.Builtin {
+		if m.SourceTS == "" {
+			return "", fmt.Errorf("builtin not found: %s", m.Key)
 		}
-		m.Program = pgm
-		r.compiled.Add(1)
-	})
-	return m.Program, m.err
+		return m.SourceTS, nil
+	}
+	b, err := os.ReadFile(m.Path)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+// compileModule transpiles and compiles a module's source. goja reads the
+// inline source map, so stack frames and compile errors name the original file.
+func compileModule(m *ModuleSpec, raw string) (string, *goja.Program, error) {
+	out, err := TranspileTS(m, raw)
+	if err != nil {
+		return "", nil, err
+	}
+	name := m.SourceName()
+	pgm, err := goja.Compile(name, out.Code, true)
+	if err != nil {
+		return "", nil, compileError(name, err)
+	}
+	return out.Code, pgm, nil
+}
+
+// SourceName is the name errors and stack frames report for the module: the
+// pack-relative key with the resolved file extension (for example
+// @local/lib/helpers.ts), or the key itself for a builtin.
+func (m *ModuleSpec) SourceName() string {
+	key := m.KeyOrPath()
+	if m.Builtin || m.Path == "" || m.Key == "" {
+		return key
+	}
+	return path.Join(path.Dir(key), filepath.Base(m.Path))
 }
 
 func (m *ModuleSpec) KeyOrPath() string {
