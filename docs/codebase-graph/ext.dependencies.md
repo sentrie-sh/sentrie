@@ -42,7 +42,7 @@ The complete external surface of the Sentrie module, declared in `go.mod` agains
 
 - **Signature:** Notable indirect requirements
   - **`dlclark/regexp2`** - goja's regex engine, which is .NET-flavoured rather than RE2; relevant because policy `matches` and the `regexp` constraint use Go's `regexp` while JavaScript regexes go through this. The two dialects differ.
-  - **`go-sourcemap/sourcemap`** - pulled in by goja; note Sentrie parses source maps but never uses them (see [[runtime.js.tscompile]]).
+  - **`go-sourcemap/sourcemap`** - pulled in by goja; goja uses it to map positions through the inline source map [[runtime.js.tscompile]] emits; Sentrie does not import it directly.
   - **`olekukonko/tablewriter`** - the `exec --output table` renderer.
 
 ## 4. Operational Context & Gotchas
