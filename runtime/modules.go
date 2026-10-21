@@ -217,5 +217,5 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 		return nil, err
 	}
 
-	return jsToSentrie(instance.rt, out)
+	return jsToSentrie(ctx, instance.rt, out)
 }

@@ -23,3 +23,13 @@
 - Docs: the TypeScript module guide lives in `sentrie-sh/website` (`src/content/docs/reference/typescript_modules/index.md`), which this repo cannot change. The table is in the `jsToSentrie` doc comment and the `runtime.modules` node; the proposed website section is in the PR Review notes for the parent to file there.
 - Tests: `TestJSToSentrieConversionTable`, `TestInternalGlobalsAreNotReachableFromModules` (`typeof` both is `undefined`; overwriting `__executionStartTimeUnix` does not move `now()`). `make test` and `make lint` pass.
 - _Model: claude-opus-5-5_
+
+### 22:08 - Review fixes (PR #215)
+- Critical finding: `obj.Get`, `obj.Keys()` and `Get("length")` run module code (getters, Proxy traps, index accessors) from Go with no goja try frame, so a JS throw, the deadline interrupt or a stack overflow during conversion panicked out of `ModuleBinding.Call`. Only `ExecPolicy` recovers panics, so `exec` crashed and `serve` dropped the connection.
+- Fix: `jsToSentrie` runs under a `recover` that turns `*goja.Exception`, `*goja.InterruptedError` and `*goja.StackOverflowError` (checked by `isGojaThrow`) into `converting <path>: ...` errors and re-panics anything else. The converter tracks the current path for that message. `convertMap` drops its own `vm.Try`, which could not catch uncatchable values anyway.
+- A returned `Proxy` (class `Object`, export type `goja.Proxy`) is now an error rather than `{}` through `structs.Map`.
+- Arrays: `maxReturnedListLen = 1 << 20` is checked before walking, and preallocation is capped at 1,024 instead of trusting `length` (`new Array(2**32-1)` asked Go for about 64 GiB). `jsToSentrie` now takes `ctx` and checks it every 1,024 converted values, because walking plain values never re-enters the VM and so is never interrupted.
+- Trivial suggestions applied: the `Number` wrapper returns `ToNumber().Export()` directly, and the accepted kinds slice is hoisted to `acceptedGoKinds`.
+- To stay contained for the parallel `224-weakmap-unsupported` branch, the functions touched are `jsToSentrie`, `jsConverter`, `step`, `isGojaThrow`, `convert`, `convertMap` and `exportGoValue`.
+- Tests: the table gains a throwing getter, a Proxy, a `2**32-1` sparse array, a throwing index accessor and a throwing value inside a Map. `TestConversionStopsAtTheDeadline` checks that a looping getter on a returned object fails with `DeadlineExceeded` within 100ms rather than panicking.
+- _Model: claude-opus-5-5_
