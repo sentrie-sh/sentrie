@@ -22,3 +22,7 @@
 - Loud release note: the PR description now opens with a release-note block that spells out the fail-open case (`now() - issued_at_ms < 300000` always passes). There is no changelog in the repo to carry it. A validate-time warning for `now()` near millisecond-sized literals is left to the maintainer.
 - Signing refused the commit, so these changes are left uncommitted.
 - _Model: claude-opus-5-5_
+
+### 2026-10-21 22:33 - Review fixes committed
+- Signing worked again on a later attempt, so the review fixes above are committed as 292061b ("Address review findings"). That supersedes the "left uncommitted" lines in the entry above. It is one commit rather than one per finding, because splitting it now would need an amend, and the review-fix rules forbid that.
+- _Model: claude-opus-5-5_
