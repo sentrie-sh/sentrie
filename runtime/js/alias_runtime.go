@@ -112,8 +112,8 @@ func (ar *AliasRuntime) Require(ctx context.Context, fromDir, spec string) (*goj
 	stop := ar.installInterrupt(ctx)
 	defer stop()
 
-	// Install per-module bound require and clean it up afterwards
-	prevRequire := ar.VM.Get("__require")
+	// Per-module bound require, passed straight to the factory. It is never a
+	// global, so module code cannot reach or replace it (#154).
 	childRequire := func(call goja.FunctionCall) goja.Value {
 		childSpec := call.Argument(0).String()
 		ex, err := ar.Require(ctx, mod.Dir, childSpec)
@@ -123,8 +123,6 @@ func (ar *AliasRuntime) Require(ctx context.Context, fromDir, spec string) (*goj
 		}
 		return ex // return as goja.Value
 	}
-	_ = ar.VM.Set("__require", childRequire)
-	defer func() { _ = ar.VM.Set("__require", prevRequire) }()
 
 	fnVal, err := ar.VM.RunProgram(pgm)
 	if err != nil {
@@ -142,7 +140,7 @@ func (ar *AliasRuntime) Require(ctx context.Context, fromDir, spec string) (*goj
 	}
 
 	// Execute the module factory: (require, module, exports) => { ... }
-	if _, err = fn(fnVal, ar.VM.Get("__require"), moduleObj, exportsObj); err != nil {
+	if _, err = fn(fnVal, ar.VM.ToValue(childRequire), moduleObj, exportsObj); err != nil {
 		ar.cacheMu.Lock()
 		delete(ar.cache, key)
 		ar.cacheMu.Unlock()

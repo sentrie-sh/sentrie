@@ -16,7 +16,6 @@ import (
 	"github.com/binaek/perch"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
-	"github.com/sentrie-sh/sentrie/constants"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/js"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
@@ -354,9 +353,7 @@ func (e *executorImpl) loadJSInstance(ctx context.Context, ms *js.ModuleSpec, st
 	// Fresh VM with its own require cache; the compiled program is reused.
 	ar := js.NewAliasRuntime(e.jsRegistry, ms.Dir)
 	// Pin time before any module code runs, so top-level code and calls agree.
-	if err := ar.VM.Set(constants.ExecutionStartTimeUnixKey, start.UTC().Unix()); err != nil {
-		return nil, err
-	}
+	js.SetExecutionStart(ar.VM, start)
 	if err := ar.SetupStdLib(ctx, e.index.Pack); err != nil {
 		return nil, err
 	}

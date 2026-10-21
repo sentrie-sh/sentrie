@@ -7,13 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"slices"
 	"sync"
 	"time"
 
 	"github.com/dop251/goja"
-	"github.com/fatih/structs"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/runtime/js"
 )
@@ -213,34 +211,5 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 		return nil, err
 	}
 
-	if goja.IsUndefined(out) {
-		return box.ToBoundaryAny(box.Undefined()), nil
-	}
-	if goja.IsNull(out) {
-		return nil, nil
-	}
-
-	acceptedReturnTypes := []reflect.Kind{
-		reflect.Map,
-		reflect.Slice,
-		reflect.Array,
-		reflect.String,
-		reflect.Int64,
-		reflect.Float64,
-		reflect.Bool,
-		reflect.Struct,
-	}
-
-	if !slices.Contains(acceptedReturnTypes, out.ExportType().Kind()) {
-		return nil, fmt.Errorf("unexpected return type %s", out.ExportType().String())
-	}
-
-	result := out.Export()
-
-	// if it's a struct, convert to a map[string]any
-	if structs.IsStruct(result) {
-		result = structs.Map(result)
-	}
-
-	return result, nil
+	return jsToSentrie(instance.rt, out)
 }
