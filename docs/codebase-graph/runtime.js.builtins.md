@@ -31,7 +31,7 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
 - **Signature:** The module set
   - **Behavior:**
     - **Pure computation** - `math`, `string`, `collection` (the largest at ~450 lines), `semver`, `json`, `encoding`, `base64`, `url`.
-    - **Cryptographic** - `hash`, `crypto`, `jwt` (verification and claim extraction).
+    - **Cryptographic** - `hash`, `crypto`, `jwt` (HMAC, RSA and ECDSA verification, `exp`/`nbf` checks and claim extraction).
     - **Pattern and network** - `regex`, `net` (CIDR containment, intersection, validity - **arithmetic only, no sockets**).
     - **Non-deterministic** - `uuid` (fresh values per call), `time` (clock-dependent).
     - **TypeScript** - the `js` module, embedded from `ts_src/_sentrie_js.ts` rather than Go-implemented.
@@ -39,9 +39,9 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
   - **Exceptions:** Every failure is a JavaScript exception raised through `throwErr(vm, err)` in `builtin_errors.go`, which panics with `vm.NewGoError(err)`. The conventions, applied to every module: argument-count and argument-type errors throw; predicates (`isValid`, the `net` `is*` checks, `cidrIsValid`, `jwt.verify`) answer `false` for input they cannot parse; a genuine "no result" is `null` (`net.parseIP`, `regex.find`, `semver.prerelease`/`metadata`); every other failure throws.
 
 - **Signature:** `jwt.decode(token, secret?, options?) -> object` / `jwt.verify(token, secret, algorithm = "HS256", options?) -> boolean`
-  - **Behavior:** HS256/384/512 only. The signature is compared with `hmac.Equal` on decoded bytes. `exp` and `nbf` are validated by default against the execution start (Unix seconds, via `executionStartUnix` in `builtin_clock.go`), RFC 7519 style: valid while `now < exp + leeway` and once `now + leeway >= nbf`. `options` is `{ leeway?: seconds, checkTime?: boolean }`; `checkTime: false` is the inspect-only opt-out, and unknown keys throw. `verify` requires the header `alg` to equal `algorithm`. `getPayload`/`getHeader` never verify.
+  - **Behavior:** HS256/384/512 with a shared secret; RS256/384/512 (PKCS #1 v1.5, keys of at least 2048 bits) and ES256/384/512 (fixed-width R || S) with a public key given as PEM (`PUBLIC KEY`, `RSA PUBLIC KEY`, `CERTIFICATE`) or a JWK object or JSON string, parsed in `builtin_jwt_keys.go` with the standard library only. `parseJWTKey` requires the key's form to match the algorithm's family, so a PEM or JWK is never accepted as an HMAC secret (the algorithm-confusion forgery). HMAC signatures are compared with `hmac.Equal` on decoded bytes. `exp` and `nbf` are validated by default against the execution start (Unix seconds, via `executionStartUnix` in `builtin_clock.go`), RFC 7519 style: valid while `now < exp + leeway` and once `now + leeway >= nbf`. `options` is `{ leeway?: seconds, checkTime?: boolean }`; `checkTime: false` is the inspect-only opt-out, and unknown keys throw. `verify` requires the header `alg` to equal `algorithm`. `getPayload`/`getHeader` never verify.
   - **Side Effects:** None.
-  - **Exceptions:** `decode` throws on any failure, including expiry. `verify` answers `false` for a malformed, mismatched, badly signed, expired or not-yet-valid token, and throws for `none` or an unsupported `algorithm`, an empty or non-string secret, bad options, or a VM with no execution start time.
+  - **Exceptions:** `decode` throws on any failure, including expiry. `verify` answers `false` for a malformed, mismatched, badly signed, expired or not-yet-valid token, and throws for `none` or an unsupported `algorithm`, a key that does not suit the algorithm, bad options, or a VM with no execution start time.
 
 - **Signature:** `time.now() -> number`
   - **Behavior:** Reads the `ExecutionStartTimeUnixKey` VM global and returns it, so JavaScript observes the **same pinned instant** as the policy evaluator. Falls back to `time.Now().Unix()` when the global is absent.
