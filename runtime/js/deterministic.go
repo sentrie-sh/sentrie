@@ -7,15 +7,41 @@ import (
 	"fmt"
 	"hash/fnv"
 	"math/rand/v2"
+	"runtime"
+	"sync"
 	"time"
+	"weak"
 
 	"github.com/dop251/goja"
 	"github.com/sentrie-sh/sentrie/constants"
 )
 
-// determinismStateKey names the non-writable, non-enumerable global that
-// carries a VM's shim state. JavaScript sees an opaque object with no fields.
-const determinismStateKey = "__sentrie_determinism"
+// determinismByVM holds each shimmed VM's state on the Go side, so nothing of
+// the runtime's internals is visible on the JavaScript global scope. Keys are
+// weak, and a cleanup removes the entry when the VM is collected; the values
+// never reference the VM, so the map does not keep pooled VMs alive.
+var (
+	determinismMu   sync.Mutex
+	determinismByVM = map[weak.Pointer[goja.Runtime]]*determinism{}
+)
+
+func registerDeterminism(vm *goja.Runtime, st *determinism) {
+	key := weak.Make(vm)
+	determinismMu.Lock()
+	determinismByVM[key] = st
+	determinismMu.Unlock()
+	runtime.AddCleanup(vm, func(k weak.Pointer[goja.Runtime]) {
+		determinismMu.Lock()
+		delete(determinismByVM, k)
+		determinismMu.Unlock()
+	}, key)
+}
+
+func determinismFor(vm *goja.Runtime) *determinism {
+	determinismMu.Lock()
+	defer determinismMu.Unlock()
+	return determinismByVM[weak.Make(vm)]
+}
 
 // determinism is the per-VM state behind the deterministic shims. A pooled VM
 // runs one call at a time, so BeginCall and the shims never race.
@@ -29,23 +55,33 @@ type determinism struct {
 // zero-argument `new Date()` or `Date()` read the pinned execution clock.
 // Date.parse, Date.UTC, the prototype and every other constructor form are the
 // real Date's.
+//
+// The real Date and Reflect.construct are captured when the wrapper is
+// installed, before any pack code runs, and the wrapper looks up nothing on
+// shared prototypes afterwards (no bind, apply, slice or concat), so pack code
+// that replaces those intrinsics cannot get hold of the real Date. Forwarding
+// new.target keeps `class X extends Date` instances instanceof X.
 const deterministicDateSource = `(function (nowFn) {
+  "use strict";
   var RealDate = Date;
+  var construct = Reflect.construct;
+  var defineProperty = Object.defineProperty;
   function SentrieDate() {
-    if (!new.target) {
-      return new RealDate(nowFn()).toString();
+    if (new.target === undefined) {
+      return construct(RealDate, [nowFn()]).toString();
     }
     if (arguments.length === 0) {
-      return new RealDate(nowFn());
+      return construct(RealDate, [nowFn()], new.target);
     }
-    var args = Array.prototype.slice.call(arguments);
-    return new (Function.prototype.bind.apply(RealDate, [null].concat(args)))();
+    return construct(RealDate, arguments, new.target);
   }
-  SentrieDate.prototype = RealDate.prototype;
+  defineProperty(SentrieDate, "name", { value: "Date", configurable: true });
+  defineProperty(SentrieDate, "length", { value: RealDate.length, configurable: true });
+  defineProperty(SentrieDate, "prototype", { value: RealDate.prototype });
   SentrieDate.now = nowFn;
   SentrieDate.parse = RealDate.parse;
   SentrieDate.UTC = RealDate.UTC;
-  Object.defineProperty(RealDate.prototype, "constructor", { value: SentrieDate, writable: true, configurable: true });
+  defineProperty(RealDate.prototype, "constructor", { value: SentrieDate, writable: true, configurable: true });
   globalThis.Date = SentrieDate;
 })`
 
@@ -82,7 +118,8 @@ func installDeterministicShims(vm *goja.Runtime) error {
 		return fmt.Errorf("deterministic shims: %w", err)
 	}
 
-	return vm.GlobalObject().DefineDataProperty(determinismStateKey, vm.ToValue(st), goja.FLAG_FALSE, goja.FLAG_FALSE, goja.FLAG_FALSE)
+	registerDeterminism(vm, st)
+	return nil
 }
 
 // BeginCall prepares a pooled VM for one call of moduleKey's export fn in the
@@ -93,12 +130,8 @@ func BeginCall(vm *goja.Runtime, start time.Time, moduleKey, fn string) error {
 	if err := vm.Set(constants.ExecutionStartTimeUnixKey, start.UTC().Unix()); err != nil {
 		return err
 	}
-	v := vm.Get(determinismStateKey)
-	if v == nil {
-		return nil
-	}
-	st, ok := v.Export().(*determinism)
-	if !ok {
+	st := determinismFor(vm)
+	if st == nil {
 		return nil
 	}
 	st.nowMs = start.UnixMilli()

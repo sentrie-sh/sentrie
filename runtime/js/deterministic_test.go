@@ -4,6 +4,8 @@
 package js
 
 import (
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/dop251/goja"
@@ -42,7 +44,7 @@ func (s *JSTestSuite) TestBeginCallPinsTimeNowWithoutShims() {
 	// The real globals are untouched.
 	got := s.run(ar.VM, "Date.now()").ToInteger()
 	s.InDelta(time.Now().UnixMilli(), got, float64(time.Minute.Milliseconds()))
-	s.Nil(ar.VM.Get(determinismStateKey))
+	s.Nil(determinismFor(ar.VM))
 }
 
 func (s *JSTestSuite) TestDeterministicDate() {
@@ -114,10 +116,65 @@ func (s *JSTestSuite) TestDeterministicShimsReachModuleExports() {
 	s.Equal(r1.ToFloat(), r2.ToFloat())
 }
 
-func (s *JSTestSuite) TestDeterministicStateCannotBeReplacedFromJS() {
+// The shim state lives on the Go side: nothing is added to the global scope.
+func (s *JSTestSuite) TestDeterministicShimsAddNoGlobals() {
+	plain := s.deterministicRuntime(false)
+	shimmed := s.deterministicRuntime(true)
+	keys := `Object.getOwnPropertyNames(globalThis).concat(Object.getOwnPropertySymbols(globalThis).map(String)).sort().join(",")`
+	s.Equal(s.run(plain.VM, keys).String(), s.run(shimmed.VM, keys).String())
+	s.NotNil(determinismFor(shimmed.VM))
+}
+
+// Pack code that replaces shared intrinsics before constructing a Date must
+// not be able to reach the real Date (and with it the wall clock).
+func (s *JSTestSuite) TestDeterministicDateResistsIntrinsicTampering() {
 	ar := s.deterministicRuntime(true)
-	s.run(ar.VM, `try { globalThis.__sentrie_determinism = 1 } catch (e) {}; try { delete globalThis.__sentrie_determinism } catch (e) {}`)
+	s.Require().NoError(BeginCall(ar.VM, deterministicStart, "@local/leak.ts", "probe"))
+	got := s.run(ar.VM, `(function () {
+  var leaked = [];
+  var bind = Function.prototype.bind, apply = Function.prototype.apply;
+  var concat = Array.prototype.concat, slice = Array.prototype.slice;
+  Function.prototype.bind = function () { leaked.push(this); return bind.apply(this, arguments); };
+  Function.prototype.apply = function (t, a) { leaked.push(this); return apply.call(this, t, a); };
+  Array.prototype.concat = function () { leaked.push(this); return concat.apply(this, arguments); };
+  Array.prototype.slice = function () { leaked.push(this); return slice.apply(this, arguments); };
+  var Real = Reflect.construct;
+  Reflect.construct = function (target) { leaked.push(target); return Real.apply(null, arguments); };
+  try {
+    new Date(2020, 0, 1);
+    new Date();
+    Date();
+    new Date(0);
+  } finally {
+    Function.prototype.bind = bind; Function.prototype.apply = apply;
+    Array.prototype.concat = concat; Array.prototype.slice = slice;
+    Reflect.construct = Real;
+  }
+  var dates = leaked.filter(function (x) { return typeof x === "function" && x !== Date && /Date/.test(String(x.name)); });
+  return dates.length + ":" + (Object.getPrototypeOf(new Date()).constructor === Date);
+})()`).String()
+	s.Equal("0:true", got)
+	s.Equal(time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local).UnixMilli(), s.run(ar.VM, "new Date(2020, 0, 1).getTime()").ToInteger())
+}
+
+func (s *JSTestSuite) TestDeterministicDateKeepsSubclassesAndIdentity() {
+	ar := s.deterministicRuntime(true)
 	s.Require().NoError(BeginCall(ar.VM, deterministicStart, "@sentrie/js", "now"))
-	s.Equal(deterministicStart.UnixMilli(), s.run(ar.VM, "Date.now()").ToInteger())
-	s.False(s.run(ar.VM, `Object.keys(globalThis).includes("__sentrie_determinism")`).ToBoolean())
+	s.True(s.run(ar.VM, "class X extends Date {}; var x = new X(); x instanceof X && x instanceof Date").ToBoolean())
+	s.Equal(deterministicStart.UnixMilli(), s.run(ar.VM, "class Y extends Date {}; new Y().getTime()").ToInteger())
+	s.Equal(int64(5), s.run(ar.VM, "class Z extends Date {}; new Z(5).getTime()").ToInteger())
+	s.Equal("Date", s.run(ar.VM, "Date.name").String())
+	s.Equal(int64(7), s.run(ar.VM, "Date.length").ToInteger())
+}
+
+// Module top-level code runs when the module first loads, before any call:
+// there the shimmed clock reads 0, never the wall clock.
+func (s *JSTestSuite) TestDeterministicClockReadsZeroAtModuleLoad() {
+	ar := s.deterministicRuntime(true)
+	s.Require().NoError(os.WriteFile(filepath.Join(ar.BaseDir, "early.ts"),
+		[]byte("export const loadedAt = Date.now();\nexport const builtAt = new Date().getTime();"), 0o644))
+	exports, err := ar.Require(s.T().Context(), ar.BaseDir, "./early")
+	s.Require().NoError(err)
+	s.Equal(int64(0), exports.Get("loadedAt").ToInteger())
+	s.Equal(int64(0), exports.Get("builtAt").ToInteger())
 }
