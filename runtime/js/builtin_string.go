@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/dop251/goja"
 )
@@ -85,6 +86,12 @@ var BuiltinStringGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	return ex, nil
 }
+
+// stringMaxListLength caps the number of elements a string function reads
+// from an array argument. The length of a JS array is caller-controlled (a
+// sparse `a.length = 2**32 - 1` costs nothing in JS), so it is checked before
+// anything is allocated for it.
+const stringMaxListLength = 1 << 20
 
 // stringFormatMaxPrecision caps the precision of `%.Nf`.
 const stringFormatMaxPrecision = 20
@@ -170,7 +177,11 @@ func stringFormat(vm *goja.Runtime, layout string, args []goja.Value) string {
 			if precision < 0 {
 				precision = 6
 			}
-			b.WriteString(strconv.FormatFloat(stringFormatNumber(vm, "%f", take("%f")), 'f', precision, 64))
+			f := stringFormatNumber(vm, "%f", take("%f"))
+			if f == 0 {
+				f = 0 // drop the sign of negative zero, as %d and %v do
+			}
+			b.WriteString(strconv.FormatFloat(f, 'f', precision, 64))
 		case 'v':
 			v := take("%v")
 			switch {
@@ -184,7 +195,8 @@ func stringFormat(vm *goja.Runtime, layout string, args []goja.Value) string {
 				}
 			}
 		default:
-			stringThrow(vm, "format: unsupported verb %%%c", verb)
+			r, _ := utf8.DecodeRuneInString(layout[i:])
+			stringThrow(vm, "format: unsupported verb %%%c", r)
 		}
 	}
 
@@ -229,14 +241,18 @@ func stringListArg(vm *goja.Runtime, call goja.FunctionCall, name string, i int)
 	if !ok || obj.ClassName() != "Array" {
 		stringThrow(vm, "%s: argument %d must be an array of strings, got %s", name, i+1, stringTypeName(call.Argument(i)))
 	}
-	n := int(obj.Get("length").ToInteger())
-	out := make([]string, n)
-	for j := range n {
+	n := obj.Get("length").ToInteger()
+	if n < 0 || n > stringMaxListLength {
+		stringThrow(vm, "%s: argument %d has %d elements, more than the limit of %d", name, i+1, n, stringMaxListLength)
+	}
+	// Grow while validating, so a bad element throws before a large buffer exists.
+	out := make([]string, 0, min(n, 64))
+	for j := range int(n) {
 		el := obj.Get(strconv.Itoa(j))
 		if !goja.IsString(el) {
 			stringThrow(vm, "%s: argument %d element %d must be a string, got %s", name, i+1, j, stringTypeName(el))
 		}
-		out[j] = el.String()
+		out = append(out, el.String())
 	}
 	return out
 }
@@ -252,6 +268,11 @@ func stringTypeName(v goja.Value) string {
 		return "string"
 	case goja.IsNumber(v):
 		return "number"
+	case goja.IsBigInt(v):
+		return "bigint"
+	}
+	if _, ok := v.(*goja.Symbol); ok {
+		return "symbol"
 	}
 	if obj, ok := v.(*goja.Object); ok {
 		if obj.ClassName() == "Array" {

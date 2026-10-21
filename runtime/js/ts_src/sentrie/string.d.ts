@@ -35,6 +35,9 @@ declare module "@sentrie/string" {
   /**
    * Removes leading and trailing Unicode white space (spaces, tabs, line
    * breaks, U+00A0, U+3000 and the rest of the White_Space property).
+   * This differs from JavaScript's `String.prototype.trim`: U+0085 (NEL) is
+   * stripped, and U+FEFF (a byte-order mark) is kept, because it is not
+   * White_Space.
    * @throws Error if `str` is not a string
    */
   export function trim(str: string): string;
@@ -79,9 +82,10 @@ declare module "@sentrie/string" {
   export function split(str: string, sep: string): string[];
 
   /**
-   * Joins the elements of `parts` with `sep` between them.
-   * @throws Error if `parts` is not an array, any element is not a string, or
-   *   `sep` is not a string
+   * Joins the elements of `parts` with `sep` between them. `parts` may hold
+   * at most 1,048,576 (2^20) elements.
+   * @throws Error if `parts` is not an array, has more than 2^20 elements,
+   *   any element is not a string, or `sep` is not a string
    */
   export function join(parts: string[], sep: string): string;
 
@@ -119,8 +123,11 @@ declare module "@sentrie/string" {
    *   `String()` would render it
    * - `%%` - a literal percent sign
    *
-   * `%f` and `%.Nf` round the exact binary value to nearest, ties to even
-   * (`format("%.0f", 2.5)` is `"2"`). There are no flags or widths.
+   * `%f` and `%.Nf` round the exact binary value to nearest, ties to even, so
+   * they can differ from `Number.prototype.toFixed`: `format("%.0f", 2.5)` is
+   * `"2"` and `format("%.0f", 0.5)` is `"0"`, where `toFixed(0)` gives `"3"`
+   * and `"1"`. Negative zero prints as `0` under every numeric verb. There are
+   * no flags or widths.
    *
    * @example format("user %s has %d roles", "alice", 3) // "user alice has 3 roles"
    * @throws Error if the template is not a string, a verb is unsupported, an

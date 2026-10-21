@@ -51,6 +51,8 @@ func (s *JSTestSuite) TestStringTrim() {
 	s.Equal("a b", s.stringEval("s.trim(\"\\u3000\\u00a0 a b \\t\\n\")"))
 	s.Equal("a b \t", s.stringEval("s.trimStart(\"\\u3000 a b \\t\")"))
 	s.Equal("\u3000 a b", s.stringEval("s.trimEnd(\"\\u3000 a b \\t\\u00a0\")"))
+	// Unicode White_Space, not JS trim: NEL is stripped, a BOM is kept.
+	s.Equal("\ufeffa", s.stringEval("s.trim(\"\\u0085\\ufeffa\\u0085\")"))
 	s.stringEvalThrows(`s.trim(null)`, "trim: argument 1 must be a string, got null")
 	s.stringEvalThrows(`s.trimStart(undefined)`, "trimStart: argument 1 must be a string, got undefined")
 	s.stringEvalThrows(`s.trimEnd([])`, "trimEnd: argument 1 must be a string, got array")
@@ -87,6 +89,17 @@ func (s *JSTestSuite) TestStringJoin() {
 	s.stringEvalThrows(`s.join("abc", "")`, "join: argument 1 must be an array of strings, got string")
 	s.stringEvalThrows(`s.join(["a", 1], "")`, "join: argument 1 element 1 must be a string, got number")
 	s.stringEvalThrows(`s.join(["a"])`, "join: expected 2 argument(s), got 1")
+}
+
+func (s *JSTestSuite) TestStringJoinBoundsArrayLength() {
+	// A sparse array with a huge length costs nothing in JS; join must refuse
+	// it before allocating, not size a buffer from the length.
+	s.stringEvalThrows(`var a = []; a.length = 2**32 - 1; s.join(a, ",")`,
+		"join: argument 1 has 4294967295 elements, more than the limit of 1048576")
+	// Within the limit, a missing element throws at that element.
+	s.stringEvalThrows(`var a = []; a.length = 1048576; s.join(a, ",")`,
+		"join: argument 1 element 0 must be a string, got undefined")
+	s.Equal("ab", s.stringEval(`var a = []; a[0] = "a"; a[1] = "b"; s.join(a, "")`))
 }
 
 func (s *JSTestSuite) TestStringJoinAcceptsGoSlice() {
@@ -127,6 +140,12 @@ func (s *JSTestSuite) TestStringFormat() {
 	s.Equal("0", s.stringEval(`s.format("%d", -0)`))
 	s.Equal("ünï 😀", s.stringEval(`s.format("ünï %s", "😀")`))
 	s.Equal("plain", s.stringEval(`s.format("plain")`))
+	// Negative zero prints as 0 under every numeric verb.
+	s.Equal("0.000000 0.00 0 0", s.stringEval(`s.format("%f %.2f %d %v", -0, -0, -0, -0)`))
+	// A negative value that rounds to zero keeps its sign, as toFixed does.
+	s.Equal("-0", s.stringEval(`s.format("%.0f", -0.4)`))
+	// Literal text is copied byte for byte, so multi-byte characters survive.
+	s.Equal("héllo wörld ✓", s.stringEval(`s.format("héllo %s ✓", "wörld")`))
 }
 
 func (s *JSTestSuite) TestStringFormatErrors() {
@@ -147,6 +166,9 @@ func (s *JSTestSuite) TestStringFormatErrors() {
 		{`s.format("%.21f", 1)`, "format: precision in %.21f must be between 0 and 20"},
 		{`s.format("%v", [1])`, "format: %v expects a string, number, boolean or null, got array"},
 		{`s.format("%v", undefined)`, "format: %v expects a string, number, boolean or null, got undefined"},
+		{`s.format("%é", 1)`, "format: unsupported verb %é"},
+		{`s.format("%v", 10n)`, "format: %v expects a string, number, boolean or null, got bigint"},
+		{`s.format("%s", Symbol("x"))`, "format: %s expects a string, got symbol"},
 	}
 	for _, tc := range cases {
 		s.stringEvalThrows(tc.script, tc.want)
