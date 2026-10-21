@@ -18,7 +18,7 @@ Hosts exactly one `goja.Runtime` per `use … as alias` binding and implements C
 | `runtime.js.alias_runtime` | `IMPORTS` | `ext.dop251.goja` | Owns the `goja.Runtime`; uses `Interrupt`, `RunProgram`, `AssertFunction`. |
 | `runtime.js.alias_runtime` | `CALLS` | [[runtime.js.registry]] | `LoadRequire` and `programFor` to resolve and compile dependencies. |
 | `runtime.js.alias_runtime` | `CALLS` | [[runtime.js.stdlib]] | `SetupStdLib` installs globals before any module runs. |
-| `runtime.js.alias_runtime` | `MUTATES` | `ext.dop251.goja` | Sets the `__require` global around each factory invocation. |
+| `runtime.js.alias_runtime` | `MUTATES` | `ext.dop251.goja` | Passes a per-module `require` closure straight to each module factory; no global is set. |
 | [[runtime.modules]] | `DEPENDS_ON` | `runtime.js.alias_runtime` | Creates one instance per module call and invokes exported functions through it. |
 
 ## 3. Interface Contracts & Public Surface
@@ -50,5 +50,4 @@ Hosts exactly one `goja.Runtime` per `use … as alias` binding and implements C
 - **Dependencies Risk:**
   - **Circular dependencies see a stale exports object if the factory reassigns `module.exports`.** The placeholder cached before execution is the original `exports`; the final cache update happens after. A module that does `module.exports = {…}` and participates in a cycle hands its circular consumer the empty placeholder. This is the classic CommonJS hazard, faithfully reproduced.
   - **Go-backed providers bypass the cache check.** The provider branch is evaluated **before** the cache lookup, so every `require` of a Go builtin re-fabricates a fresh exports object and overwrites the cache entry. Two references to the same builtin within one VM therefore get **different objects**, which matters for identity comparison and for any provider that tries to hold state.
-  - **`__require` is a VM global saved and restored around each factory call.** Correct for the single-threaded nesting it is used with, but it means module code can read or overwrite `__require` and alter resolution for the remainder of the load.
   - **A failed load removes the cache entry**, so a subsequent `require` retries - which is the opposite of the registry's permanent compile-error caching, so retry semantics differ by which layer failed.

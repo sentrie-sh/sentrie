@@ -16,7 +16,6 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `runtime.js.builtins` | `IMPORTS` | `ext.dop251.goja` | Every function is a `func(goja.FunctionCall) goja.Value` set on a VM object. |
-| `runtime.js.builtins` | `LAYERED_ON` | [[constants]] | `ExecutionStartTimeUnixKey` is read by `time.now()` to pin the clock. |
 | [[runtime.executor]] | `MUTATES` | `runtime.js.builtins` | Registers each provider by name at executor construction. |
 | [[runtime.js.registry]] | `CALLS` | `runtime.js.builtins` | Go providers short-circuit compilation entirely in `programFor`. |
 | [[runtime.js.alias_runtime]] | `CALLS` | `runtime.js.builtins` | Invokes the provider on every `require` of a builtin. |
@@ -39,7 +38,7 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
   - **Exceptions:** Per-function argument-count and parse errors, returned rather than thrown.
 
 - **Signature:** `time.now() -> number`
-  - **Behavior:** Reads the `ExecutionStartTimeUnixKey` VM global and returns it, so JavaScript observes the **same pinned instant** as the policy evaluator. Falls back to `time.Now().Unix()` when the global is absent.
+  - **Behavior:** Reads the start time pinned for this VM by `js.SetExecutionStart` (a Go-side lookup keyed by a weak pointer to the VM, invisible to module code since #154) and returns it, so JavaScript observes the **same pinned instant** as the policy evaluator. Falls back to `time.Now().Unix()` when the global is absent.
   - **Side Effects:** None.
   - **Exceptions:** Argument-count error if given any argument.
 
