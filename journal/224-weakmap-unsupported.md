@@ -24,3 +24,9 @@
 - Graph: `runtime.modules` conversion list and the class-`Object` gotcha updated.
 - The TypeScript module guide is not in this repo, so its table update goes in the PR description for the docs follow-up.
 - _Model: claude-opus-5-5_
+
+### 22:05 - make test flake traced to the base branch
+- First `make test` run failed in `TestFailedModuleLoadIsRetried`: goja panicked with "context canceled" inside `jsModule.checkExports` (`runtime/modules.go`), reading an export getter on the probe VM after a cancelled load left its interrupt set. Nothing in this branch touches that path.
+- Reproduced on `154-js-boundary-values` at e379994 with this change absent: 33 panics in 300 runs of that test alone. Reported to the coordinator as a base-branch defect; it sits next to the getter-panic fix the #154 author is making.
+- Second `make test` run passes; `make lint` passes.
+- _Model: claude-opus-5-5_
