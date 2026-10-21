@@ -6,6 +6,7 @@ package capabilities
 import (
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func (s *CapabilitiesTestSuite) TestNilGrantsEverything() {
@@ -61,7 +62,7 @@ func (s *CapabilitiesTestSuite) TestUnknownNamesLoad() {
 
 func (s *CapabilitiesTestSuite) TestParseErrors() {
 	cases := map[string]string{
-		`{}`:                                       "unsupported version 0",
+		`{}`:                                       `missing "version"`,
 		`{"version": 2}`:                           "unsupported version 2",
 		`{"version": 1, "extra": true}`:            `unknown field "extra"`,
 		`{"version": 1} {}`:                        "unexpected data after the top-level object",
@@ -70,6 +71,26 @@ func (s *CapabilitiesTestSuite) TestParseErrors() {
 		`{"version": 1, "modules": ["@sentrie/"]}`: `modules: "@sentrie/" must be a full specifier`,
 		`{"version": 1, "builtins": "count"}`:      "cannot unmarshal",
 		`not json`:                                 "capabilities:",
+	}
+	for input, want := range cases {
+		_, err := Parse([]byte(input))
+		s.Require().Error(err, input)
+		s.Contains(err.Error(), want, input)
+	}
+}
+
+func (s *CapabilitiesTestSuite) TestParseErrorsNamePositionsAndShape() {
+	cases := map[string]string{
+		"":        "capabilities: empty file",
+		"  \n\t ": "capabilities: empty file",
+		"null":    "the top-level value must be an object",
+		"[1]":     "the top-level value must be an object",
+		"{\n  \"version\": 1,\n  \"builtins\": [\"a\",]\n}":       "capabilities: 3:",
+		"{\"version\": 1,\n \"builtins\": \"count\"}":             "capabilities: 2:",
+		"{\"version\": 1, \"builtins\": [],\n\"builtins\": null}": `capabilities: 2:1: duplicate field "builtins"`,
+		`{"version": 1, "Builtins": []}`:                          `unknown field "Builtins"`,
+		`{"Version": 1}`:                                          `unknown field "Version"`,
+		`{"version": 1`:                                           "1:14: unexpected end of JSON input",
 	}
 	for input, want := range cases {
 		_, err := Parse([]byte(input))
@@ -97,6 +118,10 @@ func (s *CapabilitiesTestSuite) TestLoad() {
 	s.Require().Error(err)
 	s.Contains(err.Error(), bad)
 
-	_, err = Load(filepath.Join(dir, "missing.json"))
+	missing := filepath.Join(dir, "missing.json")
+	_, err = Load(missing)
 	s.Require().Error(err)
+	s.True(strings.HasPrefix(err.Error(), missing+": capabilities: "), err.Error())
+	_, err = Load(bad)
+	s.True(strings.HasPrefix(err.Error(), bad+": capabilities: "), err.Error())
 }
