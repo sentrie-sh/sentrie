@@ -43,6 +43,20 @@ func (s *ParserTestSuite) TestParseUseStatementKeywordDefaultAliasRejected() {
 	s.Nil(stmt)
 	s.Require().Error(p.err)
 	s.Contains(p.err.Error(), `default alias "string" is a keyword; add 'as <alias>'`)
+	// The diagnostic spans `string`, not the token after the statement.
+	s.Contains(p.err.Error(), "parsing error at test.sentrie:1:28-33:")
+}
+
+// TestParseUseStatementTrailingSlashBeforeAs pins how `@sentrie/ as x` fails:
+// `as` is read as a keyword path segment, so the statement is rejected by the
+// keyword default-alias check. A future change must not let it parse as module
+// `@sentrie/as` with alias `x`.
+func (s *ParserTestSuite) TestParseUseStatementTrailingSlashBeforeAs() {
+	p := NewParserFromString("use { f } from @sentrie/ as x", "test.sentrie")
+	stmt := parseUseStatement(s.T().Context(), p)
+	s.Nil(stmt)
+	s.Require().Error(p.err)
+	s.Contains(p.err.Error(), `module @sentrie/as: default alias "as" is a keyword; add 'as <alias>'`)
 }
 
 // TestParseUseStatementKeywordsStillReservedElsewhere checks that accepting
