@@ -191,7 +191,9 @@ func TestCheckBuiltinCallExpectedCallableFallback(t *testing.T) {
 		nil,
 		rng,
 	)
-	errs := k.checkBuiltinCall(call)
+	decl, ok := k.isBuiltinCall(call)
+	require.True(t, ok)
+	errs := k.checkBuiltinCall(decl, call)
 	require.Len(t, errs, 1)
 	require.Contains(t, errs[0].Error(), "expected callable, got number")
 }
@@ -457,7 +459,9 @@ func TestBuiltinParamSigAtVariadic(t *testing.T) {
 		nil,
 		rng,
 	)
-	errs := k.checkBuiltinCall(call)
+	decl, ok := k.isBuiltinCall(call)
+	require.True(t, ok)
+	errs := k.checkBuiltinCall(decl, call)
 	require.Empty(t, errs)
 	ps, ok := builtinParamSigAt(builtins.Table["error"].Sig, 1)
 	require.True(t, ok)
