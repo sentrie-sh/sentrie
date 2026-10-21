@@ -34,7 +34,7 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
     - **Cryptographic** - `hash`, `crypto`, `jwt` (verification and claim extraction).
     - **Pattern and network** - `regex`, `net` (CIDR containment, intersection, validity - **arithmetic only, no sockets**).
     - **Non-deterministic** - `uuid` (fresh values per call), `time` (clock-dependent).
-    - **TypeScript** - the `js` module, embedded from `ts_src/_sentrie_js.ts` rather than Go-implemented.
+    - **TypeScript** - the `js` module, embedded from `ts_src/_sentrie_js.ts` rather than Go-implemented. It re-exports `Math`, `String`, `Number`, `Date`, `JSON` and `Array` helpers, but deliberately **no `now`**: it was `Date.now` (unpinned wall-clock milliseconds) until [#207](https://github.com/sentrie-sh/sentrie/issues/207) removed it, so `use { now } from @sentrie/js` now fails at bind time with "missing required export". `time.now()` is the pinned clock.
   - **Side Effects:** None escape the VM; no filesystem, network, or process access.
   - **Exceptions:** Per-function argument-count and parse errors, returned rather than thrown.
 
