@@ -8,9 +8,10 @@ Treat remote operations as something that cannot be assumed to run unattended. T
 
 Each origin operation may cost a human interruption, and a blocked one can stall a task indefinitely if nobody is at the machine. So:
 
-- Group remote operations together rather than scattering them through a task. One fetch at the start and one push at the end beats four of each spread across the work.
+- Group remote operations together rather than scattering them through a task. One fetch at the start and one push per batch of branches that are due beats four of each spread across the work.
+- Batching groups pushes that are due at the same time. It never moves a push that a workflow requires at a fixed point. The issue pickup push and draft PR ([Issue workflow](issue-workflow.md) step 7) come before implementation, even when several issues are picked up together: they share one push, made before any of them is implemented. "Push once at the end" is the misreading to avoid.
 - Never run a speculative or "just to be safe" fetch. Check whether the information is already available locally first.
-- Do the local work first (branching, edits, commits, journal entries), then reach for origin once there is a real reason to.
+- Do the local work for the step at hand first, then reach for origin once there is a real reason to. For an issue pickup, the local work is the branch, journal entry, PR description file and commit, not the implementation.
 - If a sequence genuinely needs several origin touches, say so up front so the human knows to stay available, rather than surprising them with prompts one at a time.
 
 ## Prefer `gh` for reads
