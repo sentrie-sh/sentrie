@@ -160,3 +160,75 @@ policy p {
 	s.Equal(tokens.Pos{Line: 4, Column: 3, Offset: 72}, uses[1].Span().From)
 	s.Equal(tokens.Pos{Line: 4, Column: 31, Offset: 100}, uses[1].Span().To)
 }
+
+// TestParseUseStatementQuotedAtPathRejected checks that a quoted path starting
+// with `@` is a parse error pointing at the string, with a hint to drop the
+// quotes (#217). Quoted paths are files relative to the policy, so the quoted
+// form never named the module it looked like.
+func (s *ParserTestSuite) TestParseUseStatementQuotedAtPathRejected() {
+	testCases := []struct {
+		input string
+		path  string
+		at    string
+	}{
+		{`use { round } from "@sentrie/js" as math`, "@sentrie/js", "t.sentrie:1:19-32"},
+		{"use { round } from \"@sentrie/js\"\n  rule", "@sentrie/js", "t.sentrie:1:19-32"},
+		{`use { f } from "@local/util"`, "@local/util", "t.sentrie:1:15-28"},
+		{`use { f } from "@"`, "@", "t.sentrie:1:15-18"},
+	}
+
+	for _, tc := range testCases {
+		p := NewParserFromString(tc.input, "t.sentrie")
+		stmt := parseUseStatement(s.T().Context(), p)
+		s.Nil(stmt, "input: %q", tc.input)
+		s.Require().Error(p.err, "input: %q", tc.input)
+		s.Equal(
+			"parsing error at "+tc.at+": quoted module path \""+tc.path+"\" is read as a file next to the policy; drop the quotes to import the module: from "+tc.path,
+			p.err.Error(),
+			"input: %q", tc.input,
+		)
+	}
+}
+
+// TestParseUseStatementQuotedFilePathsStillAccepted checks that the #217 check
+// is confined to a leading `@`: other quoted paths, including a file whose name
+// starts with `@` written with a directory prefix, still parse as file paths.
+func (s *ParserTestSuite) TestParseUseStatementQuotedFilePathsStillAccepted() {
+	testCases := []struct {
+		input        string
+		relativeFrom string
+	}{
+		{`use { f } from "./@util.ts" as u`, "./@util.ts"},
+		{`use { f } from "lib/@scope.ts" as u`, "lib/@scope.ts"},
+		{`use { f } from " @sentrie/js" as u`, " @sentrie/js"},
+		{`use { f } from "./m.ts"`, "./m.ts"},
+	}
+
+	for _, tc := range testCases {
+		p := NewParserFromString(tc.input, "t.sentrie")
+		stmt := parseUseStatement(s.T().Context(), p)
+		s.Require().NoError(p.err, "input: %q", tc.input)
+		useStmt, ok := stmt.(*ast.UseStatement)
+		s.Require().True(ok, "input: %q", tc.input)
+		s.Equal(tc.relativeFrom, useStmt.RelativeFrom, "input: %q", tc.input)
+		s.Empty(useStmt.LibFrom, "input: %q", tc.input)
+	}
+}
+
+// TestParseProgramWithQuotedAtPathFails checks the whole-program path, so the
+// error reaches ParseProgram's caller.
+func (s *ParserTestSuite) TestParseProgramWithQuotedAtPathFails() {
+	input := `namespace com/example
+
+policy p {
+  use { round } from "@sentrie/js" as math
+  rule r = default false {
+    yield math.round(1.2) == 1
+  }
+  export decision of r
+}
+`
+	_, err := NewParserFromString(input, "t.sentrie").ParseProgram(s.T().Context())
+	s.Require().Error(err)
+	s.Contains(err.Error(), `t.sentrie:4:22-35: quoted module path "@sentrie/js" is read as a file next to the policy; drop the quotes to import the module: from @sentrie/js`)
+}

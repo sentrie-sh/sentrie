@@ -17,6 +17,7 @@ UseStmt = "use" "{" IDENT ("," IDENT)* "}" "from" ExecSource ("as" IDENT)?
 ExecSource = STRING / ("@" ModulePathSegment ("/" ModulePathSegment)*)
 /* A module path segment may be a keyword (e.g. @sentrie/string). This is the only position where a keyword is accepted as a name; the default alias is the last segment, so a keyword last segment needs an explicit "as" IDENT. */
 ModulePathSegment = IDENT / KEYWORD
+/* A STRING source is a file path relative to the policy and must not start with "@": a quoted "@scope/name" is rejected with a hint to drop the quotes. */
 
 PolicyStatement = Comment
                 / ShapeDecl
