@@ -32,7 +32,7 @@ func (idx *Index) CheckCapabilities(ctx context.Context, grant *capabilities.Cap
 
 	var denied []xerr.CapabilityError
 
-	err := idx.forEachBuiltinCall(ctx, func(decl *builtins.Decl, call *ast.CallExpression) {
+	err := idx.forEachBuiltinCall(ctx, func(_ *kindCheckCtx, decl *builtins.Decl, call *ast.CallExpression) {
 		if grant.AllowsBuiltin(decl.Name) {
 			return
 		}

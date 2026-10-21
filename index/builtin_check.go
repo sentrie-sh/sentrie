@@ -15,89 +15,23 @@ import (
 	"github.com/sentrie-sh/sentrie/xerr"
 )
 
+// checkBuiltinCalls statically checks the arity and argument kinds of every
+// native builtin call the index holds. It walks the same expression sites as
+// the nondeterminism and capabilities checks, through forEachBuiltinCall, so
+// a new expression site is covered by all three at once (#218). The runtime
+// makes the same checks when the call is evaluated, from the same signature.
 func (idx *Index) checkBuiltinCalls(ctx context.Context) error {
-	if ctx.Err() != nil {
-		return fmt.Errorf("validation cancelled: %w", xerr.ErrIndex)
-	}
 	var errs []error
-
-	for _, ns := range idx.Namespaces {
-		if ctx.Err() != nil {
-			return fmt.Errorf("validation cancelled: %w", xerr.ErrIndex)
-		}
-		for _, policy := range ns.Policies {
-			if ctx.Err() != nil {
-				return fmt.Errorf("validation cancelled: %w", xerr.ErrIndex)
-			}
-			k := newRuleKindCheckCtx(idx, policy)
-			for _, rule := range policy.Rules {
-				errs = append(errs, k.walkExpr(rule.Default)...)
-				errs = append(errs, k.walkExpr(rule.When)...)
-				errs = append(errs, k.walkExpr(rule.Body)...)
-			}
-		}
+	err := idx.forEachBuiltinCall(ctx, func(k *kindCheckCtx, decl *builtins.Decl, call *ast.CallExpression) {
+		errs = append(errs, k.checkBuiltinCall(decl, call)...)
+	})
+	if err != nil {
+		return err
 	}
-
-	for _, d := range idx.DerivesByFQN {
-		if ctx.Err() != nil {
-			return fmt.Errorf("validation cancelled: %w", xerr.ErrIndex)
-		}
-		k := newDeriveKindCheckCtx(idx, d)
-		if d.Lambda != nil && d.Lambda.Body != nil {
-			errs = append(errs, k.walkExpr(d.Lambda.Body)...)
-		}
-	}
-
 	return errors.Join(errs...)
 }
 
-func (k *kindCheckCtx) walkExpr(e ast.Expression) []error {
-	if e == nil {
-		return nil
-	}
-
-	var errs []error
-
-	switch n := e.(type) {
-	case *ast.CallExpression:
-		errs = append(errs, k.checkBuiltinCall(n)...)
-		errs = append(errs, k.walkExpr(n.Callee)...)
-		for _, a := range n.Arguments {
-			errs = append(errs, k.walkExpr(a)...)
-		}
-		return errs
-	case *ast.BlockExpression:
-		child := *k
-		child.scope = cloneBindingScope(k.scope)
-		for _, st := range n.Statements {
-			vd, ok := st.(*ast.VarDeclaration)
-			if !ok {
-				continue
-			}
-			errs = append(errs, child.walkExpr(vd.Value)...)
-			child.bindLet(vd)
-		}
-		errs = append(errs, child.walkExpr(n.Yield)...)
-		return errs
-	case *ast.LambdaExpression:
-		child := k.pushLambdaScope(n)
-		errs = append(errs, child.walkExpr(n.Body)...)
-		return errs
-	default:
-		_ = forEachDeriveExprChild(e, func(child ast.Expression) error {
-			errs = append(errs, k.walkExpr(child)...)
-			return nil
-		})
-		return errs
-	}
-}
-
-func (k *kindCheckCtx) checkBuiltinCall(c *ast.CallExpression) []error {
-	decl, ok := k.isBuiltinCall(c)
-	if !ok {
-		return nil
-	}
-
+func (k *kindCheckCtx) checkBuiltinCall(decl *builtins.Decl, c *ast.CallExpression) []error {
 	var errs []error
 	sig := decl.Sig
 

@@ -464,3 +464,95 @@ func TestErrBuiltinKindsWrapIndex(t *testing.T) {
 	require.True(t, errors.Is(xerr.ErrBuiltinCallableArity(r, "msg"), xerr.ErrIndex))
 	require.True(t, errors.Is(xerr.ErrBuiltinCallArity(r, "msg"), xerr.ErrIndex))
 }
+
+// TestBuiltinCheckEveryPolicyExpressionSite checks that a bad builtin call
+// fails validation at its span wherever a policy holds an expression, not only
+// in rules and derives (#218): policy lets, fact defaults, export attachments
+// and import `with` clauses.
+func (s *IndexTestSuite) TestBuiltinCheckEveryPolicyExpressionSite() {
+	const target = `namespace com/ex
+policy q {
+  fact f: number as f
+  rule allow = default true { yield f > 0 }
+  export decision of allow
+}
+`
+	testCases := []struct {
+		name string
+		src  string
+		line int // 0-based line of the offending argument
+	}{
+		{"policy let", `namespace com/ex
+policy p {
+  let n = count([1], [2])
+  rule allow = default true { yield n > 0 }
+  export decision of allow
+}
+`, 2},
+		{"fact default", `namespace com/ex
+policy p {
+  fact n?: number as n default count([1], [2])
+  rule allow = default true { yield n > 0 }
+  export decision of allow
+}
+`, 2},
+		{"export attachment", `namespace com/ex
+policy p {
+  rule allow = default true { yield true }
+  export decision of allow attach n as count([1], [2])
+}
+`, 3},
+		{"import with clause", target + `policy p {
+  rule allow = import decision allow from com/ex/q with f as count([1], [2])
+  export decision of allow
+}
+`, 7},
+	}
+
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			err := s.parseAndValidate(tc.src, "f.sentrie")
+			s.Require().Error(err)
+			var arity xerr.BuiltinCallArityError
+			s.Require().ErrorAs(err, &arity)
+			s.Equal("count requires 1 argument", arity.Message)
+			s.Equal("f.sentrie", arity.At.File)
+			s.Equal(tc.line, arity.At.From.Line)
+			s.Equal("[2]", tc.src[arity.At.From.Offset:arity.At.To.Offset], "span must cover the first excess argument")
+		})
+	}
+}
+
+// TestBuiltinCheckKindAtPolicyLet checks the argument-kind check, not only
+// arity, at a site outside rules and derives.
+func (s *IndexTestSuite) TestBuiltinCheckKindAtPolicyLet() {
+	src := `namespace com/ex
+policy p {
+  let xs = filter("abc", (x) => { yield x })
+  rule allow = default true { yield count(xs) > 0 }
+  export decision of allow
+}
+`
+	err := s.parseAndValidate(src, "f.sentrie")
+	s.Require().Error(err)
+	var kind xerr.BuiltinArgKindError
+	s.Require().ErrorAs(err, &kind)
+	s.Contains(kind.Message, "filter: first argument must be a list")
+	s.Equal(2, kind.At.From.Line)
+	s.Equal(`"abc"`, src[kind.At.From.Offset:kind.At.To.Offset])
+}
+
+// TestBuiltinCheckPolicySitesRespectShadowing checks that the wider walk keeps
+// the runtime's precedence: a policy let that shadows a builtin is not checked
+// as that builtin anywhere in the policy.
+func (s *IndexTestSuite) TestBuiltinCheckPolicySitesRespectShadowing() {
+	err := s.parseAndValidate(`namespace com/ex
+policy p {
+  let count = (a: number, b: number) => { yield a + b }
+  let n = count(1, 2)
+  rule allow = default true { yield n > 0 }
+  export decision of allow attach m as count(3, 4)
+}
+`, "f.sentrie")
+	s.Require().NoError(err)
+}

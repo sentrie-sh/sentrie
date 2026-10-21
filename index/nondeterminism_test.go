@@ -129,3 +129,24 @@ func (s *IndexTestSuite) TestUseBuiltinModuleKey() {
 	_, ok = UseBuiltinModuleKey(nil)
 	s.False(ok)
 }
+
+// TestNondeterminismWarningsCoverImportWithClauses checks that the walk shared
+// with checkBuiltinCalls reaches the `with` expressions of an imported
+// decision, which the runtime evaluates in the importing rule (#218).
+func (s *IndexTestSuite) TestNondeterminismWarningsCoverImportWithClauses() {
+	idx := s.indexFromSource("nondet.sentrie", `namespace com/ex
+policy q {
+  fact at: number as at
+  rule ok = default true { yield at > 0 }
+  export decision of ok
+}
+policy p {
+  rule ok = import decision ok from com/ex/q with at as now()
+  export decision of ok
+}`)
+	warnings, err := idx.NondeterminismWarnings(s.T().Context(), nil)
+	s.Require().NoError(err)
+	s.Require().Len(warnings, 1)
+	s.Equal(7, warnings[0].At.From.Line)
+	s.Contains(warnings[0].Message, `builtin "now" is nondeterministic`)
+}
