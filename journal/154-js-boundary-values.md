@@ -33,3 +33,9 @@
 - To stay contained for the parallel `224-weakmap-unsupported` branch, the functions touched are `jsToSentrie`, `jsConverter`, `step`, `isGojaThrow`, `convert`, `convertMap` and `exportGoValue`.
 - Tests: the table gains a throwing getter, a Proxy, a `2**32-1` sparse array, a throwing index accessor and a throwing value inside a Map. `TestConversionStopsAtTheDeadline` checks that a looping getter on a returned object fails with `DeadlineExceeded` within 100ms rather than panicking.
 - _Model: claude-opus-5-5_
+
+### 22:26 - Do not cache a module load whose context ended (300-run flake check)
+- `TestFailedModuleLoadIsRetried` with `-count=300` failed on this branch before the change: 1 of 300 on 191, 5 on 154, 1 on 142. On 191 and 154 these were the #194 panic ("context canceled at get" in `checkExports`). On 142, whose export check already clears the probe, it was `moduleLoads == 1`: the load sometimes finished before the pre-cancelled context's interrupt landed, so the module was cached anyway.
+- Fix in `loadModule`: a load that succeeds after its own context has ended is treated as failed with `ctx.Err()`. It is not cached, and a waiter with a live context retries (the existing `isContextError` path). Whether such a load finished, and whether its probe kept an interrupt, was down to timing; now the outcome is deterministic. Same change as on `191-cache-module-bindings` (a separate, identical commit, because branches are not merged). It applies cleanly when GitHub restacks this branch, since both sides make the same edit.
+- After the change: `TestFailedModuleLoadIsRetried` passed `-count=300` (0 failures). The lifecycle tests (`TestWaiterRetriesAfterLoaderIsCancelled`, `TestCloseDuringLoad`, `TestCloseDoesNotWaitForABusyExportCheck`, `TestConcurrentFirstUseLoadsTheModuleOnce`, `TestCancelledModuleCallDoesNotAffectTheNextCall`) passed `-race -count=30`.
+- _Model: claude-opus-5-5_
