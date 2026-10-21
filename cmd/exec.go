@@ -51,7 +51,8 @@ func addExecCmd(cli *cling.CLI) {
 				WithDefault("{}").
 				WithDescription("Facts to execute the rule with").
 				AsFlag(),
-			),
+			).
+			WithFlag(evalTimeoutFlag()),
 	)
 }
 
@@ -61,6 +62,7 @@ type execCmdArgs struct {
 	Facts        string `cling-name:"facts"`
 	FactFile     string `cling-name:"fact-file"`
 	Output       string `cling-name:"output"`
+	EvalTimeout  string `cling-name:"eval-timeout"`
 }
 
 func execCmd(ctx context.Context, args []string) error {
@@ -108,7 +110,11 @@ func execCmd(ctx context.Context, args []string) error {
 		return err
 	}
 
-	exec, err := runtime.NewExecutor(idx)
+	evalTimeout, err := parseEvalTimeout(input.EvalTimeout)
+	if err != nil {
+		return err
+	}
+	exec, err := runtime.NewExecutor(idx, runtime.WithEvalTimeout(evalTimeout))
 	if err != nil {
 		return err
 	}

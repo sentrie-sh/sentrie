@@ -4,6 +4,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -27,6 +28,11 @@ type DecisionResponse struct {
 // handleDecision handles POST /decision/{namespace...} requests
 func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	if api.requestTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, api.requestTimeout)
+		defer cancel()
+	}
 
 	// Set CORS headers
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -93,6 +99,8 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 		var invErr xerr.InvalidInvocationError
 		if errors.As(runErr, &invErr) {
 			status = http.StatusBadRequest
+		} else if errors.Is(runErr, context.DeadlineExceeded) {
+			status = http.StatusServiceUnavailable
 		}
 		api.writeErrorResponse(w, r, status, "Evaluation Failed", runErr.Error())
 		return

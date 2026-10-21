@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package api
 
@@ -53,17 +40,47 @@ func (p *ListenerServerPair) Close() error {
 
 // HTTPAPI provides HTTP endpoints for rule execution
 type HTTPAPI struct {
-	executor  runtime.Executor
-	listeners []*ListenerServerPair
-	logger    *slog.Logger
+	executor       runtime.Executor
+	listeners      []*ListenerServerPair
+	logger         *slog.Logger
+	requestTimeout time.Duration
 }
 
-// NewHTTPAPI creates a new HTTP API instance
-func NewHTTPAPI(executor runtime.Executor) *HTTPAPI {
-	return &HTTPAPI{
-		executor: executor,
-		logger:   slog.Default(),
+// HTTPAPIOption configures an HTTPAPI.
+type HTTPAPIOption func(*HTTPAPI)
+
+// WithRequestTimeout bounds each decision request (#142). The request context
+// gets this deadline, so evaluation stops when it passes even if the client is
+// still connected; the server's write timeout is kept above it so the error
+// response can still be sent. A value <= 0 leaves requests bounded only by the
+// executor's own deadline and the client connection.
+func WithRequestTimeout(d time.Duration) HTTPAPIOption {
+	return func(api *HTTPAPI) {
+		api.requestTimeout = d
 	}
+}
+
+// responseWriteMargin is how long the server keeps the connection writable
+// after the request deadline, to send the timeout response.
+const responseWriteMargin = 5 * time.Second
+
+// NewHTTPAPI creates a new HTTP API instance
+func NewHTTPAPI(executor runtime.Executor, opts ...HTTPAPIOption) *HTTPAPI {
+	api := &HTTPAPI{
+		executor:       executor,
+		logger:         slog.Default(),
+		requestTimeout: runtime.DefaultEvalTimeout,
+	}
+	for _, opt := range opts {
+		opt(api)
+	}
+	return api
+}
+
+// writeTimeout is the server write timeout: 30 seconds, or longer when the
+// request deadline needs it.
+func (api *HTTPAPI) writeTimeout() time.Duration {
+	return max(30*time.Second, api.requestTimeout+responseWriteMargin)
 }
 
 func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error {
@@ -99,7 +116,7 @@ func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error 
 		api.listeners = append(api.listeners, NewListenerServerPair(ln, &http.Server{
 			Handler:      mux,
 			ReadTimeout:  30 * time.Second,
-			WriteTimeout: 30 * time.Second,
+			WriteTimeout: api.writeTimeout(),
 			BaseContext: func(l net.Listener) context.Context {
 				return ctx
 			},

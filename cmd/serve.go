@@ -33,7 +33,8 @@ func addServeCmd(cli *cling.CLI) {
 				WithDefault([]string{"local"}).
 				WithDescription("HTTP address(es) to listen on").
 				AsFlag(),
-			),
+			).
+			WithFlag(evalTimeoutFlag()),
 	)
 }
 
@@ -41,6 +42,7 @@ type serveCmdArgs struct {
 	Port         int      `cling-name:"http-port"`
 	PackLocation string   `cling-name:"pack-location"`
 	Listen       []string `cling-name:"http-listen"`
+	EvalTimeout  string   `cling-name:"eval-timeout"`
 }
 
 func serveCmd(ctx context.Context, args []string) error {
@@ -78,13 +80,17 @@ func serveCmd(ctx context.Context, args []string) error {
 		return err
 	}
 
-	exec, err := runtime.NewExecutor(idx)
+	evalTimeout, err := parseEvalTimeout(input.EvalTimeout)
+	if err != nil {
+		return err
+	}
+	exec, err := runtime.NewExecutor(idx, runtime.WithEvalTimeout(evalTimeout))
 	if err != nil {
 		return err
 	}
 	defer func() { _ = exec.Close() }()
 
-	server := api.NewHTTPAPI(exec)
+	server := api.NewHTTPAPI(exec, api.WithRequestTimeout(evalTimeout))
 	if err := server.Setup(ctx, input.Port, input.Listen); err != nil {
 		return err
 	}
