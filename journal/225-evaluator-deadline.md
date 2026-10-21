@@ -18,3 +18,15 @@
 - Done and committed (WIP commit): the three checks, the benchmark and the tests above, all passing narrowly and under `-race`.
 - Left to do: graph updates (`runtime.eval`, `runtime.executor`, `runtime.md`, and any node or README section from #142 that says the evaluator ignores the deadline: grep for "only stops JS" / "module calls" in `README.md` and `docs/codebase-graph/`), `make docs-graph`, the full PR description, then `make test` and `make lint`.
 - _Model: claude-opus-5-5_
+
+### 22:24 - Finish #225 after the plan window reset
+- Picked up from the handoff above. The WIP commit e2725c1 stays as is (only new commits).
+- README "Evaluation Limits": replaced the note that the evaluator is not interrupted with where it is checked, and that one step between checks (one `in` over a large list, a builtin loop with no callback) still runs to its end.
+- Graph: `runtime.executor` (deadline behaviour, `execRule` entry check, the "what the deadline bounds" gotcha), `runtime.callable` and `runtime.derive_invoke` (entry check and the context error in Exceptions), `runtime.eval` (`eval` itself does not check; the checks are per iteration). `make docs-graph` passes.
+- Wrote the full PR description.
+- First attempt to commit the docs failed: the SSH signing agent refused. Left git config alone and kept working; retrying once after `make test` and `make lint`.
+- _Model: claude-opus-5-5_
+
+### 22:25 - Commit signing refused twice
+- `make test` and `make lint` pass. The retry also failed ("agent refused operation"), so the docs changes (staged) and this journal and the PR description (unstaged) are left uncommitted for the maintainer to commit once the signing agent accepts. Intended commits: "Document that the evaluation deadline now bounds module-free evaluation" (README and the graph nodes), then "Record finishing #225 in the journal".
+- _Model: claude-opus-5-5_
