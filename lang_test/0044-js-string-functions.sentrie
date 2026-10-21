@@ -1,9 +1,12 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
 namespace test/js
 
 policy stringTest {
   fact text: string
 
-  use { length, fromCharCode } from "@sentrie/js" as str
+  use { length, fromCharCode } from @sentrie/js as str
 
   rule testLength = default false {
     let len = str.length(text)
