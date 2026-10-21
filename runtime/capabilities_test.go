@@ -108,3 +108,24 @@ policy pol {
 	s.Require().NoError(err)
 	s.NoError(CheckModuleGrants(open))
 }
+
+// With deterministic_js, Date.now inside module code reads the same pinned
+// clock as the now() builtin, and Math.random is reproducible per execution
+// and function.
+func (s *RuntimeTestSuite) TestExecRuleDeterministicJavaScriptShims() {
+	ctx := s.T().Context()
+	src := `namespace com/ex
+policy pol {
+  use { now, random } from @sentrie/js as js
+  rule ok = { yield now() == js.now() and js.random() == js.random() }
+  export decision of ok
+}`
+	idx := s.mustBuildDeriveIndex(ctx, deriveTestProgram{name: "det.sentrie", src: src})
+	s.Require().NoError(idx.Validate(ctx))
+
+	exec, err := NewExecutor(idx, WithCapabilities(s.mustGrant(`{"version": 1, "deterministic_js": true}`)))
+	s.Require().NoError(err)
+	out, err := exec.ExecRule(ctx, "com/ex", "pol", "ok", nil)
+	s.Require().NoError(err)
+	s.Equal(trinary.True, out.Decision.State)
+}
