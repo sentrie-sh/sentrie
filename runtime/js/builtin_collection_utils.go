@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package js
 
@@ -30,7 +17,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 	// List utilities with list_ prefix
 	_ = ex.Set("list_includes", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 2 {
-			return vm.NewGoError(errors.New("list_includes requires exactly 2 arguments"))
+			return throwErr(vm, errors.New("list_includes requires exactly 2 arguments"))
 		}
 		arrVal := call.Argument(0)
 		item := call.Argument(1)
@@ -38,7 +25,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		arr := arrVal.Export()
 		arrValue := reflect.ValueOf(arr)
 		if arrValue.Kind() != reflect.Slice && arrValue.Kind() != reflect.Array {
-			return vm.ToValue(false)
+			return throwErr(vm, errors.New("list_includes requires an array"))
 		}
 
 		itemExport := item.Export()
@@ -53,7 +40,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("list_indexOf", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 2 {
-			return vm.NewGoError(errors.New("list_indexOf requires exactly 2 arguments"))
+			return throwErr(vm, errors.New("list_indexOf requires exactly 2 arguments"))
 		}
 		arrVal := call.Argument(0)
 		item := call.Argument(1)
@@ -61,7 +48,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		arr := arrVal.Export()
 		arrValue := reflect.ValueOf(arr)
 		if arrValue.Kind() != reflect.Slice && arrValue.Kind() != reflect.Array {
-			return vm.ToValue(-1)
+			return throwErr(vm, errors.New("list_indexOf requires an array"))
 		}
 
 		itemExport := item.Export()
@@ -76,7 +63,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("list_lastIndexOf", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 2 {
-			return vm.NewGoError(errors.New("list_lastIndexOf requires exactly 2 arguments"))
+			return throwErr(vm, errors.New("list_lastIndexOf requires exactly 2 arguments"))
 		}
 		arrVal := call.Argument(0)
 		item := call.Argument(1)
@@ -84,7 +71,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		arr := arrVal.Export()
 		arrValue := reflect.ValueOf(arr)
 		if arrValue.Kind() != reflect.Slice && arrValue.Kind() != reflect.Array {
-			return vm.ToValue(-1)
+			return throwErr(vm, errors.New("list_lastIndexOf requires an array"))
 		}
 
 		itemExport := item.Export()
@@ -100,14 +87,14 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("list_sort", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("list_sort requires exactly 1 argument"))
+			return throwErr(vm, errors.New("list_sort requires exactly 1 argument"))
 		}
 		arrVal := call.Argument(0)
 
 		arr := arrVal.Export()
 		arrValue := reflect.ValueOf(arr)
 		if arrValue.Kind() != reflect.Slice {
-			return vm.NewGoError(errors.New("list_sort requires an array"))
+			return throwErr(vm, errors.New("list_sort requires an array"))
 		}
 
 		// Convert to []interface{} for sorting
@@ -126,14 +113,14 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("list_unique", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("list_unique requires exactly 1 argument"))
+			return throwErr(vm, errors.New("list_unique requires exactly 1 argument"))
 		}
 		arrVal := call.Argument(0)
 
 		arr := arrVal.Export()
 		arrValue := reflect.ValueOf(arr)
 		if arrValue.Kind() != reflect.Slice && arrValue.Kind() != reflect.Array {
-			return vm.NewGoError(errors.New("list_unique requires an array"))
+			return throwErr(vm, errors.New("list_unique requires an array"))
 		}
 
 		seen := make(map[interface{}]bool)
@@ -156,19 +143,19 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("list_chunk", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 2 {
-			return vm.NewGoError(errors.New("list_chunk requires exactly 2 arguments"))
+			return throwErr(vm, errors.New("list_chunk requires exactly 2 arguments"))
 		}
 		arrVal := call.Argument(0)
 		size := int(call.Argument(1).ToInteger())
 
 		if size <= 0 {
-			return vm.NewGoError(errors.New("list_chunk size must be positive"))
+			return throwErr(vm, errors.New("list_chunk size must be positive"))
 		}
 
 		arr := arrVal.Export()
 		arrValue := reflect.ValueOf(arr)
 		if arrValue.Kind() != reflect.Slice && arrValue.Kind() != reflect.Array {
-			return vm.NewGoError(errors.New("list_chunk requires an array"))
+			return throwErr(vm, errors.New("list_chunk requires an array"))
 		}
 
 		var chunks [][]interface{}
@@ -193,14 +180,14 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("list_flatten", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("list_flatten requires exactly 1 argument"))
+			return throwErr(vm, errors.New("list_flatten requires exactly 1 argument"))
 		}
 		arrVal := call.Argument(0)
 
 		arr := arrVal.Export()
 		arrValue := reflect.ValueOf(arr)
 		if arrValue.Kind() != reflect.Slice && arrValue.Kind() != reflect.Array {
-			return vm.NewGoError(errors.New("list_flatten requires an array"))
+			return throwErr(vm, errors.New("list_flatten requires an array"))
 		}
 
 		var result []interface{}
@@ -212,14 +199,14 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 	// Map utilities with map_ prefix
 	_ = ex.Set("map_keys", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("map_keys requires exactly 1 argument"))
+			return throwErr(vm, errors.New("map_keys requires exactly 1 argument"))
 		}
 		mapVal := call.Argument(0)
 
 		mp := mapVal.Export()
 		mapValue := reflect.ValueOf(mp)
 		if mapValue.Kind() != reflect.Map {
-			return vm.NewGoError(errors.New("map_keys requires a map"))
+			return throwErr(vm, errors.New("map_keys requires a map"))
 		}
 
 		var keys []interface{}
@@ -232,14 +219,14 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("map_values", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("map_values requires exactly 1 argument"))
+			return throwErr(vm, errors.New("map_values requires exactly 1 argument"))
 		}
 		mapVal := call.Argument(0)
 
 		mp := mapVal.Export()
 		mapValue := reflect.ValueOf(mp)
 		if mapValue.Kind() != reflect.Map {
-			return vm.NewGoError(errors.New("map_values requires a map"))
+			return throwErr(vm, errors.New("map_values requires a map"))
 		}
 
 		var values []interface{}
@@ -252,14 +239,14 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("map_entries", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("map_entries requires exactly 1 argument"))
+			return throwErr(vm, errors.New("map_entries requires exactly 1 argument"))
 		}
 		mapVal := call.Argument(0)
 
 		mp := mapVal.Export()
 		mapValue := reflect.ValueOf(mp)
 		if mapValue.Kind() != reflect.Map {
-			return vm.NewGoError(errors.New("map_entries requires a map"))
+			return throwErr(vm, errors.New("map_entries requires a map"))
 		}
 
 		var entries [][]interface{}
@@ -273,7 +260,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("map_has", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 2 {
-			return vm.NewGoError(errors.New("map_has requires exactly 2 arguments"))
+			return throwErr(vm, errors.New("map_has requires exactly 2 arguments"))
 		}
 		mapVal := call.Argument(0)
 		key := call.Argument(1)
@@ -281,7 +268,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		mp := mapVal.Export()
 		mapValue := reflect.ValueOf(mp)
 		if mapValue.Kind() != reflect.Map {
-			return vm.ToValue(false)
+			return throwErr(vm, errors.New("map_has requires a map"))
 		}
 
 		keyValue := reflect.ValueOf(key.Export())
@@ -294,7 +281,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("map_get", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) < 2 || len(call.Arguments) > 3 {
-			return vm.NewGoError(errors.New("map_get requires 2 or 3 arguments"))
+			return throwErr(vm, errors.New("map_get requires 2 or 3 arguments"))
 		}
 		mapVal := call.Argument(0)
 		key := call.Argument(1)
@@ -306,10 +293,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		mp := mapVal.Export()
 		mapValue := reflect.ValueOf(mp)
 		if mapValue.Kind() != reflect.Map {
-			if defaultValue != nil && defaultValue != goja.Undefined() {
-				return defaultValue
-			}
-			return goja.Undefined()
+			return throwErr(vm, errors.New("map_get requires a map"))
 		}
 
 		keyValue := reflect.ValueOf(key.Export())
@@ -333,14 +317,14 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("map_size", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("map_size requires exactly 1 argument"))
+			return throwErr(vm, errors.New("map_size requires exactly 1 argument"))
 		}
 		mapVal := call.Argument(0)
 
 		mp := mapVal.Export()
 		mapValue := reflect.ValueOf(mp)
 		if mapValue.Kind() != reflect.Map {
-			return vm.NewGoError(errors.New("map_size requires a map"))
+			return throwErr(vm, errors.New("map_size requires a map"))
 		}
 
 		return vm.ToValue(mapValue.Len())
@@ -348,14 +332,14 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("map_isEmpty", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("map_isEmpty requires exactly 1 argument"))
+			return throwErr(vm, errors.New("map_isEmpty requires exactly 1 argument"))
 		}
 		mapVal := call.Argument(0)
 
 		mp := mapVal.Export()
 		mapValue := reflect.ValueOf(mp)
 		if mapValue.Kind() != reflect.Map {
-			return vm.NewGoError(errors.New("map_isEmpty requires a map"))
+			return throwErr(vm, errors.New("map_isEmpty requires a map"))
 		}
 
 		return vm.ToValue(mapValue.Len() == 0)
@@ -363,13 +347,13 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("map_merge", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) < 2 {
-			return vm.NewGoError(errors.New("map_merge requires at least 2 arguments"))
+			return throwErr(vm, errors.New("map_merge requires at least 2 arguments"))
 		}
 
 		mp1 := call.Argument(0).Export()
 		map1Value := reflect.ValueOf(mp1)
 		if map1Value.Kind() != reflect.Map {
-			return vm.NewGoError(errors.New("map_merge requires maps as arguments"))
+			return throwErr(vm, errors.New("map_merge requires maps as arguments"))
 		}
 
 		// Create a new map and copy map1 into it
@@ -386,7 +370,7 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 			mp2 := call.Argument(i).Export()
 			map2Value := reflect.ValueOf(mp2)
 			if map2Value.Kind() != reflect.Map {
-				return vm.NewGoError(errors.New("map_merge requires maps as arguments"))
+				return throwErr(vm, errors.New("map_merge requires maps as arguments"))
 			}
 
 			// Copy all entries from map2 (overwrites if key exists)

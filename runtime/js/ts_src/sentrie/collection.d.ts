@@ -1,22 +1,11 @@
-/**
- * Copyright 2025 Binaek Sarkar
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+// SPDX-License-Identifier: Apache-2.0
 
 /**
  * Collection module provides utilities for both list/array and dict (plain object) manipulation and operations.
  * Functions are prefixed with `list_` for list operations and `map_` for map operations.
+ *
+ * Every function throws on a wrong argument count or a wrong-typed container; a failure is never returned as a value.
  */
 declare module "@sentrie/collection" {
   /**
@@ -25,6 +14,7 @@ declare module "@sentrie/collection" {
    * @param arr - The array to search in
    * @param item - The item to search for
    * @returns true if the item is found in the array, false otherwise
+   * @throws Error if arr is not an array
    */
   export function list_includes(arr: any[], item: any): boolean;
 
@@ -34,6 +24,7 @@ declare module "@sentrie/collection" {
    * @param arr - The array to search in
    * @param item - The item to search for
    * @returns The index of the first occurrence, or -1 if not found
+   * @throws Error if arr is not an array
    */
   export function list_indexOf(arr: any[], item: any): number;
 
@@ -43,6 +34,7 @@ declare module "@sentrie/collection" {
    * @param arr - The array to search in
    * @param item - The item to search for
    * @returns The index of the last occurrence, or -1 if not found
+   * @throws Error if arr is not an array
    */
   export function list_lastIndexOf(arr: any[], item: any): number;
 
@@ -110,6 +102,7 @@ declare module "@sentrie/collection" {
    * @param map - The dict (plain object) to check
    * @param key - The key to check for
    * @returns true if the key exists in the dict, false otherwise
+   * @throws Error if map is not a dict
    */
   export function map_has(map: Record<string, any>, key: any): boolean;
 
@@ -119,6 +112,7 @@ declare module "@sentrie/collection" {
    * @param key - The key to look up
    * @param defaultValue - Optional default value to return if the key is not found
    * @returns The value associated with the key, or the default value if the key is not found (or undefined if no default provided)
+   * @throws Error if map is not a dict
    */
   export function map_get(map: Record<string, any>, key: any, defaultValue?: any): any;
 
