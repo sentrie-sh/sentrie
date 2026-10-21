@@ -5,11 +5,11 @@ package runtime
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/dop251/goja"
@@ -63,7 +63,10 @@ type jsModule struct {
 	// is single-threaded and reading an export may run a getter.
 	probeMu sync.Mutex
 	probe   *JSInstance
-	closed  bool // set by close; guarded by probeMu
+
+	// closed is set by close. It is atomic so that close and acquire never
+	// wait on probeMu, which an export check holds while it runs module code.
+	closed atomic.Bool
 }
 
 // newJSModule loads the module once, which both verifies that it loads and
@@ -87,26 +90,23 @@ func newJSModule(ctx context.Context, key string, load instanceLoader) (*jsModul
 	}, nil
 }
 
-// errModuleClosed is returned by acquire after the owning executor closed.
-var errModuleClosed = errors.New("module is closed")
-
-// close drops the probe and makes later acquisitions fail. Calls already
-// running are unaffected: each holds its own VM.
+// close makes later acquisitions and export checks fail with
+// ErrExecutorClosed. Calls already running are unaffected: each holds its own
+// VM. It never blocks, so the executor can close a module whose export check
+// is stuck in module code.
 func (m *jsModule) close() {
-	m.probeMu.Lock()
-	defer m.probeMu.Unlock()
-	m.closed = true
-	m.probe = nil
+	m.closed.Store(true)
+}
+
+func (m *jsModule) closedErr() error {
+	return fmt.Errorf("%s: %w", m.key, ErrExecutorClosed)
 }
 
 // acquire loads a fresh, never-used instance of the module for one call. The
 // caller must call release once it is done with the instance.
 func (m *jsModule) acquire(ctx context.Context, start time.Time) (_ *JSInstance, release func(), _ error) {
-	m.probeMu.Lock()
-	closed := m.closed
-	m.probeMu.Unlock()
-	if closed {
-		return nil, nil, fmt.Errorf("%s: %w", m.key, errModuleClosed)
+	if m.closed.Load() {
+		return nil, nil, m.closedErr()
 	}
 	select {
 	case m.slots <- struct{}{}:
@@ -127,11 +127,11 @@ func (m *jsModule) checkExports(exports []string) error {
 	if len(exports) == 0 {
 		return nil
 	}
+	if m.closed.Load() {
+		return m.closedErr()
+	}
 	m.probeMu.Lock()
 	defer m.probeMu.Unlock()
-	if m.closed {
-		return fmt.Errorf("%s: %w", m.key, errModuleClosed)
-	}
 	for _, name := range exports {
 		if m.probe.exports.Get(name) == nil {
 			return fmt.Errorf("module %s missing required export %q", m.key, name)

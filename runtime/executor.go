@@ -131,23 +131,31 @@ func (e *executorImpl) Index() *index.Index {
 // already running keeps its own VM and finishes normally; nothing it holds is
 // shared with the modules being dropped.
 func (e *executorImpl) Close() error {
+	// Collect under modulesMu, close after releasing it, so a module stuck in
+	// its own code can never hold up every other module load.
 	e.modulesMu.Lock()
-	defer e.modulesMu.Unlock()
 	if e.modulesClosed {
+		e.modulesMu.Unlock()
 		return nil
 	}
 	e.modulesClosed = true
+	var loaded []*jsModule
 	for _, l := range e.modules {
 		select {
 		case <-l.done:
 			if l.module != nil {
-				l.module.close()
+				loaded = append(loaded, l.module)
 			}
 		default:
 			// Still loading: the loader sees modulesClosed and closes it.
 		}
 	}
 	e.modules = nil
+	e.modulesMu.Unlock()
+
+	for _, m := range loaded {
+		m.close()
+	}
 	return nil
 }
 
@@ -424,6 +432,8 @@ func (e *executorImpl) getModule(ctx context.Context, ms *js.ModuleSpec) (*jsMod
 			return nil, ErrExecutorClosed
 		}
 		if e.modules == nil {
+			// A zero-value executor (as tests build by hand) has no map yet;
+			// after Close the modulesClosed check above returns first.
 			e.modules = map[string]*moduleLoad{}
 		}
 		l, ok := e.modules[key]
