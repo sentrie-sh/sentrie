@@ -27,17 +27,16 @@ type DecisionResponse struct {
 
 // handleDecision handles POST /decision/{namespace...} requests
 func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
+	// r.Context() adds request-scoped cancellation when the client goes away.
+	// The evaluation deadline is the executor's, set per request below, so
+	// there is one deadline and a timeout names it.
 	ctx := r.Context()
-	if api.requestTimeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, api.requestTimeout)
-		defer cancel()
-	}
 
 	// Set CORS headers
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, "+TimeoutHeader)
+	w.Header().Set("Access-Control-Expose-Headers", TimeoutAppliedHeader)
 
 	path := r.PathValue("target")
 	if path == "" {
@@ -57,6 +56,18 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		api.writeErrorResponse(w, r, http.StatusMethodNotAllowed, "Method Not Allowed", "Only POST requests are supported for this endpoint")
 		return
+	}
+
+	// Sentrie-Timeout chooses the deadline (#243); a bad value is the
+	// caller's error, never a silent fallback to the default.
+	deadline, err := api.requestDeadline(r.Header)
+	if err != nil {
+		api.writeErrorResponse(w, r, http.StatusBadRequest, "Invalid "+TimeoutHeader, err.Error())
+		return
+	}
+	if deadline > 0 {
+		ctx = runtime.ContextWithEvalTimeout(ctx, deadline)
+		w.Header().Set(TimeoutAppliedHeader, deadline.String())
 	}
 
 	// Create span for path resolution

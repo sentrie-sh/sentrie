@@ -16,9 +16,14 @@ import (
 )
 
 // loopingPackAPI serves a pack whose only rule calls a module that never
-// returns. The executor's own deadline is disabled, so only the request
-// deadline can stop the evaluation.
+// returns. The executor's own deadline is disabled, so only the deadline the
+// API hands it per request can stop the evaluation.
 func (s *APITestSuite) loopingPackAPI(requestTimeout time.Duration) *HTTPAPI {
+	return s.loopingPackAPIWith(WithRequestTimeout(requestTimeout))
+}
+
+// loopingPackAPIWith is loopingPackAPI with the API options given in full.
+func (s *APITestSuite) loopingPackAPIWith(opts ...HTTPAPIOption) *HTTPAPI {
 	ctx := s.T().Context()
 	dir := s.T().TempDir()
 	files := map[string]string{
@@ -50,7 +55,7 @@ policy p {
 	exec, err := runtimepkg.NewExecutor(idx, runtimepkg.WithEvalTimeout(0))
 	s.Require().NoError(err)
 	s.T().Cleanup(func() { _ = exec.Close() })
-	return NewHTTPAPI(exec, WithRequestTimeout(requestTimeout))
+	return NewHTTPAPI(exec, opts...)
 }
 
 // TestDecisionRequestStopsAtItsDeadline is #142's request-scoped cancellation:

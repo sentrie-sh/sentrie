@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"math"
 	"net"
 	"net/http"
 	"sync"
@@ -40,23 +41,36 @@ func (p *ListenerServerPair) Close() error {
 
 // HTTPAPI provides HTTP endpoints for rule execution
 type HTTPAPI struct {
-	executor       runtime.Executor
-	listeners      []*ListenerServerPair
-	logger         *slog.Logger
-	requestTimeout time.Duration
+	executor          runtime.Executor
+	listeners         []*ListenerServerPair
+	logger            *slog.Logger
+	requestTimeout    time.Duration
+	maxRequestTimeout time.Duration
 }
 
 // HTTPAPIOption configures an HTTPAPI.
 type HTTPAPIOption func(*HTTPAPI)
 
-// WithRequestTimeout bounds each decision request (#142). The request context
-// gets this deadline, so evaluation stops when it passes even if the client is
-// still connected; the server's write timeout is kept above it so the error
-// response can still be sent. A value <= 0 leaves requests bounded only by the
-// executor's own deadline and the client connection.
+// WithRequestTimeout sets the default evaluation deadline of a decision
+// request (#142; serve passes --eval-timeout). The executor enforces it: the
+// API hands it over with runtime.ContextWithEvalTimeout, so there is one
+// deadline per request. A value <= 0 leaves a request that does not send
+// Sentrie-Timeout bounded only by the executor's own deadline and the client
+// connection.
 func WithRequestTimeout(d time.Duration) HTTPAPIOption {
 	return func(api *HTTPAPI) {
 		api.requestTimeout = d
+	}
+}
+
+// WithMaxRequestTimeout sets the longest deadline a request may ask for with
+// Sentrie-Timeout (#243; serve passes --eval-max-timeout). A longer request is
+// rejected with 400, and a default that is unbounded or longer is capped to
+// it. A value <= 0 makes the default the ceiling, so a request can only
+// shorten its deadline; with no default either, any value is allowed.
+func WithMaxRequestTimeout(d time.Duration) HTTPAPIOption {
+	return func(api *HTTPAPI) {
+		api.maxRequestTimeout = d
 	}
 }
 
@@ -78,9 +92,14 @@ func NewHTTPAPI(executor runtime.Executor, opts ...HTTPAPIOption) *HTTPAPI {
 }
 
 // writeTimeout is the server write timeout: 30 seconds, or longer when the
-// request deadline needs it.
+// longest deadline a request may get needs it. With no ceiling it stays at 30
+// seconds, which then caps how long a response can take.
 func (api *HTTPAPI) writeTimeout() time.Duration {
-	return max(30*time.Second, api.requestTimeout+responseWriteMargin)
+	ceiling := api.maxTimeout()
+	if ceiling > math.MaxInt64-responseWriteMargin {
+		return time.Duration(math.MaxInt64)
+	}
+	return max(30*time.Second, ceiling+responseWriteMargin)
 }
 
 func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error {
