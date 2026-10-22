@@ -4,44 +4,33 @@
 package js
 
 import (
+	"context"
 	"errors"
 	"regexp"
-	"sync"
 
+	"github.com/binaek/perch"
 	"github.com/dop251/goja"
 )
 
-// regexCache caches compiled regex patterns for performance
-var regexCache = struct {
-	sync.RWMutex
-	patterns map[string]*regexp.Regexp
-}{
-	patterns: make(map[string]*regexp.Regexp),
-}
+// regexCacheEntries bounds the process-global compiled-pattern cache. Patterns
+// can come from request input through facts, so an unbounded cache grows by
+// one entry per distinct input for the life of the process (#210). The least
+// recently used pattern is evicted past this count and recompiled on its next
+// use.
+const regexCacheEntries = 1024
 
+// regexCache is a bounded LRU of compiled patterns, shared by every VM.
+var regexCache = perch.New[*regexp.Regexp](regexCacheEntries)
+
+// getCompiledRegex returns the compiled form of pattern from the cache,
+// compiling it on a miss. Compile errors are returned and not cached.
 func getCompiledRegex(pattern string) (*regexp.Regexp, error) {
-	regexCache.RLock()
-	if re, ok := regexCache.patterns[pattern]; ok {
-		regexCache.RUnlock()
-		return re, nil
-	}
-	regexCache.RUnlock()
-
-	regexCache.Lock()
-	defer regexCache.Unlock()
-
-	// Double-check after acquiring write lock
-	if re, ok := regexCache.patterns[pattern]; ok {
-		return re, nil
-	}
-
-	re, err := regexp.Compile(pattern)
-	if err != nil {
-		return nil, err
-	}
-
-	regexCache.patterns[pattern] = re
-	return re, nil
+	// Compiling is pure and does not block, and goja callbacks carry no
+	// context, so the load has nothing to cancel.
+	re, _, err := regexCache.Get(context.Background(), pattern, 0, func(context.Context, string) (*regexp.Regexp, error) {
+		return regexp.Compile(pattern)
+	})
+	return re, err
 }
 
 // replaceFirst replaces the leftmost match of re in str, expanding $1-style

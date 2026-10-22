@@ -18,6 +18,7 @@ The complete external surface of the Sentrie module, declared in `go.mod` agains
 | [[runtime.js]] | `IMPORTS` | `ext.dop251.goja` | `github.com/dop251/goja` - the JavaScript interpreter. |
 | [[runtime.js.tscompile]] | `IMPORTS` | `ext.evanw.esbuild` | `github.com/evanw/esbuild` - TypeScript to CommonJS transpilation. |
 | [[runtime.executor]] | `IMPORTS` | `ext.binaek.perch` | `github.com/binaek/perch` - TTL cache backing module bindings and call memoization. |
+| [[runtime.js.builtins]] | `IMPORTS` | `ext.binaek.perch` | Bounded LRU for the `@sentrie/regex` compiled-pattern cache. |
 | [[runtime.modules]] | `IMPORTS` | `ext.jackc.puddle` | `github.com/jackc/puddle/v2` - the JavaScript VM pool. |
 | [[cmd]] | `IMPORTS` | `ext.binaek.cling` | `github.com/binaek/cling` - CLI command, flag, and argument framework. |
 | [[loader]] | `IMPORTS` | `ext.xeipuuv.gojsonschema` | `github.com/xeipuuv/gojsonschema` - pack manifest schema validation. |
