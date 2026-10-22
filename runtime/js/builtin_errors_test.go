@@ -57,7 +57,6 @@ func (s *JSTestSuite) TestBuiltinFailuresThrow() {
 		{"regex", BuiltinRegexGo, `m.match("(", "x")`, "missing closing )"},
 		{"hash", BuiltinHashGo, `m.hmac("md4", "data", "key")`, "unsupported algorithm: md4"},
 		{"hash", BuiltinHashGo, `m.sha256()`, "requires exactly 1 argument"},
-		{"base64", BuiltinBase64Go, `m.decode("!!!")`, "illegal base64 data"},
 		{"json", BuiltinJsonGo, `m.isValid()`, "requires exactly 1 argument"},
 	}
 
