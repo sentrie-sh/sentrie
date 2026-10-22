@@ -44,6 +44,18 @@ func getCompiledRegex(pattern string) (*regexp.Regexp, error) {
 	return re, nil
 }
 
+// replaceFirst replaces the leftmost match of re in str, expanding $1-style
+// references in replacement exactly as ReplaceAllString does. The regexp
+// package has no first-match replacement, so this expands a single match.
+func replaceFirst(re *regexp.Regexp, str, replacement string) string {
+	loc := re.FindStringSubmatchIndex(str)
+	if loc == nil {
+		return str
+	}
+	expanded := re.ExpandString(nil, replacement, str, loc)
+	return str[:loc[0]] + string(expanded) + str[loc[1]:]
+}
+
 var BuiltinRegexGo = func(vm *goja.Runtime) (*goja.Object, error) {
 	ex := vm.NewObject()
 
@@ -106,8 +118,7 @@ var BuiltinRegexGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		if err != nil {
 			return throwErr(vm, err)
 		}
-		result := re.ReplaceAllString(str, replacement)
-		return vm.ToValue(result)
+		return vm.ToValue(replaceFirst(re, str, replacement))
 	})
 
 	_ = ex.Set("replaceAll", func(call goja.FunctionCall) goja.Value {
