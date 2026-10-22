@@ -39,8 +39,9 @@ declare module "@sentrie/jwt" {
    * The exp and nbf claims are validated against the evaluation's execution start time
    * (the same Unix-seconds clock as `@sentrie/time.now()`) unless `options.checkTime` is false.
    * @param token - The JWT token string to decode
-   * @param key - The secret or public key for signature verification; the header's alg picks the algorithm
-   * @param options - Optional time-claim settings
+   * @param key - The secret or public key for signature verification. The header's alg must be one of
+   * `options.algorithms`, or of the key's own family when that is not given; the header cannot pick the family
+   * @param options - Optional time-claim and algorithm settings
    * @returns The decoded payload as an object
    * @throws Error if the token is malformed, the signature is invalid, the algorithm is "none" or unsupported,
    * the token is expired or not yet valid, or the key is missing (undefined or null) or invalid, or the options are invalid
