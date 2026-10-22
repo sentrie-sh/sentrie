@@ -194,7 +194,7 @@ func (s *RuntimeTestSuite) TestCloseDoesNotWaitForABusyExportCheck() {
 	case <-time.After(2 * time.Second):
 		s.FailNow("Close blocked on a busy export check")
 	}
-	s.ErrorIs(m.checkExports([]string{"yes"}), ErrExecutorClosed)
+	s.ErrorIs(m.checkExports(s.T().Context(), []string{"yes"}), ErrExecutorClosed)
 }
 
 // TestCallOnABindingAfterCloseIsExecutorClosed: a binding made before Close
