@@ -30,3 +30,34 @@ func parseEvalTimeout(v string) (time.Duration, error) {
 	}
 	return d, nil
 }
+
+// evalMaxTimeoutFlag is serve's `--eval-max-timeout` flag (#243): the longest
+// deadline a request may ask for with the Sentrie-Timeout header. Unset, it
+// equals `--eval-timeout`, so a request can only shorten its deadline.
+func evalMaxTimeoutFlag() cling.CmdFlag {
+	return cling.NewStringCmdInput("eval-max-timeout").
+		WithDefault("").
+		WithDescription("Longest deadline a request may ask for with the Sentrie-Timeout header, as a Go duration (for example 30s); unset, it equals --eval-timeout").
+		AsFlag()
+}
+
+// parseEvalMaxTimeout validates an `--eval-max-timeout` value against the
+// already-parsed `--eval-timeout`. It returns 0 when the flag is unset. A
+// ceiling below a bounded default is an error; with an unbounded default
+// (`--eval-timeout 0`) the ceiling also becomes the default.
+func parseEvalMaxTimeout(v string, evalTimeout time.Duration) (time.Duration, error) {
+	if v == "" {
+		return 0, nil
+	}
+	d, err := time.ParseDuration(v)
+	if err != nil {
+		return 0, fmt.Errorf("invalid --eval-max-timeout %q: %w", v, err)
+	}
+	if d <= 0 {
+		return 0, fmt.Errorf("invalid --eval-max-timeout %q: must be positive; leave it unset for no ceiling", v)
+	}
+	if evalTimeout > 0 && d < evalTimeout {
+		return 0, fmt.Errorf("invalid --eval-max-timeout %s: must not be below --eval-timeout %s", d, evalTimeout)
+	}
+	return d, nil
+}
