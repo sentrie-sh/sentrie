@@ -87,9 +87,34 @@ TypeScript and JavaScript modules run inside Sentrie, so evaluation is bounded b
 | :--- | :--- | :--- |
 | Time per decision | 10s for each `exec` evaluation and each `serve` request; a module call still running is interrupted and the decision fails (`serve` answers 503) | `--eval-timeout 2s` on `exec` and `serve`; `0` disables it |
 | JavaScript call depth | 10,000 frames per module call; deeper recursion throws a stack overflow | Not configurable |
+| Time a `serve` request may ask for | Up to `--eval-timeout`, so a request can only shorten its deadline | `--eval-max-timeout 30s` on `serve` raises the ceiling (see below) |
 | Memory | **Not bounded per evaluation.** goja has no per-VM heap cap | Set a process limit, for example `GOMEMLIMIT=1GiB`, plus a container or cgroup memory limit |
 
 The deadline stops JavaScript, module loading and Sentrie's own expression evaluation. The evaluator checks it at every rule and derive it enters and at every lambda it applies, which includes each element a collection operator such as `filter` or `any` visits, so a policy with no module calls is bounded too. A single step between those points (one comparison, one `in` over a list) still runs to its end.
+
+A `serve` client that knows its own time budget, such as an Envoy `ext_authz` filter or an admission webhook, can choose the deadline for one request with the `Sentrie-Timeout` header, as a Go duration (`250ms`, `2s`, `1m30s`):
+
+```bash
+curl -i -X POST http://localhost:7529/decision/sh/sentrie/example/user_access \
+  -H "Content-Type: application/json" \
+  -H "Sentrie-Timeout: 500ms" \
+  -d '{"facts":{"user":{"role":"admin","status":"active"}}}'
+```
+
+- `--eval-timeout` is the default for requests that don't send the header, and `--eval-max-timeout` is the ceiling a request may ask for, below or above the default:
+
+  | `--eval-timeout` | `--eval-max-timeout` | A request may ask for | Without the header |
+  | :--- | :--- | :--- | :--- |
+  | D | unset | up to D | D |
+  | D | M >= D | up to M | D |
+  | D | M < D | `serve` refuses to start | |
+  | 0 (no deadline) | unset | anything | no deadline |
+  | 0 | M | up to M | M |
+
+- A value above the ceiling, or one that is unparseable, zero, negative, longer than 32 bytes or sent more than once, gets a 400 problem-details response and nothing is evaluated. There is no clamping and no fallback to the default.
+- Every decision response that ran under a deadline carries `Sentrie-Timeout-Applied` with the deadline used, in the same format, including the 503 when it passes.
+- The write timeout is sized from the ceiling (ceiling + 5s, at least 30s), so a request that asks for the longest deadline can still get its response.
+- A caller-chosen deadline lets any client that can reach the port hold an evaluation for up to the ceiling. Keep the ceiling to what your callers need, and put `serve` behind authentication ([#115](https://github.com/sentrie-sh/sentrie/issues/115)).
 
 ## Learn More
 
