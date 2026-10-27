@@ -27,3 +27,8 @@
 - Found: nested relative requires fail with "outside the packroot" when the pack root is behind a symlink (macOS temp dirs), because `ModuleSpec.Dir` is symlink-resolved but `PackRoot` is not. This predates the branch; the test resolves its temp dir, and the defect is reported.
 - `make test` and `make lint` pass.
 - _Model: claude-opus-5-5_
+
+### 14:02 - Restack onto the rebased 168-1
+- Carried onto 168-1 after it was rebased onto `main` (cfe249a). Code conflicts with #194 (105), both additive. In `runtime/executor.go` I kept `main`'s `constants` and `time` imports beside `capabilities`, and #194's dropped `puddle` import. In `runtime/js/registry.go` I kept #194's `resolved` LoadRequire memo and compile counter next to this layer's `grant` field.
+- Checked that the memo cannot skip the grant: `checkGrant` runs in `loadRequire` on a memo miss, the grant is fixed at executor construction, and the check depends only on the module key, so a memoised resolution was already granted.
+- _Model: claude-opus-5-5_
