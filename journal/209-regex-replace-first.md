@@ -13,3 +13,8 @@
 - Breaking: anything relying on `replace` rewriting every match must switch to `replaceAll`. No in-repo fixture or example uses `@sentrie/regex`.
 - `.d.ts` already promised first-only; added the `$1` note and the pre-#209 behaviour, and rewrote its legacy header. Graph: `runtime.js.builtins` gotcha added.
 - _Model: claude-opus-5-5_
+
+### 13:59 - Restack onto main after #227 and the other bottom layers merged
+- #227 (208) squash-merged, but GitHub could not restack this layer, so it still carried 208's original commits. Rebased with `git rebase --onto origin/main bacf0b1` (cfe249a).
+- One conflict, in the Dependencies Risk list of `docs/codebase-graph/runtime.js.builtins.md`: kept both #139-1's JWT clock bullet from `main` and this layer's `regex.replace` bullet.
+- _Model: claude-opus-5-5_
