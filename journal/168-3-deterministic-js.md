@@ -29,3 +29,7 @@
 - The FORMAT.md line "to forbid them, leave them out of builtins and modules" is corrected in layer 2, not here, to avoid two edits of one line across the stack.
 - `make test`, `make lint` and `go test -race ./runtime/js/` pass.
 - _Model: claude-opus-5-5_
+
+### 11:34 - Restack onto main after #193 and #195 merged
+- Rebased onto the restacked 168-2. One conflict, in the `ModuleBinding.Call` entry of `docs/codebase-graph/runtime.modules.md`: combined this layer's `js.BeginCall` description with #193's "looks the export up through this binding's projection".
+- _Model: claude-opus-5-5_
