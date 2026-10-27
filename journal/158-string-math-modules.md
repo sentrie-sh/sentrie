@@ -43,3 +43,8 @@
 - `make test`, `make lint` (go1.25.0 golangci-lint) and `go test -race ./runtime/js/ ./parser/` pass.
 - Commit signing was refused (`agent refused operation`), so all of this is left uncommitted in the worktree for the parent, per the dispatch rules. Intended split: (1) bound min/max (math files, `math.d.ts`, graph node); (2) bound join, `%f` negative zero, string error names (string files, `string.d.ts`); (3) keyword alias error position (`parser/`); (4) this journal entry.
 - _Model: claude-opus-5-5_
+
+### 11:34 - Restack onto main after #193 and #195 merged
+- Rebased onto `main` (610352e). Conflicts only in `docs/codebase-graph/runtime.js.builtins.md` and `runtime.js.md`: kept #111's throw conventions and added this layer's `@sentrie/string` and `@sentrie/math` entries. Dropped the "errors are returned, except string and math" wording, which #111 made false. The throw helpers here still have to collapse into #111's `throwErr` (see Review notes).
+- Carried 214, 216 and 217 onto the new tip; none conflicted.
+- _Model: claude-opus-5-5_
