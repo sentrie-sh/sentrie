@@ -14,3 +14,7 @@
 - Tests: `TestRegexCacheStaysBounded` (3x capacity distinct patterns, size stays at or under capacity; hits return the same `*Regexp`; a bad pattern is not cached) and `TestRegexCacheConcurrentVMs` (8 VMs sharing the cache). `go test -race ./runtime/js/` passes.
 - Graph: `runtime.js.builtins` gains the `ext.binaek.perch` edge and a gotcha; `ext.dependencies` lists the new importer.
 - _Model: claude-opus-5-5_
+
+### 13:59 - Restack onto the rebased 209
+- Carried onto 209 after it was rebased onto `main` (cfe249a). Conflicts only in the graph. In `ext.dependencies.md` I kept this layer's perch regex row and left out the puddle row, which #194 removed. In `runtime.js.builtins.md` I kept the perch row with `main`'s JWT-aware `LAYERED_ON [[constants]]` row, and both Dependencies Risk bullets (JWT clock, regex cache).
+- _Model: claude-opus-5-5_
