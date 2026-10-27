@@ -48,3 +48,7 @@
 - Rebased onto `main` (610352e). Conflicts only in `docs/codebase-graph/runtime.js.builtins.md` and `runtime.js.md`: kept #111's throw conventions and added this layer's `@sentrie/string` and `@sentrie/math` entries. Dropped the "errors are returned, except string and math" wording, which #111 made false. The throw helpers here still have to collapse into #111's `throwErr` (see Review notes).
 - Carried 214, 216 and 217 onto the new tip; none conflicted.
 - _Model: claude-opus-5-5_
+
+### 14:01 - Restack onto main after #197, #227 and #196 merged
+- Rebased onto `main` (cfe249a). One conflict, in `docs/codebase-graph/runtime.js.builtins.md`: kept #139-1's `jwt.decode`/`jwt.verify` entry and added this layer's `@sentrie/string` and `@sentrie/math` entries after it. No source conflicts, and `runtime/js` tests pass, including #111's error-object guard.
+- _Model: claude-opus-5-5_
