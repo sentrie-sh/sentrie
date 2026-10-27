@@ -14,6 +14,7 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/builtins"
+	"github.com/sentrie-sh/sentrie/constants"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 	"github.com/sentrie-sh/sentrie/xerr"
@@ -66,6 +67,11 @@ func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *
 			// Arguments cannot be hashed stably; bypass memoization.
 			return target(ctx, args...)
 		}
+		if isClockDependentCall(ec, p, t) {
+			// The memo cache is executor-wide, so without this a cached
+			// answer would outlive the execution whose clock produced it.
+			hashKey += fmt.Sprintf("@%d", ec.CreatedAt().UnixNano())
+		}
 		loader := func(ctx context.Context, key string) (any, error) {
 			return target(ctx, args...)
 		}
@@ -91,6 +97,36 @@ func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *
 		return box.Undefined(), n.SetErr(err), err
 	}
 	return out, n.SetResult(out), nil
+}
+
+// clockDependentBuiltins and clockDependentModuleCalls name the callees whose
+// answer depends on the execution start time: the clock itself, and the JWT
+// checks that compare exp and nbf against it. Memoizing them across executions
+// would return an earlier execution's clock (an expired token still verifying).
+// now_ms is listed ahead of the builtin itself (#153 adds it) so that layer
+// needs no change here.
+var clockDependentBuiltins = map[string]bool{"now": true, "now_ms": true}
+
+var clockDependentModuleCalls = map[string]map[string]bool{
+	"@" + constants.APPNAME + "/time": {"now": true},
+	"@" + constants.APPNAME + "/jwt":  {"decode": true, "verify": true},
+}
+
+// isClockDependentCall reports whether t calls one of the clock-dependent
+// builtins or module functions above.
+func isClockDependentCall(ec *ExecutionContext, p *index.Policy, t *ast.CallExpression) bool {
+	if id, ok := t.Callee.(*ast.Identifier); ok {
+		return clockDependentBuiltins[id.Value] && lookupDeriveByIdentifier(ec, p, id.Value) == nil
+	}
+	alias, fn := splitAliasFn(t.Callee.String())
+	if alias == "" || fn == "" {
+		return false
+	}
+	binding, ok := ec.Module(alias)
+	if !ok || binding == nil {
+		return false
+	}
+	return clockDependentModuleCalls[binding.CanonicalKey][fn]
 }
 
 // Helper to split "alias.fn" if ever needed

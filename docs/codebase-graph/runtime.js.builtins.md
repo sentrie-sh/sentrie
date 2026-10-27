@@ -16,7 +16,7 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `runtime.js.builtins` | `IMPORTS` | `ext.dop251.goja` | Every function is a `func(goja.FunctionCall) goja.Value` set on a VM object. |
-| `runtime.js.builtins` | `LAYERED_ON` | [[constants]] | `ExecutionStartTimeUnixKey` is read by `time.now()` to pin the clock. |
+| `runtime.js.builtins` | `LAYERED_ON` | [[constants]] | `ExecutionStartTimeUnixKey` is read by `time.now()` and by `jwt`'s `exp`/`nbf` checks to pin the clock. |
 | [[runtime.executor]] | `MUTATES` | `runtime.js.builtins` | Registers each provider by name at executor construction. |
 | [[runtime.js.registry]] | `CALLS` | `runtime.js.builtins` | Go providers short-circuit compilation entirely in `programFor`. |
 | [[runtime.js.alias_runtime]] | `CALLS` | `runtime.js.builtins` | Invokes the provider on every `require` of a builtin. |
@@ -38,6 +38,11 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
   - **Side Effects:** None escape the VM; no filesystem, network, or process access.
   - **Exceptions:** Every failure is a JavaScript exception raised through `throwErr(vm, err)` in `builtin_errors.go`, which panics with `vm.NewGoError(err)`. The conventions, applied to every module: argument-count and argument-type errors throw; predicates (`isValid`, the `net` `is*` checks, `cidrIsValid`, `jwt.verify`) answer `false` for input they cannot parse; a genuine "no result" is `null` (`net.parseIP`, `regex.find`, `semver.prerelease`/`metadata`); every other failure throws.
 
+- **Signature:** `jwt.decode(token, secret, options?) -> object` / `jwt.verify(token, secret, algorithm = "HS256", options?) -> boolean`
+  - **Behavior:** HS256/384/512 only. The signature is compared with `hmac.Equal` on decoded bytes. `exp` and `nbf` are validated by default against the execution start (Unix seconds, via `executionStartUnix` in `builtin_clock.go`), RFC 7519 style: valid while `now < exp + leeway` and once `now + leeway >= nbf`. `decode` requires a key: an absent one (`undefined`/`null`, which is what an unset env var or a missing fact produces) throws rather than skipping verification. `options` is `{ leeway?: seconds, checkTime?: boolean }`, with `leeway` capped at 86400 so a millisecond value is an error; `checkTime: false` is the inspect-only opt-out, and unknown keys throw. `verify` requires the header `alg` to equal `algorithm`. `getPayload`/`getHeader` never verify.
+  - **Side Effects:** None.
+  - **Exceptions:** `decode` throws on any failure, including expiry. `verify` answers `false` for a malformed, mismatched, badly signed, expired or not-yet-valid token, and throws for `none` or an unsupported `algorithm`, an empty or non-string secret, bad options, or a VM with no execution start time.
+
 - **Signature:** `time.now() -> number`
   - **Behavior:** Reads the `ExecutionStartTimeUnixKey` VM global and returns it, so JavaScript observes the **same pinned instant** as the policy evaluator. Falls back to `time.Now().Unix()` when the global is absent.
   - **Side Effects:** None.
@@ -51,6 +56,7 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
   - **Predicates answer `false` for garbage.** `net.isPrivate("junk")` and `net.isPublic("junk")` are both `false`, so a negated predicate (`!isPrivate(ip)`) is `true` for unparseable input. Positive checks are the fail-closed form.
   - **`uuid` and the `time` fallback are non-deterministic**, which is why module calls are forbidden inside derives (see [[runtime.eval_call]]) - a derive must be reproducible within an execution.
   - **The `time.now()` fallback is silent.** If the execution-start global is missing, JavaScript quietly gets wall-clock time and diverges from what the evaluator's own `now()` reports, with no signal.
+  - **JWT time checks trust the execution-start global.** Module code can still overwrite `__executionStartTimeUnix` before calling `jwt.verify`, which would move the clock the checks use; making internal globals unreachable is [#154](https://github.com/sentrie-sh/sentrie/issues/154).
   - **`net` deliberately has no I/O.** It is CIDR arithmetic over `net.ParseCIDR`, not a network client. Preserving that is what keeps the sandbox claim honest.
   - **Argument counts are checked exactly**, so an extra argument is an error rather than being ignored - stricter than JavaScript convention and a likely source of surprise for module authors.
   - **`crypto` and `jwt` are security-critical surfaces.** Their failures throw like every other builtin's (#111).
