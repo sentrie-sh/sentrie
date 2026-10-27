@@ -39,3 +39,9 @@
 - Fix in `loadModule`: a load that succeeds after its own context has ended is treated as failed with `ctx.Err()`. It is not cached, and a waiter with a live context retries (the existing `isContextError` path). Whether such a load finished, and whether its probe kept an interrupt, was down to timing; now the outcome is deterministic. Same change as on `191-cache-module-bindings` (a separate, identical commit, because branches are not merged). It applies cleanly when GitHub restacks this branch, since both sides make the same edit.
 - After the change: `TestFailedModuleLoadIsRetried` passed `-count=300` (0 failures). The lifecycle tests (`TestWaiterRetriesAfterLoaderIsCancelled`, `TestCloseDuringLoad`, `TestCloseDoesNotWaitForABusyExportCheck`, `TestConcurrentFirstUseLoadsTheModuleOnce`, `TestCancelledModuleCallDoesNotAffectTheNextCall`) passed `-race -count=30`.
 - _Model: claude-opus-5-5_
+
+### 13:58 - Restack onto main after #194, #197, #227 and #196 merged
+- Rebased onto `main` (cfe249a). One textual conflict, in the relationship table of `docs/codebase-graph/runtime.js.builtins.md`: dropped the `LAYERED_ON [[constants]]` row #139-1 added, since this layer removes `ExecutionStartTimeUnixKey`.
+- A semantic conflict git did not flag: #139-1 (merged as #197) added `builtin_clock.go` with its own `executionStartUnix`, returning `(int64, error)` and reading the `ExecutionStartTimeUnixKey` global that this layer deletes. With both, the package does not compile. I renamed it `executionStartSeconds`, made it wrap this layer's Go-side `executionStartUnix`, and kept `errNoExecutionStart`, so a VM with no pinned start still fails every JWT time check. `jwt`'s clock calls it.
+- The jwt and builtin-errors test helpers now pin the clock with `SetExecutionStart` instead of setting the global. The graph's JWT lines now name the new helper, and the "module code can overwrite the clock" risk is recorded as closed by this layer.
+- _Model: claude-opus-5-5_
