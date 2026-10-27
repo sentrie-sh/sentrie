@@ -333,7 +333,7 @@ func testExecutorForModuleBinding() *executorImpl {
 	exec := &executorImpl{
 		index:              idx,
 		jsRegistry:         js.NewRegistry("."),
-		moduleBindingPerch: perch.New[*ModuleBinding](16),
+		moduleBindingPerch: perch.New[*jsModule](16),
 		callMemoizePerch:   perch.New[any](16),
 	}
 	exec.jsRegistry.RegisterGoBuiltin("hash", js.BuiltinHashGo)
@@ -346,28 +346,26 @@ func (s *RuntimeTestSuite) TestGetModuleBindingCachesBindings() {
 	ms, err := exec.jsRegistry.PrepareUse(use.RelativeFrom, use.LibFrom, ".")
 	s.Require().NoError(err)
 
-	first, loaded, err := exec.getModuleBinding(s.T().Context(), use, ms)
+	first, err := exec.getModuleBinding(s.T().Context(), use, ms)
 	s.Require().NoError(err)
-	_ = loaded
 	s.NotNil(first)
 	s.Equal(ms.KeyOrPath(), first.CanonicalKey)
 	s.Equal(use.As, first.Alias)
 
-	second, loaded, err := exec.getModuleBinding(s.T().Context(), use, ms)
+	second, err := exec.getModuleBinding(s.T().Context(), use, ms)
 	s.Require().NoError(err)
-	_ = loaded
 	s.NotNil(second)
 	s.Equal(ms.KeyOrPath(), second.CanonicalKey)
 	s.Equal(use.As, second.Alias)
 }
 
-func (s *RuntimeTestSuite) TestJSBindingConstructorRejectsMissingRequestedExport() {
+func (s *RuntimeTestSuite) TestGetModuleBindingRejectsMissingRequestedExport() {
 	exec := testExecutorForModuleBinding()
 	use := ast.NewUseStatement([]string{"doesNotExist"}, "", []string{constants.APPNAME, "hash"}, "hash", stubRange())
 	ms, err := exec.jsRegistry.PrepareUse(use.RelativeFrom, use.LibFrom, ".")
 	s.Require().NoError(err)
 
-	_, err = exec.jsBindingConstructor(s.T().Context(), use, ms)
+	_, err = exec.getModuleBinding(s.T().Context(), use, ms)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "missing required export")
 }

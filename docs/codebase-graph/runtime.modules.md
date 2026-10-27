@@ -9,7 +9,7 @@ tags: javascript, ffi, sandboxing, pooling, boundary-codec, security
 # Node: runtime.ModuleBinding (JavaScript Call Boundary)
 
 ## 1. Architectural Role & Intent
-The foreign-function boundary between Sentrie and embedded JavaScript. A `ModuleBinding` wraps a pool of `JSInstance` VMs for one resolved module; `Call` acquires an instance, injects the execution start time, marshals arguments into goja values, installs a context-cancellation interrupt, invokes the export, and validates and unmarshals the return. It is where policy evaluation leaves the Go type system and comes back.
+The foreign-function boundary between Sentrie and embedded JavaScript. A `jsModule` holds the pool of `JSInstance` VMs for one resolved module path, shared by every `use` of that path; a `ModuleBinding` is one `use` statement's view of it (alias plus requested export names). `Call` acquires an instance, injects the execution start time, marshals arguments into goja values, installs a context-cancellation interrupt, invokes the export, and validates and unmarshals the return. It is where policy evaluation leaves the Go type system and comes back.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -26,13 +26,18 @@ The foreign-function boundary between Sentrie and embedded JavaScript. A `Module
 
 ## 3. Interface Contracts & Public Surface
 
-- **Signature:** `JSInstance` - `{ rt *goja.Runtime, exports map[string]goja.Value }` / `ModuleBinding` - `{ CanonicalKey, Alias string, instancePool *puddle.Pool[*JSInstance] }`
-  - **Behavior:** `exports` is the **restricted** set of names the `use` statement asked for, captured at construction. `CanonicalKey` is the resolved module path used as the cache key.
+- **Signature:** `JSInstance` - `{ rt *goja.Runtime, exports *goja.Object, keys map[string]struct{} }` / `jsModule` - `{ key string, pool *puddle.Pool[*JSInstance] }` / `ModuleBinding` - `{ CanonicalKey, Alias string, exports []string, module *jsModule }`
+  - **Behavior:** A `JSInstance` carries the module's **whole** exports object plus its own enumerable keys captured at load; it holds no restriction. The restriction lives on the `ModuleBinding`: a `use` that names exports reaches only those names, and a `use` that names none reaches only the module's own enumerable exports. `CanonicalKey` is the resolved module path, the cache key of the shared `jsModule`.
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 
+- **Signature:** `(*jsModule).checkExports(ctx, names []string) -> error`
+  - **Behavior:** Acquires an instance and fails if any requested name is absent from the exports object. Runs once per `use` at bind time.
+  - **Side Effects:** Pool acquisition.
+  - **Exceptions:** `module %s missing required export %q`; pool acquisition failure.
+
 - **Signature:** `(ModuleBinding).Call(ctx, ec, fn string, args ...any) -> (any, error)`
-  - **Behavior:** Acquires a pooled VM, sets the execution-start global, looks the export up, asserts it is callable, spawns a watchdog goroutine that interrupts the VM on context cancellation, marshals arguments, invokes, then maps `undefined` and `null` returns to boundary sentinels before checking the return's reflect kind against an allowlist (map, slice, array, string, int64, float64, bool, struct) and exporting other values.
+  - **Behavior:** Acquires a pooled VM, sets the execution-start global, looks the export up through this binding's projection, asserts it is callable, spawns a watchdog goroutine that interrupts the VM on context cancellation, marshals arguments, invokes, then maps `undefined` and `null` returns to boundary sentinels before checking the return's reflect kind against an allowlist (map, slice, array, string, int64, float64, bool, struct) and exporting other values.
   - **Side Effects:** Executes arbitrary JavaScript; mutates the VM's global scope; releases the instance back to the pool.
   - **Exceptions:** `module has no JS binding`; pool acquisition failure; `function %s not found in module %q`; `export '%q' is not callable`; `unexpected return type %s`; any JS exception or interrupt.
 

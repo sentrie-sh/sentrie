@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -29,16 +16,73 @@ import (
 	"github.com/sentrie-sh/sentrie/constants"
 )
 
-// JSInstance is a context-aware binding for an alias VM.
+// JSInstance is one loaded copy of a module, in its own VM.
 type JSInstance struct {
-	rt      *goja.Runtime
-	exports map[string]goja.Value
+	rt *goja.Runtime
+	// exports is the module's whole `module.exports` object. Which names a
+	// caller may reach is decided per `use` by the ModuleBinding, not here.
+	exports *goja.Object
+	// keys holds the own enumerable export names, captured at load. A `use`
+	// that names no exports reaches exactly these.
+	keys map[string]struct{}
 }
 
+func newJSInstance(rt *goja.Runtime, exports *goja.Object) *JSInstance {
+	keys := map[string]struct{}{}
+	for _, k := range exports.Keys() {
+		keys[k] = struct{}{}
+	}
+	return &JSInstance{rt: rt, exports: exports, keys: keys}
+}
+
+// jsModule is a loaded module and its VM pool, shared by every `use` of the
+// same resolved path. It carries no export restriction.
+type jsModule struct {
+	key  string
+	pool *puddle.Pool[*JSInstance]
+}
+
+// ModuleBinding is one `use` statement's view of a shared jsModule: the alias
+// it was bound under and the exports it asked for.
 type ModuleBinding struct {
 	CanonicalKey string
 	Alias        string
-	instancePool *puddle.Pool[*JSInstance]
+	// exports lists the names the `use` statement requested. Empty means the
+	// module's own enumerable exports.
+	exports []string
+	module  *jsModule
+}
+
+// lookupExport applies this binding's export projection to a loaded instance.
+func (m ModuleBinding) lookupExport(instance *JSInstance, name string) (goja.Value, bool) {
+	if len(m.exports) > 0 {
+		if !slices.Contains(m.exports, name) {
+			return nil, false
+		}
+	} else if _, ok := instance.keys[name]; !ok {
+		return nil, false
+	}
+	v := instance.exports.Get(name)
+	return v, v != nil
+}
+
+// checkExports verifies that the module provides every name in exports, so a
+// `use` naming a missing export fails when it is bound rather than when called.
+func (m *jsModule) checkExports(ctx context.Context, exports []string) error {
+	if len(exports) == 0 {
+		return nil
+	}
+	res, err := m.pool.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer res.Release()
+	for _, name := range exports {
+		if res.Value().exports.Get(name) == nil {
+			return fmt.Errorf("module %s missing required export %q", m.key, name)
+		}
+	}
+	return nil
 }
 
 func normalizeBoundaryForJS(v any) any {
@@ -64,10 +108,10 @@ func normalizeBoundaryForJS(v any) any {
 }
 
 func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string, args ...any) (any, error) {
-	if m.instancePool == nil {
+	if m.module == nil || m.module.pool == nil {
 		return nil, fmt.Errorf("module has no JS binding")
 	}
-	poolInstance, err := m.instancePool.Acquire(ctx)
+	poolInstance, err := m.module.pool.Acquire(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +122,7 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 		return nil, err
 	}
 
-	val, ok := instance.exports[fn]
+	val, ok := m.lookupExport(instance, fn)
 	if !ok {
 		return nil, fmt.Errorf("function %s not found in module %q", fn, m.Alias)
 	}

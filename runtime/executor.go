@@ -8,10 +8,10 @@ import (
 	stdErr "errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"sync"
 
 	"github.com/binaek/perch"
-	"github.com/dop251/goja"
 	"github.com/jackc/puddle/v2"
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
@@ -25,7 +25,7 @@ import (
 type NewExecutorOption func(*executorImpl)
 
 const (
-	// moduleBindingCacheEntries bounds the module-binding cache. Bindings are keyed by
+	// moduleBindingCacheEntries bounds the module cache. Loaded modules are keyed by
 	// module path, so this only needs to cover the distinct `use` targets loading at once.
 	moduleBindingCacheEntries = 1024
 
@@ -64,7 +64,7 @@ type Executor interface {
 type executorImpl struct {
 	index              *index.Index
 	jsRegistry         *js.Registry
-	moduleBindingPerch *perch.Perch[*ModuleBinding] // --> (policy.useAlias) -> module binding
+	moduleBindingPerch *perch.Perch[*jsModule] // module path -> loaded module and its VM pool
 	callMemoizePerch   *perch.Perch[any]
 }
 
@@ -73,7 +73,7 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 	exec := &executorImpl{
 		index:              idx,
 		jsRegistry:         js.NewRegistry(idx.Pack.Location),
-		moduleBindingPerch: perch.New[*ModuleBinding](moduleBindingCacheEntries), // --> (policy.useAlias) -> module binding
+		moduleBindingPerch: perch.New[*jsModule](moduleBindingCacheEntries),
 		callMemoizePerch:   perch.New[any](defaultCallMemoizeCacheEntries),
 	}
 
@@ -302,8 +302,11 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 	return d, attachments, ruleNode, nil
 }
 
-func (e *executorImpl) jsBindingConstructor(ctx context.Context, use *ast.UseStatement, ms *js.ModuleSpec) (*JSInstance, error) {
-	// Per-alias VM with require cache
+// loadJSInstance builds a fresh VM and loads the module into it. The instance
+// carries the module's whole exports object; restriction to the names a `use`
+// asked for happens per binding (see ModuleBinding.lookupExport).
+func (e *executorImpl) loadJSInstance(ctx context.Context, ms *js.ModuleSpec) (*JSInstance, error) {
+	// Per-module VM with require cache
 	ar := js.NewAliasRuntime(e.jsRegistry, ms.Dir)
 	if err := ar.SetupStdLib(ctx, e.index.Pack); err != nil {
 		return nil, err
@@ -314,27 +317,7 @@ func (e *executorImpl) jsBindingConstructor(ctx context.Context, use *ast.UseSta
 	if err != nil {
 		return nil, err
 	}
-
-	// Build exports map restricted to requested idents
-	exports := map[string]goja.Value{}
-	if len(use.Modules) > 0 {
-		for _, name := range use.Modules {
-			if v := exObj.Get(name); v != nil {
-				exports[name] = v
-			} else {
-				// strict: fail fast if requested fn missing
-				return nil, fmt.Errorf("module %s missing required export %q", ms.KeyOrPath(), name)
-			}
-		}
-	} else {
-		for _, k := range exObj.Keys() {
-			exports[k] = exObj.Get(k)
-		}
-	}
-	return &JSInstance{
-		rt:      ar.VM,
-		exports: exports,
-	}, nil
+	return newJSInstance(ar.VM, exObj), nil
 }
 
 func (e *executorImpl) bindUses(ctx context.Context, ec *ExecutionContext, p *index.Policy) error {
@@ -350,7 +333,7 @@ func (e *executorImpl) bindUses(ctx context.Context, ec *ExecutionContext, p *in
 		}
 
 		// Resolve and ensure program exists
-		binding, _, err := e.getModuleBinding(ctx, use, ms)
+		binding, err := e.getModuleBinding(ctx, use, ms)
 		if err != nil {
 			return err
 		}
@@ -360,10 +343,29 @@ func (e *executorImpl) bindUses(ctx context.Context, ec *ExecutionContext, p *in
 	return nil
 }
 
-// getModuleBinding resolves and caches a module binding for a given use statement and module spec.
-func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStatement, ms *js.ModuleSpec) (binding *ModuleBinding, _ bool, err error) {
+// getModuleBinding returns the binding for one `use` statement. The loaded
+// module (its VM pool) is shared by every `use` of the same path; the export
+// projection and the "missing required export" check belong to this `use` alone.
+func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStatement, ms *js.ModuleSpec) (*ModuleBinding, error) {
+	module, err := e.getModule(ctx, ms)
+	if err != nil {
+		return nil, err
+	}
+	if err := module.checkExports(ctx, use.Modules); err != nil {
+		return nil, err
+	}
+	return &ModuleBinding{
+		CanonicalKey: module.key,
+		Alias:        use.As,
+		exports:      slices.Clone(use.Modules),
+		module:       module,
+	}, nil
+}
+
+// getModule loads the module at ms into a warmed VM pool, keyed by path alone.
+func (e *executorImpl) getModule(ctx context.Context, ms *js.ModuleSpec) (*jsModule, error) {
 	constructor := func(ctx context.Context) (*JSInstance, error) {
-		return e.jsBindingConstructor(ctx, use, ms)
+		return e.loadJSInstance(ctx, ms)
 	}
 
 	destructor := func(res *JSInstance) {
@@ -371,7 +373,7 @@ func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStateme
 		res.rt.ClearInterrupt()
 	}
 
-	perchLoader := func(ctx context.Context, _ string) (*ModuleBinding, error) {
+	perchLoader := func(ctx context.Context, key string) (*jsModule, error) {
 		jsInstancePool, err := puddle.NewPool(&puddle.Config[*JSInstance]{
 			Constructor: constructor,
 			Destructor:  destructor,
@@ -384,14 +386,11 @@ func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStateme
 		if err := jsInstancePool.CreateResource(ctx); err != nil {
 			return nil, err
 		}
-		return &ModuleBinding{
-			CanonicalKey: ms.KeyOrPath(),
-			Alias:        use.As,
-			instancePool: jsInstancePool,
-		}, nil
+		return &jsModule{key: key, pool: jsInstancePool}, nil
 	}
 
-	return e.moduleBindingPerch.Get(ctx, ms.KeyOrPath(), -1, perchLoader)
+	module, _, err := e.moduleBindingPerch.Get(ctx, ms.KeyOrPath(), -1, perchLoader)
+	return module, err
 }
 
 // evaluateRuleOutcome drives rule evaluation and returns (value, node, error).
