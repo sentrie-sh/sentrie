@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package js
 
@@ -34,7 +21,7 @@ var BuiltinHashGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("md5", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("md5 requires exactly 1 argument"))
+			return throwErr(vm, errors.New("md5 requires exactly 1 argument"))
 		}
 		data := call.Argument(0).String()
 		hash := md5.Sum([]byte(data))
@@ -43,7 +30,7 @@ var BuiltinHashGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("sha1", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("sha1 requires exactly 1 argument"))
+			return throwErr(vm, errors.New("sha1 requires exactly 1 argument"))
 		}
 		data := call.Argument(0).String()
 		hash := sha1.Sum([]byte(data))
@@ -52,7 +39,7 @@ var BuiltinHashGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("sha256", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("sha256 requires exactly 1 argument"))
+			return throwErr(vm, errors.New("sha256 requires exactly 1 argument"))
 		}
 		data := call.Argument(0).String()
 		hash := sha256.Sum256([]byte(data))
@@ -61,7 +48,7 @@ var BuiltinHashGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("sha512", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("sha512 requires exactly 1 argument"))
+			return throwErr(vm, errors.New("sha512 requires exactly 1 argument"))
 		}
 		data := call.Argument(0).String()
 		hash := sha512.Sum512([]byte(data))
@@ -70,7 +57,7 @@ var BuiltinHashGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("hmac", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 3 {
-			return vm.NewGoError(errors.New("hmac requires exactly 3 arguments"))
+			return throwErr(vm, errors.New("hmac requires exactly 3 arguments"))
 		}
 		algorithm := call.Argument(0).String()
 		data := call.Argument(1).String()
@@ -89,7 +76,7 @@ var BuiltinHashGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		case "sha512":
 			h = hmac.New(sha512.New, []byte(key))
 		default:
-			return vm.NewGoError(errors.New("unsupported algorithm: " + algorithm))
+			return throwErr(vm, errors.New("unsupported algorithm: "+algorithm))
 		}
 
 		h.Write([]byte(data))

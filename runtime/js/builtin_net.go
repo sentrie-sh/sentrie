@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package js
 
@@ -29,14 +16,14 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("cidrContains", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 2 {
-			return vm.NewGoError(errors.New("cidrContains requires exactly 2 arguments"))
+			return throwErr(vm, errors.New("cidrContains requires exactly 2 arguments"))
 		}
 		cidrStr := call.Argument(0).String()
 		cidrOrIpStr := call.Argument(1).String()
 
 		_, cidrNet, err := net.ParseCIDR(cidrStr)
 		if err != nil {
-			return vm.NewGoError(err)
+			return throwErr(vm, err)
 		}
 
 		var ip net.IP
@@ -46,7 +33,7 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		} else {
 			ip = net.ParseIP(cidrOrIpStr)
 			if ip == nil {
-				return vm.NewGoError(errors.New("invalid IP or CIDR: " + cidrOrIpStr))
+				return throwErr(vm, errors.New("invalid IP or CIDR: "+cidrOrIpStr))
 			}
 		}
 
@@ -55,19 +42,19 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("cidrIntersects", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 2 {
-			return vm.NewGoError(errors.New("cidrIntersects requires exactly 2 arguments"))
+			return throwErr(vm, errors.New("cidrIntersects requires exactly 2 arguments"))
 		}
 		cidr1Str := call.Argument(0).String()
 		cidr2Str := call.Argument(1).String()
 
 		_, net1, err := net.ParseCIDR(cidr1Str)
 		if err != nil {
-			return vm.NewGoError(err)
+			return throwErr(vm, err)
 		}
 
 		_, net2, err := net.ParseCIDR(cidr2Str)
 		if err != nil {
-			return vm.NewGoError(err)
+			return throwErr(vm, err)
 		}
 
 		// Two CIDRs intersect if either contains the other's network address
@@ -77,7 +64,7 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("cidrIsValid", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("cidrIsValid requires exactly 1 argument"))
+			return throwErr(vm, errors.New("cidrIsValid requires exactly 1 argument"))
 		}
 		cidrStr := call.Argument(0).String()
 
@@ -90,13 +77,13 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("cidrExpand", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("cidrExpand requires exactly 1 argument"))
+			return throwErr(vm, errors.New("cidrExpand requires exactly 1 argument"))
 		}
 		cidrStr := call.Argument(0).String()
 
 		ip, ipNet, err := net.ParseCIDR(cidrStr)
 		if err != nil {
-			return vm.NewGoError(err)
+			return throwErr(vm, err)
 		}
 
 		var hosts []string
@@ -109,7 +96,7 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("cidrMerge", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("cidrMerge requires exactly 1 argument"))
+			return throwErr(vm, errors.New("cidrMerge requires exactly 1 argument"))
 		}
 
 		addrsArg := call.Argument(0)
@@ -120,14 +107,16 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		switch v := addrsExported.(type) {
 		case []interface{}:
 			for _, item := range v {
-				if str, ok := item.(string); ok {
-					addrs = append(addrs, str)
+				str, ok := item.(string)
+				if !ok {
+					return throwErr(vm, errors.New("cidrMerge requires an array of IPs/CIDRs"))
 				}
+				addrs = append(addrs, str)
 			}
 		case []string:
 			addrs = v
 		default:
-			return vm.NewGoError(errors.New("cidrMerge requires an array of IPs/CIDRs"))
+			return throwErr(vm, errors.New("cidrMerge requires an array of IPs/CIDRs"))
 		}
 
 		// Parse all addresses
@@ -138,7 +127,7 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 				// Try as IP (add /32 or /128)
 				ip, err := netip.ParseAddr(addr)
 				if err != nil {
-					return vm.NewGoError(errors.New("invalid IP or CIDR: " + addr))
+					return throwErr(vm, errors.New("invalid IP or CIDR: "+addr))
 				}
 				if ip.Is4() {
 					prefix = netip.PrefixFrom(ip, 32)
@@ -164,7 +153,7 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("parseIP", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("parseIP requires exactly 1 argument"))
+			return throwErr(vm, errors.New("parseIP requires exactly 1 argument"))
 		}
 		ipStr := call.Argument(0).String()
 
@@ -177,7 +166,7 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("isIPv4", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("isIPv4 requires exactly 1 argument"))
+			return throwErr(vm, errors.New("isIPv4 requires exactly 1 argument"))
 		}
 		ipStr := call.Argument(0).String()
 
@@ -190,7 +179,7 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("isIPv6", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("isIPv6 requires exactly 1 argument"))
+			return throwErr(vm, errors.New("isIPv6 requires exactly 1 argument"))
 		}
 		ipStr := call.Argument(0).String()
 
@@ -203,7 +192,7 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("isPrivate", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("isPrivate requires exactly 1 argument"))
+			return throwErr(vm, errors.New("isPrivate requires exactly 1 argument"))
 		}
 		ipStr := call.Argument(0).String()
 
@@ -216,7 +205,7 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("isPublic", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("isPublic requires exactly 1 argument"))
+			return throwErr(vm, errors.New("isPublic requires exactly 1 argument"))
 		}
 		ipStr := call.Argument(0).String()
 
@@ -229,7 +218,7 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("isLoopback", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("isLoopback requires exactly 1 argument"))
+			return throwErr(vm, errors.New("isLoopback requires exactly 1 argument"))
 		}
 		ipStr := call.Argument(0).String()
 
@@ -242,7 +231,7 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 
 	_ = ex.Set("isMulticast", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
-			return vm.NewGoError(errors.New("isMulticast requires exactly 1 argument"))
+			return throwErr(vm, errors.New("isMulticast requires exactly 1 argument"))
 		}
 		ipStr := call.Argument(0).String()
 

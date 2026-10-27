@@ -1,22 +1,13 @@
-/**
- * Copyright 2025 Binaek Sarkar
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+// SPDX-License-Identifier: Apache-2.0
 
 /**
  * Net module provides network and IP address utilities for network-based policies.
  * Supports both IPv4 and IPv6 addresses and CIDR notation.
+ *
+ * Functions that compute a result throw on invalid input. The predicates (`cidrIsValid` and the `is*` checks)
+ * answer false for input they cannot parse, so prefer a positive check such as `isPublic(ip)` over a
+ * negated one such as `!isPrivate(ip)`, which is true for garbage.
  */
 declare module "@sentrie/net" {
   /**
@@ -58,7 +49,7 @@ declare module "@sentrie/net" {
    * Merges a list of IP addresses and subnets into the smallest possible list of CIDR blocks.
    * @param addrs - Array of IP addresses and/or CIDR blocks (e.g., ["192.168.1.1", "192.168.1.2", "10.0.0.0/24"])
    * @returns Array of merged CIDR blocks
-   * @throws Error if any address is invalid
+   * @throws Error if addrs is not an array of strings or any address is invalid
    */
   export function cidrMerge(addrs: string[] | any[]): string[];
 
