@@ -5,20 +5,20 @@ package js
 
 import (
 	"strings"
+	"time"
 
 	"github.com/dop251/goja"
-	"github.com/sentrie-sh/sentrie/constants"
 )
 
 // testExecutionStartUnix is the execution start time the builtin tests pin,
-// standing in for the global runtime.ModuleBinding.Call sets.
+// standing in for the start the executor pins with SetExecutionStart.
 const testExecutionStartUnix int64 = 1_700_000_000
 
 // runBuiltinScript installs provider as the global `m` in a fresh VM, with
 // the execution start time set, and runs script against it.
 func (s *JSTestSuite) runBuiltinScript(provider ModuleProvider, script string) (goja.Value, error) {
 	vm := goja.New()
-	s.Require().NoError(vm.Set(constants.ExecutionStartTimeUnixKey, testExecutionStartUnix))
+	SetExecutionStart(vm, time.Unix(testExecutionStartUnix, 0))
 	ex, err := provider(vm)
 	s.Require().NoError(err)
 	s.Require().NoError(vm.Set("m", ex))

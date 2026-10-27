@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/dop251/goja"
 )
@@ -49,7 +50,7 @@ func (s *JSTestSuite) jwtEval(tok, expr string) string {
 	s.Require().NoError(err)
 	s.Require().NoError(vm.Set("m", ex))
 	s.Require().NoError(vm.Set("token", tok))
-	s.Require().NoError(vm.Set("__executionStartTimeUnix", testExecutionStartUnix))
+	SetExecutionStart(vm, time.Unix(testExecutionStartUnix, 0))
 	got, err := vm.RunString(`(function () {
 		try { return JSON.stringify(` + expr + `); } catch (e) { return "threw:" + e.message; }
 	})()`)

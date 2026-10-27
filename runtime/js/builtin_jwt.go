@@ -276,7 +276,7 @@ var BuiltinJwtGo = func(vm *goja.Runtime) (*goja.Object, error) {
 		if !opts.checkTime {
 			return 0, nil
 		}
-		return executionStartUnix(vm)
+		return executionStartSeconds(vm)
 	}
 	timeCheck := func(payload map[string]any, now int64, opts jwtOptions) error {
 		if !opts.checkTime {
