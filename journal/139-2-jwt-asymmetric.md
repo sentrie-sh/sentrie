@@ -35,3 +35,8 @@
 - Rebased onto `main` (cfe249a). One conflict, in the module-set list of `docs/codebase-graph/runtime.js.builtins.md`: kept `main`'s pure-computation line (#208 folded base64 into `encoding`) and this layer's cryptographic line (HMAC, RSA and ECDSA).
 - Expect a conflict with `154-js-boundary-values` in `builtin_jwt.go` and `builtin_clock.go` whichever lands second: 154 now reads the JWT clock through `executionStartSeconds`.
 - _Model: claude-opus-5-5_
+
+### 14:06 - Fix a flaky JWT known-answer assertion
+- `make test` on 153 failed in `TestJwtKnownAnswer` because the `getHeader` JSON had its keys in the other order. `getHeader` returns a Go map, so the key order of `JSON.stringify` is random: 5 failures in 50 runs here, 4 in 50 on 153. The assertion came from #139-1 and is on `main` since #197; its CI passed by chance.
+- Switched it to `s.JSONEq`. 200 runs of `TestJSTestSuite/TestJwt` pass.
+- _Model: claude-opus-5-5_
