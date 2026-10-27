@@ -11,7 +11,6 @@ require (
 	github.com/evanw/esbuild v0.25.11
 	github.com/fatih/structs v1.1.0
 	github.com/google/uuid v1.6.0
-	github.com/jackc/puddle/v2 v2.2.2
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/stretchr/testify v1.11.1
@@ -37,7 +36,6 @@ require (
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
-	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect

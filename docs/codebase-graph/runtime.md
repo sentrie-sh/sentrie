@@ -25,7 +25,6 @@ tags: evaluation, execution, sandboxing, javascript, concurrency, back-end
 | `runtime` | `LAYERED_ON` | [[runtime.js]] | Owns the goja VM registry, TypeScript compilation, and the `@sentra/*` standard library. |
 | `runtime` | `LAYERED_ON` | [[runtime.trace]] | Builds the decision explanation tree alongside evaluation. |
 | `runtime` | `IMPORTS` | `ext.dop251.goja` | Embedded ECMAScript interpreter for `use` modules. |
-| `runtime` | `IMPORTS` | `ext.jackc.puddle` | Pools JS VM instances per module binding. |
 | `runtime` | `IMPORTS` | `ext.binaek.perch` | Entry-count-bounded caches for module bindings and memoized calls. |
 | [[cmd]] | `CALLS` | [[runtime]] | The `exec` command builds an executor and runs a policy or rule. |
 | [[api]] | `CALLS` | [[runtime]] | Serves evaluation requests against a long-lived executor. |
@@ -73,10 +72,10 @@ tags: evaluation, execution, sandboxing, javascript, concurrency, back-end
   - **Exceptions:** `ErrTypeRef`, `ErrConstraintFailed`, `ErrUnknownConstraint` - see [[runtime.err_typedef]].
 
 ## 4. Operational Context & Gotchas
-- **Statefulness:** The executor is a **long-lived singleton** holding caches and JS VM pools; each `ExecRule` creates an **ephemeral** `ExecutionContext` that is discarded afterwards. `Dispose()` exists but is currently a no-op.
+- **Statefulness:** The executor is a **long-lived singleton** holding caches and one loaded module per `use` target; each `ExecRule` creates an **ephemeral** `ExecutionContext` that is discarded afterwards. `Dispose()` exists but is currently a no-op.
 - **Performance/Scale Notes:**
-  - `ExecPolicy` runs every exported rule in parallel goroutines against a **shared executor**, so all cache and VM-pool concurrency issues are exercised on every policy run.
-  - JS VM instances are pooled at **MaxSize 10** per module binding; a policy with heavy module use across many concurrent evaluations will block on acquisition.
+  - `ExecPolicy` runs every exported rule in parallel goroutines against a **shared executor**, so all cache and module-loading concurrency issues are exercised on every policy run.
+  - Every module call runs in a fresh JS VM ([#105](https://github.com/sentrie-sh/sentrie/issues/105)), at most **10 live VMs per module**; a policy with heavy module use across many concurrent evaluations waits for a slot.
   - Module bindings are cached globally by canonical module path, and memoized calls share a 10,000-entry LRU by default - evictions are silent.
 - **Dependencies Risk:**
   - **This package converts static guarantees into runtime behaviour.** Everything [[index.validate]] could not prove - type conformance, arity of dynamic callables, module export presence - fails here, at request time, in front of a user.

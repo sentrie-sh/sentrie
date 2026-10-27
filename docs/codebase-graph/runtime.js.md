@@ -19,7 +19,7 @@ Everything required to run TypeScript and JavaScript inside the policy engine: m
 | `runtime.js` | `IMPORTS` | `ext.evanw.esbuild` | Transpiles TypeScript to CommonJS JavaScript before compilation. |
 | `runtime.js` | `LAYERED_ON` | [[pack]] | `PackFile.Permissions` gates which environment variables the sandbox may see. |
 | `runtime.js` | `LAYERED_ON` | [[constants]] | `APPNAME` builds the `@sentrie/*` builtin namespace; `ExecutionStartTimeUnixKey` pins time. |
-| [[runtime.modules]] | `DEPENDS_ON` | [[runtime.js]] | The runtime pools `AliasRuntime` instances and calls into module exports. |
+| [[runtime.modules]] | `DEPENDS_ON` | [[runtime.js]] | The runtime loads a fresh `AliasRuntime` per module call and calls into module exports. |
 | [[runtime.executor]] | `CALLS` | [[runtime.js.registry]] | Registers every Go builtin and the TypeScript builtin at executor construction. |
 
 ## 3. Interface Contracts & Public Surface
@@ -50,11 +50,10 @@ Everything required to run TypeScript and JavaScript inside the policy engine: m
   - **Exceptions:** `ErrPermissionDenied` where a builtin is permission-gated. Functions throw JavaScript exceptions on failure.
 
 ## 4. Operational Context & Gotchas
-- **Statefulness:** The `Registry` is shared and long-lived, caching compiled programs. Each `AliasRuntime` owns exactly one VM with its own module-exports cache. VMs are pooled by [[runtime.modules]].
-- **Performance/Scale Notes:** Transpilation and compilation happen **once per module** behind a `sync.Once`; execution reuses the compiled `goja.Program`. VM creation is the expensive part, which is why VMs are pooled rather than created per call. goja is an interpreter - it does not JIT - so hot loops in JavaScript are markedly slower than the equivalent Go builtin.
+- **Statefulness:** The `Registry` is shared and long-lived, caching compiled programs. Each `AliasRuntime` owns exactly one VM with its own module-exports cache. [[runtime.modules]] creates one per module call and drops it afterwards.
+- **Performance/Scale Notes:** Transpilation and compilation happen **once per module** behind a `sync.Once`; execution reuses the compiled `goja.Program`. VM creation is the expensive part: since #105 every module call pays it (about 30 us and 55 KB for a small module), in exchange for calls that cannot see each other's module state. Require resolution is memoised per registry so the per-call load does no filesystem work. goja is an interpreter - it does not JIT - so hot loops in JavaScript are markedly slower than the equivalent Go builtin.
 - **Dependencies Risk:**
   - **The sandbox is defined by omission, not by policy.** goja provides no filesystem, network, or process access by default, and this package adds none - the `net` builtin is pure CIDR arithmetic with no sockets. The boundary therefore holds only as long as no future builtin introduces real I/O. There is no allowlist enforcing that.
   - **Environment access is the one deliberate hole**, gated per-key by pack permissions. A nil permissions block exposes nothing, which is the correct default.
   - **`time.now()` is pinned to the execution start timestamp** injected as a VM global, so JavaScript sees the same clock as the policy evaluator - with a silent fallback to the real wall clock if the global is missing.
   - **Builtin failures throw.** Every Go builtin raises a JavaScript exception through `throwErr`, never a returned Error object (#111). See [[runtime.js.builtins]] for the predicate and `null` conventions.
-  - **VMs are pooled without reset**, so module-level state persists across evaluations. Filed as [#105](https://github.com/sentrie-sh/sentrie/issues/105); see [[runtime.modules]].

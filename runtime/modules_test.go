@@ -6,9 +6,9 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/dop251/goja"
-	"github.com/jackc/puddle/v2"
 	"github.com/sentrie-sh/sentrie/box"
 )
 
@@ -20,21 +20,19 @@ func testModuleBindingWithExports(rt *goja.Runtime, exports map[string]goja.Valu
 		}
 	}
 	instance := newJSInstance(rt, obj)
-	pool, err := puddle.NewPool(&puddle.Config[*JSInstance]{
-		Constructor: func(ctx context.Context) (*JSInstance, error) {
-			return instance, nil
-		},
-		Destructor: func(res *JSInstance) {
-			res.rt.ClearInterrupt()
-		},
-		MaxSize: 10,
+	// Tests reuse one instance so they can install exports by hand; production
+	// loaders build a fresh VM per acquisition.
+	// The loader ignores its context and the helper has no test in scope, so a
+	// root context is enough here.
+	module, err := newJSModule(context.Background(), "mod", func(context.Context, time.Time) (*JSInstance, error) {
+		return instance, nil
 	})
 	if err != nil {
 		panic(err)
 	}
 	return ModuleBinding{
 		Alias:  "mod",
-		module: &jsModule{key: "mod", pool: pool},
+		module: module,
 	}
 }
 
@@ -86,14 +84,13 @@ func (s *RuntimeTestSuite) TestModuleBindingCallSuccessAndErrorPaths() {
 	s.Require().Error(err)
 	s.Require().Equal("module has no JS binding", err.Error())
 
-	failPool, err := puddle.NewPool(&puddle.Config[*JSInstance]{
-		Constructor: func(ctx context.Context) (*JSInstance, error) {
+	failBinding := ModuleBinding{Alias: "mod", module: &jsModule{
+		key:   "mod",
+		slots: make(chan struct{}, 1),
+		load: func(context.Context, time.Time) (*JSInstance, error) {
 			return nil, fmt.Errorf("pool construct failed")
 		},
-		MaxSize: 1,
-	})
-	s.Require().NoError(err)
-	failBinding := ModuleBinding{Alias: "mod", module: &jsModule{key: "mod", pool: failPool}}
+	}}
 	_, err = failBinding.Call(ctx, ec, "fn")
 	s.Require().Error(err)
 	s.Require().Equal("pool construct failed", err.Error())
