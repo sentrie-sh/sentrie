@@ -33,3 +33,10 @@
 ### 11:34 - Restack onto main after #193 and #195 merged
 - Rebased onto the restacked 168-2. One conflict, in the `ModuleBinding.Call` entry of `docs/codebase-graph/runtime.modules.md`: combined this layer's `js.BeginCall` description with #193's "looks the export up through this binding's projection".
 - _Model: claude-opus-5-5_
+
+### 14:03 - Restack onto the rebased 168-2
+- Carried onto 168-2 after the 168 stack was rebased onto `main` (cfe249a). `runtime/modules.go` conflicted with #194 (105), which replaced the puddle pool with a fresh VM per call: `ModuleBinding.Call` now takes `instance, release` from `acquire` and calls `js.BeginCall` on that fresh instance. The shims still install, through `SetupStdLib` in `loadJSInstance`, which builds every per-call VM. `BeginCall`'s comment no longer says "pooled".
+- `docs/codebase-graph/runtime.modules.md`: kept #194's fresh-VM `Call` entry and added the `BeginCall` step to it.
+- With fresh VMs, a module's top-level code runs at each acquisition, before `BeginCall`, so top-level `Date.now()` reads 0 under `deterministic_js`. That is still deterministic, as the shim comment says.
+- Expect a conflict with `154-js-boundary-values` whichever lands second: 154 deletes `constants.ExecutionStartTimeUnixKey`, which `BeginCall` sets. The fix is to call `js.SetExecutionStart` there.
+- _Model: claude-opus-5-5_
