@@ -45,7 +45,7 @@ Everything required to run TypeScript and JavaScript inside the policy engine: m
   - **Exceptions:** `esbuild: %v` on the first transform error.
 
 - **Signature:** `Builtin<Name>Go` - the Go module providers
-  - **Behavior:** Sixteen `ModuleProvider` values (`uuid`, `crypto`, `time`, `encoding`, `collection`, `jwt`, `regex`, `net`, `hash`, `url`, `string`, `json`, `semver`, `math`, plus base64 and the TypeScript `js` module) that fabricate a `module.exports` object directly in the VM. See [[runtime.js.builtins]].
+  - **Behavior:** Fourteen `ModuleProvider` values (`uuid`, `crypto`, `time`, `encoding`, `collection`, `jwt`, `regex`, `net`, `hash`, `url`, `string`, `json`, `semver`, `math`) that fabricate a `module.exports` object directly in the VM. The TypeScript `js` module is registered separately from embedded source. See [[runtime.js.builtins]].
   - **Side Effects:** Sets properties on a new VM object.
   - **Exceptions:** `ErrPermissionDenied` where a builtin is permission-gated. Functions throw JavaScript exceptions on failure.
 

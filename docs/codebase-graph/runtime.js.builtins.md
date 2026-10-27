@@ -9,7 +9,7 @@ tags: standard-library, ffi, determinism, error-handling
 # Node: js.builtins (Go-Backed Standard Library)
 
 ## 1. Architectural Role & Intent
-Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` namespace. They exist so that common policy operations - hashing, JWT verification, CIDR arithmetic, semver comparison, regex, encoding, time - run at native speed and with vetted implementations, rather than being reimplemented in interpreted JavaScript by each pack author. Each is a `ModuleProvider` that fabricates a `module.exports` object directly in the VM, with no program compilation or execution involved.
+Fourteen Go-implemented modules, plus the TypeScript `js` module, exposed to JavaScript under the `@sentrie/*` namespace. They exist so that common policy operations - hashing, JWT verification, CIDR arithmetic, semver comparison, regex, encoding, time - run at native speed and with vetted implementations, rather than being reimplemented in interpreted JavaScript by each pack author. Each is a `ModuleProvider` that fabricates a `module.exports` object directly in the VM, with no program compilation or execution involved.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -30,7 +30,7 @@ Sixteen Go-implemented modules exposed to JavaScript under the `@sentrie/*` name
 
 - **Signature:** The module set
   - **Behavior:**
-    - **Pure computation** - `math`, `string`, `collection` (the largest at ~450 lines), `semver`, `json`, `encoding`, `base64`, `url`.
+    - **Pure computation** - `math`, `string`, `collection` (the largest at ~450 lines), `semver`, `json`, `encoding` (which carries base64, hex and URL encoding), `url`.
     - **Cryptographic** - `hash`, `crypto`, `jwt` (verification and claim extraction).
     - **Pattern and network** - `regex`, `net` (CIDR containment, intersection, validity - **arithmetic only, no sockets**).
     - **Non-deterministic** - `uuid` (fresh values per call), `time` (clock-dependent).
