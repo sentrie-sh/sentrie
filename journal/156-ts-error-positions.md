@@ -28,3 +28,8 @@
 - Merge plan with #194 (`105-isolate-pooled-vms`) and its stack recorded in the PR Review notes: `r.compiled.Add(1)` goes right after a successful `compileModule`, before `m.compiled.Store`, and one of the two `compiled` fields is renamed.
 - `make test`, `make lint` (go1.25 golangci-lint v2.4.0), `make docs-graph` and `go test -race ./runtime/js/` pass.
 - _Model: claude-opus-5-5_
+
+### 14:01 - Restack onto main after #194 and the other bottom layers merged
+- Rebased onto `main` (cfe249a). `runtime/js/registry.go` conflicted with #194 (105), as the merge plan in the PR description predicted. Resolved per that plan: this layer's mutex and atomic-pointer `programFor` replaces #194's `sync.Once` body. #194's compile counter now increments only after a successful `compileModule`, and I renamed it from `Registry.compiled` to `programsCompiled`, so it no longer shares a name with `ModuleSpec.compiled`. `CompiledPrograms()` is unchanged.
+- `docs/codebase-graph/runtime.js.md`: merged the Statefulness and Performance notes, combining #105's per-call VMs with this layer's retryable compile and source-mapped stacks.
+- _Model: claude-opus-5-5_
