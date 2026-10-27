@@ -30,3 +30,8 @@
 ### 2026-10-21 22:33 - Review fixes committed
 - Signing worked again on a later attempt, so the review fixes above are committed as be7814f ("Address review findings"). That supersedes the "left uncommitted" lines in the entry above. It is one commit rather than one per finding, because splitting it now would need an amend, and the review-fix rules forbid that.
 - _Model: claude-opus-5-5_
+
+### 13:59 - Restack onto main after #194, #197, #227 and #196 merged
+- Rebased onto `main` (cfe249a). One conflict, in the module-set list of `docs/codebase-graph/runtime.js.builtins.md`: kept `main`'s pure-computation line (#208 folded base64 into `encoding`) and this layer's cryptographic line (HMAC, RSA and ECDSA).
+- Expect a conflict with `154-js-boundary-values` in `builtin_jwt.go` and `builtin_clock.go` whichever lands second: 154 now reads the JWT clock through `executionStartSeconds`.
+- _Model: claude-opus-5-5_
