@@ -27,3 +27,7 @@
 - Signing refused the first commit attempts ("agent refused operation"), so the work waited uncommitted until signing came back. A signing probe then created an empty local commit by mistake; I removed it with a soft reset before it was pushed or built on.
 - `make test` and `make lint` pass.
 - _Model: claude-opus-5-5_
+
+### 11:34 - Restack onto main after #193 and #195 merged
+- Rebased onto `main` (610352e). One conflict, in the Dependencies Risk list of `docs/codebase-graph/runtime.js.builtins.md`: kept #111's two throw bullets and this layer's wider non-determinism bullet (`uuid`, `time.now`, `js.now`, `js.random`).
+- _Model: claude-opus-5-5_
