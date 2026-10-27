@@ -31,3 +31,7 @@
 ### 11:34 - Restack onto main after #193 and #195 merged
 - Rebased onto `main` (610352e). One conflict, in the Dependencies Risk list of `docs/codebase-graph/runtime.js.builtins.md`: kept #111's two throw bullets and this layer's wider non-determinism bullet (`uuid`, `time.now`, `js.now`, `js.random`).
 - _Model: claude-opus-5-5_
+
+### 14:01 - Restack onto main after #194 and the other bottom layers merged
+- Rebased onto `main` (cfe249a). One conflict, in `docs/codebase-graph/runtime.js.registry.md`: #194's `CompiledPrograms` entry and this layer's nondeterminism-metadata entry are separate signatures, so I kept both, each with its own Side Effects and Exceptions lines.
+- _Model: claude-opus-5-5_
