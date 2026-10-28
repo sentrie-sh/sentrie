@@ -18,3 +18,8 @@
 ### 13:59 - Restack onto the rebased 209
 - Carried onto 209 after it was rebased onto `main` (cfe249a). Conflicts only in the graph. In `ext.dependencies.md` I kept this layer's perch regex row and left out the puddle row, which #194 removed. In `runtime.js.builtins.md` I kept the perch row with `main`'s JWT-aware `LAYERED_ON [[constants]]` row, and both Dependencies Risk bullets (JWT clock, regex cache).
 - _Model: claude-opus-5-5_
+
+### 04:21 - Restack onto main after #205 and #202 merged
+- Rebased with 209 onto `main` (1197589) so #234's CI runs against the JWT test fix. One conflict, in the perch rows of `docs/codebase-graph/ext.dependencies.md`: #205 narrowed the executor row to call memoization (module bindings are no longer a perch cache), so I kept main's row and added this layer's `runtime.js.builtins` regex LRU row.
+- Build, vet and `go test ./...` pass on the rebased head.
+- _Model: claude-opus-5-5_
