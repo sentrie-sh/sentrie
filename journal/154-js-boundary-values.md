@@ -45,3 +45,8 @@
 - A semantic conflict git did not flag: #139-1 (merged as #197) added `builtin_clock.go` with its own `executionStartUnix`, returning `(int64, error)` and reading the `ExecutionStartTimeUnixKey` global that this layer deletes. With both, the package does not compile. I renamed it `executionStartSeconds`, made it wrap this layer's Go-side `executionStartUnix`, and kept `errNoExecutionStart`, so a VM with no pinned start still fails every JWT time check. `jwt`'s clock calls it.
 - The jwt and builtin-errors test helpers now pin the clock with `SetExecutionStart` instead of setting the global. The graph's JWT lines now name the new helper, and the "module code can overwrite the clock" risk is recorded as closed by this layer.
 - _Model: claude-opus-5-5_
+
+### 04:16 - Restack onto main after #205 and #202 merged
+- GitHub restacked this layer onto #205's squash commit, then #202 (139-2) merged. Rebased onto `main` (1197589). One textual conflict, in the `jwt` entry of `docs/codebase-graph/runtime.js.builtins.md`: kept #202's RS/ES key text and swapped its `executionStartUnix` reference for this layer's `executionStartSeconds`.
+- No semantic conflict this time: #202's `builtin_jwt.go` calls the clock through the same function this layer renamed, and builds and passes `go test ./runtime/... ./lang_test/...` on the rebased head.
+- _Model: claude-opus-5-5_
