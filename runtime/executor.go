@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/binaek/perch"
@@ -26,10 +27,6 @@ import (
 type NewExecutorOption func(*executorImpl)
 
 const (
-	// moduleBindingCacheEntries bounds the module cache. Loaded modules are keyed by
-	// module path, so this only needs to cover the distinct `use` targets loading at once.
-	moduleBindingCacheEntries = 1024
-
 	// defaultCallMemoizeCacheEntries bounds the call memoization cache unless
 	// overridden with WithCallMemoizeCacheSize.
 	defaultCallMemoizeCacheEntries = 10_000
@@ -59,23 +56,46 @@ type Executor interface {
 	ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) ([]*ExecutorOutput, error)
 	ExecRule(ctx context.Context, namespace, policy, rule string, facts map[string]any) (*ExecutorOutput, error)
 	Index() *index.Index
+	// Close releases every loaded module. Evaluations started afterwards fail
+	// with ErrExecutorClosed once they need a module. Close is idempotent.
+	Close() error
+}
+
+// ErrExecutorClosed is returned when an evaluation needs a module after Close.
+var ErrExecutorClosed = stdErr.New("executor is closed")
+
+// moduleLoad is one module's entry in the executor's lifetime module map. done
+// is closed once module and err are set, so concurrent first users wait on a
+// single load (singleflight) rather than each loading the module.
+type moduleLoad struct {
+	done   chan struct{}
+	module *jsModule
+	err    error
 }
 
 // executorImpl ties together the index, JS loader, and evaluation.
 type executorImpl struct {
-	index              *index.Index
-	jsRegistry         *js.Registry
-	moduleBindingPerch *perch.Perch[*jsModule] // module path -> loaded module
-	callMemoizePerch   *perch.Perch[any]
+	index            *index.Index
+	jsRegistry       *js.Registry
+	callMemoizePerch *perch.Perch[any]
+
+	// modules holds every loaded module for the executor's lifetime, keyed by
+	// module path. Its size is bounded by the pack's distinct `use` targets, so
+	// it needs no eviction (#191).
+	modulesMu     sync.Mutex
+	modules       map[string]*moduleLoad
+	modulesClosed bool
+	// moduleLoads counts module loads started, for tests and diagnostics.
+	moduleLoads atomic.Int64
 }
 
 // NewExecutor builds an Executor with built-in @sentra/* modules registered.
 func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) {
 	exec := &executorImpl{
-		index:              idx,
-		jsRegistry:         js.NewRegistry(idx.Pack.Location),
-		moduleBindingPerch: perch.New[*jsModule](moduleBindingCacheEntries),
-		callMemoizePerch:   perch.New[any](defaultCallMemoizeCacheEntries),
+		index:            idx,
+		jsRegistry:       js.NewRegistry(idx.Pack.Location),
+		callMemoizePerch: perch.New[any](defaultCallMemoizeCacheEntries),
+		modules:          map[string]*moduleLoad{},
 	}
 
 	exec.jsRegistry.RegisterGoBuiltin("uuid", js.BuiltinUuidGo)
@@ -105,6 +125,38 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 
 func (e *executorImpl) Index() *index.Index {
 	return e.index
+}
+
+// Close drops every loaded module and rejects later module loads. A module call
+// already running keeps its own VM and finishes normally; nothing it holds is
+// shared with the modules being dropped.
+func (e *executorImpl) Close() error {
+	// Collect under modulesMu, close after releasing it, so a module stuck in
+	// its own code can never hold up every other module load.
+	e.modulesMu.Lock()
+	if e.modulesClosed {
+		e.modulesMu.Unlock()
+		return nil
+	}
+	e.modulesClosed = true
+	var loaded []*jsModule
+	for _, l := range e.modules {
+		select {
+		case <-l.done:
+			if l.module != nil {
+				loaded = append(loaded, l.module)
+			}
+		default:
+			// Still loading: the loader sees modulesClosed and closes it.
+		}
+	}
+	e.modules = nil
+	e.modulesMu.Unlock()
+
+	for _, m := range loaded {
+		m.close()
+	}
+	return nil
 }
 
 // ExecPolicy executes all exported rules and returns the results
@@ -367,19 +419,79 @@ func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStateme
 	}, nil
 }
 
-// getModule returns the shared module for ms, keyed by path alone. Loading it
-// compiles the program once and runs it in a probe VM; calls then run in fresh
-// VMs (see jsModule).
+// getModule returns the shared module for ms, keyed by path alone. The first
+// caller loads it (compiling the program once and running it in a probe VM);
+// concurrent callers wait for that load, and later callers reuse the result for
+// the executor's lifetime. Calls then run in fresh VMs (see jsModule).
 func (e *executorImpl) getModule(ctx context.Context, ms *js.ModuleSpec) (*jsModule, error) {
+	key := ms.KeyOrPath()
+	for {
+		e.modulesMu.Lock()
+		if e.modulesClosed {
+			e.modulesMu.Unlock()
+			return nil, ErrExecutorClosed
+		}
+		if e.modules == nil {
+			// A zero-value executor (as tests build by hand) has no map yet;
+			// after Close the modulesClosed check above returns first.
+			e.modules = map[string]*moduleLoad{}
+		}
+		l, ok := e.modules[key]
+		if !ok {
+			l = &moduleLoad{done: make(chan struct{})}
+			e.modules[key] = l
+			e.modulesMu.Unlock()
+			return e.loadModule(ctx, key, ms, l)
+		}
+		e.modulesMu.Unlock()
+
+		select {
+		case <-l.done:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		// A load that failed only because its own caller's context ended says
+		// nothing about this caller; try again with this caller's context.
+		if l.err != nil && ctx.Err() == nil && isContextError(l.err) {
+			continue
+		}
+		return l.module, l.err
+	}
+}
+
+// loadModule performs the single load for l and publishes the result. A failed
+// load is not cached, so a later evaluation retries it.
+func (e *executorImpl) loadModule(ctx context.Context, key string, ms *js.ModuleSpec, l *moduleLoad) (*jsModule, error) {
 	load := func(ctx context.Context, start time.Time) (*JSInstance, error) {
 		return e.loadJSInstance(ctx, ms, start)
 	}
-	perchLoader := func(ctx context.Context, key string) (*jsModule, error) {
-		return newJSModule(ctx, key, load)
+	e.moduleLoads.Add(1)
+	module, err := newJSModule(ctx, key, load)
+	if err == nil && ctx.Err() != nil {
+		// The loader's context ended while it loaded. Whether the load still
+		// finished, and whether its probe kept a fired interrupt (#194), is
+		// down to timing, so do not cache it: the next caller, or a waiter with
+		// a live context, loads again under its own context.
+		module, err = nil, ctx.Err()
 	}
 
-	module, _, err := e.moduleBindingPerch.Get(ctx, ms.KeyOrPath(), -1, perchLoader)
+	e.modulesMu.Lock()
+	if err != nil {
+		if e.modules[key] == l {
+			delete(e.modules, key)
+		}
+	} else if e.modulesClosed {
+		module.close()
+		module, err = nil, ErrExecutorClosed
+	}
+	l.module, l.err = module, err
+	close(l.done)
+	e.modulesMu.Unlock()
 	return module, err
+}
+
+func isContextError(err error) bool {
+	return stdErr.Is(err, context.Canceled) || stdErr.Is(err, context.DeadlineExceeded)
 }
 
 // evaluateRuleOutcome drives rule evaluation and returns (value, node, error).

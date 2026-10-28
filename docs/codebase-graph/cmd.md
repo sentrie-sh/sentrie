@@ -37,16 +37,16 @@ Defines the four user-facing commands and wires the loading pipeline behind each
 
 - **Signature:** `sentrie serve [--http-port 7529] [--pack-location ./] [--http-listen local]`
   - **Behavior:** Runs the full load-and-validate pipeline, constructs the executor, sets up listeners, starts serving in a goroutine, and blocks on context cancellation before stopping. The default port `7529` spells "PLCY" on a phone keypad.
-  - **Side Effects:** Binds sockets; serves decisions.
+  - **Side Effects:** Binds sockets; serves decisions; closes the executor after the servers stop.
   - **Exceptions:** Any pipeline error; bind failures.
 
 - **Signature:** `sentrie exec <rule> [--pack-location .] [--facts '{}'] [--fact-file path] [--output table|json]`
   - **Behavior:** Same pipeline, then resolves the rule path and evaluates. Facts merge from two sources with the **`--facts` flag overriding the fact file**. An empty rule segment evaluates the whole policy.
-  - **Side Effects:** Full evaluation; writes to stdout.
+  - **Side Effects:** Full evaluation; writes to stdout; closes the executor on return.
   - **Exceptions:** File read errors; JSON decode errors; evaluation errors.
 
 - **Signature:** `sentrie validate <rule> [--pack-location .] [--facts '{}']`
-  - **Behavior:** Runs the pipeline and constructs an executor, returning any error. Success means the pack parses, indexes, validates, and can be loaded.
+  - **Behavior:** Runs the pipeline, constructs an executor and closes it, returning any error. Success means the pack parses, indexes, validates, and can be loaded.
   - **Side Effects:** None beyond reading files.
   - **Exceptions:** Any pipeline error.
 

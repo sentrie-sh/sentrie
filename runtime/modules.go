@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/dop251/goja"
@@ -62,6 +63,10 @@ type jsModule struct {
 	// is single-threaded and reading an export may run a getter.
 	probeMu sync.Mutex
 	probe   *JSInstance
+
+	// closed is set by close. It is atomic so that close and acquire never
+	// wait on probeMu, which an export check holds while it runs module code.
+	closed atomic.Bool
 }
 
 // newJSModule loads the module once, which both verifies that it loads and
@@ -85,9 +90,24 @@ func newJSModule(ctx context.Context, key string, load instanceLoader) (*jsModul
 	}, nil
 }
 
+// close makes later acquisitions and export checks fail with
+// ErrExecutorClosed. Calls already running are unaffected: each holds its own
+// VM. It never blocks, so the executor can close a module whose export check
+// is stuck in module code.
+func (m *jsModule) close() {
+	m.closed.Store(true)
+}
+
+func (m *jsModule) closedErr() error {
+	return fmt.Errorf("%s: %w", m.key, ErrExecutorClosed)
+}
+
 // acquire loads a fresh, never-used instance of the module for one call. The
 // caller must call release once it is done with the instance.
 func (m *jsModule) acquire(ctx context.Context, start time.Time) (_ *JSInstance, release func(), _ error) {
+	if m.closed.Load() {
+		return nil, nil, m.closedErr()
+	}
 	select {
 	case m.slots <- struct{}{}:
 	case <-ctx.Done():
@@ -106,6 +126,9 @@ func (m *jsModule) acquire(ctx context.Context, start time.Time) (_ *JSInstance,
 func (m *jsModule) checkExports(exports []string) error {
 	if len(exports) == 0 {
 		return nil
+	}
+	if m.closed.Load() {
+		return m.closedErr()
 	}
 	m.probeMu.Lock()
 	defer m.probeMu.Unlock()

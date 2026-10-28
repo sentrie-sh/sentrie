@@ -273,9 +273,8 @@ func (s *RuntimeTestSuite) TestNewExecutorDoesNotPreallocateCaches() {
 	s.Less(allocated, uint64(newExecutorAllocBudget))
 
 	impl := exec.(*executorImpl)
-	s.Equal(moduleBindingCacheEntries, impl.moduleBindingPerch.Cap())
 	s.Equal(defaultCallMemoizeCacheEntries, impl.callMemoizePerch.Cap())
-	s.Zero(impl.moduleBindingPerch.Stats().Size)
+	s.Empty(impl.modules)
 	s.Zero(impl.callMemoizePerch.Stats().Size)
 }
 
@@ -331,10 +330,10 @@ func testExecutorForModuleBinding() *executorImpl {
 	idx := index.CreateIndex()
 	idx.Pack = &pack.PackFile{Location: "."}
 	exec := &executorImpl{
-		index:              idx,
-		jsRegistry:         js.NewRegistry("."),
-		moduleBindingPerch: perch.New[*jsModule](16),
-		callMemoizePerch:   perch.New[any](16),
+		index:            idx,
+		jsRegistry:       js.NewRegistry("."),
+		callMemoizePerch: perch.New[any](16),
+		modules:          map[string]*moduleLoad{},
 	}
 	exec.jsRegistry.RegisterGoBuiltin("hash", js.BuiltinHashGo)
 	return exec
@@ -355,6 +354,8 @@ func (s *RuntimeTestSuite) TestGetModuleBindingCachesBindings() {
 	second, err := exec.getModuleBinding(s.T().Context(), use, ms)
 	s.Require().NoError(err)
 	s.NotNil(second)
+	s.Same(first.module, second.module, "the loaded module must be reused")
+	s.Equal(int64(1), exec.moduleLoads.Load())
 	s.Equal(ms.KeyOrPath(), second.CanonicalKey)
 	s.Equal(use.As, second.Alias)
 }
