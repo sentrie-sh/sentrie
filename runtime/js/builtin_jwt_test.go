@@ -61,7 +61,8 @@ func (s *JSTestSuite) TestJwtKnownAnswer() {
 	s.Equal("true", s.jwtEval(jwtIOExample, `m.verify(token, "your-256-bit-secret")`))
 	s.Equal(`"John Doe"`, s.jwtEval(jwtIOExample, `m.decode(token, "your-256-bit-secret").name`))
 	s.Equal("false", s.jwtEval(jwtIOExample, `m.verify(token, "not-the-secret")`))
-	s.Equal(`{"alg":"HS256","typ":"JWT"}`, s.jwtEval(jwtIOExample, `m.getHeader(token)`))
+	// getHeader returns a Go map, so its JSON key order varies from run to run.
+	s.JSONEq(`{"alg":"HS256","typ":"JWT"}`, s.jwtEval(jwtIOExample, `m.getHeader(token)`))
 }
 
 func (s *JSTestSuite) TestJwtTimeClaims() {
