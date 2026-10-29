@@ -35,7 +35,8 @@ func addServeCmd(cli *cling.CLI) {
 				AsFlag(),
 			).
 			WithFlag(evalTimeoutFlag()).
-			WithFlag(evalMaxTimeoutFlag()),
+			WithFlag(evalMaxTimeoutFlag()).
+			WithFlag(capabilitiesFlag()),
 	)
 }
 
@@ -45,6 +46,7 @@ type serveCmdArgs struct {
 	Listen         []string `cling-name:"http-listen"`
 	EvalTimeout    string   `cling-name:"eval-timeout"`
 	EvalMaxTimeout string   `cling-name:"eval-max-timeout"`
+	Capabilities   string   `cling-name:"capabilities"`
 }
 
 func serveCmd(ctx context.Context, args []string) error {
@@ -90,10 +92,11 @@ func serveCmd(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+
 	// The API hands every request its deadline (the default, or Sentrie-Timeout
 	// within the ceiling), which replaces the executor's own: one deadline per
 	// request.
-	exec, err := runtime.NewExecutor(idx, runtime.WithEvalTimeout(evalTimeout))
+	exec, err := newGrantedExecutor(ctx, idx, input.Capabilities, runtime.WithEvalTimeout(evalTimeout))
 	if err != nil {
 		return err
 	}

@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 
 	"github.com/dop251/goja"
+	"github.com/sentrie-sh/sentrie/capabilities"
 	"github.com/sentrie-sh/sentrie/constants"
 )
 
@@ -58,6 +59,8 @@ type Registry struct {
 	// compiled counts goja programs compiled by programFor. Each module compiles
 	// once per registry; every fresh VM reuses the cached Program.
 	compiled atomic.Int64
+
+	grant *capabilities.Capabilities // nil grants every module; see SetCapabilities
 }
 
 func NewRegistry(packRoot string) *Registry {
@@ -254,6 +257,9 @@ func (r *Registry) PrepareUse(localFrom string, libFrom []string, fileDir string
 	if err != nil {
 		return nil, err
 	}
+	if err := r.checkGrant(key, builtin); err != nil {
+		return nil, err
+	}
 	mod := r.getOrCreateModule(key, path, dir, builtin)
 
 	if mod == nil {
@@ -345,6 +351,9 @@ func (r *Registry) LoadRequire(fromDir, spec string) (*ModuleSpec, error) {
 func (r *Registry) loadRequire(fromDir, spec string) (*ModuleSpec, error) {
 	key, path, dir, builtin, err := r.resolveRequire(fromDir, spec)
 	if err != nil {
+		return nil, err
+	}
+	if err := r.checkGrant(key, builtin); err != nil {
 		return nil, err
 	}
 	mod := r.getOrCreateModule(key, path, dir, builtin)

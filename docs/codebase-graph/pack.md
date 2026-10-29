@@ -66,6 +66,7 @@ tags: manifest, packaging, permissions, semver, configuration
 - **Performance/Scale Notes:** Negligible. Decoded once per invocation. `CheckEnvAccess` is a linear scan, which is fine for hand-written allowlists but is called per env lookup from JS - keep allowlists short.
 - **Dependencies Risk:**
   - **Optional pointers everywhere.** `Permissions`, `Engine`, `Pack`, and `SchemaVersion` are all pointers marked `omitempty`; a manifest without a `[permissions]` table yields a nil pointer, and calling `CheckEnvAccess` on it panics. Permission checks must be written as "deny when nil", and treating nil as "allow all" would be a sandbox escape.
+  - **Permissions are the pack's request; [[capabilities]] is the operator's grant.** The two use opposite nil conventions (nil permissions deny, a nil grant allows), and the grant is not yet intersected with these declarations (#157).
   - **Enforcement lives elsewhere.** This package only *declares* permissions. Auditing what a pack can actually reach means reading [[runtime.js]], not this node.
   - **`Location` is trusted.** It is populated from disk by [[loader]] and used as a filesystem root; anything that constructs a `PackFile` by hand must set it deliberately, since an empty `Location` makes program discovery walk the process working directory.
   - **Engine constraint is advisory here.** `Engine.Sentrie` is parsed and stored but not checked against the running binary in this package.

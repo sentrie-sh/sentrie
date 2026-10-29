@@ -18,6 +18,7 @@ Owns module identity and compilation for the whole engine. It resolves `use` ref
 | `runtime.js.registry` | `IMPORTS` | `ext.dop251.goja` | `goja.Compile` produces the cached `Program`. |
 | `runtime.js.registry` | `CALLS` | [[runtime.js.tscompile]] | `TranspileTS` then `WrapAsIIFE` before compilation. |
 | `runtime.js.registry` | `READS_FROM` | [[infra.filesystem]] | `os.ReadFile` for on-disk modules; `os.Stat` for extension probing. |
+| `runtime.js.registry` | `READS_FROM` | [[capabilities]] | `checkGrant` refuses ungranted builtin modules and, when local modules are not granted, every pack-local file. |
 | `runtime.js.registry` | `DEPENDS_ON` | [[constants]] | `APPNAME` forms the `@sentrie/` builtin key prefix. |
 | [[runtime.executor]] | `MUTATES` | `runtime.js.registry` | Registers all Go and TypeScript builtins at construction. |
 | [[runtime.js.alias_runtime]] | `CALLS` | `runtime.js.registry` | `LoadRequire` and `programFor` on every `require`. |
@@ -38,6 +39,16 @@ Owns module identity and compilation for the whole engine. It resolves `use` ref
   - **Behavior:** The `require()` counterpart. Successful resolutions are memoised per `(fromDir, spec)`, because every module call loads into a fresh VM and would otherwise repeat the containment and symlink checks on disk. Handles `@sentrie/…` builtins, `@local/…` pack-relative paths, and `./` or `/` relative paths. All on-disk resolution goes through `relativeToLocal`, which rejects `..` traversal and symlink escapes outside `PackRoot`. Bare specifiers are rejected - there is no `node_modules` resolution.
   - **Side Effects:** As above.
   - **Exceptions:** `unsupported require spec: %q`; `relative path is outside the packroot: %s`; `module %s not found`.
+
+- **Signature:** `SetCapabilities(grant *capabilities.Capabilities)` (in `capabilities.go`)
+  - **Behavior:** Installs the operator's grant. After resolution and before a spec is created, `PrepareUse` and `LoadRequire` call `checkGrant`: a builtin key the grant does not list, or any non-builtin (pack-local) key when local modules are not granted, fails. `LoadRequire` serves every `require()`, so TypeScript is held to the same grant as `use`. A nil grant allows everything.
+  - **Side Effects:** Sets the grant. Like the `Register*` calls, it is unsynchronised and must happen during executor construction.
+  - **Exceptions:** `module %q: not granted by the capabilities file` / `local module %q: ...`, wrapping `xerr.ErrNotGranted`.
+
+- **Signature:** `CheckUseRequires(localFrom, libFrom, fileDir) -> error` (in `capabilities.go`)
+  - **Behavior:** With a grant installed: `PrepareUse` (which checks the module itself), then for pack-local code a scan of `TranspiledCode` for static `require("...")` (esbuild emits every import that way), resolving each through `LoadRequire` (so `checkGrant` applies) and recursing into pack-local requires. A regex scan: it may over-match a `require("...")` inside a string literal, which fails closed, and it cannot see dynamic `require(expr)`, which the runtime gate still refuses.
+  - **Side Effects:** Compiles the modules it visits.
+  - **Exceptions:** `<module>: require(%q): <grant or resolution error>`.
 
 - **Signature:** `programFor(m *ModuleSpec) -> (*goja.Program, error)`
   - **Behavior:** Behind `sync.Once`: reads the source, transpiles, parses the source map, wraps as an IIFE factory, and compiles. A Go-backed module returns `(nil, nil)` because there is no program to run.

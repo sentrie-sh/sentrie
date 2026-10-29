@@ -285,6 +285,10 @@ func getTarget(_ context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 
 	if nameForBuiltin != "" {
 		if decl, ok := builtins.Table[nameForBuiltin]; ok {
+			// Paired with the static check in index.CheckCapabilities.
+			if !exec.grant().AllowsBuiltin(nameForBuiltin) {
+				return nil, fmt.Errorf("builtin %q: %w", nameForBuiltin, xerr.ErrNotGranted)
+			}
 			// Paired with the static check in index/derive_purity.go.
 			if ec.evalDerive != nil && !decl.PermittedInDerive() {
 				if decl.Nondeterministic {
