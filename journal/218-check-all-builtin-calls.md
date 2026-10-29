@@ -25,3 +25,7 @@
 - Graph: `index.builtin_check` section 1 now names every walked site and the shared walk; section 2 gains a `READS_FROM` edge to [[index.policy]] for fact defaults, lets and attachments, and the rule edge mentions `with` clauses; section 3 replaces the `walkExpr` contract with `forEachBuiltinCall` and the new `checkBuiltinCall(decl, c)` signature; section 4 notes that type-constraint arguments are literal-only and that `ImportClause` is handled outside `forEachDeriveExprChild`. `index.md`'s nondeterminism and capabilities entries now say they cover `with` clauses.
 - `make docs-graph`, `make test`, `make lint` and `go test -race ./index/` pass.
 - _Model: claude-opus-5-5_
+
+### 23:21 - Restack onto the rebased 168-3 after the #154 stack merged
+- No conflicts. Build, vet and `go test -race ./...` pass.
+- _Model: claude-opus-5-5_
