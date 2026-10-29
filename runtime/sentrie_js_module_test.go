@@ -29,7 +29,7 @@ func (s *RuntimeTestSuite) TestSentrieJSNowExportRemoved() {
 			ms, err := exec.jsRegistry.PrepareUse(use.RelativeFrom, use.LibFrom, ".")
 			s.Require().NoError(err)
 
-			_, err = exec.jsBindingConstructor(s.T().Context(), use, ms)
+			_, err = exec.getModuleBinding(s.T().Context(), use, ms)
 			if tc.wantErr {
 				s.Require().Error(err)
 				s.Contains(err.Error(), "missing required export")
