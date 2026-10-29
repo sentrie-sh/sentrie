@@ -49,6 +49,11 @@ Owns module identity and compilation for the whole engine. It resolves `use` ref
   - **Side Effects:** None.
   - **Exceptions:** None.
 
+- **Signature:** `BuiltinModuleKey(name) -> string` / `IsBuiltinModuleKey(key) -> bool` / `IsNondeterministicExport(moduleKey, export) -> bool` / `NondeterministicExports(moduleKey) -> []string` / `NondeterministicModules() -> []string` (in `nondeterminism.go`)
+  - **Behavior:** Nondeterminism metadata for builtin module exports, the JavaScript counterpart of `builtins.Decl.Nondeterministic`. A static table keyed by `@sentrie/<name>`: `js` (`now`, `random`), `time` (`now`), `uuid` (`v4`, `v6`, `v7`). [[cmd]] passes `IsNondeterministicExport` to the index's `NondeterminismWarnings`, so the index never imports this package. A runtime test asserts every listed module is registered by [[runtime.executor]] and every listed export exists.
+  - **Side Effects:** None.
+  - **Exceptions:** None.
+
 - **Signature:** `(*ModuleSpec).KeyOrPath() -> string`
   - **Behavior:** The canonical identifier - key if set, otherwise path. Used as the cache key throughout the system.
   - **Side Effects:** None.

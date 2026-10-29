@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"os"
 
 	"github.com/binaek/cling"
 	"github.com/sentrie-sh/sentrie/index"
@@ -76,5 +77,9 @@ func validateCmd(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	return exec.Close()
+	if err := exec.Close(); err != nil {
+		return err
+	}
+
+	return printNondeterminismWarnings(ctx, os.Stderr, idx)
 }

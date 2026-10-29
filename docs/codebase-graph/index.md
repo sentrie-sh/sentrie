@@ -19,12 +19,12 @@ tags: semantic-analysis, symbol-table, validation, dependency-graph, middle-end
 | `index` | `LAYERED_ON` | [[dag]] | Builds four graphs - rule, shape, derive, and a per-policy identifier graph - for cycle detection and topological ordering. |
 | `index` | `LAYERED_ON` | [[pack]] | Holds the pack manifest alongside the semantic model. |
 | `index` | `LAYERED_ON` | [[xerr]] | Every diagnostic is an `xerr` sentinel or `ErrConflict`, giving structured two-span conflict errors. |
-| `index` | `LAYERED_ON` | [[builtins]] | Reads builtin declarations and signatures to validate call sites; consults `IsDeriveSafe` for purity. |
+| `index` | `LAYERED_ON` | [[builtins]] | Reads builtin declarations and signatures to validate call sites; consults `IsDeriveSafe` for purity and `Decl.Nondeterministic` for warnings. |
 | `index` | `LAYERED_ON` | [[box]] | Uses `box.ValueKind` as the vocabulary for static argument-kind checking. |
 | `index` | `IMPORTS` | `ext.masterminds.semver` | Parses and validates per-policy `version` metadata. |
 | [[loader]] | `LAYERED_ON` | [[index]] | Supplies the parsed programs that populate the index. |
 | [[runtime]] | `LAYERED_ON` | [[index]] | Resolves namespaces, policies, rules, and derives against the committed index during evaluation. |
-| [[cmd]] | `CALLS` | [[index]] | `validate` and `exec` build an index, call `Validate`, and report or proceed. |
+| [[cmd]] | `CALLS` | [[index]] | `validate` and `exec` build an index, call `Validate`, and report or proceed; `validate` also prints `NondeterminismWarnings`. |
 | [[api]] | `CALLS` | [[index]] | Serves evaluation requests against a pre-built index. |
 
 ## 3. Interface Contracts & Public Surface
@@ -43,6 +43,11 @@ tags: semantic-analysis, symbol-table, validation, dependency-graph, middle-end
   - **Behavior:** Runs the full validation pipeline exactly once and then commits. See [[index.validate]].
   - **Side Effects:** Populates the rule and shape DAGs; triggers [[index.commit]].
   - **Exceptions:** Any validation failure, wrapped as `validation error: …`.
+
+- **Signature:** `(*Index).NondeterminismWarnings(ctx, isNondeterministicExport func(moduleKey, export string) bool) -> ([]Warning, error)` / `UseBuiltinModuleKey(use) -> (string, bool)` / `Warning{At, Message}`
+  - **Behavior:** Non-fatal diagnostics for `sentrie validate`: one `Warning` per call to a `builtins.Decl.Nondeterministic` builtin, one per name a `use` imports from a builtin module that the supplied lookup marks nondeterministic (the caller passes `js.IsNondeterministicExport`; nil skips modules), and one per `use` of a pack-local module, whose TypeScript can read `Date.now()`/`Math.random()` unseen. Sorted by file and position. Builtin calls are found by `forEachBuiltinCall` (`builtin_calls.go`), which walks fact defaults, policy lets, rule slots, `import decision ... with` clauses, export attachments and derive bodies. It resolves callees as the runtime's `getTarget` does (visible derive, then builtin, never a local binding), so a lambda parameter named `now` does not hide a `now()` call. [[index.builtin_check]]'s `isBuiltinCall` still lets locals shadow, a pre-existing difference.
+  - **Side Effects:** None.
+  - **Exceptions:** `validation cancelled` on context cancellation.
 
 - **Signature:** `(*Index).Commit(ctx) -> error`
   - **Behavior:** Hydrates shape composition in topological order. See [[index.commit]].

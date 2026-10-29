@@ -15,7 +15,7 @@ The busiest node in the evaluator. It evaluates arguments, resolves the callee t
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.eval_call` | `DEPENDS_ON` | [[builtins]] | `builtins.Table` lookup, then `Decl.Precheck` followed by `Decl.Impl`. |
+| `runtime.eval_call` | `DEPENDS_ON` | [[builtins]] | `builtins.Table` lookup, the `Decl.PermittedInDerive` guard inside derives, then `Decl.Precheck` followed by `Decl.Impl`. |
 | `runtime.eval_call` | `DEPENDS_ON` | [[index]] | Resolves derives via `Policy.Derives`, `Namespace.Derives`, and `Index.DerivesByFQN`. |
 | `runtime.eval_call` | `IMPORTS` | `ext.mitchellh.hashstructure` | Hashes boundary-marshalled arguments for the memoization key. |
 | `runtime.eval_call` | `CALLS` | [[runtime.derive_invoke]] | Every derive dispatch routes through `invokeDerive`. |
@@ -35,7 +35,7 @@ The busiest node in the evaluator. It evaluates arguments, resolves the callee t
 - **Signature:** `getTarget(_, ec, exec, p, c) -> (func(context.Context, ...box.Value) (box.Value, error), error)`
   - **Behavior:** The precedence ladder. A slash-qualified callee of **three or more segments** is tried as a derive FQN first (the segment floor exists to avoid mistaking a two-part division chain for an FQN). Then an identifier callee is tried as a short-name derive, then as a builtin, then as `alias.fn` against bound modules.
   - **Side Effects:** None; returns a closure.
-  - **Exceptions:** `builtin %q is not permitted inside a derive`; `TypeScript module calls like %q are not permitted inside a derive`; `xerr.ErrImportResolution`; `xerr.ErrModuleInvocation`; derive visibility and export errors.
+  - **Exceptions:** `builtin %q is nondeterministic and is not permitted inside a derive` (for `Decl.Nondeterministic`, paired with [[index.derive_purity]]); `builtin %q is not permitted inside a derive`; `TypeScript module calls like %q are not permitted inside a derive`; `xerr.ErrImportResolution`; `xerr.ErrModuleInvocation`; derive visibility and export errors.
 
 - **Signature:** `lookupDeriveByIdentifier(ec, p, name) -> *index.Derive`
   - **Behavior:** Inside a derive, resolves **only** through the caller derive's `DefineShort` snapshot; outside, checks the policy's derives then the namespace's. The two paths are deliberately disjoint.

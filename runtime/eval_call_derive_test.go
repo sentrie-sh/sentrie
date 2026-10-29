@@ -224,7 +224,9 @@ policy pol {
 	s.Nil(got)
 }
 
-func (s *RuntimeTestSuite) TestExecRuleDeriveUsesNowBuiltin() {
+// now() is pinned within an execution but differs between executions, so it
+// is refused inside a derive at validation time (#168).
+func (s *RuntimeTestSuite) TestValidateRejectsNowBuiltinInsideDerive() {
 	ctx := s.T().Context()
 	src := `namespace com/ex
 derive t = (): trinary => { yield now() >= 0 }
@@ -233,10 +235,34 @@ policy pol {
   rule ok = { yield t() }
   export decision of ok
 }`
-	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "now_derive.sentrie", src: src})
-	out, err := exec.ExecRule(ctx, "com/ex", "pol", "ok", nil)
+	idx := s.mustBuildDeriveIndex(ctx, deriveTestProgram{name: "now_derive.sentrie", src: src})
+	err := idx.Validate(ctx)
+	s.Require().Error(err)
+	s.Contains(err.Error(), `builtin "now" is nondeterministic and is not permitted inside a derive`)
+}
+
+// The runtime guard is the last line behind the static check: it refuses a
+// nondeterministic builtin inside a derive even when validation was bypassed.
+func (s *RuntimeTestSuite) TestGetTargetRejectsNondeterministicBuiltinInsideDerive() {
+	ctx := s.T().Context()
+	p := newEvalTestPolicy()
+	exec := &executorImpl{}
+	ec := NewExecutionContext(p, exec)
+	ec.evalDerive = attachNamespaceDerive(p, "caller", stubNumberDeriveLambda(
+		[]string{},
+		nil,
+		ast.NewIntegerLiteral(1, stubRange()),
+	))
+
+	call := ast.NewCallExpression(ast.NewIdentifier("now", stubRange()), nil, false, nil, stubRange())
+	_, err := getTarget(ctx, ec, exec, p, call)
+	s.Require().Error(err)
+	s.Require().ErrorContains(err, `builtin "now" is nondeterministic and is not permitted inside a derive`)
+
+	ec.evalDerive = nil
+	target, err := getTarget(ctx, ec, exec, p, call)
 	s.Require().NoError(err)
-	s.Equal(trinary.True, out.Decision.State)
+	s.Require().NotNil(target)
 }
 
 func (s *RuntimeTestSuite) TestEvalIdentRuleDispatchPropagatesExecError() {

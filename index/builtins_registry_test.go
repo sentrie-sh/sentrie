@@ -12,7 +12,7 @@ import (
 
 func TestBuiltinsRegistryImport(t *testing.T) {
 	t.Parallel()
-	require.Equal(t, len(builtins.Table), len(builtins.DeriveSafeNames()))
+	require.Equal(t, len(builtins.Table)-len(builtins.NondeterministicNames()), len(builtins.DeriveSafeNames()))
 	for _, name := range builtins.DeriveSafeNames() {
 		require.Contains(t, builtins.Table, name)
 	}
