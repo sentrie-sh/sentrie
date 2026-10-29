@@ -32,3 +32,12 @@
 - Carried onto 168-1 after it was rebased onto `main` (cfe249a). Code conflicts with #194 (105), both additive. In `runtime/executor.go` I kept `main`'s `constants` and `time` imports beside `capabilities`, and #194's dropped `puddle` import. In `runtime/js/registry.go` I kept #194's `resolved` LoadRequire memo and compile counter next to this layer's `grant` field.
 - Checked that the memo cannot skip the grant: `checkGrant` runs in `loadRequire` on a memo miss, the grant is fixed at executor construction, and the check depends only on the module key, so a memoised resolution was already granted.
 - _Model: claude-opus-5-5_
+
+### 04:24 - Restack onto the rebased 168-1 after #205 merged
+- Carried onto 168-1 after it was rebased onto `main` (1197589). #205 replaced the executor's module-binding perch with a lifetime module map and added `Executor.Close`, which conflicted in three places:
+  - `runtime/executor.go`: kept `main`'s module map fields and added this layer's `capabilities` field.
+  - `cmd/validate.go`: `validate` builds through `newGrantedExecutor` and then closes the executor, as #205 does, before the warnings from 168-1. `exec` and `serve` merged cleanly with #205's deferred `Close`.
+  - `docs/codebase-graph/runtime.executor.md`: kept #205's `Close` entry and narrowed perch row next to this layer's `WithCapabilities` entry and `READS_FROM [[capabilities]]` row.
+- A leak the merge exposed: `newGrantedExecutor` returned an error from `CheckModuleGrants` without closing the executor it had just built. It now closes it first, so a denied module grant does not leave the executor's modules loaded.
+- Build, vet and `go test ./...` pass on the rebased head, and on 168-3 and 218 above it.
+- _Model: claude-opus-5-5_
