@@ -235,6 +235,10 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 	defer stop()
 	defer recoverUncaughtJS(&err)
 
+	if err := js.BeginCall(instance.rt, ec.CreatedAt(), m.CanonicalKey, fn); err != nil {
+		return nil, err
+	}
+
 	val, ok := m.lookupExport(instance, fn)
 	if !ok {
 		return nil, fmt.Errorf("function %s not found in module %q", fn, m.Alias)

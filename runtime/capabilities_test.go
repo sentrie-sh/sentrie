@@ -108,3 +108,26 @@ policy pol {
 	s.Require().NoError(err)
 	s.NoError(CheckModuleGrants(open))
 }
+
+// With deterministic_js, Date.now inside module code reads the same pinned
+// execution clock as @sentrie/time.now (milliseconds against seconds, so the
+// check does not depend on the now() builtin's unit), and Math.random is
+// reproducible per execution and function. @sentrie/js has no now since #207,
+// so the clock is read from pack TypeScript.
+func (s *RuntimeTestSuite) TestExecRuleDeterministicJavaScriptShims() {
+	exec := s.newTempPackExecutor(map[string]string{
+		"clock.ts": `export function nowSeconds(): number { return Math.floor(Date.now() / 1000); }`,
+		"policy.sentrie": `namespace com/ex
+policy pol {
+  use { random } from @sentrie/js as js
+  use { now } from @sentrie/time as clock
+  use { nowSeconds } from "./clock" as local
+  rule ok = { yield local.nowSeconds() == clock.now() and js.random() == js.random() }
+  export decision of ok
+}
+`,
+	}, WithCapabilities(s.mustGrant(`{"version": 1, "deterministic_js": true}`)))
+	out, err := exec.ExecRule(s.T().Context(), "com/ex", "pol", "ok", nil)
+	s.Require().NoError(err)
+	s.Equal(trinary.True, out.Decision.State)
+}

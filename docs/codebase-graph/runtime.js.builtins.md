@@ -54,7 +54,7 @@ Fourteen Go-implemented modules, plus the TypeScript `js` module, exposed to Jav
   - **Exceptions:** **Thrown**, never returned: exact argument counts, non-number or non-finite arguments, `sqrt` of a negative, non-finite `pow` results, `clamp` with `lo > hi`.
 
 - **Signature:** `time.now() -> number`
-  - **Behavior:** Reads the start time pinned for this VM by `js.SetExecutionStart` (a Go-side lookup keyed by a weak pointer to the VM, invisible to module code since #154) through `executionStartSeconds`, so JavaScript observes the **same pinned instant**, in the same unit (Unix seconds), as the policy evaluator's builtin `now()` within the same rule execution (`ExecRule`). A VM with no pinned start throws rather than reading the wall clock (#153).
+  - **Behavior:** Reads the start time pinned for this VM by `js.SetExecutionStart` (a Go-side lookup keyed by a weak pointer to the VM, invisible to module code since #154) through `executionStartSeconds`, so JavaScript observes the **same pinned instant**, in the same unit (Unix seconds), as the policy evaluator's builtin `now()` within the same rule execution (`ExecRule`). A VM with no pinned start throws rather than reading the wall clock (#153). `js.BeginCall` re-pins it before every module call.
   - **Side Effects:** None.
   - **Exceptions:** Argument-count error if given any argument; `execution start time is not set on this VM` when the global is missing. There is no wall-clock fallback (#153).
 
