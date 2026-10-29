@@ -4,7 +4,10 @@
 package parser
 
 import (
+	"unicode/utf8"
+
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 // TestParseUseStatementKeywordPathSegments checks that keywords are accepted as
@@ -94,4 +97,80 @@ policy p {
 	program, err := NewParserFromString(input, "test.sentrie").ParseProgram(s.T().Context())
 	s.Require().NoError(err)
 	s.Require().NotNil(program)
+}
+
+// TestParseUseStatementSpanEndsAtLastToken checks that a use statement's span
+// runs from `use` to the end of its last token (the alias, or the module path
+// when there is no `as`) for every `from` form, whatever follows the statement
+// (#216). It used to end at column 0 of the next line when a newline followed.
+func (s *ParserTestSuite) TestParseUseStatementSpanEndsAtLastToken() {
+	statements := []string{
+		"use { x } from @sentrie/time as t",
+		"use { x } from @sentrie/time",
+		"use { x, y } from @local/a/b as ab",
+		"use { x } from @local",
+		"use { lower } from @sentrie/string as str",
+		`use { y } from "./m.ts" as m`,
+		`use { y } from "./m.ts"`,
+		`use { y } from "./sub\/m.ts"`,
+		`use { y } from "./é/m.ts"`,
+	}
+	// What follows the statement: a newline, a space, or the end of the input.
+	suffixes := []string{"\n  rule", " ", ""}
+
+	for _, stmtSrc := range statements {
+		for _, suffix := range suffixes {
+			// The statement sits on the second line, indented by two spaces.
+			input := "\n  " + stmtSrc + suffix
+			p := NewParserFromString(input, "t.sentrie")
+			stmt := parseUseStatement(s.T().Context(), p)
+			s.Require().NoError(p.err, "input: %q", input)
+			useStmt, ok := stmt.(*ast.UseStatement)
+			s.Require().True(ok, "input: %q", input)
+
+			start := tokens.Pos{Line: 1, Column: 3, Offset: 3}
+			end := tokens.Pos{
+				Line:   1,
+				Column: start.Column + utf8.RuneCountInString(stmtSrc),
+				Offset: start.Offset + len(stmtSrc),
+			}
+			s.Equal(tokens.NewRange("t.sentrie", start, end), useStmt.Span(), "input: %q", input)
+		}
+	}
+}
+
+// TestParseUseStatementSpanInProgram checks the span through the policy
+// statement dispatcher, with use statements followed by further statements.
+func (s *ParserTestSuite) TestParseUseStatementSpanInProgram() {
+	input := `namespace com/example
+
+policy p {
+  use { x } from @sentrie/time as t
+  use { y } from "./m.ts" as m
+  rule r = default false {
+    yield true
+  }
+  export decision of r
+}
+`
+	program, err := NewParserFromString(input, "t.sentrie").ParseProgram(s.T().Context())
+	s.Require().NoError(err)
+
+	var uses []*ast.UseStatement
+	for _, stmt := range program.Statements {
+		if policy, ok := stmt.(*ast.PolicyStatement); ok {
+			for _, inner := range policy.Statements {
+				if use, ok := inner.(*ast.UseStatement); ok {
+					uses = append(uses, use)
+				}
+			}
+		}
+	}
+	s.Require().Len(uses, 2)
+
+	// Lines are 0-based; on every line after the first, columns are 1-based.
+	s.Equal(tokens.Pos{Line: 3, Column: 3, Offset: 36}, uses[0].Span().From)
+	s.Equal(tokens.Pos{Line: 3, Column: 36, Offset: 69}, uses[0].Span().To)
+	s.Equal(tokens.Pos{Line: 4, Column: 3, Offset: 72}, uses[1].Span().From)
+	s.Equal(tokens.Pos{Line: 4, Column: 31, Offset: 100}, uses[1].Span().To)
 }
