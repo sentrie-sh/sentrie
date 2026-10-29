@@ -14,7 +14,9 @@ PolicyDecl = "policy" IDENT "{" PolicyStatement* "}"
 FactDecl = "fact" IDENT ("?")? ":" TypeRef ("as" IDENT)? ("default" Expr)?
 
 UseStmt = "use" "{" IDENT ("," IDENT)* "}" "from" ExecSource ("as" IDENT)?
-ExecSource = STRING / ("@" IDENT "/" IDENT)
+ExecSource = STRING / ("@" ModulePathSegment ("/" ModulePathSegment)*)
+/* A module path segment may be a keyword (e.g. @sentrie/string). This is the only position where a keyword is accepted as a name; the default alias is the last segment, so a keyword last segment needs an explicit "as" IDENT. */
+ModulePathSegment = IDENT / KEYWORD
 
 PolicyStatement = Comment
                 / ShapeDecl
@@ -136,6 +138,8 @@ TypeName = FQN
 
 /* Basic Tokens */
 IDENT = [a-zA-Z] [a-zA-Z0-9_]*
+/* KEYWORD is any reserved word (the keywords map in tokens/token_kind.go, e.g. "string", "number", "policy"). Lexically it has the shape of an identifier, but the lexer emits it as a keyword token, so IDENT never matches one. */
+KEYWORD = [a-zA-Z] [a-zA-Z0-9_]* /* restricted to the reserved words */
 STRING = '"' (!["\\] . / "\\" .)* '"'
 INT = [0-9]+
 FLOAT = [0-9]+ "." [0-9]+

@@ -15,7 +15,9 @@ factDecl            ::= 'fact' IDENT ('?'?) ':' typeRef ('as' IDENT)? ('default'
 
 
 useStmt             ::= 'use' '{' IDENT ( ',' IDENT )* '}' 'from' execSource ('as' IDENT)?
-execSource          ::= STRING | ('@' IDENT '/' IDENT)
+execSource          ::= STRING | ('@' modulePathSegment ( '/' modulePathSegment )*)
+/* A module path segment may be a keyword (e.g. @sentrie/string). This is the only position where a keyword is accepted as a name; the default alias is the last segment, so a keyword last segment needs an explicit 'as IDENT'. */
+modulePathSegment   ::= IDENT | KEYWORD
 
 policyStatement     ::= comment
                         | shapeDecl
@@ -140,6 +142,8 @@ typeName            ::= FQN
 
 /* Basic Tokens */
 IDENT               ::= letter ( letter | digit | '_' )*
+/* KEYWORD is any reserved word (the keywords map in tokens/token_kind.go, e.g. 'string', 'number', 'policy'). Lexically it has the shape of an identifier, but the lexer emits it as a keyword token, so IDENT never matches one. */
+KEYWORD             ::= letter ( letter | digit | '_' )* /* restricted to the reserved words */
 STRING              ::= '"' ( /* any char except '"' or '\' or escaped */ )* '"'
 INT                 ::= digit+
 FLOAT               ::= digit+ '.' digit+

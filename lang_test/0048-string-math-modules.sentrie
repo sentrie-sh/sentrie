@@ -1,0 +1,42 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+namespace test/js
+
+policy stringMathModules {
+  -- @sentrie/string and @sentrie/math imported from policy code (#158).
+  -- `string` is a keyword, so the module path accepts it as a segment but the
+  -- import needs an explicit alias.
+
+  fact path: string
+  fact role: string
+  fact roles: list[string]
+  fact scores: list[number]
+
+  use { lower, upper, trim, trimStart, trimEnd, startsWith, endsWith, includes } from @sentrie/string as str
+  use { split, join, replace, replaceAll, equalFold, format } from @sentrie/string as strx
+  use { abs, floor, ceil, round, trunc, min, max, pow, sqrt, clamp } from @sentrie/math
+
+  rule isApiPath = default false {
+    yield str.startsWith(str.lower(str.trim(path)), "/api/") and not str.endsWith(path, "/")
+  }
+
+  rule isAdmin = default false {
+    yield strx.equalFold(role, "admin") or str.includes(strx.join(roles, ","), "admin")
+  }
+
+  rule summary = default false {
+    let label = strx.format("%s: %d roles, best %.1f", str.upper(role), count(roles), math.max(scores))
+    yield label != ""
+  }
+
+  rule boundedScore = default false {
+    let best = math.clamp(math.round(math.max(scores)), 0, 100)
+    yield best >= math.floor(math.sqrt(math.pow(math.abs(math.min(scores)), 2)))
+  }
+
+  export decision of isApiPath
+  export decision of isAdmin
+  export decision of summary
+  export decision of boundedScore
+}

@@ -43,6 +43,16 @@ Fourteen Go-implemented modules, plus the TypeScript `js` module, exposed to Jav
   - **Side Effects:** None.
   - **Exceptions:** `decode` throws on any failure, including expiry. `verify` answers `false` for a malformed, mismatched, badly signed, expired or not-yet-valid token, and throws for `none` or an unsupported `algorithm`, a key that does not suit the algorithm, bad options, or a VM with no execution start time.
 
+- **Signature:** `@sentrie/string` - `lower`, `upper`, `trim`, `trimStart`, `trimEnd`, `startsWith`, `endsWith`, `includes`, `split`, `join`, `replace`, `replaceAll`, `equalFold`, `format`
+  - **Behavior:** Go `strings` over UTF-8 code points: `split(s, "")` yields code points, trims strip Unicode White_Space, case mapping and folding are Go's simple one-to-one mappings. `replace` replaces the first occurrence only. `format` is a closed verb set (`%s %q %d %f %.Nf %v %%`, no flags or widths, precision 0 to 20) and requires the argument count to equal the verbs that consume one. `join` takes a JS array or a goja-wrapped Go slice of at most `stringMaxListLength` (2^20) elements; negative zero prints as `0` under every numeric verb. The contract is documented in `ts_src/sentrie/string.d.ts`.
+  - **Side Effects:** None.
+  - **Exceptions:** **Thrown**, never returned: exact argument counts, string-typed arguments with no coercion, unsupported `format` verbs or mismatched verb arguments.
+
+- **Signature:** `@sentrie/math` - `abs`, `floor`, `ceil`, `round`, `trunc`, `min`, `max`, `pow`, `sqrt`, `clamp`
+  - **Behavior:** No non-finite value in or out: arguments must be finite numbers, a NaN or infinite result throws, and negative zero is returned as 0. `round` is half away from zero (unlike JS `Math.round`). `min`/`max` take one or more numbers or a single non-empty array of at most `mathMaxArrayLength` (2^20) elements. `clamp` requires `lo <= hi`. The contract is documented in `ts_src/sentrie/math.d.ts`.
+  - **Side Effects:** None.
+  - **Exceptions:** **Thrown**, never returned: exact argument counts, non-number or non-finite arguments, `sqrt` of a negative, non-finite `pow` results, `clamp` with `lo > hi`.
+
 - **Signature:** `time.now() -> number`
   - **Behavior:** Reads the start time pinned for this VM by `js.SetExecutionStart` (a Go-side lookup keyed by a weak pointer to the VM, invisible to module code since #154) through `executionStartSeconds`, so JavaScript observes the **same pinned instant**, in the same unit (Unix seconds), as the policy evaluator's builtin `now()` within the same rule execution (`ExecRule`). A VM with no pinned start throws rather than reading the wall clock (#153).
   - **Side Effects:** None.
@@ -61,6 +71,8 @@ Fourteen Go-implemented modules, plus the TypeScript `js` module, exposed to Jav
   - **`net.cidrExpand` refuses ranges above `cidrExpandMaxHosts` (65,536: a /16 in IPv4, a /112 in IPv6).** The check is on the prefix length, before any allocation, and throws. Until [#211](https://github.com/sentrie-sh/sentrie/issues/211) it enumerated any range, so a fact-supplied `10.0.0.0/8` built 16 million strings and `::/0` never finished. Membership tests on large ranges belong to `cidrContains`.
   - **`collection.list_unique` compares by canonical key.** `writeCanonicalKey` in `builtin_collection_utils.go` encodes each exported element as sorted-key JSON (NaN and the infinities as bare tokens, `0` and `-0` folded), and the result keeps the caller's own first-occurrence values. Until [#212](https://github.com/sentrie-sh/sentrie/issues/212) exported elements were Go map keys, so a list of arrays or objects panicked with `hash of unhashable type`. An element with no canonical form (a function) throws.
   - **`net` deliberately has no I/O.** It is CIDR arithmetic over `net.ParseCIDR`, not a network client. Preserving that is what keeps the sandbox claim honest.
+  - **Array arguments are length-checked before allocation.** A JS array's `length` is caller-controlled (`a.length = 2**32 - 1` is free), so `join`, `min` and `max` reject lengths over 2^20 and grow their buffers while validating elements. Sizing a buffer straight from `length` would let one line of module code trigger an unrecoverable Go out-of-memory fatal error.
+  - **`@sentrie/string` needs an explicit alias.** `string` is a keyword, so [[parser.use]] accepts it as a path segment but rejects it as the default alias; `use { lower } from @sentrie/string as str` is the working form.
   - **Argument counts are checked exactly**, so an extra argument is an error rather than being ignored - stricter than JavaScript convention and a likely source of surprise for module authors.
   - **`crypto` and `jwt` are security-critical surfaces.** Their failures throw like every other builtin's (#111).
   - **`crypto.sha256` returns the lowercase hex digest**, the same encoding as `hash.sha256`, and throws on a wrong argument count (#138). Before #138 it returned the input bytes with the empty-string digest appended.
