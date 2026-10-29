@@ -50,3 +50,10 @@
 - GitHub restacked this layer onto #205's squash commit, then #202 (139-2) merged. Rebased onto `main` (1197589). One textual conflict, in the `jwt` entry of `docs/codebase-graph/runtime.js.builtins.md`: kept #202's RS/ES key text and swapped its `executionStartUnix` reference for this layer's `executionStartSeconds`.
 - No semantic conflict this time: #202's `builtin_jwt.go` calls the clock through the same function this layer renamed, and builds and passes `go test ./runtime/... ./lang_test/...` on the rebased head.
 - _Model: claude-opus-5-5_
+
+### 11:23 - Restack onto main after the 209 stack and #204 merged
+- #234 (209) merged into the same docs file, so #215 went `CONFLICTING` and GitHub skipped its CI. I let the rest of the 209 stack and #204 (153) merge first, then rebased onto `main` (9b977a3) once.
+- `runtime/js/builtin_time.go`: #204 made `time.now()` throw when the VM has no pinned start instead of reading the wall clock, calling the `(int64, error)` helper this layer renamed `executionStartSeconds`. I kept #204's throwing body and pointed it at `executionStartSeconds`.
+- `docs/codebase-graph/runtime.js.builtins.md`: kept #210's perch row and dropped the `LAYERED_ON [[constants]]` row again; the `time.now()` entry now names the Go-side start, `executionStartSeconds`, and #204's throw; in the risk list I kept the bullets from 209, 210, 211, 212 and 213 and replaced "JWT time checks trust the execution-start global" with this layer's "read the Go-side execution start".
+- Build, vet, `go test -race ./...` and lint pass on the rebased head.
+- _Model: claude-opus-5-5_
