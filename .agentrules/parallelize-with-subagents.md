@@ -86,6 +86,7 @@ A loose prompt makes the subagent spend tokens rediscovering what the parent alr
 
 - **Self-contained:** state the goal, what is already known and what is ruled out, so the agent does not re-derive it. Give exact paths and graph node ids (`docs/codebase-graph/runtime.executor.md`), not "the executor code".
 - **Scoped:** name the packages or files in bounds, what not to touch, and when to stop. Each subagent works in a worktree under `worktrees/` ([Always work in a worktree](work-in-worktree.md)) and runs `go` with `GOWORK=off` ([Build and test](build-and-test.md)).
+- **Origin stays with the parent:** open every branch's draft PR before spawning its implementer ([Issue workflow](issue-workflow.md), "Several issues at once"). Tell each subagent not to push or open PRs, and to commit a stub journal entry for any new branch it cuts and report that branch, so the parent can push it in the next batch.
 - **Point, don't paste:** pass paths and line ranges rather than pasting file contents or logs into the prompt.
 - **Graph first:** tell it to read `docs/codebase-graph/` before sources, per [Token efficiency](token-efficiency.md).
 - **Output contract:** say exactly what to return and how long it may be, for example `file:line` plus a one-line finding each, capped at about 20 lines. No raw file contents, no restating the task.
