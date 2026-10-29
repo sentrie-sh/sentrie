@@ -10,7 +10,6 @@ import (
 
 	"github.com/dop251/goja"
 	"github.com/sentrie-sh/sentrie/capabilities"
-	"github.com/sentrie-sh/sentrie/constants"
 )
 
 func (s *JSTestSuite) deterministicRuntime(on bool) *AliasRuntime {
@@ -39,7 +38,9 @@ var deterministicStart = time.Date(2026, 3, 4, 5, 6, 7, 8_000_000, time.UTC)
 func (s *JSTestSuite) TestBeginCallPinsTimeNowWithoutShims() {
 	ar := s.deterministicRuntime(false)
 	s.Require().NoError(BeginCall(ar.VM, deterministicStart, "@sentrie/js", "now"))
-	s.Equal(deterministicStart.Unix(), ar.VM.Get(constants.ExecutionStartTimeUnixKey).ToInteger())
+	pinned, ok := executionStartUnix(ar.VM)
+	s.Require().True(ok)
+	s.Equal(deterministicStart.Unix(), pinned)
 
 	// The real globals are untouched.
 	got := s.run(ar.VM, "Date.now()").ToInteger()
