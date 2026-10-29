@@ -4,12 +4,82 @@
 package js
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"math"
 	"reflect"
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/dop251/goja"
 )
+
+// writeCanonicalKey writes a stable JSON-style encoding of an exported
+// JavaScript value: object keys are sorted, numbers that are equal in
+// JavaScript (an int64 and a float64 of the same value, 0 and -0) encode the
+// same, and NaN and the infinities, which JSON cannot hold, become bare tokens
+// that no JSON value collides with. Values JSON cannot encode, such as
+// functions, are an error.
+func writeCanonicalKey(b *strings.Builder, v interface{}) error {
+	switch x := v.(type) {
+	case nil:
+		b.WriteString("null")
+	case float64:
+		switch {
+		case math.IsNaN(x):
+			b.WriteString("NaN")
+		case math.IsInf(x, 1):
+			b.WriteString("Infinity")
+		case math.IsInf(x, -1):
+			b.WriteString("-Infinity")
+		default:
+			if x == 0 {
+				x = 0 // fold -0 into 0
+			}
+			b.WriteString(strconv.FormatFloat(x, 'g', -1, 64))
+		}
+	case int64:
+		b.WriteString(strconv.FormatFloat(float64(x), 'g', -1, 64))
+	case []interface{}:
+		b.WriteByte('[')
+		for i, e := range x {
+			if i > 0 {
+				b.WriteByte(',')
+			}
+			if err := writeCanonicalKey(b, e); err != nil {
+				return err
+			}
+		}
+		b.WriteByte(']')
+	case map[string]interface{}:
+		keys := make([]string, 0, len(x))
+		for k := range x {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		b.WriteByte('{')
+		for i, k := range keys {
+			if i > 0 {
+				b.WriteByte(',')
+			}
+			b.WriteString(strconv.Quote(k))
+			b.WriteByte(':')
+			if err := writeCanonicalKey(b, x[k]); err != nil {
+				return err
+			}
+		}
+		b.WriteByte('}')
+	default:
+		encoded, err := json.Marshal(x)
+		if err != nil {
+			return err
+		}
+		b.Write(encoded)
+	}
+	return nil
+}
 
 var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 	ex := vm.NewObject()
@@ -123,22 +193,29 @@ var BuiltinCollectionGo = func(vm *goja.Runtime) (*goja.Object, error) {
 			return throwErr(vm, errors.New("list_unique requires an array"))
 		}
 
-		seen := make(map[interface{}]bool)
-		var result []interface{}
+		// Elements are compared by canonical key, not used as map keys
+		// directly: exported arrays and objects are slices and maps, which are
+		// unhashable and used to panic the VM (#212).
+		// The kept elements are the caller's own values, read back from the
+		// array, so objects keep their identity and key order.
+		src := arrVal.ToObject(vm)
+		seen := make(map[string]struct{}, arrValue.Len())
+		result := make([]interface{}, 0, arrValue.Len())
+		var key strings.Builder
 		for i := 0; i < arrValue.Len(); i++ {
 			elem := arrValue.Index(i).Interface()
-			// Use deep equal for comparison in map keys would be complex
-			// For now, use simple equality check
-			key := reflect.ValueOf(elem)
-			if !key.IsValid() || key.CanInterface() {
-				if !seen[elem] {
-					seen[elem] = true
-					result = append(result, elem)
-				}
+			key.Reset()
+			if err := writeCanonicalKey(&key, elem); err != nil {
+				return throwErr(vm, fmt.Errorf("list_unique: element %d cannot be compared: %w", i, err))
 			}
+			if _, dup := seen[key.String()]; dup {
+				continue
+			}
+			seen[key.String()] = struct{}{}
+			result = append(result, src.Get(strconv.Itoa(i)))
 		}
 
-		return vm.ToValue(result)
+		return vm.NewArray(result...)
 	})
 
 	_ = ex.Set("list_chunk", func(call goja.FunctionCall) goja.Value {
