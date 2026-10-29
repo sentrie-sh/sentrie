@@ -34,15 +34,17 @@ func addServeCmd(cli *cling.CLI) {
 				WithDescription("HTTP address(es) to listen on").
 				AsFlag(),
 			).
-			WithFlag(evalTimeoutFlag()),
+			WithFlag(evalTimeoutFlag()).
+			WithFlag(evalMaxTimeoutFlag()),
 	)
 }
 
 type serveCmdArgs struct {
-	Port         int      `cling-name:"http-port"`
-	PackLocation string   `cling-name:"pack-location"`
-	Listen       []string `cling-name:"http-listen"`
-	EvalTimeout  string   `cling-name:"eval-timeout"`
+	Port           int      `cling-name:"http-port"`
+	PackLocation   string   `cling-name:"pack-location"`
+	Listen         []string `cling-name:"http-listen"`
+	EvalTimeout    string   `cling-name:"eval-timeout"`
+	EvalMaxTimeout string   `cling-name:"eval-max-timeout"`
 }
 
 func serveCmd(ctx context.Context, args []string) error {
@@ -84,13 +86,23 @@ func serveCmd(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	evalMaxTimeout, err := parseEvalMaxTimeout(input.EvalMaxTimeout, evalTimeout)
+	if err != nil {
+		return err
+	}
+	// The API hands every request its deadline (the default, or Sentrie-Timeout
+	// within the ceiling), which replaces the executor's own: one deadline per
+	// request.
 	exec, err := runtime.NewExecutor(idx, runtime.WithEvalTimeout(evalTimeout))
 	if err != nil {
 		return err
 	}
 	defer func() { _ = exec.Close() }()
 
-	server := api.NewHTTPAPI(exec, api.WithRequestTimeout(evalTimeout))
+	server := api.NewHTTPAPI(exec,
+		api.WithRequestTimeout(evalTimeout),
+		api.WithMaxRequestTimeout(evalMaxTimeout),
+	)
 	if err := server.Setup(ctx, input.Port, input.Listen); err != nil {
 		return err
 	}

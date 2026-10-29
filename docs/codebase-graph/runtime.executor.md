@@ -39,6 +39,11 @@ The top-level driver: it owns the index, the JS registry, the loaded modules, an
   - **Side Effects:** None.
   - **Exceptions:** None.
 
+- **Signature:** `ContextWithEvalTimeout(ctx context.Context, d time.Duration) -> context.Context`
+  - **Behavior:** Carries a per-evaluation deadline that `withEvalDeadline` uses **instead of** the `WithEvalTimeout` value, shorter or longer, and even when that is disabled ([#243](https://github.com/sentrie-sh/sentrie/issues/243)). It replaces the executor's deadline rather than adding a second one, so the error still reads `evaluation exceeded its <d> deadline` with the value used. `d <= 0` is ignored. The executor does not cap it: [[api.handle_decision]] sets it per request from `Sentrie-Timeout` after checking it against `--eval-max-timeout`.
+  - **Side Effects:** None.
+  - **Exceptions:** None.
+
 - **Signature:** `WithCallMemoizeCacheSize(entries int) -> NewExecutorOption`
   - **Behavior:** Replaces the memoization cache with one bounded at `entries` entries. The default cache it replaces holds nothing yet, so the swap is cheap.
   - **Exceptions:** Panics (inside `perch.New`) when `entries` is <= 0.

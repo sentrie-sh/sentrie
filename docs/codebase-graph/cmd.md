@@ -35,15 +35,16 @@ Defines the four user-facing commands and wires the loading pipeline behind each
   - **Side Effects:** Whatever the command does.
   - **Exceptions:** **Panics** on a nil CLI - a deliberate programmer-error assertion.
 
-- **Signature:** `sentrie serve [--http-port 7529] [--pack-location ./] [--http-listen local] [--eval-timeout 10s]`
+- **Signature:** `sentrie serve [--http-port 7529] [--pack-location ./] [--http-listen local] [--eval-timeout 10s] [--eval-max-timeout <d>]`
   - **Behavior:** Runs the full load-and-validate pipeline, constructs the executor, sets up listeners, starts serving in a goroutine, and blocks on context cancellation before stopping. The default port `7529` spells "PLCY" on a phone keypad.
   - **Side Effects:** Binds sockets; serves decisions; closes the executor after the servers stop.
-  - **Exceptions:** Any pipeline error; bind failures.
+  - **`--eval-max-timeout`:** `serve` only ([#243](https://github.com/sentrie-sh/sentrie/issues/243)). The ceiling a request may ask for with the `Sentrie-Timeout` header, a Go duration parsed by `parseEvalMaxTimeout` against the parsed `--eval-timeout`. Unset (the empty default) means the ceiling is `--eval-timeout`, so requests can only shorten; with `--eval-timeout 0` too, any value is allowed. With `--eval-timeout 0` and a ceiling, requests without the header run under the ceiling. Passed to `api.WithMaxRequestTimeout`.
+  - **Exceptions:** Any pipeline error; bind failures; an `--eval-max-timeout` that is unparseable, zero or negative, or below a non-zero `--eval-timeout` (checked after the pack loads, before the executor is built).
 
 - **Signature:** `sentrie exec <rule> [--pack-location .] [--facts '{}'] [--fact-file path] [--output table|json] [--eval-timeout 10s]`
   - **Behavior:** Same pipeline, then resolves the rule path and evaluates. Facts merge from two sources with the **`--facts` flag overriding the fact file**. An empty rule segment evaluates the whole policy.
   - **Side Effects:** Full evaluation; writes to stdout; closes the executor on return.
-  - **`--eval-timeout`:** a Go duration string (cling has no duration input), parsed by `parseEvalTimeout`; `0` disables the deadline and negative values are rejected. `serve` passes it to the executor (which owns the deadline) and to `api.WithRequestTimeout` (which sizes the write timeout from it).
+  - **`--eval-timeout`:** a Go duration string (cling has no duration input), parsed by `parseEvalTimeout`; `0` disables the deadline and negative values are rejected. `serve` passes it to both the executor and `api.WithRequestTimeout`; the API then hands each request its own deadline, which replaces the executor's, so there is one deadline per request.
   - **Exceptions:** File read errors; JSON decode errors; evaluation errors.
 
 - **Signature:** `sentrie validate <rule> [--pack-location .] [--facts '{}']`

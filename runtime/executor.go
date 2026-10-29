@@ -47,6 +47,19 @@ func WithEvalTimeout(d time.Duration) NewExecutorOption {
 	}
 }
 
+// evalTimeoutKey carries a per-evaluation deadline set by ContextWithEvalTimeout.
+type evalTimeoutKey struct{}
+
+// ContextWithEvalTimeout returns a context under which ExecRule and ExecPolicy
+// use d as their deadline instead of the executor's WithEvalTimeout value
+// (#243). It replaces the executor's deadline rather than adding a second one,
+// so a timeout still reports "evaluation exceeded its <d> deadline". d may be
+// longer than the executor's value, so the caller is responsible for capping
+// it; serve's API clamps it to --eval-max-timeout. A value <= 0 is ignored.
+func ContextWithEvalTimeout(ctx context.Context, d time.Duration) context.Context {
+	return context.WithValue(ctx, evalTimeoutKey{}, d)
+}
+
 // WithCallMemoizeCacheSize sets the maximum number of entries in the call memoization cache.
 func WithCallMemoizeCacheSize(entries int) NewExecutorOption {
 	return func(e *executorImpl) {
@@ -179,16 +192,21 @@ func (e *executorImpl) Close() error {
 // withEvalDeadline derives the per-evaluation deadline from ctx. The returned
 // done releases it and, when this deadline (not the caller's) is what ended the
 // evaluation, says so in the error. A nested ExecRule (a cross-policy import)
-// inherits whichever deadline is earlier.
+// inherits whichever deadline is earlier. A deadline set with
+// ContextWithEvalTimeout takes the place of the executor's own.
 func (e *executorImpl) withEvalDeadline(parent context.Context) (context.Context, func(error) error) {
-	if e.evalTimeout <= 0 {
+	timeout := e.evalTimeout
+	if d, ok := parent.Value(evalTimeoutKey{}).(time.Duration); ok && d > 0 {
+		timeout = d
+	}
+	if timeout <= 0 {
 		return parent, func(err error) error { return err }
 	}
-	ctx, cancel := context.WithTimeout(parent, e.evalTimeout)
+	ctx, cancel := context.WithTimeout(parent, timeout)
 	return ctx, func(err error) error {
 		defer cancel()
 		if err != nil && parent.Err() == nil && stdErr.Is(ctx.Err(), context.DeadlineExceeded) && stdErr.Is(err, context.DeadlineExceeded) {
-			return fmt.Errorf("evaluation exceeded its %s deadline: %w", e.evalTimeout, err)
+			return fmt.Errorf("evaluation exceeded its %s deadline: %w", timeout, err)
 		}
 		return err
 	}
