@@ -40,3 +40,10 @@
 - With fresh VMs, a module's top-level code runs at each acquisition, before `BeginCall`, so top-level `Date.now()` reads 0 under `deterministic_js`. That is still deterministic, as the shim comment says.
 - Expect a conflict with `154-js-boundary-values` whichever lands second: 154 deletes `constants.ExecutionStartTimeUnixKey`, which `BeginCall` sets. The fix is to call `js.SetExecutionStart` there.
 - _Model: claude-opus-5-5_
+
+### 23:21 - Restack onto the rebased 168-2 after the #154 stack merged
+- #154 removed the `ExecutionStartTimeUnixKey` VM global; the start now lives in a Go-side map set by `js.SetExecutionStart`. `BeginCall` pins through `SetExecutionStart` instead of `vm.Set`, and `TestBeginCallPinsTimeNowWithoutShims` reads the pin with `executionStartUnix`. The `constants` and `runtime.js.builtins` graph nodes keep main's wording; `runtime.modules` and `runtime.js.stdlib` describe `BeginCall` pinning via `SetExecutionStart`.
+- `ModuleBinding.Call` keeps main's `InterruptOnDone` and `recoverUncaughtJS` setup, then calls `BeginCall`.
+- Open point for review: main now pins the start before `SetupStdLib`, so module top-level code sees `time.now()` as the execution start, but the deterministic `Date.now()` still reads 0 until the first `BeginCall`. Seeding the shim clock at install time would make them agree; not done here.
+- Build, vet and `go test -race ./...` pass.
+- _Model: claude-opus-5-5_
