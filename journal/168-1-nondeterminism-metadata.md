@@ -40,3 +40,11 @@
 - Rebased onto `main` (1197589) now rather than at merge time, because #205 changed the same lines. In `cmd/validate.go` #205 made `validate` close the executor it builds; this layer prints the nondeterminism warnings after it. The merged body builds the executor, closes it (returning a close error), then prints the warnings. The `validate` entry in `docs/codebase-graph/cmd.md` keeps this layer's warning text with #205's "constructs an executor and closes it".
 - Build, vet and `go test ./...` pass on the rebased head.
 - _Model: claude-opus-5-5_
+
+### 23:16 - Restack onto main after the #154 stack merged
+- Rebased onto `main` (0e909ba). Three doc conflicts, all from #153, #154 and #213 landing first:
+  - `builtins/ADDING_BUILTINS.md`: main now has `now` in seconds and a new `now_ms`. Both rows say `Nondeterministic`.
+  - `docs/codebase-graph/builtins.md`: kept main's per-rule-execution clock gotcha next to this layer's `DeriveSafe`/`Nondeterministic` bullet.
+  - `docs/codebase-graph/runtime.js.builtins.md`: kept main's pinned-`time` wording and its #213 and #154 gotchas, and dropped this layer's three stale bullets (predicates answer `false`, silent `time.now()` fallback, overwritable start global), since main already fixed each. The `uuid` gotcha names the four nondeterministic exports.
+- Semantic conflict: #153 added the `now_ms` builtin without `Nondeterministic`, so a derive could still read the clock through it. Marked it, and `TestNondeterministicNames` and `TestIsDeriveSafe` now cover it.
+- _Model: claude-opus-5-5_
