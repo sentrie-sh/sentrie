@@ -46,7 +46,7 @@ The single registry of Sentrie's native functions and the declarative machinery 
   - **Exceptions:** The signature's `TooFewError`, `TooManyError`, `KindError`, or `CallableArityError`.
 
 - **Signature:** `(*Decl).PermittedInDerive() -> bool` / `IsDeriveSafe(name string) -> bool` / `DeriveSafeNames() -> []string`
-  - **Behavior:** Purity gate. `DeriveSafe` means deterministic **within** a single execution; `Nondeterministic` means the result can differ **between** executions (a clock or random source). A derive may call a builtin only when it is `DeriveSafe` and not `Nondeterministic` (#168), so `now` is refused inside derives. `IsDeriveSafe` and `DeriveSafeNames` both apply `PermittedInDerive`, and the runtime guard in [[runtime.eval_call]] calls it directly.
+  - **Behavior:** Purity gate. `DeriveSafe` means deterministic **within** a single execution; `Nondeterministic` means the result can differ **between** executions (a clock or random source). A derive may call a builtin only when it is `DeriveSafe` and not `Nondeterministic` (#168), so `now` and `now_ms` are refused inside derives. `IsDeriveSafe` and `DeriveSafeNames` both apply `PermittedInDerive`, and the runtime guard in [[runtime.eval_call]] calls it directly.
   - **Side Effects:** None.
   - **Exceptions:** None.
 

@@ -145,7 +145,7 @@ delete from `Impl` vs what you keep after moving checks to `Precheck`.
 |-------|-------|---------|
 | `DeriveSafe` | `true` | Deterministic **within a single policy execution** (pinned `ExecutionStart` for time). |
 | `DeriveSafe` | `false` | Not allowed in derives; runtime and `index` purity walker reject it. |
-| `Nondeterministic` | `true` | The result can differ **between** executions given the same arguments, because it reads a clock or a random source (today: `now`). `sentrie validate` warns on every call, and derives reject it even when `DeriveSafe` is set. |
+| `Nondeterministic` | `true` | The result can differ **between** executions given the same arguments, because it reads a clock or a random source (today: `now` and `now_ms`). `sentrie validate` warns on every call, and derives reject it even when `DeriveSafe` is set. |
 | `Nondeterministic` | `false` (default) | Same arguments, same result in every execution. |
 
 A derive may call a builtin only when `Decl.PermittedInDerive()` holds: `DeriveSafe`

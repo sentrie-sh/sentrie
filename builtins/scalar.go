@@ -136,6 +136,8 @@ var (
 		Name:        "now_ms",
 		Description: "Returns the policy execution start time as Unix milliseconds.",
 		DeriveSafe:  true,
+		// Pinned within an execution, but differs between executions.
+		Nondeterministic: true,
 		Sig: Sig{
 			TooFewError:  "now_ms requires 0 arguments",
 			TooManyError: "now_ms requires 0 arguments",

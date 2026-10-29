@@ -79,6 +79,7 @@ func TestIsDeriveSafe(t *testing.T) {
 	t.Parallel()
 	require.True(t, IsDeriveSafe("count"))
 	require.False(t, IsDeriveSafe("now"), "nondeterministic builtins are not permitted in derives")
+	require.False(t, IsDeriveSafe("now_ms"), "nondeterministic builtins are not permitted in derives")
 	require.False(t, IsDeriveSafe("not_a_builtin"))
 }
 
@@ -86,8 +87,9 @@ func TestIsDeriveSafe(t *testing.T) {
 // builtin that reads either must be added here and marked Nondeterministic.
 func TestNondeterministicNames(t *testing.T) {
 	t.Parallel()
-	require.Equal(t, []string{"now"}, NondeterministicNames())
+	require.Equal(t, []string{"now", "now_ms"}, NondeterministicNames())
 	require.True(t, IsNondeterministic("now"))
+	require.True(t, IsNondeterministic("now_ms"))
 	require.False(t, IsNondeterministic("count"))
 	require.False(t, IsNondeterministic("not_a_builtin"))
 }
