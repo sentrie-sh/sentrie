@@ -21,8 +21,9 @@ import (
 // execution clock, such as JWT `exp`/`nbf` checks (#197, #202) once they land. TestNondeterministicExportsExist in runtime checks that
 // every listed module is registered and every listed export exists.
 var nondeterministicExports = map[string][]string{
-	// Date.now and Math.random, re-exported from the JavaScript globals.
-	BuiltinModuleKey("js"): {"now", "random"},
+	// Math.random, re-exported from the JavaScript global. The module has no
+	// now since #207.
+	BuiltinModuleKey("js"): {"random"},
 	// Pinned to the execution start, but differs between executions.
 	BuiltinModuleKey("time"): {"now"},
 	// Fresh random (v4) or time-ordered (v6, v7) identifiers on every call.
