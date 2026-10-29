@@ -18,3 +18,7 @@
 - Rebased onto `main` (1197589) ahead of merge. No textual conflict, but `TestSentrieJSNowExportRemoved` called `exec.jsBindingConstructor`, which #205 replaced with `getModuleBinding` (same arguments, same "missing required export" error), so the runtime package no longer compiled. The test now binds through `getModuleBinding`.
 - Build, vet and `go test ./...` pass on the rebased head.
 - _Model: claude-opus-5-5_
+
+### 23:16 - Rebase onto main after the #154 stack merged
+- Rebased onto `main` (0e909ba). One conflict, in the "Non-deterministic" and "TypeScript" bullets of `docs/codebase-graph/runtime.js.builtins.md`: kept main's note that `time.now()` is pinned to the execution start alongside this branch's note that the `js` module has no `now`.
+- _Model: claude-opus-5-5_
