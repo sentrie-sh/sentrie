@@ -45,7 +45,7 @@ The network-facing façade over the policy engine. It translates HTTP requests i
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** `HTTPAPI` owns its listeners and a shared executor. The executor is concurrency-safe by design, so one instance serves all requests and all connections share the loaded modules and the memoization cache; every module call still runs in its own VM.
-- **Performance/Scale Notes:** Read and write timeouts are fixed at 30 seconds with no configuration. There is **no concurrency limit**, so inbound request concurrency maps directly onto executor concurrency; the per-module limit of 10 live VMs becomes the implicit bottleneck under load, and requests queue on it invisibly.
+- **Performance/Scale Notes:** Each decision request carries a deadline (`--eval-timeout`, 10s by default); the read timeout is fixed at 30 seconds. There is **no concurrency limit**, so inbound request concurrency maps directly onto executor concurrency; the per-module limit of 10 live VMs becomes the implicit bottleneck under load, and requests queue on it invisibly.
 - **Dependencies Risk:**
   - **No authentication, no authorization, no rate limiting, wildcard CORS, and no request body limit.** Filed as [#115](https://github.com/sentrie-sh/sentrie/issues/115). The default bind of `local` is the one thing keeping the out-of-the-box posture safe.
   - **`local6` and `network6` cannot bind** because the addresses are double-bracketed - see [[api.net]].

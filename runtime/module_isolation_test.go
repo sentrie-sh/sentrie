@@ -187,6 +187,6 @@ func (s *RuntimeTestSuite) TestProbeInterruptIsClearedAfterLoad() {
 	})
 	s.Require().NoError(err)
 	s.NotPanics(func() {
-		s.NoError(module.checkExports([]string{"g"}))
+		s.NoError(module.checkExports(s.T().Context(), []string{"g"}))
 	})
 }

@@ -34,6 +34,11 @@ The top-level driver: it owns the index, the JS registry, the loaded modules, an
   - **Side Effects:** Creates a memoization cache of 10,000 entries; `perch` allocates entries lazily, so construction costs a few kilobytes. The module map starts empty.
   - **Exceptions:** Returns `error` in its signature but **never returns a non-nil error**. It **panics** when `idx.Pack` is nil.
 
+- **Signature:** `WithEvalTimeout(d time.Duration) -> NewExecutorOption` / `DefaultEvalTimeout = 10s`
+  - **Behavior:** Sets the deadline `ExecRule` and `ExecPolicy` derive from their caller's context ([#142](https://github.com/sentrie-sh/sentrie/issues/142)). When it passes, the running module call is interrupted (`js.InterruptOnDone`) and the evaluation fails with an error wrapping `context.DeadlineExceeded`, prefixed `evaluation exceeded its <d> deadline` when this deadline (not the caller's) ended it. A nested `ExecRule` (cross-policy import) inherits the earlier deadline. `d <= 0` disables it. `exec` and `serve` set it from `--eval-timeout`.
+  - **Side Effects:** None.
+  - **Exceptions:** None.
+
 - **Signature:** `WithCallMemoizeCacheSize(entries int) -> NewExecutorOption`
   - **Behavior:** Replaces the memoization cache with one bounded at `entries` entries. The default cache it replaces holds nothing yet, so the swap is cheap.
   - **Exceptions:** Panics (inside `perch.New`) when `entries` is <= 0.
@@ -79,4 +84,5 @@ The top-level driver: it owns the index, the JS registry, the loaded modules, an
   - **The module map never evicts.** Its size is bounded by the pack's distinct `use` targets, which are fixed once the pack is indexed. An executor that outlives its pack (a reload) must be closed and replaced, not reused.
   - **`defer done()` inside the attachment loop** accumulates trace closures until `execRule` returns rather than closing each span promptly; the same pattern appears in `evaluateRuleOutcome`.
   - **The `when` gate treats `Unknown` as "not true".** A guard that evaluates to `Unknown` silently takes the default branch rather than propagating uncertainty into the body.
+  - **What the deadline does and does not bound.** It stops JavaScript wherever module code runs: module loads, export-key capture, the bind-time export check (which also clears any interrupt left on the probe), the export lookup, the call and its return conversion (`runGuardedJS` and `recoverUncaughtJS` in `runtime/modules.go`) and `js.MaxCallStackSize` (10,000 frames) bounds JS recursion. Sentrie's own Go-side expression evaluation never checks the context, so a policy with no module calls runs to completion, and an evaluation already past its deadline only stops at its next module call. **Memory is not bounded per evaluation**: goja has no heap cap, so operators should set `GOMEMLIMIT` and a container memory limit (README "Evaluation Limits").
   - **`NewExecutor`'s error return is vestigial**, so a caller's error handling gives false assurance while the real failure mode is a nil-pack panic.

@@ -79,6 +79,18 @@ curl -X POST http://localhost:7529/decision/user_management/user_access/allow \
   -d '{"facts":{"user":{"role":"admin","status":"active"}}}'
 ```
 
+### Evaluation Limits
+
+TypeScript and JavaScript modules run inside Sentrie, so evaluation is bounded by default:
+
+| Resource | Bound | Configure |
+| :--- | :--- | :--- |
+| Time per decision | 10s for each `exec` evaluation and each `serve` request; JavaScript still running is interrupted and the decision fails (`serve` answers 503) | `--eval-timeout 2s` on `exec` and `serve`; `0` disables it (`serve` still closes a response after its 30s write timeout) |
+| JavaScript call depth | 10,000 frames per module call; deeper recursion throws a stack overflow | Not configurable |
+| Memory | **Not bounded per evaluation.** goja has no per-VM heap cap | Set a process limit, for example `GOMEMLIMIT=1GiB`, plus a container or cgroup memory limit |
+
+The deadline stops module JavaScript wherever it runs: module loading, export getters and Proxy traps read during binding and lookup, the call itself, and the conversion of its return value. Sentrie's own expression evaluation is not interrupted mid-expression; it ends when it next calls into a module, or when it finishes.
+
 ## Learn More
 
 - **[Getting Started](https://sentrie.sh/getting-started/)** - Write your first policy

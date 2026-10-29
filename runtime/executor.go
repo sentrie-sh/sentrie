@@ -26,10 +26,26 @@ import (
 type NewExecutorOption func(*executorImpl)
 
 const (
+	// DefaultEvalTimeout bounds one ExecRule or ExecPolicy call unless
+	// overridden with WithEvalTimeout (#142). When it passes while a module call
+	// or load is running, that JavaScript is interrupted and the evaluation fails
+	// with context.DeadlineExceeded. Sentrie's own expression evaluation does not
+	// check it (#225).
+	DefaultEvalTimeout = 10 * time.Second
+
 	// defaultCallMemoizeCacheEntries bounds the call memoization cache unless
 	// overridden with WithCallMemoizeCacheSize.
 	defaultCallMemoizeCacheEntries = 10_000
 )
+
+// WithEvalTimeout sets the deadline for each ExecRule or ExecPolicy call.
+// A value <= 0 disables the executor's own deadline; the caller's context
+// still applies.
+func WithEvalTimeout(d time.Duration) NewExecutorOption {
+	return func(e *executorImpl) {
+		e.evalTimeout = d
+	}
+}
 
 // WithCallMemoizeCacheSize sets the maximum number of entries in the call memoization cache.
 func WithCallMemoizeCacheSize(entries int) NewExecutorOption {
@@ -77,6 +93,7 @@ type executorImpl struct {
 	index            *index.Index
 	jsRegistry       *js.Registry
 	callMemoizePerch *perch.Perch[any]
+	evalTimeout      time.Duration
 
 	// modules holds every loaded module for the executor's lifetime, keyed by
 	// module path. Its size is bounded by the pack's distinct `use` targets, so
@@ -94,6 +111,7 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 		index:            idx,
 		jsRegistry:       js.NewRegistry(idx.Pack.Location),
 		callMemoizePerch: perch.New[any](defaultCallMemoizeCacheEntries),
+		evalTimeout:      DefaultEvalTimeout,
 		modules:          map[string]*moduleLoad{},
 	}
 
@@ -158,8 +176,29 @@ func (e *executorImpl) Close() error {
 	return nil
 }
 
+// withEvalDeadline derives the per-evaluation deadline from ctx. The returned
+// done releases it and, when this deadline (not the caller's) is what ended the
+// evaluation, says so in the error. A nested ExecRule (a cross-policy import)
+// inherits whichever deadline is earlier.
+func (e *executorImpl) withEvalDeadline(parent context.Context) (context.Context, func(error) error) {
+	if e.evalTimeout <= 0 {
+		return parent, func(err error) error { return err }
+	}
+	ctx, cancel := context.WithTimeout(parent, e.evalTimeout)
+	return ctx, func(err error) error {
+		defer cancel()
+		if err != nil && parent.Err() == nil && stdErr.Is(ctx.Err(), context.DeadlineExceeded) && stdErr.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("evaluation exceeded its %s deadline: %w", e.evalTimeout, err)
+		}
+		return err
+	}
+}
+
 // ExecPolicy executes all exported rules and returns the results
-func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) ([]*ExecutorOutput, error) {
+func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) (_ []*ExecutorOutput, err error) {
+	ctx, done := e.withEvalDeadline(ctx)
+	defer func() { err = done(err) }()
+
 	p, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
 		return nil, err
@@ -204,7 +243,10 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 }
 
 // ExecRule executes an exported rule and returns the result
-func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, injectedFacts map[string]any) (*ExecutorOutput, error) {
+func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, injectedFacts map[string]any) (_ *ExecutorOutput, err error) {
+	ctx, done := e.withEvalDeadline(ctx)
+	defer func() { err = done(err) }()
+
 	// Validate exported
 	p, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
@@ -371,7 +413,16 @@ func (e *executorImpl) loadJSInstance(ctx context.Context, ms *js.ModuleSpec, st
 	if err != nil {
 		return nil, err
 	}
-	return newJSInstance(ar.VM, exObj), nil
+	// Capturing the export keys may run a Proxy ownKeys trap, so it runs under
+	// the deadline too.
+	var instance *JSInstance
+	if err := runGuardedJS(ctx, ar.VM, func() error {
+		instance = newJSInstance(ar.VM, exObj)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return instance, nil
 }
 
 func (e *executorImpl) bindUses(ctx context.Context, ec *ExecutionContext, p *index.Policy) error {
@@ -405,7 +456,7 @@ func (e *executorImpl) getModuleBinding(ctx context.Context, use *ast.UseStateme
 	if err != nil {
 		return nil, err
 	}
-	if err := module.checkExports(use.Modules); err != nil {
+	if err := module.checkExports(ctx, use.Modules); err != nil {
 		return nil, err
 	}
 	return &ModuleBinding{
