@@ -1,18 +1,5 @@
-/**
- * Copyright 2025 Binaek Sarkar
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+// SPDX-License-Identifier: Apache-2.0
 
 /**
  * Regex module provides regular expression pattern matching and manipulation utilities.
@@ -47,7 +34,9 @@ declare module "@sentrie/regex" {
   export function findAll(pattern: string, str: string): string[];
 
   /**
-   * Replaces the first occurrence of a pattern in a string.
+   * Replaces the first (leftmost) occurrence of a pattern in a string.
+   * References such as `$1` in the replacement expand to capture groups.
+   * Before #209 this replaced every occurrence; use replaceAll for that.
    * @param pattern - The regular expression pattern to match
    * @param str - The string to perform replacement on
    * @param replacement - The replacement string
@@ -58,6 +47,7 @@ declare module "@sentrie/regex" {
 
   /**
    * Replaces all occurrences of a pattern in a string.
+   * References such as `$1` in the replacement expand to capture groups.
    * @param pattern - The regular expression pattern to match
    * @param str - The string to perform replacement on
    * @param replacement - The replacement string
