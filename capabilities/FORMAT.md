@@ -83,9 +83,9 @@ Runtime denials wrap the same `not granted by the capabilities file` error.
 ## Nondeterministic sources
 
 `sentrie validate` prints a warning for every nondeterministic source a pack uses,
-whether or not a capabilities file is given. These sources are the `now` builtin,
-`@sentrie/time.now`, `@sentrie/uuid.v4`, `v6` and `v7`, and `@sentrie/js.now` and
-`random`. To forbid them, leave them out of `builtins` and `modules`, and set
+whether or not a capabilities file is given. These sources are the `now` and
+`now_ms` builtins, `@sentrie/time.now`, `@sentrie/uuid.v4`, `v6` and `v7`, and
+`@sentrie/js.random`. To forbid them, leave them out of `builtins` and `modules`, and set
 `local_modules` to `false`: a pack's own TypeScript can call `Date.now()` and
 `Math.random()` directly.
 

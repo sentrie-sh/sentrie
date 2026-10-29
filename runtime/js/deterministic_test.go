@@ -98,12 +98,14 @@ func (s *JSTestSuite) TestDeterministicShimsReachModuleExports() {
 	ar := s.deterministicRuntime(true)
 	exports, err := ar.Require(s.T().Context(), ar.BaseDir, "@sentrie/js")
 	s.Require().NoError(err)
-	now, ok := goja.AssertFunction(exports.Get("now"))
-	s.Require().True(ok)
 	random, ok := goja.AssertFunction(exports.Get("random"))
 	s.Require().True(ok)
 
-	s.Require().NoError(BeginCall(ar.VM, deterministicStart, "@sentrie/js", "now"))
+	// @sentrie/js has no now since #207; module code reaches the clock
+	// through the global Date, which the shims replace.
+	now, ok := goja.AssertFunction(s.run(ar.VM, "(function () { return Date.now(); })"))
+	s.Require().True(ok)
+	s.Require().NoError(BeginCall(ar.VM, deterministicStart, "@local/mod.ts", "now"))
 	v, err := now(goja.Undefined())
 	s.Require().NoError(err)
 	s.Equal(deterministicStart.UnixMilli(), v.ToInteger())
