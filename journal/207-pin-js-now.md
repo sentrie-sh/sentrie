@@ -13,3 +13,8 @@
 - Tests: `TestBuiltinJSTS_NoNowExport` (source contains no `now` export and no `Date.now`), and `RuntimeTestSuite.TestSentrieJSNowExportRemoved` in a new `runtime/sentrie_js_module_test.go`, which binds the real embedded module and checks `now` fails with "missing required export" while `round` still binds. Kept it out of `executor_test.go` to avoid conflicts with the other open stacks.
 - Graph: `runtime.js.builtins` now records that the `js` module deliberately has no `now`.
 - _Model: claude-opus-5-5_
+
+### 10:23 - Rebase onto main after #205 and #202 merged
+- Rebased onto `main` (1197589) ahead of merge. No textual conflict, but `TestSentrieJSNowExportRemoved` called `exec.jsBindingConstructor`, which #205 replaced with `getModuleBinding` (same arguments, same "missing required export" error), so the runtime package no longer compiled. The test now binds through `getModuleBinding`.
+- Build, vet and `go test ./...` pass on the rebased head.
+- _Model: claude-opus-5-5_
