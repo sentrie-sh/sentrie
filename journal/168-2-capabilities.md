@@ -41,3 +41,10 @@
 - A leak the merge exposed: `newGrantedExecutor` returned an error from `CheckModuleGrants` without closing the executor it had just built. It now closes it first, so a denied module grant does not leave the executor's modules loaded.
 - Build, vet and `go test ./...` pass on the rebased head, and on 168-3 and 218 above it.
 - _Model: claude-opus-5-5_
+
+### 23:21 - Restack onto the rebased 168-1 after the #154 stack merged
+- Main gained `--eval-timeout` on `exec` and `serve` and `--eval-max-timeout` on `serve` (#142, #243) while this layer added `--capabilities` to the same commands. Both flags are registered, and the executor is built with `newGrantedExecutor(ctx, idx, input.Capabilities, runtime.WithEvalTimeout(evalTimeout))`, so the grant checks and the deadline both apply. `serve` keeps main's comment on the per-request deadline.
+- `runtime/executor.go` keeps main's `evalTimeout` field next to `capabilities`; the `constants` import this layer once needed is gone with #154.
+- README keeps main's "Evaluation Limits" section ahead of "Restrict What a Pack May Use". In `docs/codebase-graph/cmd.md` the `--capabilities` entry sits before main's `serve` signature, which lists the timeout flags.
+- Build, vet and `go test -race ./...` pass.
+- _Model: claude-opus-5-5_
