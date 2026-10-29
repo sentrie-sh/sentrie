@@ -48,3 +48,7 @@
 - README keeps main's "Evaluation Limits" section ahead of "Restrict What a Pack May Use". In `docs/codebase-graph/cmd.md` the `--capabilities` entry sits before main's `serve` signature, which lists the timeout flags.
 - Build, vet and `go test -race ./...` pass.
 - _Model: claude-opus-5-5_
+
+### 23:30 - Fix the parse-error test for Go 1.25
+- First CI run after the restack failed `TestParseErrorsNamePositionsAndShape`: CI runs Go 1.25.14, whose JSON decoder reports a truncated object as "unexpected end of file", while the local toolchain (1.27) says "unexpected end of JSON input". The case now asserts `capabilities: 1:14: unexpected end`, which both produce. Local test runs now pin `GOTOOLCHAIN=go1.25.0` to match CI.
+- _Model: claude-opus-5-5_
