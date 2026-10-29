@@ -15,9 +15,9 @@ policy removedFunctionsTest {
   fact text: string
   fact jsonStr: string
 
-  use { round } from "@sentrie/js" as math
-  use { length } from "@sentrie/js" as str
-  use { parse } from "@sentrie/js" as json
+  use { round } from @sentrie/js as math
+  use { length } from @sentrie/js as str
+  use { parse } from @sentrie/js as json
 
   rule testMathFromJS = default false {
     -- This should work - using @sentrie/js

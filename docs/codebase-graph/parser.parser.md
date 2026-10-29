@@ -55,8 +55,8 @@ tags: parser-state, token-window, error-accumulation, dispatch-tables
   - **Side Effects:** None.
   - **Exceptions:** None.
 
-- **Signature:** `(*Parser).errorf(format string, args ...any)`
-  - **Behavior:** The single error sink. Prefixes every message with `parsing error at <current range>:` and **joins** onto `p.err` via `errors.Join`, so all diagnostics from a run are retained rather than the first one winning.
+- **Signature:** `(*Parser).errorf(format string, args ...any)` and `(*Parser).errorAtf(rnge tokens.Range, format string, args ...any)`
+  - **Behavior:** The error sink. `errorf` reports at the current token's range and delegates to `errorAtf`, which takes the range explicitly for a construct whose own span is the better location. Prefixes every message with `parsing error at <range>:` and **joins** onto `p.err` via `errors.Join`, so all diagnostics from a run are retained rather than the first one winning.
   - **Side Effects:** Mutates `p.err`.
   - **Exceptions:** N/A.
 
@@ -71,5 +71,5 @@ tags: parser-state, token-window, error-accumulation, dispatch-tables
 - **Dependencies Risk:**
   - **Boolean-only failure signalling.** `expect`/`advanceExpected` return `bool`; callers that ignore it keep parsing from an unexpected token and typically produce a cascade of downstream errors whose first entry is the only meaningful one. When reading a joined parse error, trust the earliest message.
   - **`advance()` on an error token does not progress.** It reports and returns the same token, so a production that loops on `advance()` without checking `p.err` can spin. All loops must be bounded by `hasTokens()` *and* an error check.
-  - **`errorf` uses the current range, not the failing construct's range.** Reported positions point at wherever the window happened to be, which can be one token past the real culprit.
+  - **`errorf` uses the current range, not the failing construct's range.** Reported positions point at wherever the window happened to be, which can be one token past the real culprit. `errorAtf` exists for the sites that know better; few use it so far.
   - **No error recovery or synchronisation.** There is no panic-mode resync to a statement boundary, so a single syntax error usually invalidates everything after it in the file.

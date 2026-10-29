@@ -15,7 +15,7 @@ Parses `use { f, g } from ("./mod.js" | @pkg/mod) [as alias]` - the bridge betwe
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `parser.use` | `CALLS` | [[parser.parser]] | Uses `advanceExpected`, `expect`, `canExpect`, `canExpectAnyOf`, `errorf`. |
+| `parser.use` | `CALLS` | [[parser.parser]] | Uses `advanceExpected`, `expect`, `canExpect`, `canExpectAnyOf`, `errorf`, and `errorAtf` to report a quoted `@` path at the string. |
 | `parser.use` | `CALLS` | [[ast]] | Emits `ast.NewUseStatement(modules, relativeFrom, libFrom, alias, span)`. |
 | `parser.use` | `CALLS` | [[tokens]] | `IsKeyword` decides whether an `@` path segment is a keyword token, and whether a default alias would be one. |
 | `parser.use` | `IMPORTS` | `std.strings` | Splits a relative path on `/` to derive the default alias. |
@@ -29,7 +29,7 @@ Parses `use { f, g } from ("./mod.js" | @pkg/mod) [as alias]` - the bridge betwe
 - **Signature:** `parseUseStatement(ctx: context.Context, p: *Parser) -> ast.Statement`
   - **Behavior:** Consumes `use`, then a **required non-empty** brace list of identifiers separated by commas, then `from`, then either a `String` (stored as `RelativeFrom`) or `@segment (/ segment)*` (stored as `LibFrom` segments), where a segment is an identifier **or a keyword** (`@sentrie/string`, #158). The default alias is the last path segment of whichever form was used; an explicit `as <ident>` overrides it. The statement's span runs from `use` to just past its last token (the alias, or the last module path segment or string when there is no `as`), on that token's line, whatever follows it (#216).
   - **Side Effects:** Consumes tokens; may record errors.
-  - **Exceptions:** Returns `nil` for a missing `use`/`{`/`}`/`from`, a non-identifier in the import list, a missing comma between entries, a source that is neither string nor `@`, or a missing identifier after `as`, or an `@` path whose last segment is a keyword with no `as` (`default alias %q is a keyword; add 'as <alias>'`). The source-form failure reports `expected string or '@' for module import`.
+  - **Exceptions:** Returns `nil` for a missing `use`/`{`/`}`/`from`, a non-identifier in the import list, a missing comma between entries, a source that is neither string nor `@`, or a missing identifier after `as`, or an `@` path whose last segment is a keyword with no `as` (`default alias %q is a keyword; add 'as <alias>'`). The source-form failure reports `expected string or '@' for module import`. A string source starting with `@` is rejected at the string's span (`quoted module path %q is read as a file next to the policy; drop the quotes to import the module: from %s`, #217): a quoted path is always a file relative to the policy, so the quoted form never named the module. A file whose name starts with `@` is written `"./@name"`.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless.
@@ -37,6 +37,7 @@ Parses `use { f, g } from ("./mod.js" | @pkg/mod) [as alias]` - the bridge betwe
 - **Dependencies Risk:**
   - **Empty import lists are rejected by construction.** The first identifier is consumed unconditionally, so `use {} from "x"` fails with a confusing `expected Ident, got }` rather than a clear "at least one import required".
   - **Unterminated brace list can run away.** The loop condition tests only for `}` - not EOF - so a missing closing brace relies on `expect(PunctComma)` failing to break out. The resulting diagnostic points at whatever token followed, not at the `use`.
+  - **One spelling for `@` modules.** Before #217 a quoted `"@sentrie/js"` parsed and indexed cleanly and failed only at first evaluation, as a missing file. It is now a parse error, so packs that used the quoted form stop loading until the quotes are dropped.
   - **Two mutually exclusive source fields.** Consumers must check `RelativeFrom != ""` before falling back to `LibFrom`; exactly one is populated, and nothing in the AST enforces that invariant.
   - **Alias derivation assumes a path shape.** For a relative source the alias is the substring after the last `/`, including any file extension - `from "./util.js"` defaults the alias to `util.js`, not `util`. Explicit `as` is advisable for file-path imports.
   - **Keywords are names only inside the `@` path.** `advanceModulePathSegment` accepts a keyword token there and nowhere else; the import list and the `as` alias still require `Ident`. A keyword as the last segment cannot become the default alias, because call sites (`string.lower(x)`) would lex it as the keyword, so the parser demands an explicit `as` instead.
