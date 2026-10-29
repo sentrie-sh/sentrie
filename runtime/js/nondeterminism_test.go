@@ -11,7 +11,7 @@ func (s *JSTestSuite) TestNondeterministicExportLookup() {
 	s.True(IsNondeterministicExport("@sentrie/uuid", "v4"))
 	s.True(IsNondeterministicExport("@sentrie/time", "now"))
 	s.True(IsNondeterministicExport("@sentrie/js", "random"))
-	s.True(IsNondeterministicExport("@sentrie/js", "now"))
+	s.False(IsNondeterministicExport("@sentrie/js", "now"), "removed in #207")
 	s.False(IsNondeterministicExport("@sentrie/time", "parse"))
 	s.False(IsNondeterministicExport("@sentrie/hash", "sha256"))
 	s.False(IsNondeterministicExport("@local/uuid", "v4"))
