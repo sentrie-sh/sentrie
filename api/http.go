@@ -46,6 +46,8 @@ type HTTPAPI struct {
 	logger            *slog.Logger
 	requestTimeout    time.Duration
 	maxRequestTimeout time.Duration
+	// readHeaderTimeout is serverReadHeaderTimeout; tests shorten it.
+	readHeaderTimeout time.Duration
 }
 
 // HTTPAPIOption configures an HTTPAPI.
@@ -78,12 +80,23 @@ func WithMaxRequestTimeout(d time.Duration) HTTPAPIOption {
 // after the request deadline, to send the timeout response.
 const responseWriteMargin = 5 * time.Second
 
+// Connection limits for every listener (#247). A client that sends its
+// headers slowly, or keeps an idle connection open, would otherwise hold a
+// goroutine and a file descriptor for as long as serverReadTimeout allows.
+const (
+	serverReadTimeout       = 30 * time.Second
+	serverReadHeaderTimeout = 5 * time.Second
+	serverIdleTimeout       = 60 * time.Second
+	serverMaxHeaderBytes    = 64 << 10 // 64 KiB; net/http's default is 1 MiB
+)
+
 // NewHTTPAPI creates a new HTTP API instance
 func NewHTTPAPI(executor runtime.Executor, opts ...HTTPAPIOption) *HTTPAPI {
 	api := &HTTPAPI{
-		executor:       executor,
-		logger:         slog.Default(),
-		requestTimeout: runtime.DefaultEvalTimeout,
+		executor:          executor,
+		logger:            slog.Default(),
+		requestTimeout:    runtime.DefaultEvalTimeout,
+		readHeaderTimeout: serverReadHeaderTimeout,
 	}
 	for _, opt := range opts {
 		opt(api)
@@ -100,6 +113,22 @@ func (api *HTTPAPI) writeTimeout() time.Duration {
 		return time.Duration(math.MaxInt64)
 	}
 	return max(30*time.Second, ceiling+responseWriteMargin)
+}
+
+// newServer builds the server every listener uses, with its read, header,
+// write and idle limits. BaseContext ties each request to ctx.
+func (api *HTTPAPI) newServer(ctx context.Context, handler http.Handler) *http.Server {
+	return &http.Server{
+		Handler:           handler,
+		ReadTimeout:       serverReadTimeout,
+		ReadHeaderTimeout: api.readHeaderTimeout,
+		WriteTimeout:      api.writeTimeout(),
+		IdleTimeout:       serverIdleTimeout,
+		MaxHeaderBytes:    serverMaxHeaderBytes,
+		BaseContext: func(net.Listener) context.Context {
+			return ctx
+		},
+	}
 }
 
 func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error {
@@ -132,14 +161,7 @@ func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error 
 			api.listeners = nil
 			return fmt.Errorf("failed to listen on %s: %w", binding, err)
 		}
-		api.listeners = append(api.listeners, NewListenerServerPair(ln, &http.Server{
-			Handler:      mux,
-			ReadTimeout:  30 * time.Second,
-			WriteTimeout: api.writeTimeout(),
-			BaseContext: func(l net.Listener) context.Context {
-				return ctx
-			},
-		}))
+		api.listeners = append(api.listeners, NewListenerServerPair(ln, api.newServer(ctx, mux)))
 		api.logger.DebugContext(ctx, "Listening on server", "binding", binding)
 	}
 	return nil
