@@ -9,14 +9,14 @@ tags: module-resolution, compilation, caching, path-traversal, security
 # Node: js.Registry (Module Resolution and Compilation)
 
 ## 1. Architectural Role & Intent
-Owns module identity and compilation for the whole engine. It resolves `use` references and `require` specifiers into canonical keys, decides whether a module is a Go builtin, a TypeScript builtin, or a file on disk, and compiles each exactly once into a reusable `goja.Program`. It is shared across every VM, so compilation cost is paid once per module for the process lifetime.
+Owns module identity and compilation for the whole engine. It resolves `use` references and `require` specifiers into canonical keys, decides whether a module is a Go builtin, a TypeScript builtin, or a file on disk, and compiles each successfully exactly once into a reusable `goja.Program`. It is shared across every VM, so compilation cost is paid once per module for the process lifetime.
 
 ## 2. Graph Edges (Strict Relational Data)
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `runtime.js.registry` | `IMPORTS` | `ext.dop251.goja` | `goja.Compile` produces the cached `Program`. |
-| `runtime.js.registry` | `CALLS` | [[runtime.js.tscompile]] | `TranspileTS` then `WrapAsIIFE` before compilation. |
+| `runtime.js.registry` | `CALLS` | [[runtime.js.tscompile]] | `TranspileTS` before compilation. |
 | `runtime.js.registry` | `READS_FROM` | [[infra.filesystem]] | `os.ReadFile` for on-disk modules; `os.Stat` for extension probing. |
 | `runtime.js.registry` | `READS_FROM` | [[capabilities]] | `checkGrant` refuses ungranted builtin modules and, when local modules are not granted, every pack-local file. |
 | `runtime.js.registry` | `DEPENDS_ON` | [[constants]] | `APPNAME` forms the `@sentrie/` builtin key prefix. |
@@ -51,9 +51,14 @@ Owns module identity and compilation for the whole engine. It resolves `use` ref
   - **Exceptions:** `<module>: require(%q): <grant or resolution error>`.
 
 - **Signature:** `programFor(m *ModuleSpec) -> (*goja.Program, error)`
-  - **Behavior:** Behind `sync.Once`: reads the source, transpiles, parses the source map, wraps as an IIFE factory, and compiles. A Go-backed module returns `(nil, nil)` because there is no program to run.
-  - **Side Effects:** Populates `TranspiledCode`, `TranspiledMap`, and `Program` on the spec.
-  - **Exceptions:** `builtin not found: %s`; file read errors; esbuild errors; source-map unmarshal errors; goja compile errors.
+  - **Behavior:** Returns the cached program if one compiled; otherwise, under the spec's `compileMu`, reads the source, transpiles to the factory expression and compiles it under the spec's `SourceName()`. Only a success is kept for the process lifetime. A failure is remembered with the source text that produced it and returned again while that text is unchanged; an edited source is compiled again, and a read error is never remembered. A Go-backed module returns `(nil, nil)` because there is no program to run.
+  - **Side Effects:** On success populates `TranspiledCode` and `Program`, then publishes the program through an `atomic.Pointer`, so later calls take no lock. These fields are read only after `programFor` succeeds.
+  - **Exceptions:** `builtin not found: %s`; file read errors (unwrapped); esbuild errors and goja compile errors, each a `*SourceError` positioned in the original source. A goja **parse** error carries no file, so its `SourceError` names the module and says its position is in the transpiled output.
+
+- **Signature:** `(*ModuleSpec).SourceName() -> string`
+  - **Behavior:** The name errors and stack frames report: the pack-relative key with the resolved file's base name (so `@local/lib/helpers` becomes `@local/lib/helpers.ts`), or the key itself for a builtin.
+  - **Side Effects:** None.
+  - **Exceptions:** None.
 
 - **Signature:** `(*Registry).CompiledPrograms() -> int64`
   - **Behavior:** How many module programs this registry has compiled; one per module for the registry's lifetime.
@@ -71,12 +76,14 @@ Owns module identity and compilation for the whole engine. It resolves `use` ref
   - **Exceptions:** None.
 
 ## 4. Operational Context & Gotchas
-- **Statefulness:** Long-lived and shared. The module map is guarded by an `RWMutex` with correct double-checked locking; each spec's compilation is guarded by its own `sync.Once`.
+- **Statefulness:** Long-lived and shared. The module map is guarded by an `RWMutex` with correct double-checked locking; each spec's compile attempts are serialized by its own `compileMu`, with a lock-free `atomic.Pointer` fast path once compiled. Concurrent first callers wait on the mutex and share one program.
 - **Path containment:** `@local/` specifiers, `use … from local …`, and `./`/`/` relative requires all route through `relativeToLocal` → `confineToPackRoot`. Lexical `..` checks run on cleaned paths; existing path components are symlink-resolved so a link under the pack root cannot target files outside it.
 - **Performance/Scale Notes:** Compilation happens once per module per process. `getOrCreateModule` takes the read lock first and only escalates on a miss, so the steady-state path is read-only. Extension probing does up to two `os.Stat` calls, but only on first resolution.
 - **Dependencies Risk:**
   - **`RegisterGoBuiltin` and `RegisterTSBuiltin` write their maps without holding a lock**, unlike every other map in the type. This is safe only because registration happens during executor construction before any concurrent use - an invariant nothing enforces.
-  - **A compilation failure is cached permanently.** `sync.Once` fires regardless of outcome and `m.err` is retained, so a module that failed to compile - including for a transient reason such as a file read error - can never be retried for the process lifetime.
+  - **A success is permanent, a failure is not.** Once a module compiles, later edits to its file are not picked up until restart (there is no hot reload). A failing on-disk module is re-read on every `PrepareUse` and `require`, which happens per policy evaluation, so a broken module costs one file read per call; it is re-transpiled only when its content changed. That read happens under the spec's `compileMu`, so concurrent evaluations of a policy whose module is broken serialize behind one read each.
+  - **A half-written save can be pinned.** Because a broken module is re-read on every call, an editor that saves in place (truncate then write) can be read mid-save; if that prefix compiles (an empty file always does) it is kept as a success for the process lifetime. Only matters for a long-lived `serve` with live edits.
+  - **Compile errors appear only when a policy first binds the module**; `sentrie validate` does not compile modules ([#155](https://github.com/sentrie-sh/sentrie/issues/155)).
   - **Extension probing prefers `.ts` over `.js`** silently, so a directory containing both resolves to the TypeScript file with no diagnostic.
   - **`getOrCreateModule` returns nil rather than an error** when nothing resolves, forcing every caller to translate that into `module %s not found` and losing the reason.
   - **Bare specifiers are unsupported**, so no npm dependency can be used; the comment marks vendor resolution as future work.
