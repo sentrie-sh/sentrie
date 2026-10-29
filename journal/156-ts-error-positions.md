@@ -33,3 +33,8 @@
 - Rebased onto `main` (cfe249a). `runtime/js/registry.go` conflicted with #194 (105), as the merge plan in the PR description predicted. Resolved per that plan: this layer's mutex and atomic-pointer `programFor` replaces #194's `sync.Once` body. #194's compile counter now increments only after a successful `compileModule`, and I renamed it from `Registry.compiled` to `programsCompiled`, so it no longer shares a name with `ModuleSpec.compiled`. `CompiledPrograms()` is unchanged.
 - `docs/codebase-graph/runtime.js.md`: merged the Statefulness and Performance notes, combining #105's per-call VMs with this layer's retryable compile and source-mapped stacks.
 - _Model: claude-opus-5-5_
+
+### 23:57 - Rebase onto main after the #154 and #168 stacks merged
+- One conflict, in the `Registry` struct in `runtime/js/registry.go`: #203 added the `grant` field next to the compile counter this branch renames to `programsCompiled`. Kept the rename and the field.
+- Vet, `go test -race ./...` and lint pass under Go 1.25, which CI uses.
+- _Model: claude-opus-5-5_
