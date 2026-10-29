@@ -52,6 +52,11 @@ func padAndValidateCallableArgs(ctx context.Context, ec *ExecutionContext, exec 
 }
 
 func invokeDerive(ctx context.Context, callerEC *ExecutionContext, exec *executorImpl, callerPolicy *index.Policy, d *index.Derive, args []box.Value) (box.Value, error) {
+	// Derive entry, including each element a collection builtin passes to a
+	// derive callback, stops once the evaluation's context has ended (#225).
+	if err := ctx.Err(); err != nil {
+		return box.Undefined(), err
+	}
 	lam := d.Lambda
 	args, err := padAndValidateDeriveArgs(ctx, callerEC, exec, callerPolicy, lam, args)
 	if err != nil {
