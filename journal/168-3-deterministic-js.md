@@ -47,3 +47,10 @@
 - Open point for review: main now pins the start before `SetupStdLib`, so module top-level code sees `time.now()` as the execution start, but the deterministic `Date.now()` still reads 0 until the first `BeginCall`. Seeding the shim clock at install time would make them agree; not done here.
 - Build, vet and `go test -race ./...` pass.
 - _Model: claude-opus-5-5_
+
+### 23:43 - Rebase onto main after #203 and #226 merged
+- Merge-checking this layer against main after #226 (#207) merged failed two tests that read the clock through `@sentrie/js`'s `now`, which #207 removed. CI on the PR had passed because it ran against the main from before #226.
+  - `TestExecRuleDeterministicJavaScriptShims` now builds a temp pack whose `clock.ts` returns `Math.floor(Date.now() / 1000)`, and checks it equals `@sentrie/time.now()` with `deterministic_js` granted.
+  - `TestDeterministicShimsReachModuleExports` reads `Date.now()` through a function compiled in the VM instead of the removed export; `random` is still taken from the module's exports.
+- `capabilities/FORMAT.md` (merged with #203) still listed `@sentrie/js.now` as a nondeterministic source and missed `now_ms`. It now lists the `now` and `now_ms` builtins and `@sentrie/js.random`.
+- _Model: claude-opus-5-5_
