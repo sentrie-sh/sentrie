@@ -35,3 +35,8 @@
 ### 14:01 - Restack onto main after #194 and the other bottom layers merged
 - Rebased onto `main` (cfe249a). One conflict, in `docs/codebase-graph/runtime.js.registry.md`: #194's `CompiledPrograms` entry and this layer's nondeterminism-metadata entry are separate signatures, so I kept both, each with its own Side Effects and Exceptions lines.
 - _Model: claude-opus-5-5_
+
+### 04:24 - Restack onto main after #205 and #202 merged
+- Rebased onto `main` (1197589) now rather than at merge time, because #205 changed the same lines. In `cmd/validate.go` #205 made `validate` close the executor it builds; this layer prints the nondeterminism warnings after it. The merged body builds the executor, closes it (returning a close error), then prints the warnings. The `validate` entry in `docs/codebase-graph/cmd.md` keeps this layer's warning text with #205's "constructs an executor and closes it".
+- Build, vet and `go test ./...` pass on the rebased head.
+- _Model: claude-opus-5-5_
