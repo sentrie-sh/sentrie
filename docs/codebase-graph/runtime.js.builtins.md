@@ -34,7 +34,7 @@ Fourteen Go-implemented modules, plus the TypeScript `js` module, exposed to Jav
     - **Pure computation** - `math`, `string`, `collection` (the largest at ~450 lines), `semver`, `json`, `encoding` (which carries base64, hex and URL encoding), `url`.
     - **Cryptographic** - `hash`, `crypto`, `jwt` (HMAC, RSA and ECDSA verification, `exp`/`nbf` checks and claim extraction).
     - **Pattern and network** - `regex`, `net` (CIDR containment, intersection, validity - **arithmetic only, no sockets**).
-    - **Non-deterministic** - `uuid` (fresh values per call), `time` (clock-dependent).
+    - **Non-deterministic** - `uuid` (fresh values per call). `time` is clock-dependent but pinned: `now()` is the execution start.
     - **TypeScript** - the `js` module, embedded from `ts_src/_sentrie_js.ts` rather than Go-implemented.
   - **Side Effects:** None escape the VM; no filesystem, network, or process access.
   - **Exceptions:** Every failure is a JavaScript exception raised through `throwErr(vm, err)` in `builtin_errors.go`, which panics with `vm.NewGoError(err)`. The conventions, applied to every module: argument-count and argument-type errors throw; predicates (`isValid`, the `net` `is*` checks, `cidrIsValid`, `jwt.verify`) answer `false` for input they cannot parse; a genuine "no result" is `null` (`net.parseIP`, `regex.find`, `semver.prerelease`/`metadata`); every other failure throws.
@@ -45,9 +45,9 @@ Fourteen Go-implemented modules, plus the TypeScript `js` module, exposed to Jav
   - **Exceptions:** `decode` throws on any failure, including expiry. `verify` answers `false` for a malformed, mismatched, badly signed, expired or not-yet-valid token, and throws for `none` or an unsupported `algorithm`, a key that does not suit the algorithm, bad options, or a VM with no execution start time.
 
 - **Signature:** `time.now() -> number`
-  - **Behavior:** Reads the `ExecutionStartTimeUnixKey` VM global and returns it, so JavaScript observes the **same pinned instant** as the policy evaluator. Falls back to `time.Now().Unix()` when the global is absent.
+  - **Behavior:** Returns the `ExecutionStartTimeUnixKey` VM global through `executionStartUnix`, so JavaScript observes the **same pinned instant**, in the same unit (Unix seconds), as the policy evaluator's builtin `now()` within the same rule execution (`ExecRule`).
   - **Side Effects:** None.
-  - **Exceptions:** Argument-count error if given any argument.
+  - **Exceptions:** Argument-count error if given any argument; `execution start time is not set on this VM` when the global is missing. There is no wall-clock fallback (#153).
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Providers are stateless factories, but they are re-invoked on **every** `require` of a builtin because [[runtime.js.alias_runtime]] checks the provider branch before the cache. Two requires of the same builtin in one VM produce two distinct objects.
@@ -55,8 +55,7 @@ Fourteen Go-implemented modules, plus the TypeScript `js` module, exposed to Jav
 - **Dependencies Risk:**
   - **Failures throw; never return an error object.** In goja a value returned from a Go function is a normal result, so `return vm.NewGoError(...)` hands JavaScript a truthy Error object and a malformed CIDR reads as a match. That was the behaviour until [#111](https://github.com/sentrie-sh/sentrie/issues/111). Every site now uses `return throwErr(vm, err)`, and `TestBuiltinsNeverReturnErrorObjects` walks the AST of every `runtime/js` source file and fails if a `NewGoError`/`NewTypeError` call has any parent other than `panic(...)`, or if `ToValue` wraps a Go error. `TestErrorObjectGuardCatchesEverySpelling` keeps the guard itself honest. An uncaught throw fails the calling rule through [[runtime.modules]].
   - **Predicates answer `false` for garbage.** `net.isPrivate("junk")` and `net.isPublic("junk")` are both `false`, so a negated predicate (`!isPrivate(ip)`) is `true` for unparseable input. Positive checks are the fail-closed form.
-  - **`uuid` and the `time` fallback are non-deterministic**, which is why module calls are forbidden inside derives (see [[runtime.eval_call]]) - a derive must be reproducible within an execution.
-  - **The `time.now()` fallback is silent.** If the execution-start global is missing, JavaScript quietly gets wall-clock time and diverges from what the evaluator's own `now()` reports, with no signal.
+  - **`uuid` is non-deterministic**, which is why module calls are forbidden inside derives (see [[runtime.eval_call]]) - a derive must be reproducible within an execution.
   - **JWT time checks trust the execution-start global.** Module code can still overwrite `__executionStartTimeUnix` before calling `jwt.verify`, which would move the clock the checks use; making internal globals unreachable is [#154](https://github.com/sentrie-sh/sentrie/issues/154).
   - **The `regex` pattern cache is process-global and bounded.** Every VM shares one `perch` LRU of `regexCacheEntries` (1024) compiled patterns; the least recently used is evicted and recompiled on next use, and compile errors are not cached. It was an unbounded map until [#210](https://github.com/sentrie-sh/sentrie/issues/210), so request-derived patterns grew it forever under `serve`. Pattern length is not limited; RE2 compile cost is linear in it.
   - **`regex.replace` replaces the first match only; `regex.replaceAll` replaces every match.** Until [#209](https://github.com/sentrie-sh/sentrie/issues/209) both called `ReplaceAllString`. The regexp package has no first-match replace, so `replaceFirst` in `builtin_regex.go` expands one match with `ExpandString`, keeping `$1`-style references identical between the two.

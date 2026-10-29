@@ -30,7 +30,7 @@ The single registry of Sentrie's native functions and the declarative machinery 
   - **Exceptions:** Propagated from the callee.
 
 - **Signature:** `Table map[string]*Decl`
-  - **Behavior:** Fifteen builtins. Collection higher-order functions - `all`, `any`, `filter`, `first`, `collect`, `reduce`, `distinct`; list shaping - `as_list`, `normalise_list`, `flatten`, `flatten_deep`, `count`, `merge`; and two specials - `now` and `error`. The map key **must** equal `Decl.Name`, enforced by a test.
+  - **Behavior:** Sixteen builtins. Collection higher-order functions - `all`, `any`, `filter`, `first`, `collect`, `reduce`, `distinct`; list shaping - `as_list`, `normalise_list`, `flatten`, `flatten_deep`, `count`, `merge`; the clock - `now` (Unix **seconds**) and `now_ms` (Unix milliseconds), both the pinned execution start of the current `ExecRule`; and `error`. `now` returned milliseconds until [#153](https://github.com/sentrie-sh/sentrie/issues/153) unified it with `@sentrie/time.now()` and JWT `exp`/`nbf`. The map key **must** equal `Decl.Name`, enforced by a test.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -57,5 +57,6 @@ The single registry of Sentrie's native functions and the declarative machinery 
   - **`TooManyError` falls back to `TooFewError`.** When a signature omits the too-many message, a caller passing extra arguments is told they passed too few.
   - **The arity ceiling is not enforced for variadic builtins**, which is correct, but it means `error`'s only arity guard is the minimum.
   - **Undefined and null always reach the implementation**, bypassing kind checks entirely. Every `Impl` must therefore handle them, and the `Fn` doc comment says so - but nothing enforces it, so a new builtin that assumes a well-kinded argument will panic on undefined input.
+  - **The clock is per rule execution, not per decision.** `ExecPolicy` runs each exported rule through its own `ExecRule`, and a rule import calls `ExecRule` again; each stamps a fresh `createdAt`. So an importing rule's `now()` and an imported rule's `now()` (or its `jwt.verify`) can disagree by milliseconds, and across a second boundary in seconds. Carrying the root start into nested `ExecRule` calls would close it; it is not done yet (see the #153 PR).
   - **`DeriveSafe` is a hand-set boolean.** Nothing verifies that a builtin marked safe actually is; the guarantee rests on review, which is precisely why the `Env` interface is kept narrow enough that widening it is noticeable.
   - **The static checker and the runtime dispatcher must agree.** [[index.builtin_check]] validates against `Sig` at index time and [[runtime.eval_call]] enforces it again at call time. A `Sig` change alters both simultaneously, which is the point - but a resolution-order difference between the two (see [[runtime.eval_call]]) means they can disagree about *which* callee they are checking.
