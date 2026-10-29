@@ -22,3 +22,8 @@
 ### 23:16 - Rebase onto main after the #154 stack merged
 - Rebased onto `main` (0e909ba). One conflict, in the "Non-deterministic" and "TypeScript" bullets of `docs/codebase-graph/runtime.js.builtins.md`: kept main's note that `time.now()` is pinned to the execution start alongside this branch's note that the `js` module has no `now`.
 - _Model: claude-opus-5-5_
+
+### 23:28 - Rebase onto main after #200 merged
+- #200 (#168 layer 1) merged first, so this branch carried the overlap. Its nondeterminism table in `runtime/js/nondeterminism.go` listed `now` among the `js` module's nondeterministic exports. With `now` removed here, the entry is `{"random"}`, and `TestNondeterministicExportLookup` now asserts `@sentrie/js` `now` is not listed. `runtime.js.registry` and `runtime.js.builtins` drop `js.now` from their lists.
+- The doc conflict in `runtime.js.builtins.md` keeps #200's list of exports (without `js.now`) and this branch's note that the module has no `now`.
+- _Model: claude-opus-5-5_
