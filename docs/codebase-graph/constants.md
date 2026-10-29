@@ -17,7 +17,6 @@ tags: configuration, environment, conventions, cross-cutting
 | :--- | :--- | :--- | :--- |
 | [[main]] | `DEPENDS_ON` | [[constants]] | Reads `EnvDebug` and `EnvLogLevel` to configure the `slog` JSON handler at startup. |
 | [[loader]] | `LAYERED_ON` | [[constants]] | Uses `PackFileExtension` and `PolicyFileExtension` to discover pack manifests and policy sources on disk. |
-| [[runtime]] | `LAYERED_ON` | [[constants]] | Seeds the execution context with `ExecutionStartTimeUnixKey`. |
 | [[runtime.js]] | `LAYERED_ON` | [[constants]] | JS `time` builtins read the injected execution start time to keep clock reads deterministic within one evaluation. |
 
 ## 3. Interface Contracts & Public Surface
@@ -47,12 +46,7 @@ tags: configuration, environment, conventions, cross-cutting
   - **Side Effects:** Causes [[main]] to **write** `EnvLogLevel` back into the process environment.
   - **Exceptions:** None.
 
-- **Signature:** `ExecutionStartTimeUnixKey = "__executionStartTimeUnix"`
-  - **Behavior:** Reserved key under which the runtime injects the evaluation's start timestamp into the execution context, so that time-dependent policy logic observes a single consistent "now" for the whole evaluation rather than a drifting wall clock.
-  - **Side Effects:** None at definition; the value is populated by [[runtime.exec_ctx]].
-  - **Exceptions:** None.
-
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Entirely stateless compile-time constants.
 - **Performance/Scale Notes:** None - all values are inlined at compile time with no runtime cost.
-- **Dependencies Risk:** No failure domain. The notable hazards are conventional: (1) `ExecutionStartTimeUnixKey` uses a double-underscore prefix to signal reservation, but it lives in the same namespace as user-visible context data, so a policy defining that identifier would collide; (2) changing `PolicyFileExtension` or `PackFileExtension` silently breaks discovery of every existing on-disk pack, since [[loader]] does pure suffix matching with no fallback; (3) `EnvDebug` is checked with `os.LookupEnv`, so setting it to an empty string or `false` still enables debug mode.
+- **Dependencies Risk:** No failure domain. The notable hazards are conventional: (1) changing `PolicyFileExtension` or `PackFileExtension` silently breaks discovery of every existing on-disk pack, since [[loader]] does pure suffix matching with no fallback; (2) `EnvDebug` is checked with `os.LookupEnv`, so setting it to an empty string or `false` still enables debug mode.
