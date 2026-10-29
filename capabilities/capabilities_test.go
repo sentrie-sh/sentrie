@@ -90,7 +90,9 @@ func (s *CapabilitiesTestSuite) TestParseErrorsNamePositionsAndShape() {
 		"{\"version\": 1, \"builtins\": [],\n\"builtins\": null}": `capabilities: 2:1: duplicate field "builtins"`,
 		`{"version": 1, "Builtins": []}`:                          `unknown field "Builtins"`,
 		`{"Version": 1}`:                                          `unknown field "Version"`,
-		`{"version": 1`:                                           "1:14: unexpected end of JSON input",
+		// Only the prefix: Go 1.25 says "unexpected end of file", later
+		// releases "unexpected end of JSON input".
+		`{"version": 1`: "capabilities: 1:14: unexpected end",
 	}
 	for input, want := range cases {
 		_, err := Parse([]byte(input))
