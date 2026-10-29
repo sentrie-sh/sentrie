@@ -5,10 +5,20 @@ package js
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"net/netip"
 
 	"github.com/dop251/goja"
+)
+
+// cidrExpandMaxHosts is the largest range cidrExpand enumerates: a /16 in
+// IPv4, a /112 in IPv6. CIDRs can come from facts, so an unbounded expansion
+// lets a request exhaust memory and CPU. Use cidrContains and friends to test
+// membership in larger ranges without enumerating them.
+const (
+	cidrExpandMaxHostBits = 16
+	cidrExpandMaxHosts    = 1 << cidrExpandMaxHostBits // 65,536
 )
 
 var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
@@ -86,7 +96,15 @@ var BuiltinNetGo = func(vm *goja.Runtime) (*goja.Object, error) {
 			return throwErr(vm, err)
 		}
 
-		var hosts []string
+		// Refuse from the prefix length alone, before allocating anything:
+		// 10.0.0.0/8 would build 16 million strings and ::/0 never ends (#211).
+		ones, bits := ipNet.Mask.Size()
+		hostBits := bits - ones
+		if hostBits > cidrExpandMaxHostBits {
+			return throwErr(vm, fmt.Errorf("cidrExpand: %s has 2^%d addresses, more than the limit of %d", cidrStr, hostBits, cidrExpandMaxHosts))
+		}
+
+		hosts := make([]string, 0, 1<<hostBits)
 		for ip := ip.Mask(ipNet.Mask); ipNet.Contains(ip); inc(ip) {
 			hosts = append(hosts, ip.String())
 		}
