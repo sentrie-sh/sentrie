@@ -13,3 +13,8 @@
 - New tests in `builtin_net_test.go`: each classifier throws on junk, empty and CIDR input, in plain and negated form, and the throw is catchable; valid addresses still classify, and validity predicates still answer `false` for junk.
 - Breaking: a policy that relied on `isPrivate("junk") === false` now fails the rule. `.d.ts` (`@throws` on each classifier, junk note on `isIPv4`/`isIPv6`) and the `runtime.js.builtins` graph node (conventions bullet and the old "predicates answer false" gotcha) document the split.
 - _Model: claude-opus-5-5_
+
+### 11:03 - Restack onto main after #204, #238 and #239 merged
+- GitHub did not restack this layer after #239 (212) merged, so #240 showed `CONFLICTING`. Rebased onto `main` (b099d94), naming 212's pre-squash head as the old parent. One conflict, in the risk list of `docs/codebase-graph/runtime.js.builtins.md`: kept this layer's "classification predicates throw" bullet and `main`'s `uuid` bullet, and dropped the "silent `time.now()` fallback" bullet, since #204 (153) removed that fallback.
+- Build, vet and `go test ./...` pass on the rebased head.
+- _Model: claude-opus-5-5_
