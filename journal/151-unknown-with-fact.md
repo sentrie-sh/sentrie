@@ -38,3 +38,8 @@
 - Round-2 review approved. Took its one remaining suggestion: the runtime.imports graph node now says the error lists the fact aliases the target accepts, matching the message and the Exceptions line.
 - Left as is, per the review: when two facts share a declared name under different aliases, the hint appears once per alias.
 - _Model: claude-opus-5-5_
+
+### 02:47 - Merge main after #236 and expect 1-based lines
+- #236 landed first and makes lines 1-based, so merged `main` in. There was no textual conflict, but `index` failed as the PR description predicted: the span assertions in `index/import_withs_test.go` still expected 0-based lines.
+- Bumped them by one (`8` to `9`, `10` to `11`, `2` to `3`) and reworded the comment. This is the same fix the scratch integration of the batch found (patch 0001). `index` and `runtime` pass.
+- _Model: claude-opus-5-5_

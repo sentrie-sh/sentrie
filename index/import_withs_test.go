@@ -73,9 +73,9 @@ policy p {
 	s.Require().Len(errs, 1, "only the typo'd clause is rejected, not the valid one")
 	e := errs[0]
 	s.Equal("f.sentrie", e.At.File)
-	// The span starts at the `with` keyword of the typo'd clause (the lexer's
-	// line is 0-based, so source line 9 reads 8; its column is 1-based).
-	s.Equal(8, e.At.From.Line)
+	// The span starts at the `with` keyword of the typo'd clause, on source
+	// line 9 (lines and columns are 1-based).
+	s.Equal(9, e.At.From.Line)
 	s.Equal(44, e.At.From.Column)
 	s.True(strings.HasPrefix(src[e.At.From.Offset:], "with usr  as"), "span must start at the with clause")
 	s.Equal(`import binds unknown fact "usr": policy t/q accepts fact aliases: user, zone`, e.Message)
@@ -193,9 +193,9 @@ policy p {
 	errs := unknownFactErrors(err)
 	s.Require().Len(errs, 2)
 	s.Contains(errs[0].Message, `"bad1"`)
-	s.Equal(8, errs[0].At.From.Line)
+	s.Equal(9, errs[0].At.From.Line)
 	s.Contains(errs[1].Message, `"bad2"`)
-	s.Equal(10, errs[1].At.From.Line)
+	s.Equal(11, errs[1].At.From.Line)
 	s.Less(errs[0].At.From.Line, errs[1].At.From.Line)
 }
 
@@ -228,7 +228,7 @@ policy p {
 	errs := unknownFactErrors(err)
 	s.Require().Len(errs, 1)
 	s.Equal("p.sentrie", errs[0].At.File)
-	s.Equal(2, errs[0].At.From.Line)
+	s.Equal(3, errs[0].At.From.Line)
 	s.Equal(`import binds unknown fact "lvl": policy com/other/q accepts fact aliases: level`, errs[0].Message)
 }
 
