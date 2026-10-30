@@ -28,6 +28,24 @@ type builtinCallVisitor func(k *kindCheckCtx, decl *builtins.Decl, call *ast.Cal
 // runtime and is reported here. (checkBuiltinCalls' isBuiltinCall still
 // treats locals as shadowing, which is a separate, pre-existing difference.)
 func (idx *Index) forEachBuiltinCall(ctx context.Context, visit builtinCallVisitor) error {
+	return idx.forEachScopedExpr(ctx, func(k *kindCheckCtx, e ast.Expression) {
+		if call, ok := e.(*ast.CallExpression); ok {
+			if decl, ok := k.runtimeBuiltinCallee(call); ok {
+				visit(k, decl, call)
+			}
+		}
+	})
+}
+
+// scopedExprVisitor receives an expression with the lexical scope it is
+// evaluated in.
+type scopedExprVisitor func(k *kindCheckCtx, e ast.Expression)
+
+// forEachScopedExpr visits, in pre-order, every expression the index holds:
+// fact defaults, policy lets, rule default, when and body slots, export
+// attachments, `import decision ... with x as <expr>` clauses, and derive
+// bodies. Each expression comes with the scope it is evaluated in.
+func (idx *Index) forEachScopedExpr(ctx context.Context, visit scopedExprVisitor) error {
 	cancelled := func() error {
 		if ctx.Err() != nil {
 			return fmt.Errorf("validation cancelled: %w", xerr.ErrIndex)
@@ -48,15 +66,15 @@ func (idx *Index) forEachBuiltinCall(ctx context.Context, visit builtinCallVisit
 			}
 			k := newRuleKindCheckCtx(idx, policy)
 			for _, fact := range policy.Facts {
-				k.visitBuiltinCalls(fact.Default, visit)
+				k.walkScopedExprs(fact.Default, visit)
 			}
 			for _, let := range policy.Lets {
-				k.visitBuiltinCalls(let.Value, visit)
+				k.walkScopedExprs(let.Value, visit)
 			}
 			for _, rule := range policy.Rules {
-				k.visitBuiltinCalls(rule.Default, visit)
-				k.visitBuiltinCalls(rule.When, visit)
-				k.visitBuiltinCalls(rule.Body, visit)
+				k.walkScopedExprs(rule.Default, visit)
+				k.walkScopedExprs(rule.When, visit)
+				k.walkScopedExprs(rule.Body, visit)
 			}
 			for _, export := range policy.RuleExports {
 				if export == nil {
@@ -64,7 +82,7 @@ func (idx *Index) forEachBuiltinCall(ctx context.Context, visit builtinCallVisit
 				}
 				for _, attachment := range export.Attachments {
 					if attachment != nil {
-						k.visitBuiltinCalls(attachment.Value, visit)
+						k.walkScopedExprs(attachment.Value, visit)
 					}
 				}
 			}
@@ -76,29 +94,24 @@ func (idx *Index) forEachBuiltinCall(ctx context.Context, visit builtinCallVisit
 			return err
 		}
 		if d.Lambda != nil && d.Lambda.Body != nil {
-			newDeriveKindCheckCtx(idx, d).visitBuiltinCalls(d.Lambda.Body, visit)
+			newDeriveKindCheckCtx(idx, d).walkScopedExprs(d.Lambda.Body, visit)
 		}
 	}
 	return nil
 }
 
-// visitBuiltinCalls walks e, tracking the bindings that shadow builtins: a
-// block binds each let after walking its initializer, and a lambda pushes its
-// parameters.
-func (k *kindCheckCtx) visitBuiltinCalls(e ast.Expression, visit builtinCallVisitor) {
+// walkScopedExprs walks e in pre-order, tracking the local bindings: a block
+// binds each let after walking its initializer, and a lambda pushes its
+// parameters. visit runs on a node before its children are walked, so a
+// visitor that rewrites a node (resolveIsExpressions) is walked as rewritten.
+func (k *kindCheckCtx) walkScopedExprs(e ast.Expression, visit scopedExprVisitor) {
 	if e == nil {
 		return
 	}
 
+	visit(k, e)
+
 	switch n := e.(type) {
-	case *ast.CallExpression:
-		if decl, ok := k.runtimeBuiltinCallee(n); ok {
-			visit(k, decl, n)
-		}
-		k.visitBuiltinCalls(n.Callee, visit)
-		for _, a := range n.Arguments {
-			k.visitBuiltinCalls(a, visit)
-		}
 	case *ast.BlockExpression:
 		child := *k
 		child.scope = cloneBindingScope(k.scope)
@@ -107,30 +120,30 @@ func (k *kindCheckCtx) visitBuiltinCalls(e ast.Expression, visit builtinCallVisi
 			if !ok {
 				continue
 			}
-			child.visitBuiltinCalls(vd.Value, visit)
+			child.walkScopedExprs(vd.Value, visit)
 			child.bindLet(vd)
 		}
-		child.visitBuiltinCalls(n.Yield, visit)
+		child.walkScopedExprs(n.Yield, visit)
 	case *ast.LambdaExpression:
-		k.pushLambdaScope(n).visitBuiltinCalls(n.Body, visit)
+		k.pushLambdaScope(n).walkScopedExprs(n.Body, visit)
 	case *ast.ImportClause:
 		// A rule body of the form `import decision r from p with f as <expr>`.
 		// Each with expression is evaluated in the importing rule's context
-		// (runtime ImportDecision), so it is checked in this scope.
+		// (runtime ImportDecision), so it is walked in this scope.
 		// forEachDeriveExprChild has no case for import clauses, since a derive
 		// cannot contain one.
 		for _, w := range n.Withs {
 			if w != nil {
-				k.visitBuiltinCalls(w, visit)
+				k.walkScopedExprs(w, visit)
 			}
 		}
 	case *ast.WithClause:
 		if n != nil {
-			k.visitBuiltinCalls(n.Expr, visit)
+			k.walkScopedExprs(n.Expr, visit)
 		}
 	default:
 		_ = forEachDeriveExprChild(e, func(child ast.Expression) error {
-			k.visitBuiltinCalls(child, visit)
+			k.walkScopedExprs(child, visit)
 			return nil
 		})
 	}
