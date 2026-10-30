@@ -16,3 +16,10 @@
 - Independent of #135: the tag carries a `trinary.Value`, and equality accepts either a bool or a trinary operand, so it holds whether known booleans are `ValueBool` or `ValueTrinary`. Did not touch the `with` loop (#151).
 - Verified with a scratch pack: false and unknown imports decide false and unknown directly and under `and`/`or`/`not`/ternary, and a user dict with a `state` key stays truthy. Added only minimal box and runtime tests; the regression matrix is the test agent's.
 - _Model: claude-opus-5-5_
+
+### 15:54 - Regression matrix for #136
+- Added `runtime/import_envelope_test.go` (policy source end to end): a generated matrix of 15 expressions over false, true and unknown imports (bare alias, `and`/`or`/`xor`/`not`/`!`, ternary condition, `when` gate, `==`/`!=` against true and false), expected states computed from Kleene logic; attachment and `.state`/`.value` access through the import; a user dict with a `state` key and an envelope-shaped lookalike staying truthy and reported as a dict; the exported decision JSON of a bare import equals the exporting rule's, imported attachments are not re-exported, and a nested import (p2 imports p which imports q) is flat.
+- Boundaries: the tag survives `let` and a typed `dict[trinary]` derive argument. A `trinary` fact rejects the envelope (fail closed). A `dict[trinary]` fact bound with `with` from a false or unknown import is rebuilt untagged and reads as TRUE (`TryToBoundaryAny`): reported as a bug; that assertion is in the suite but skipped with the reason.
+- Showed the tests bite: restoring `runtime/imports.go` from main fails 25 subtests, `box/utilities.go` from main fails 5 (the equality cases), `runtime/executor.go` from main fails the export/nesting test.
+- Ruled out: asserting the `when` gate returns false (a closed gate is the unknown default); `tag` is a keyword so the attachment is named `layer`.
+- _Model: claude-sonnet-5-5_
