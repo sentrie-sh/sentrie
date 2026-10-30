@@ -30,3 +30,11 @@
 - lang_test only parses, indexes and validates, so the runtime assertions live in `runtime/eval_is_test.go` and the follow-up regression tests.
 - Added the SPDX header the fixture was missing.
 - _Model: claude-opus-5-5_
+
+### 16:05 - Regression tests for is defined and is empty
+- Replaced the minimal end-to-end test in `runtime/eval_is_test.go` with table tests on `RuntimeTestSuite`: one policy per table, one exported rule per case, run through `ExecRule`.
+- Covered: every positive and negated form for `""`, `[]`, `{}`, `null`, a missing field and nested field, an out-of-range index, an omitted optional fact (bare and `.k`), an optional fact with a default, provided facts, an empty-object document fact and an empty list fact, numbers 0 and 1, true and false, non-empty string, list and dict (all non-empty values give `false` for `is empty`, never an error); derive bodies (omitted optional parameter, missing dict key, empty list); operand errors (`1 / 0`) propagating for all four forms; the trace node (op `is`, `operator` meta, single child, bool result); a rule over an omitted optional fact in an ordinary expression deciding Unknown (and True once the fact is provided); `isEmptyValue` on host `box.Document` shapes.
+- Mutation checks, each run against the new tests: reverting `eval_ident.go` or `eval.go` to main, treating null as not defined or not empty, undefined as not empty, scalars as empty, dropping the string, list and dict branches, either document branch, renaming the trace op, and swallowing the operand error in `is defined` or `is empty` all fail at least one test.
+- Ruled out: a top-level JSON array as a `document` fact, because `validateAgainstDocumentTypeRef` accepts only dicts; the empty-array case uses a `list[number]` fact. A `box.Document` wrapping a map or slice cannot be reached from a fact, so that branch is unit tested on `isEmptyValue`.
+- Ruled out: asserting a guard such as `extra is defined and extra.role == "admin"` is `False`. `evalInfix` returns undefined whenever either operand is undefined, before `and`/`or` run, so that expression decides Unknown. That is existing infix behaviour, not part of this change; the tests combine the predicates with operands that are defined.
+- _Model: claude-sonnet-5-5_
