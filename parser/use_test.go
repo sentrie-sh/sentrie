@@ -47,7 +47,7 @@ func (s *ParserTestSuite) TestParseUseStatementKeywordDefaultAliasRejected() {
 	s.Require().Error(p.err)
 	s.Contains(p.err.Error(), `default alias "string" is a keyword; add 'as <alias>'`)
 	// The diagnostic spans `string`, not the token after the statement.
-	s.Contains(p.err.Error(), "parsing error at test.sentrie:1:28-33:")
+	s.Contains(p.err.Error(), "parsing error at test.sentrie:1:29-35:")
 }
 
 // TestParseUseStatementTrailingSlashBeforeAs pins how `@sentrie/ as x` fails:
@@ -128,9 +128,9 @@ func (s *ParserTestSuite) TestParseUseStatementSpanEndsAtLastToken() {
 			useStmt, ok := stmt.(*ast.UseStatement)
 			s.Require().True(ok, "input: %q", input)
 
-			start := tokens.Pos{Line: 1, Column: 3, Offset: 3}
+			start := tokens.Pos{Line: 2, Column: 3, Offset: 3}
 			end := tokens.Pos{
-				Line:   1,
+				Line:   2,
 				Column: start.Column + utf8.RuneCountInString(stmtSrc),
 				Offset: start.Offset + len(stmtSrc),
 			}
@@ -168,11 +168,11 @@ policy p {
 	}
 	s.Require().Len(uses, 2)
 
-	// Lines are 0-based; on every line after the first, columns are 1-based.
-	s.Equal(tokens.Pos{Line: 3, Column: 3, Offset: 36}, uses[0].Span().From)
-	s.Equal(tokens.Pos{Line: 3, Column: 36, Offset: 69}, uses[0].Span().To)
-	s.Equal(tokens.Pos{Line: 4, Column: 3, Offset: 72}, uses[1].Span().From)
-	s.Equal(tokens.Pos{Line: 4, Column: 31, Offset: 100}, uses[1].Span().To)
+	// Lines and columns are 1-based; the end is just past the last token.
+	s.Equal(tokens.Pos{Line: 4, Column: 3, Offset: 36}, uses[0].Span().From)
+	s.Equal(tokens.Pos{Line: 4, Column: 36, Offset: 69}, uses[0].Span().To)
+	s.Equal(tokens.Pos{Line: 5, Column: 3, Offset: 72}, uses[1].Span().From)
+	s.Equal(tokens.Pos{Line: 5, Column: 31, Offset: 100}, uses[1].Span().To)
 }
 
 // TestParseUseStatementQuotedAtPathRejected checks that a quoted path starting
@@ -185,10 +185,10 @@ func (s *ParserTestSuite) TestParseUseStatementQuotedAtPathRejected() {
 		path  string
 		at    string
 	}{
-		{`use { round } from "@sentrie/js" as math`, "@sentrie/js", "t.sentrie:1:19-32"},
-		{"use { round } from \"@sentrie/js\"\n  rule", "@sentrie/js", "t.sentrie:1:19-32"},
-		{`use { f } from "@local/util"`, "@local/util", "t.sentrie:1:15-28"},
-		{`use { f } from "@"`, "@", "t.sentrie:1:15-18"},
+		{`use { round } from "@sentrie/js" as math`, "@sentrie/js", "t.sentrie:1:20-33"},
+		{"use { round } from \"@sentrie/js\"\n  rule", "@sentrie/js", "t.sentrie:1:20-33"},
+		{`use { f } from "@local/util"`, "@local/util", "t.sentrie:1:16-29"},
+		{`use { f } from "@"`, "@", "t.sentrie:1:16-19"},
 	}
 
 	for _, tc := range testCases {

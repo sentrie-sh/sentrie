@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package tokens
 
@@ -56,7 +43,8 @@ type Range struct {
 	// From is the start position (inclusive).
 	From Pos
 
-	// To is the end position (inclusive).
+	// To is the end position (exclusive): just past the last character, on
+	// that character's line.
 	To Pos
 }
 
@@ -84,15 +72,17 @@ func NewRangeFromPos(file string, pos Pos) Range {
 	}
 }
 
-// String formats the span as "file:line:col-line:col" or "file:line:col-col" for single lines.
+// String formats the span as "file:line:col-line:col", or "file:line:col-col"
+// for a single line. Lines and columns are 1-based and printed as stored. A
+// span with no width, or with an unset end, prints its start only.
 func (s Range) String() string {
-	if s.From.Line == s.To.Line {
-		if s.From.Column == s.To.Column || s.To.Column == 0 {
-			return fmt.Sprintf("%s:%d:%d", s.File, s.From.Line+1, s.From.Column)
-		}
-		return fmt.Sprintf("%s:%d:%d-%d", s.File, s.From.Line+1, s.From.Column, s.To.Column)
+	if s.To.Line == 0 || (s.From.Line == s.To.Line && (s.From.Column == s.To.Column || s.To.Column == 0)) {
+		return fmt.Sprintf("%s:%d:%d", s.File, s.From.Line, s.From.Column)
 	}
-	return fmt.Sprintf("%s:%d:%d-%d:%d", s.File, s.From.Line+1, s.From.Column, s.To.Line, s.To.Column)
+	if s.From.Line == s.To.Line {
+		return fmt.Sprintf("%s:%d:%d-%d", s.File, s.From.Line, s.From.Column, s.To.Column)
+	}
+	return fmt.Sprintf("%s:%d:%d-%d:%d", s.File, s.From.Line, s.From.Column, s.To.Line, s.To.Column)
 }
 
 // // Position represents a location within source code.

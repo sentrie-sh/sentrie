@@ -13,8 +13,8 @@ import (
 func testBuiltinValidateRange() tokens.Range {
 	return tokens.Range{
 		File: "p.sentrie",
-		From: tokens.Pos{Line: 2, Column: 4, Offset: 4},
-		To:   tokens.Pos{Line: 2, Column: 4, Offset: 8},
+		From: tokens.Pos{Line: 3, Column: 4, Offset: 4},
+		To:   tokens.Pos{Line: 3, Column: 4, Offset: 8},
 	}
 }
 

@@ -59,17 +59,17 @@ policy auth {
 	}
 	nowMsg := `builtin "now" is nondeterministic: its result can differ between executions`
 	s.Equal([]string{
-		"2 " + nowMsg, // fact default (From.Line is 0-based)
-		"3 @sentrie/uuid.v4 is nondeterministic: its result can differ between executions",
-		"3 @sentrie/uuid.v7 is nondeterministic: its result can differ between executions",
-		`5 local module "./helper" runs pack code, which can read Date.now() and Math.random() directly`,
-		"6 " + nowMsg, // policy let
+		"3 " + nowMsg, // fact default (From.Line is 1-based)
+		"4 @sentrie/uuid.v4 is nondeterministic: its result can differ between executions",
+		"4 @sentrie/uuid.v7 is nondeterministic: its result can differ between executions",
+		`6 local module "./helper" runs pack code, which can read Date.now() and Math.random() directly`,
+		"7 " + nowMsg, // policy let
 		// A lambda parameter named now does not shadow the builtin for calls:
 		// the runtime's getTarget never resolves a call through a local.
-		"11 " + nowMsg,
-		"12 " + nowMsg, // import ... with t as now()
-		"13 " + nowMsg, // rule when
-		"14 " + nowMsg, // attachment
+		"12 " + nowMsg,
+		"13 " + nowMsg, // import ... with t as now()
+		"14 " + nowMsg, // rule when
+		"15 " + nowMsg, // attachment
 	}, got)
 
 	// Without a module lookup, builtin calls and local modules are still reported.
@@ -147,6 +147,6 @@ policy p {
 	warnings, err := idx.NondeterminismWarnings(s.T().Context(), nil)
 	s.Require().NoError(err)
 	s.Require().Len(warnings, 1)
-	s.Equal(7, warnings[0].At.From.Line)
+	s.Equal(8, warnings[0].At.From.Line)
 	s.Contains(warnings[0].Message, `builtin "now" is nondeterministic`)
 }
