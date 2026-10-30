@@ -281,7 +281,6 @@ func (s *RuntimeTestSuite) TestImportDecisionSuccessWithWithInjection() {
 		ast.NewFQN([]string{"test", "ns", "target"}, stubRange()).Ptr(),
 		[]*ast.WithClause{
 			ast.NewWithClause("f", ast.NewIntegerLiteral(9, stubRange()), stubRange()),
-			ast.NewWithClause("unused", ast.NewIntegerLiteral(100, stubRange()), stubRange()),
 		},
 		stubRange(),
 	)
