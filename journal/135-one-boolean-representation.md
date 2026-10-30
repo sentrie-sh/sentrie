@@ -42,3 +42,8 @@
 - Ruled out: imports (#136), a standalone `true as number` test (already covered by the changed `eval_cast_test.go`), and per-pair subtests (768 rules; one test with named messages is faster and still pinpoints the pair).
 - Syntax notes for future tests: facts must precede `use`, and a dict literal needs quoted keys.
 - _Model: claude-sonnet-5-5_
+
+### 02:49 - Merge main after #134 and correct the eval_is node
+- #134 landed first. Its `runtime.eval_is` graph node says the negated `is` forms box differently (a `box.Trinary` from `not` against the predicates' `box.Bool`). This branch makes `box.Trinary` box a known outcome as `ValueBool`, so that gotcha is false once both are in.
+- Merged `main` in (clean) and rewrote the gotcha: both forms give a bool, and only an operand that errors to `unknown` gives a `ValueTrinary`. Same text as the batch's scratch integration (patch 0003). `make test` and `make docs-graph` pass.
+- _Model: claude-opus-5-5_
