@@ -18,6 +18,7 @@ Implements `import decision <rule> from <ns/policy> with <fact> as <expr>`: it r
 | `runtime.imports` | `CALLS` | [[runtime.executor]] | Re-enters `ExecRule` with a freshly built fact map - a full nested execution. |
 | `runtime.imports` | `CALLS` | [[runtime.eval]] | Evaluates each `with` expression in the **importing** policy's context. |
 | `runtime.imports` | `DEPENDS_ON` | [[index]] | `ResolvePolicy` and `VerifyRuleExported` gate the import. |
+| `runtime.imports` | `DEPENDS_ON` | [[index.import_withs]] | Same fact key space and message text as the static check. |
 | `runtime.imports` | `DEPENDS_ON` | [[box]] | `TryToBoundaryAny` rejects callables in `with` values, which are then injected as boxed values; the envelope is a dict built with `box.DecisionEnvelope`, which tags it with the imported state. |
 | `runtime.imports` | `DEPENDS_ON` | [[trinary]] | Supplies `Unknown` for the empty envelope. |
 | `runtime.imports` | `CALLS` | [[runtime.trace]] | Opens an `import` node and attaches the callee's whole rule trace. |
@@ -26,12 +27,12 @@ Implements `import decision <rule> from <ns/policy> with <fact> as <expr>`: it r
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `ImportDecision(ctx, exec, ec, p, t *ast.ImportClause) -> (box.Value, *trace.Node, error)`
-  - **Behavior:** Requires a fully qualified `namespace/policy` source. Evaluates only those `with` clauses whose name matches a declared fact in the **target** policy - unmatched clauses are skipped without evaluation. Checks each value with `TryToBoundaryAny` (callables are rejected) but injects the `box.Value` itself, which `ExecRule`'s `FromBoundaryAny` passes through, so an import envelope bound by `with`, at any depth, keeps its tag (#136). Then calls `ExecRule` on the target and wraps the output.
+  - **Behavior:** Requires a fully qualified `namespace/policy` source. Every `with` name must be a key of the **target** policy's `Facts`; an unknown name fails the import (it is never skipped), listing the fact aliases the target accepts. [[index.import_withs]] rejects the same names at index time. Checks each value with `TryToBoundaryAny` (callables are rejected) but injects the `box.Value` itself, which `ExecRule`'s `FromBoundaryAny` passes through, so an import envelope bound by `with`, at any depth, keeps its tag (#136). Then calls `ExecRule` on the target and wraps the output.
   - **Side Effects:** A complete nested rule execution, including the callee's own JS module binding and fact validation.
-  - **Exceptions:** `import from must specify namespace/policy`; policy resolution and export-verification failures; `with` evaluation errors; `import with fact %q: …` marshalling errors; anything the nested `ExecRule` raises.
+  - **Exceptions:** `import from must specify namespace/policy`; an unknown `with` name (`import binds unknown fact "x": policy ns/p accepts fact aliases: ...`, an `xerr.ImportUnknownFactError` wrapping `ErrIndex`, positioned at the `with` clause); policy resolution and export-verification failures; `with` evaluation errors; `import with fact %q: …` marshalling errors; anything the nested `ExecRule` raises.
 
 - **Signature:** `executorOutputEnvelope(output *ExecutorOutput) -> box.Value`
-  - **Behavior:** Builds a dictionary of the attachments, then writes `state` and `value` **last** so an attachment named `state` or `value` cannot shadow them, and boxes it with `box.DecisionEnvelope(m, state)`. A nil output yields `Unknown`/`Undefined`.
+  - **Behavior:** Builds a dictionary of the attachments, then writes `state` and `value` **last** so an attachment named `state` or `value` cannot shadow them, and boxes it with `box.DecisionEnvelope(m, state)`. A nil output yields `Unknown`/`Undefined`. The `state` field is boxed with `box.Trinary`, so a known state is a bool (`state == true` holds) and only an unknown state is a `ValueTrinary`.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -40,7 +41,7 @@ Implements `import decision <rule> from <ns/policy> with <fact> as <expr>`: it r
 - **Performance/Scale Notes:** An import is a **full nested execution** - target facts are re-validated, target `use` modules are re-bound (cache-hit after the first time), and a complete sub-trace is built and attached. A chain of imports multiplies this cost at every level.
 - **Dependencies Risk:**
   - **`ExecRule` can return a nil `output` with a non-nil error** on early failure paths (unresolvable policy, unexported rule, missing required fact). `ImportDecision` must check `err` before attaching `output.RuleNode`, and only attach when `output != nil`.
-  - **Unmatched `with` clauses are silently dropped.** If the target policy renames or removes a fact, the corresponding `with` expression is never evaluated and no warning is produced - the import quietly runs with a default or fails as "required fact missing" instead of pointing at the stale clause.
+  - **An unknown `with` name is an error, twice over.** [[index.import_withs]] reports it with a span when the index validates; the runtime check is the fallback for a pack built without that pass (#151). The message text is shared (`xerr.ImportUnknownFactMessage`).
   - **`with` names are matched against the target's alias-keyed `Facts` map**, so a `with` clause must use the target's **alias**, not its declared name.
   - **Recursion protection crosses the boundary via the fact map, not the context.** The nested `ExecRule` builds a brand-new execution context with an empty `refStack`, so import cycles are caught by [[index.validate]]'s static rule DAG rather than at runtime. A cycle that evades static detection would recurse until stack exhaustion.
   - **Dead branch:** the function rejects paths with fewer than two parts, then still tests `len(Parts) == 1` when computing the namespace. That branch is unreachable.

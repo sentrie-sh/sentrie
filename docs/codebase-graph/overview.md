@@ -260,6 +260,7 @@ graph TD
 - [[index.derive_cycle]] - derive cycle detection
 - [[index.derive_expr_walk]] - derive expression traversal
 - [[index.derive_purity]] - derive purity enforcement
+- [[index.import_withs]] - unknown `with` fact check for imports
 - [[index.resolve]] - symbol resolution
 - [[index.segments]] - path segment resolution
 - [[index.validate]] - whole-index validation
@@ -298,6 +299,7 @@ graph TD
 - [[runtime.eval_cast]] - type cast evaluation
 - [[runtime.eval_ident]] - identifier resolution
 - [[runtime.eval_infix]] - binary operators
+- [[runtime.eval_is]] - `is defined` and `is empty` predicates
 - [[runtime.eval_lambda]] - closure creation
 - [[runtime.eval_ternary]] - conditional and Elvis
 - [[runtime.eval_transform]] - transform (unimplemented)

@@ -26,7 +26,7 @@ The output contract of a rule: a Kleene `State` paired with the underlying `Valu
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `Decision` - `{ State trinary.Value \`json:"state"\`, Value box.Value \`json:"value"\` }`
-  - **Behavior:** Both fields are serialized, so consumers see the outcome **and** the value it came from - a `False` from a boolean and a `False` derived from an empty list are distinguishable downstream.
+  - **Behavior:** Both fields are serialized, so consumers see the outcome **and** the value it came from - a `False` from a boolean and a `False` derived from an empty list are distinguishable downstream. `State` marshals as the string enum `"true"`/`"false"`/`"unknown"`; `Value` for a known truth value is a JSON boolean whichever way the rule produced it, and an `unknown` value marshals as the string `"unknown"` ([#135](https://github.com/sentrie-sh/sentrie/issues/135)).
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 
@@ -41,7 +41,7 @@ The output contract of a rule: a Kleene `State` paired with the underlying `Valu
   - **Exceptions:** N/A.
 
 - **Signature:** `DecisionOf(val box.Value) -> *Decision`
-  - **Behavior:** Three-way coercion. Undefined or null yields `Unknown` while **preserving the original value**; an already-trinary value passes its state through; anything else is coerced via `box.TrinaryFrom`, which applies the language's truthiness rules. An import envelope yields its imported state (#136) and is kept as the value, so rule references still read its fields.
+  - **Behavior:** Three-way coercion. Undefined or null yields `Unknown` while **preserving the original value**; a boolean or `unknown` (read with `TrinaryValue`) passes its truth value through; anything else is coerced via `box.TrinaryFrom`, which applies the language's truthiness rules. An import envelope yields its imported state (#136) and is kept as the value, so rule references still read its fields.
   - **Side Effects:** None.
   - **Exceptions:** None - it is a total function.
 

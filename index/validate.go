@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package index
 
@@ -62,6 +49,9 @@ func (idx *Index) validate(ctx context.Context) error {
 	}
 	rg, err := idx.detectRuleCycle(ctx)
 	if err != nil {
+		return err
+	}
+	if err := idx.checkImportWiths(ctx); err != nil {
 		return err
 	}
 	sg, err := idx.detectShapeCycle(ctx)
@@ -180,6 +170,10 @@ func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Polic
 			}
 		case *ast.FieldAccessExpression:
 			addNodes(g, []ast.Node{n.Left}, referedBy, policy)
+		case *ast.IsDefinedExpression:
+			addNodes(g, []ast.Node{n.Left}, referedBy, policy)
+		case *ast.IsEmptyExpression:
+			addNodes(g, []ast.Node{n.Left}, referedBy, policy)
 		case *ast.ImportClause:
 			// Import clauses don't contain self-references
 		default:
@@ -280,16 +274,7 @@ func (idx *Index) detectRuleCycle(ctx context.Context) (dag.G[*Rule], error) {
 					return nil, fmt.Errorf("validation cancelled: %w", xerr.ErrIndex)
 				}
 				if importClause, ok := rule.Body.(*ast.ImportClause); ok {
-					var ns, pol string
-					if len(importClause.FromPolicyFQN.Parts) == 1 {
-						// we only have a policy name - the namespace is the current policy's namespace
-						ns = policy.Namespace.FQN.String()
-						pol = importClause.FromPolicyFQN.Parts[0]
-					} else {
-						// we have a namespace and policy name
-						ns = strings.Join(importClause.FromPolicyFQN.Parts[:len(importClause.FromPolicyFQN.Parts)-1], ast.FQNSeparator)
-						pol = importClause.FromPolicyFQN.Parts[len(importClause.FromPolicyFQN.Parts)-1]
-					}
+					ns, pol := importTarget(policy, importClause)
 
 					p, err := idx.ResolvePolicy(ns, pol)
 					if err != nil {
@@ -402,4 +387,14 @@ func (idx *Index) detectShapeCycle(ctx context.Context) (dag.G[*Shape], error) {
 	}
 
 	return shapeDag, nil
+}
+
+// importTarget returns the namespace and policy name an import clause refers
+// to. A single-segment path names a policy in the importing policy's namespace.
+func importTarget(from *Policy, imp *ast.ImportClause) (ns, pol string) {
+	parts := imp.FromPolicyFQN.Parts
+	if len(parts) == 1 {
+		return from.Namespace.FQN.String(), parts[0]
+	}
+	return strings.Join(parts[:len(parts)-1], ast.FQNSeparator), parts[len(parts)-1]
 }

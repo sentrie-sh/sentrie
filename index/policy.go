@@ -341,3 +341,15 @@ func (p *Policy) AddFact(fact *ast.FactStatement) error {
 	p.seenIdentifiers[fact.Alias] = fact
 	return nil
 }
+
+// FactNamesByAlias maps each key of p.Facts (the fact's alias) to its declared
+// name. The keys are the names an `import decision ... with <name> as ...`
+// clause must use: ImportDecision and ExecRule look facts up by exactly these
+// keys.
+func (p *Policy) FactNamesByAlias() map[string]string {
+	out := make(map[string]string, len(p.Facts))
+	for alias, fact := range p.Facts {
+		out[alias] = fact.Name
+	}
+	return out
+}

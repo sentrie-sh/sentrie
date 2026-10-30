@@ -22,7 +22,7 @@ tags: evaluation, execution, sandboxing, javascript, concurrency, back-end
 | `runtime` | `LAYERED_ON` | [[builtins]] | Dispatches native builtin calls through the `builtins.Env` interface. |
 | `runtime` | `LAYERED_ON` | [[pack]] | Reads `Permissions` to gate module and environment access, and `Location` to resolve module paths. |
 | `runtime` | `LAYERED_ON` | [[xerr]] | Structured error sentinels for required facts, recursion, and type failures. |
-| `runtime` | `LAYERED_ON` | [[runtime.js]] | Owns the goja VM registry, TypeScript compilation, and the `@sentra/*` standard library. |
+| `runtime` | `LAYERED_ON` | [[runtime.js]] | Owns the goja VM registry, TypeScript compilation, and the `@sentrie/*` standard library. |
 | `runtime` | `LAYERED_ON` | [[runtime.trace]] | Builds the decision explanation tree alongside evaluation. |
 | `runtime` | `IMPORTS` | `ext.dop251.goja` | Embedded ECMAScript interpreter for `use` modules. |
 | `runtime` | `IMPORTS` | `ext.binaek.perch` | Entry-count-bounded cache for memoized calls. |
@@ -32,7 +32,7 @@ tags: evaluation, execution, sandboxing, javascript, concurrency, back-end
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `NewExecutor(idx *index.Index, opts ...NewExecutorOption) -> (Executor, error)`
-  - **Behavior:** Builds the executor, registers all fourteen Go-backed `@sentra/*` builtin modules plus the TypeScript `js` shim, and creates the memoization cache. See [[runtime.executor]].
+  - **Behavior:** Builds the executor, registers all fourteen Go-backed `@sentrie/*` builtin modules plus the TypeScript `js` shim, and creates the memoization cache. See [[runtime.executor]].
   - **Side Effects:** Creates a `perch` cache bounded by entry count (10,000 memoized calls by default) that allocates entries only when used, and an empty module map.
   - **Exceptions:** **Panics** if `idx.Pack` is nil - it dereferences `idx.Pack.Location` before any nil check.
 

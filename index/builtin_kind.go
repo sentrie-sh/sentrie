@@ -9,6 +9,7 @@ import (
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/builtins"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 // kindCheckCtx carries lexical scope and policy context for gradual kind resolution.
@@ -187,7 +188,10 @@ func (k *kindCheckCtx) isBuiltinCall(c *ast.CallExpression) (*builtins.Decl, boo
 // The switch must list every ast.TypeRef implementation; the parser rejects unknown refs.
 // ShapeTypeRef delegates to lookupShapeKind (alias vs complex). NullableTypeRef is
 // unknown in v1 because runtime Precheck passes null through.
-// RecordTypeRef maps to ValueList (runtime requires ListValue).
+// RecordTypeRef maps to ValueList (runtime requires ListValue). TrinaryTypeRef maps to
+// ValueTrinary, which here stands for "boolean or unknown": at runtime a known truth value
+// is a ValueBool and only unknown is a ValueTrinary, so kindAllowed admits it only where
+// both kinds are allowed.
 func typeRefKind(idx *Index, policy *Policy, ref ast.TypeRef) (box.ValueKind, bool) {
 	if ref == nil {
 		return 0, false
@@ -325,7 +329,11 @@ func (k *kindCheckCtx) resolveKindGuarded(expr ast.Expression, seen map[string]s
 	case *ast.MapLiteral:
 		return box.ValueDict, true
 	case *ast.TrinaryLiteral:
-		return box.ValueTrinary, true
+		// Mirrors box.Trinary: true and false box as ValueBool, unknown as ValueTrinary.
+		if n.Value == trinary.Unknown {
+			return box.ValueTrinary, true
+		}
+		return box.ValueBool, true
 	case *ast.NullLiteral:
 		return 0, false
 	case *ast.LambdaExpression:
@@ -456,6 +464,10 @@ func (k *kindCheckCtx) resolveCallableArity(expr ast.Expression) (int, bool) {
 }
 
 func kindAllowed(kinds []box.ValueKind, k box.ValueKind) bool {
+	if k == box.ValueTrinary {
+		// A trinary-typed value may be either kind at runtime (see typeRefKind).
+		return slices.Contains(kinds, box.ValueBool) && slices.Contains(kinds, box.ValueTrinary)
+	}
 	return slices.Contains(kinds, k)
 }
 

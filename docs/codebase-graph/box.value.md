@@ -30,7 +30,7 @@ tags: value-model, tagged-union, type-system, memory-layout
   - **Exceptions:** None.
 
 - **Signature:** `BoolValue() -> (bool, bool)` / `NumberValue() -> (float64, bool)` / `StringValue() -> (string, bool)` / `TrinaryValue() -> (trinary.Value, bool)` / `ListValue() -> ([]Value, bool)` / `DictValue() -> (map[string]Value, bool)`
-  - **Behavior:** Kind-checked typed accessors following the comma-ok idiom; the boolean is `false` when the tag does not match, and the value slot is zero.
+  - **Behavior:** Kind-checked typed accessors following the comma-ok idiom; the boolean is `false` when the tag does not match, and the value slot is zero. `TrinaryValue` is the one accessor that spans two kinds: it reports `True`/`False` for a `ValueBool` and `Unknown` for a `ValueTrinary`, since a known truth value is always boxed as a bool ([#135](https://github.com/sentrie-sh/sentrie/issues/135)).
   - **Side Effects:** None. `ListValue`/`DictValue` return the **live backing container**, not a copy.
   - **Exceptions:** None - never panics on kind mismatch.
 

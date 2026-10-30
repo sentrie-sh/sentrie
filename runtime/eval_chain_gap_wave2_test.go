@@ -12,7 +12,6 @@ import (
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/builtins"
 	"github.com/sentrie-sh/sentrie/index"
-	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/sentrie-sh/sentrie/xerr"
 )
 
@@ -281,7 +280,6 @@ func (s *RuntimeTestSuite) TestImportDecisionSuccessWithWithInjection() {
 		ast.NewFQN([]string{"test", "ns", "target"}, stubRange()).Ptr(),
 		[]*ast.WithClause{
 			ast.NewWithClause("f", ast.NewIntegerLiteral(9, stubRange()), stubRange()),
-			ast.NewWithClause("unused", ast.NewIntegerLiteral(100, stubRange()), stubRange()),
 		},
 		stubRange(),
 	)
@@ -291,6 +289,6 @@ func (s *RuntimeTestSuite) TestImportDecisionSuccessWithWithInjection() {
 	s.Require().NotNil(node)
 	outMap, ok := out.DictValue()
 	s.Require().True(ok)
-	s.Require().Equal(trinary.True, outMap["state"].Any())
+	s.Require().Equal(box.Bool(true), outMap["state"])
 	s.Require().Equal(9.0, outMap["value"].Any())
 }

@@ -90,7 +90,7 @@ func (s *RuntimeTestSuite) TestExecutorOutputEnvelopeIncludesDecisionAndAttachme
 	envelope := executorOutputEnvelope(output)
 	m, ok := envelope.DictValue()
 	s.Require().True(ok)
-	s.Require().Equal(trinary.False, m["state"].Any())
+	s.Require().Equal(box.Bool(false), m["state"])
 	s.Require().Equal(42.0, m["value"].Any())
 	s.Require().Equal("policy denied", m["reason"].Any())
 	s.Require().Equal(trinary.False, box.TrinaryFrom(envelope))
@@ -176,4 +176,78 @@ func (s *RuntimeTestSuite) TestImportDecisionMissingRequiredFactReturnsError() {
 	s.Require().True(val.IsNull())
 	s.Require().NotNil(node)
 	s.Require().Contains(node.Err, "required fact not found: req")
+}
+
+// TestImportDecisionUnknownWithFactReturnsError covers the runtime fallback of
+// #151: a pack whose index never ran the import check must still fail closed on
+// a with name the target does not declare, instead of running it on its default.
+func (s *RuntimeTestSuite) TestImportDecisionUnknownWithFactReturnsError() {
+	ctx := s.T().Context()
+	idx := index.CreateIndex()
+	exec := &executorImpl{index: idx}
+
+	nsFQN := ast.NewFQN([]string{"test", "ns"}, stubRange())
+	ns := &index.Namespace{
+		FQN:          nsFQN,
+		Policies:     map[string]*index.Policy{},
+		Shapes:       map[string]*index.Shape{},
+		ShapeExports: map[string]*index.ExportedShape{},
+	}
+	idx.Namespaces[nsFQN.String()] = ns
+
+	targetPolicy := &index.Policy{
+		Name:      "target",
+		FQN:       ast.CreateFQN(nsFQN, "target"),
+		Namespace: ns,
+		Lets:      map[string]*ast.VarDeclaration{},
+		Facts:     map[string]*ast.FactStatement{},
+		Rules:     map[string]*index.Rule{},
+		RuleExports: map[string]*index.ExportedRule{
+			"allow": {RuleName: "allow"},
+		},
+		Uses:   map[string]*ast.UseStatement{},
+		Shapes: map[string]*index.Shape{},
+	}
+	// An optional fact: without the check the typo'd binding would be skipped
+	// and the rule would run on the fact's absence.
+	targetPolicy.Facts["level"] = ast.NewFactStatement("level", nil, "level", nil, true, stubRange())
+	targetRuleStmt := ast.NewRuleStatement("allow", nil, nil, ast.NewTrinaryLiteral(trinary.True, stubRange()), stubRange())
+	targetPolicy.Rules["allow"] = &index.Rule{
+		Node:   targetRuleStmt,
+		Policy: targetPolicy,
+		Name:   "allow",
+		FQN:    ast.CreateFQN(targetPolicy.FQN, "allow"),
+		Body:   targetRuleStmt.Body,
+	}
+	ns.Policies[targetPolicy.Name] = targetPolicy
+
+	callerPolicy := &index.Policy{
+		Name:        "caller",
+		FQN:         ast.CreateFQN(nsFQN, "caller"),
+		Namespace:   ns,
+		Lets:        map[string]*ast.VarDeclaration{},
+		Facts:       map[string]*ast.FactStatement{},
+		Rules:       map[string]*index.Rule{},
+		RuleExports: map[string]*index.ExportedRule{},
+		Uses:        map[string]*ast.UseStatement{},
+		Shapes:      map[string]*index.Shape{},
+	}
+	ec := NewExecutionContext(callerPolicy, exec)
+
+	imp := ast.NewImportClause(
+		"allow",
+		ast.NewFQN([]string{"test", "ns", "target"}, stubRange()).Ptr(),
+		[]*ast.WithClause{
+			ast.NewWithClause("levl", ast.NewIntegerLiteral(3, stubRange()), stubRange()),
+		},
+		stubRange(),
+	)
+
+	val, node, err := ImportDecision(ctx, exec, ec, callerPolicy, imp)
+	s.Require().Error(err)
+	s.ErrorIs(err, xerr.ErrIndex)
+	s.Contains(err.Error(), `import binds unknown fact "levl": policy test/ns/target accepts fact aliases: level`)
+	s.True(val.IsNull())
+	s.Require().NotNil(node)
+	s.Contains(node.Err, `unknown fact "levl"`)
 }

@@ -20,11 +20,10 @@ func (d Decision) ToTrinary() trinary.Value {
 type DecisionAttachments map[string]box.Value
 
 // Behaviour:
-// - nil           → Unknown
-// - *Decision     → as-is
-// - trinary.Value  → Decision with the same state
-// - import envelope → its imported state (via box.TrinaryFrom)
-// - anything else → trinary.From(val)
+// - undefined or null      → Unknown, keeping the original value
+// - boolean or unknown     → Decision with the same truth value
+// - import envelope        → its imported state (via box.TrinaryFrom)
+// - anything else          → box.TrinaryFrom(val)
 func DecisionOf(val box.Value) *Decision {
 	if val.IsUndefined() || val.IsNull() {
 		return &Decision{State: trinary.Unknown, Value: val}
