@@ -9,6 +9,7 @@ import (
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 	"github.com/sentrie-sh/sentrie/trinary"
+	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 // isCase is one rule body and the decision it must reach.
@@ -292,4 +293,35 @@ func (s *RuntimeTestSuite) TestIsEmptyValueHostDocuments() {
 	s.True(isEmptyValue(box.Document((map[string]int)(nil))), "nil typed map")
 	s.False(isEmptyValue(box.Document(42)), "a host number is never empty")
 	s.False(isEmptyValue(box.Document[any](nil)), "an untyped nil document has no length")
+}
+
+// A default that reads an omitted optional fact evaluates to undefined. It must stay
+// a caller error (unresolvable fact) rather than surfacing later as a type failure.
+func (s *RuntimeTestSuite) TestExecRuleDefaultFromOmittedOptionalFactIsUnresolvable() {
+	ctx := s.T().Context()
+	src := `namespace com/ex
+policy pol {
+  fact a?: document as a
+  fact b?: document as b default a
+  fact c?: document as c default {"k": 1}
+  fact d?: document as d default c.missing
+  rule allow = { yield true }
+  export decision of allow
+}
+`
+	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "default_undefined.sentrie", src: src})
+
+	_, err := exec.ExecRule(ctx, "com/ex", "pol", "allow", map[string]any{"d": map[string]any{}})
+	s.Require().Error(err)
+	s.Contains(err.Error(), "unresolvable fact: b")
+	s.ErrorIs(err, xerr.InvalidInvocationError{})
+
+	_, err = exec.ExecRule(ctx, "com/ex", "pol", "allow", map[string]any{"b": map[string]any{}})
+	s.Require().Error(err)
+	s.Contains(err.Error(), "unresolvable fact: d")
+	s.ErrorIs(err, xerr.InvalidInvocationError{})
+
+	out, err := exec.ExecRule(ctx, "com/ex", "pol", "allow", map[string]any{"b": map[string]any{}, "d": map[string]any{}})
+	s.Require().NoError(err)
+	s.Equal(trinary.True, out.Decision.State)
 }
