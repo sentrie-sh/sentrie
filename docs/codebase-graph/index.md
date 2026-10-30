@@ -41,7 +41,7 @@ tags: semantic-analysis, symbol-table, validation, dependency-graph, middle-end
   - **Exceptions:** Name conflicts, unknown derive exports, unsupported top-level statements.
 
 - **Signature:** `(*Index).Validate(ctx) -> error` / `(*Index).IsValid(ctx) -> error`
-  - **Behavior:** Runs the full validation pipeline exactly once and then commits. See [[index.validate]].
+  - **Behavior:** Runs the full validation pipeline exactly once and then commits; the pipeline includes [[index.import_withs]], which rejects a `with` name the imported policy does not declare. See [[index.validate]].
   - **Side Effects:** Populates the rule and shape DAGs; triggers [[index.commit]].
   - **Exceptions:** Any validation failure, wrapped as `validation error: …`.
 
