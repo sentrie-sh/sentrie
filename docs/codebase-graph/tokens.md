@@ -57,7 +57,7 @@ tags: lexing, source-positions, language-frontend, diagnostics
   - **Exceptions:** None.
 
 - **Signature:** `Range.String() -> string`
-  - **Behavior:** Renders `file:line:col-line:col`, collapsing to `file:line:col-col` for single-line spans. This is the canonical diagnostic prefix format.
+  - **Behavior:** Renders `file:line:col-line:col`, collapsing to `file:line:col-col` for single-line spans and to `file:line:col` for an empty span or an unset (`Line` 0) end. Lines and columns are printed as stored, both 1-based, so both forms agree (#236). The end column is exclusive. This is the canonical diagnostic prefix format.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -69,4 +69,4 @@ tags: lexing, source-positions, language-frontend, diagnostics
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Fully stateless. All types are immutable value types passed by copy; `Instance`, `Pos`, and `Range` have no pointer identity semantics.
 - **Performance/Scale Notes:** `Kind` is a `string` type rather than an integer enum, so comparisons are string comparisons rather than integer compares - this is a hot path in `IsOfKind` during parsing. The keyword table is a package-level map; lookups are O(1) but not lock-free-optimized because it is read-only after init.
-- **Dependencies Risk:** Zero inbound failure risk (no I/O, no external state). However, this node is a **change-amplification hotspot**: adding a `Kind` constant forces coordinated updates in [[lexer]] (recognition), [[parser]] (prefix/infix registration and precedence), and often [[ast]] (a new node type). `Pos.Column` counts display characters while `Pos.Offset` counts bytes - conflating the two produces incorrect spans for non-ASCII source.
+- **Dependencies Risk:** Zero inbound failure risk (no I/O, no external state). However, this node is a **change-amplification hotspot**: adding a `Kind` constant forces coordinated updates in [[lexer]] (recognition), [[parser]] (prefix/infix registration and precedence), and often [[ast]] (a new node type). `Pos.Line` and `Pos.Column` are 1-based and `Range.To` is exclusive, just past the last character on that character's line (#236); a hand-built `Pos` with `Column: 0` is not something the [[lexer]] produces. `Pos.Column` counts Unicode code points (runes) while `Pos.Offset` counts bytes - conflating the two produces incorrect spans for non-ASCII source. LSP clients count columns in UTF-16 code units, so an editor integration must convert (a rune outside the Basic Multilingual Plane is one column here and two there).
