@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -33,6 +20,9 @@ func validateAgainstTrinaryTypeRef(ctx context.Context, ec *ExecutionContext, ex
 	if b, ok := v.BoolValue(); ok {
 		tv = trinary.From(b)
 	} else if t, ok := v.TrinaryValue(); ok {
+		tv = t
+	} else if t, ok := v.DecisionState(); ok {
+		// an imported decision checked as a truth value is its state (#136)
 		tv = t
 	} else {
 		return fmt.Errorf("value '%v' is not a bool at %s - expected bool", v, valueRange)
@@ -57,4 +47,28 @@ func validateAgainstTrinaryTypeRef(ctx context.Context, ec *ExecutionContext, ex
 		}
 	}
 	return nil
+}
+
+// bindTruthValue returns the value a binding declared as typeRef holds. An
+// imported decision envelope bound to a bool or trinary type becomes its state,
+// so the binding holds a truth value rather than a dict that only reads as one
+// in truth positions (#136). It is boxed with box.Trinary, like a truth
+// literal, so it compares equal to true and false; it crosses into JS as a
+// boolean only once #135 boxes known truth values as bool. Only the binding
+// itself is rebound: an envelope inside a list, dict or shape field stays an
+// envelope. Every other value is unchanged.
+func bindTruthValue(v box.Value, typeRef ast.TypeRef) box.Value {
+	if typeRef == nil {
+		return v
+	}
+	if ast.IsNullableTypeRef(typeRef) {
+		typeRef = ast.UnwrapNullableTypeRef(typeRef)
+	}
+	if _, ok := typeRef.(*ast.TrinaryTypeRef); !ok {
+		return v
+	}
+	if state, ok := v.DecisionState(); ok {
+		return box.Trinary(state)
+	}
+	return v
 }

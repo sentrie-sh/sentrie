@@ -31,7 +31,7 @@ Resolves a bare identifier through a fixed precedence chain - local, fact, let, 
     1. **Local** - an already-evaluated value, including lambda and derive parameters.
     2. **Derive fact guard** - inside a derive, a name matching a policy fact is refused with a targeted message rather than falling through.
     3. **Fact** - resolved at the root context.
-    4. **Let** - pushed onto the recursion stack, evaluated, type-validated if annotated, then cached via `SetLocal`.
+    4. **Let** - pushed onto the recursion stack, evaluated, type-validated if annotated (a `bool`/`trinary` let bound to an import holds its state, via `bindTruthValue` in [[runtime.typeref_trinary]]), then cached via `SetLocal`.
     5. **Rule** - outside a derive only; executes the rule and caches its **decision value**.
     6. **Derive** - boxed as a callable so it can be passed to higher-order builtins.
   - **Side Effects:** Evaluates let initializers; executes rules; writes locals; mutates the recursion stack.

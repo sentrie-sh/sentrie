@@ -291,47 +291,139 @@ policy p2 {
 	s.Equal(trinary.Unknown, inherited.Decision.State)
 }
 
-// TestImportedDecisionThroughAWithFactBinding documents the boundary the tag
-// does not cross. A typed fact rejects the envelope, so a mistyped binding fails
-// closed. #136 requires a dict[...] fact bound from a false import not to turn
-// true; today it does, because the binding crosses TryToBoundaryAny and the dict
-// is rebuilt untagged.
+// TestImportedDecisionThroughAWithFactBinding: an import bound by `with` keeps
+// its state in the target policy. Before the fix the binding crossed
+// TryToBoundaryAny and arrived as a plain, truthy dict, so a false or unknown
+// import read as true there (#136). A trinary fact takes the import's state.
 func (s *RuntimeTestSuite) TestImportedDecisionThroughAWithFactBinding() {
 	ctx := s.T().Context()
 	src := importEnvelopeBase + `policy rt {
-  fact typed: trinary
-  rule viaTyped = { yield typed or false }
-  export decision of viaTyped
+  fact flag: trinary
+  rule via = { yield flag or false }
+  rule isBool = { yield flag == false }
+  export decision of via
+  export decision of isBool
+}
+policy rd {
+  fact flag: document
+  rule via = { yield flag or false }
+  export decision of via
+}
+policy rb {
+  fact flag: dict[bool]
+  rule via = { yield flag or false }
+  export decision of via
 }
 policy rl {
-  fact loose: dict[trinary]
-  rule viaLoose = { yield loose or false }
-  export decision of viaLoose
+  fact flag: dict[trinary]
+  rule via = { yield flag or false }
+  rule nested = { yield flag.state == false }
+  export decision of via
+  export decision of nested
+}
+policy rn {
+  fact flags: list[dict[trinary]]
+  rule via = { yield flags[0] or false }
+  export decision of via
 }
 policy p {
   rule impF = import decision f from t/q
   rule impU = import decision u from t/q
-  rule typed = import decision viaTyped from t/rt with typed as impF
-  rule looseF = import decision viaLoose from t/rl with loose as impF
-  rule looseU = import decision viaLoose from t/rl with loose as impU
-  export decision of typed
-  export decision of looseF
-  export decision of looseU
+  rule rtF = import decision via from t/rt with flag as impF
+  rule rtU = import decision via from t/rt with flag as impU
+  rule rtBool = import decision isBool from t/rt with flag as impF
+  rule rdF = import decision via from t/rd with flag as impF
+  rule rdU = import decision via from t/rd with flag as impU
+  rule rbF = import decision via from t/rb with flag as impF
+  rule rbU = import decision via from t/rb with flag as impU
+  rule rlF = import decision via from t/rl with flag as impF
+  rule rlU = import decision via from t/rl with flag as impU
+  rule rnF = import decision via from t/rn with flags as [impF]
+  rule rnU = import decision via from t/rn with flags as [impU]
+  export decision of rtF
+  export decision of rtU
+  export decision of rtBool
+  export decision of rdF
+  export decision of rdU
+  export decision of rbF
+  export decision of rbU
+  export decision of rlF
+  export decision of rlU
+  export decision of rnF
+  export decision of rnU
 }
 `
 	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "import_with.sentrie", src: src})
 
-	_, err := exec.ExecRule(ctx, "t", "p", "typed", nil)
-	s.Require().Error(err, "a trinary fact must not accept the envelope")
-	s.Contains(err.Error(), "not a bool")
-
-	s.T().Skip("known bug (#136): a false or unknown import bound by `with` to a dict fact is rebuilt as a plain dict and reads as true")
 	for _, c := range []struct {
 		rule string
 		want trinary.Value
-	}{{"looseF", trinary.False}, {"looseU", trinary.Unknown}} {
+	}{
+		{"rtF", trinary.False}, {"rtU", trinary.Unknown}, {"rtBool", trinary.True},
+		{"rdF", trinary.False}, {"rdU", trinary.Unknown},
+		{"rbF", trinary.False}, {"rbU", trinary.Unknown},
+		{"rlF", trinary.False}, {"rlU", trinary.Unknown},
+		{"rnF", trinary.False}, {"rnU", trinary.Unknown},
+	} {
 		out, err := exec.ExecRule(ctx, "t", "p", c.rule, nil)
-		s.Require().NoError(err)
+		s.Require().NoError(err, c.rule)
 		s.Equal(c.want, out.Decision.State, c.rule)
+	}
+}
+
+// TestImportedDecisionBoundToATruthType: a let, a derive parameter and a derive
+// return declared bool or trinary accept an import and hold its state, not the
+// envelope (#136). So does a fact default; an injected fact is covered through
+// `with` above.
+func (s *RuntimeTestSuite) TestImportedDecisionBoundToATruthType() {
+	ctx := s.T().Context()
+	src := importEnvelopeBase + `policy p {
+  fact fl?: trinary default impF
+  fact flu?: boolean default impU
+  rule defF = { yield fl or false }
+  rule defU = { yield flu or false }
+  rule defIsState = { yield fl == false }
+  rule defIsDict = { yield fl contains "state" }
+  export decision of defF
+  export decision of defU
+  export decision of defIsState
+  export decision of defIsDict
+  rule impF = import decision f from t/q
+  rule impU = import decision u from t/q
+  rule letF = { let x: trinary = impF  yield x or false }
+  rule letU = { let x: boolean = impU  yield x or false }
+  rule letIsState = { let x: trinary = impF  yield x == false }
+  rule paramF = { yield asIs(impF) }
+  rule paramU = { yield asIs(impU) }
+  rule paramIsState = { yield asIs(impF) == false }
+  rule retF = { yield back(impF) == false }
+  export decision of letF
+  export decision of letU
+  export decision of letIsState
+  export decision of paramF
+  export decision of paramU
+  export decision of paramIsState
+  export decision of retF
+}
+derive asIs = (x: trinary): trinary => { yield x }
+derive back = (x: dict[trinary]): trinary => { yield x }
+`
+	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "import_typed.sentrie", src: src})
+
+	for _, c := range []struct {
+		rule string
+		want trinary.Value
+	}{
+		{"letF", trinary.False}, {"letU", trinary.Unknown}, {"letIsState", trinary.True},
+		{"paramF", trinary.False}, {"paramU", trinary.Unknown}, {"paramIsState", trinary.True},
+		{"retF", trinary.True},
+		{"defF", trinary.False}, {"defU", trinary.Unknown}, {"defIsState", trinary.True},
+		{"defIsDict", trinary.False},
+	} {
+		out, err := exec.ExecRule(ctx, "t", "p", c.rule, nil)
+		s.Require().NoError(err, c.rule)
+		s.Equal(c.want, out.Decision.State, c.rule)
+		_, isEnvelope := out.Decision.Value.DecisionState()
+		s.False(isEnvelope, c.rule)
 	}
 }
