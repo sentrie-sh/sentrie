@@ -28,7 +28,7 @@ tags: value-model, type-system, boundary-marshalling, runtime-data
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `EqualValues(a: Value, b: Value) -> bool`
-  - **Behavior:** Semantic equality including cross-kind numeric comparison. Backs the `==` / `!=` infix operators.
+  - **Behavior:** Semantic equality including cross-kind numeric comparison. Backs the `==` / `!=` infix operators. A `DecisionEnvelope` compared with a bool or trinary compares its state, so an unknown import equals neither `true` nor `false`.
   - **Side Effects:** None.
   - **Exceptions:** None - incomparable kinds return `false` rather than erroring.
 
@@ -63,9 +63,14 @@ tags: value-model, type-system, boundary-marshalling, runtime-data
   - **Exceptions:** None.
 
 - **Signature:** `TrinaryFrom(b: Value) -> trinary.Value`
-  - **Behavior:** Fast Kleene projection that dispatches on the kind tag. Notably `undefined`/`null` → `Unknown`, empty list/dict → `False`, non-empty → `True`, callable → `True`.
+  - **Behavior:** Fast Kleene projection that dispatches on the kind tag. Notably `undefined`/`null` → `Unknown`, empty list/dict → `False`, non-empty → `True`, callable → `True`, and a `DecisionEnvelope` → its carried state.
   - **Side Effects:** None; specifically avoids the intermediate allocation that `trinary.From(v.Any())` would incur.
   - **Exceptions:** None.
+
+- **Signature:** `DecisionEnvelope(m: map[string]Value, state: trinary.Value) -> Value` / `(Value).DecisionState() -> (trinary.Value, bool)`
+  - **Behavior:** Boxes an imported decision's envelope as an ordinary `ValueDict` whose otherwise unused `u64` slot carries a tag and the state (#136). It indexes, iterates and serializes as a plain dict; only `TrinaryFrom` and `EqualValues` read the tag. `Dict` never sets `u64`, so a user dict with a `state` key cannot be mistaken for an envelope. An out-of-range state is stored as `Unknown`.
+  - **Side Effects:** None; no extra allocation.
+  - **Exceptions:** None. The tag is per `Value`: a dict rebuilt from the entries, or one that crosses `TryToBoundaryAny`, is untagged.
 
 - **Signature:** Constructors - `Undefined()`, `Null()`, `Bool[T ~bool]`, `Number[numeric]`, `String[T ~string]`, `Trinary`, `List`, `Dict`, `Document[T any]`, `Callable`, `FromAny`
   - **Behavior:** Kind-specific boxing. `Object`/`ObjectRef`/`SameObjectRef` are retained backward-compatible aliases for the `Document` family.
