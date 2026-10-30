@@ -5,6 +5,7 @@ package runtime
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
@@ -53,8 +54,9 @@ func evalIsEmpty(ctx context.Context, ec *ExecutionContext, exec *executorImpl, 
 }
 
 // isEmptyValue reports whether v is undefined, null, or a zero-length string, list
-// or dict. A document wrapping a host map or slice is checked by length, the same
-// host shapes that field and index access read through.
+// or dict. A document wraps a host value, typically a typed Go map, slice or string
+// a builtin returned (an untyped map[string]any or []any is already a dict or list),
+// so it is checked by reflected length; any other host value is never empty.
 func isEmptyValue(v box.Value) bool {
 	switch v.Kind() {
 	case box.ValueUndefined, box.ValueNull:
@@ -70,11 +72,10 @@ func isEmptyValue(v box.Value) bool {
 		return len(m) == 0
 	case box.ValueDocument:
 		ref, _ := v.DocumentRef()
-		switch r := ref.(type) {
-		case map[string]any:
-			return len(r) == 0
-		case []any:
-			return len(r) == 0
+		rv := reflect.ValueOf(ref)
+		switch rv.Kind() {
+		case reflect.Map, reflect.Slice, reflect.Array, reflect.String:
+			return rv.Len() == 0
 		}
 		return false
 	default:

@@ -271,9 +271,10 @@ func (s *RuntimeTestSuite) TestEvalIsTraceNode() {
 	}
 }
 
-// A host document (box.Document) is not a dict or list, so emptiness reads through
-// the same host shapes field and index access do. Facts arrive as dicts and lists,
-// so this branch is only reachable with a value the host boxed itself.
+// A host document (box.Document) is not a dict or list, so emptiness reads the
+// wrapped value's length by reflection. Facts arrive as dicts and lists; documents
+// that reach a policy wrap typed Go values a builtin returned, such as a []string or
+// map[string]string, so those must read as empty when they have no elements.
 func (s *RuntimeTestSuite) TestIsEmptyValueHostDocuments() {
 	type hostStruct struct{ A int }
 
@@ -282,4 +283,13 @@ func (s *RuntimeTestSuite) TestIsEmptyValueHostDocuments() {
 	s.True(isEmptyValue(box.Document([]any{})))
 	s.False(isEmptyValue(box.Document([]any{1})))
 	s.False(isEmptyValue(box.Document(hostStruct{})), "a host shape with no length is never empty")
+
+	s.True(isEmptyValue(box.Document([]string{})), "empty typed slice")
+	s.False(isEmptyValue(box.Document([]string{"a"})))
+	s.True(isEmptyValue(box.Document(map[string]string{})), "empty typed map")
+	s.False(isEmptyValue(box.Document(map[string]string{"k": "v"})))
+	s.True(isEmptyValue(box.Document([0]int{})), "empty array")
+	s.True(isEmptyValue(box.Document((map[string]int)(nil))), "nil typed map")
+	s.False(isEmptyValue(box.Document(42)), "a host number is never empty")
+	s.False(isEmptyValue(box.Document[any](nil)), "an untyped nil document has no length")
 }

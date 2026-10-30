@@ -16,7 +16,8 @@ Evaluates `x is defined` and `x is empty`, the documented guards against missing
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `runtime.eval_is` | `CALLS` | [[runtime.eval]] | Evaluates the operand. |
-| `runtime.eval_is` | `DEPENDS_ON` | [[box]] | `IsUndefined`, `Kind`, length of string, list, dict and host document; boxes the result with `box.Bool`. |
+| `runtime.eval_is` | `DEPENDS_ON` | [[box]] | `IsUndefined`, `Kind`, length of string, list and dict, reflected length of a host document; boxes the result with `box.Bool`. |
+| `runtime.eval_is` | `IMPORTS` | `std.reflect` | Length of a host document's wrapped Go map, slice, array or string. |
 | `runtime.eval_is` | `CALLS` | [[runtime.trace]] | One `is` node per predicate with the operand as its child. |
 | [[runtime.eval]] | `CALLS` | [[runtime.eval_is]] | `ast.IsDefinedExpression` and `ast.IsEmptyExpression` dispatch here. |
 | [[parser.is]] | `DEPENDS_ON` | [[runtime.eval_is]] | Produces the two nodes; a `not` wraps them in a unary, so negation lands in [[runtime.eval_unary]]. |
@@ -29,7 +30,7 @@ Evaluates `x is defined` and `x is empty`, the documented guards against missing
   - **Exceptions:** None of its own; an operand evaluation error propagates unchanged, with `Undefined` as the value.
 
 - **Signature:** `evalIsEmpty(ctx, ec, exec, p, t *ast.IsEmptyExpression) -> (box.Value, *trace.Node, error)`
-  - **Behavior:** `true` for `""`, `[]`, `{}`, `null` and `Undefined`, and for a host document wrapping an empty `map[string]any` or `[]any`. Every other value, scalars included, is not empty and gives `false` rather than an error.
+  - **Behavior:** `true` for `""`, `[]`, `{}`, `null` and `Undefined`. A host document is checked by reflected length when it wraps a Go map, slice, array or string (typed values a builtin returned, such as `[]string`), so an empty one is empty; any other host value is not. Every other value, scalars included, is not empty and gives `false` rather than an error.
   - **Side Effects:** Operand evaluation.
   - **Exceptions:** As for `evalIsDefined`.
 
