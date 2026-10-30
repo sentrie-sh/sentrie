@@ -48,3 +48,11 @@
 - Comments stay out of the suffix table: a comment runs to the end of its line, so every same-line suffix becomes part of it. In a CRLF file the comment span includes the `\r` because `readComment` stops only at `\n`; the value is trimmed. Left as is and noted in the `parser.comment` node.
 - Updated the `parser.block` and `parser.comment` graph gotchas, which described the old ends.
 - _Model: claude-opus-5-5_
+
+### 15:58 - Review round 1: column unit wording, operator tests, notes
+- `tokens/position.go` and the `tokens` graph node said columns count display characters; the lexer counts runes. Both now say Unicode code points (runes), and note that LSP clients count UTF-16 code units, so editor integrations must convert.
+- `TestLexerTokenPositions`: added `a-b`, and `-`, `==`, `=>` and `|>` at the end of a line and at EOF, the operators whose end moved in this branch.
+- Merge order with #151: branch `151-unknown-with-fact` has tests asserting 0-based lines (`s.Equal(8, e.At.From.Line)` with a "line is 0-based" comment, and others in `index/import_withs_test.go`). Whichever of #236 and #151 merges second must bump them by one. There is no textual conflict, so only CI catches it. Recorded in the PR description; the #151 branch is not touched here.
+- Out of scope, predates this branch: a heredoc terminator line followed by whitespace or `\r` (any CRLF file) never matches the tag, so the heredoc never terminates.
+- Commit signing failed twice (agent refused operation) on the block/comment commit, so per the rules I stopped committing. The block/comment change is staged; this entry, the wording and the lexer tests are unstaged.
+- _Model: claude-opus-5-5_

@@ -13,7 +13,8 @@ type Pos struct {
 	Line int
 
 	// Column is the column number, starting from 1.
-	// This counts display characters, not bytes.
+	// This counts Unicode code points (runes), not bytes or display width.
+	// LSP clients count UTF-16 code units, so editor integrations must convert.
 	Column int
 
 	// Offset is the 0-based byte offset into the source file.

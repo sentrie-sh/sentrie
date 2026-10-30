@@ -175,6 +175,17 @@ func TestLexerTokenPositions(t *testing.T) {
 		{"x == y\n", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 5, 4}, {1, 6, 1, 7, 6}}},
 		{"\"é\"\n-- note\n", []span{{1, 1, 1, 4, 4}, {2, 1, 2, 8, 12}}},
 		{"<<<T\na\nT\nx", []span{{1, 1, 3, 2, 8}, {4, 1, 4, 2, 10}}},
+		// These operators took their end before their last read and ended one
+		// column short; check them mid-line, at the end of a line and at EOF.
+		{"a-b", []span{{1, 1, 1, 2, 1}, {1, 2, 1, 3, 2}, {1, 3, 1, 4, 3}}},
+		{"x -\n", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 4, 3}}},
+		{"x -", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 4, 3}}},
+		{"x ==\n", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 5, 4}}},
+		{"x ==", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 5, 4}}},
+		{"x =>\n", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 5, 4}}},
+		{"x =>", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 5, 4}}},
+		{"x |>\n", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 5, 4}}},
+		{"x |>", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 5, 4}}},
 	}
 	for _, tc := range testCases {
 		l := NewLexer(strings.NewReader(tc.input), "t.sentrie")
