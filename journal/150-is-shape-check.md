@@ -62,3 +62,13 @@
 - Observation, not a bug: a constraint's arguments are only validated when the value's kind matches the type, so `5 is not string@minlength("q")` and `5 is not string@regexp("[")` are quietly true, where `"a" is not string@minlength("q")` errors. Safe for deny rules; an allow rule written as `is not` over a broken constraint would not be flagged. Static argument checks (#113) are the real fix.
 - A required `string` fact cannot be null and an omitted optional fact fails with "identifier not found" before `is` runs (until #134), so the e2e tests reach null and absent through fields of a document fact.
 - _Model: claude-sonnet-5-5_
+
+### 02:55 - Merge main after the rest of the batch
+- #237, #117, #236, #151, #134, #135 and #136 landed first, so merged `main` in. It conflicted in `runtime/typeref_trinary.go`, `docs/codebase-graph/overview.md` and `index.validate.md`, as expected.
+- Took the scratch integration's resolutions after checking its snapshot of this branch matches the real one (only `index.validate.md` differed, by the later traversal count fix):
+  - `validateAgainstTrinaryTypeRef`: #135's `TrinaryValue` read and #136's `DecisionState` fallback, returning `errMismatch` on a non-truth value; no `fmt` import.
+  - `overview.md` catalog keeps `index.import_withs` and `index.is_resolve`, and `runtime.eval_is` and `runtime.eval_is_type`.
+  - `index.validate.md`: the `is` pass, then seven checks with #151's `with` check third; eight traversals.
+- Separate commit: the `runtime.eval_is_type` node said `is not T` returns a trinary until #135. After #135 both forms return a bool.
+- The merged tree matches the scratch integration's final tree, apart from #257's rule files and the journals. `make test`, `make docs-graph` and lint pass.
+- _Model: claude-opus-5-5_
