@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -106,6 +93,22 @@ func (s *RuntimeTestSuite) TestExecutorOutputEnvelopeIncludesDecisionAndAttachme
 	s.Require().Equal(trinary.False, m["state"].Any())
 	s.Require().Equal(42.0, m["value"].Any())
 	s.Require().Equal("policy denied", m["reason"].Any())
+	s.Require().Equal(trinary.False, box.TrinaryFrom(envelope))
+}
+
+func (s *RuntimeTestSuite) TestDecisionOfImportEnvelopeReportsImportedValue() {
+	envelope := executorOutputEnvelope(&ExecutorOutput{
+		Decision: &Decision{State: trinary.False, Value: box.Bool(false)},
+	})
+
+	d := DecisionOf(envelope)
+	s.Require().Equal(trinary.False, d.State)
+	_, isEnvelope := d.Value.DecisionState()
+	s.Require().True(isEnvelope, "inside the policy the rule keeps the envelope")
+
+	reported := d.reported()
+	s.Require().Equal(trinary.False, reported.State)
+	s.Require().Equal(false, reported.Value.Any())
 }
 
 func (s *RuntimeTestSuite) TestImportDecisionMissingRequiredFactReturnsError() {

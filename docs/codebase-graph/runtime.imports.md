@@ -9,7 +9,7 @@ tags: cross-policy, composition, sandboxing, recursion
 # Node: runtime.ImportDecision (Cross-Policy Decision Import)
 
 ## 1. Architectural Role & Intent
-Implements `import decision <rule> from <ns/policy> with <fact> as <expr>`: it resolves the target policy, verifies the rule is exported, evaluates each `with` expression **in the importing policy's context**, marshals those values across the boundary, and re-enters the executor to run the target rule. The result is flattened into a dictionary envelope so the importing policy can read `state`, `value`, and any attachments as ordinary fields.
+Implements `import decision <rule> from <ns/policy> with <fact> as <expr>`: it resolves the target policy, verifies the rule is exported, evaluates each `with` expression **in the importing policy's context**, marshals those values across the boundary, and re-enters the executor to run the target rule. The result is flattened into a dictionary envelope so the importing policy can read `state`, `value`, and any attachments as ordinary fields. The envelope is boxed with `box.DecisionEnvelope`, so wherever it is used as a truth value it is the imported **state**, never the truthiness of a non-empty dict (#136).
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -18,7 +18,7 @@ Implements `import decision <rule> from <ns/policy> with <fact> as <expr>`: it r
 | `runtime.imports` | `CALLS` | [[runtime.executor]] | Re-enters `ExecRule` with a freshly built fact map - a full nested execution. |
 | `runtime.imports` | `CALLS` | [[runtime.eval]] | Evaluates each `with` expression in the **importing** policy's context. |
 | `runtime.imports` | `DEPENDS_ON` | [[index]] | `ResolvePolicy` and `VerifyRuleExported` gate the import. |
-| `runtime.imports` | `DEPENDS_ON` | [[box]] | `TryToBoundaryAny` marshals values out; the envelope is a `box.Dict`. |
+| `runtime.imports` | `DEPENDS_ON` | [[box]] | `TryToBoundaryAny` marshals values out; the envelope is a dict built with `box.DecisionEnvelope`, which tags it with the imported state. |
 | `runtime.imports` | `DEPENDS_ON` | [[trinary]] | Supplies `Unknown` for the empty envelope. |
 | `runtime.imports` | `CALLS` | [[runtime.trace]] | Opens an `import` node and attaches the callee's whole rule trace. |
 | [[runtime.eval]] | `CALLS` | [[runtime.imports]] | An `ast.ImportClause` used as a rule body dispatches here. |
@@ -31,7 +31,7 @@ Implements `import decision <rule> from <ns/policy> with <fact> as <expr>`: it r
   - **Exceptions:** `import from must specify namespace/policy`; policy resolution and export-verification failures; `with` evaluation errors; `import with fact %q: …` marshalling errors; anything the nested `ExecRule` raises.
 
 - **Signature:** `executorOutputEnvelope(output *ExecutorOutput) -> box.Value`
-  - **Behavior:** Builds a dictionary of the attachments, then writes `state` and `value` **last** so an attachment named `state` or `value` cannot shadow them. A nil output yields `Unknown`/`Undefined`.
+  - **Behavior:** Builds a dictionary of the attachments, then writes `state` and `value` **last** so an attachment named `state` or `value` cannot shadow them, and boxes it with `box.DecisionEnvelope(m, state)`. A nil output yields `Unknown`/`Undefined`.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -44,4 +44,7 @@ Implements `import decision <rule> from <ns/policy> with <fact> as <expr>`: it r
   - **`with` names are matched against the target's alias-keyed `Facts` map**, so a `with` clause must use the target's **alias**, not its declared name.
   - **Recursion protection crosses the boundary via the fact map, not the context.** The nested `ExecRule` builds a brand-new execution context with an empty `refStack`, so import cycles are caught by [[index.validate]]'s static rule DAG rather than at runtime. A cycle that evades static detection would recurse until stack exhaustion.
   - **Dead branch:** the function rejects paths with fewer than two parts, then still tests `len(Parts) == 1` when computing the namespace. That branch is unreachable.
+  - **The envelope's truth value is its tagged state (#136).** `and`, `or`, `xor`, `not`, ternary conditions, `when` gates, casts to `bool`/`trinary`, collection predicates and the rule's own decision all go through `box.TrinaryFrom`, which reads the tag; an unknown import stays `Unknown`. `imp == true` compares the state (true only for a true import); `!=` is its plain negation, so `imp != false` is true for an unknown import, exactly as for a plain `unknown`. A user dict with a `state` key is untagged and keeps ordinary dict truthiness.
+  - **The tag does not survive a rebuild or a boundary.** A dict built from the envelope's entries, or one marshalled through `TryToBoundaryAny` (a `with` fact, a JS call, JSON), is a plain dict and is truthy when non-empty.
+  - **A rule whose body is a bare import reports the imported value.** Inside the policy the rule keeps the envelope as its value (so `imp.state`, `imp.value` and `imp.<attachment>` work), but `ExecRule` reports `Decision.Value` as the envelope's `value`; imported attachments are not re-exported unless the importing rule attaches them.
   - **The `with` expressions are evaluated with `ec.policy`, not the shadowed local `p`.** That is correct - values must come from the importer's scope - but the inner block shadows `p` with the *target* policy, which makes the code easy to misread.

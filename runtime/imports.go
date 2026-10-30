@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -112,12 +99,14 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 // executorOutputEnvelope builds the boxed value returned from import expressions:
 // a map with "state" (trinary), "value" (decision payload), and one entry per rule attachment.
 // "state" and "value" are applied after attachments so they cannot be shadowed by attachment names.
+// The map is boxed with box.DecisionEnvelope, so used as a truth value it is the imported
+// state, never the truthiness of a non-empty dict (#136).
 func executorOutputEnvelope(output *ExecutorOutput) box.Value {
 	if output == nil {
-		return box.Dict(map[string]box.Value{
+		return box.DecisionEnvelope(map[string]box.Value{
 			"state": box.Trinary(trinary.Unknown),
 			"value": box.Undefined(),
-		})
+		}, trinary.Unknown)
 	}
 
 	state := trinary.Unknown
@@ -131,5 +120,5 @@ func executorOutputEnvelope(output *ExecutorOutput) box.Value {
 	maps.Copy(m, map[string]box.Value(output.Attachments))
 	m["state"] = box.Trinary(state)
 	m["value"] = value
-	return box.Dict(m)
+	return box.DecisionEnvelope(m, state)
 }
