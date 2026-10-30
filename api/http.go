@@ -6,6 +6,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
@@ -37,6 +38,18 @@ func (p *ListenerServerPair) Close() error {
 		return err
 	}
 	return nil
+}
+
+// Shutdown drains the server: it stops accepting connections and waits for
+// in-flight requests until ctx is done. A ctx that ends first is returned as
+// the error and the caller decides whether to fall back to Close. The listener
+// is closed afterwards in case Serve never took ownership of it.
+func (p *ListenerServerPair) Shutdown(ctx context.Context) error {
+	err := p.Server.Shutdown(ctx)
+	if cerr := p.Listener.Close(); cerr != nil && !errors.Is(cerr, net.ErrClosed) {
+		err = errors.Join(err, cerr)
+	}
+	return err
 }
 
 // HTTPAPI provides HTTP endpoints for rule execution
@@ -75,6 +88,12 @@ func WithMaxRequestTimeout(d time.Duration) HTTPAPIOption {
 		api.maxRequestTimeout = d
 	}
 }
+
+// DefaultShutdownGracePeriod is how long serve lets in-flight requests finish
+// after a shutdown signal before the connections are closed (#117). It is
+// shorter than Kubernetes' default 30s terminationGracePeriodSeconds, so the
+// process exits by itself before the kubelet sends SIGKILL.
+const DefaultShutdownGracePeriod = 10 * time.Second
 
 // responseWriteMargin is how long the server keeps the connection writable
 // after the request deadline, to send the timeout response.
@@ -116,7 +135,10 @@ func (api *HTTPAPI) writeTimeout() time.Duration {
 }
 
 // newServer builds the server every listener uses, with its read, header,
-// write and idle limits. BaseContext ties each request to ctx.
+// write and idle limits. BaseContext derives each request's context from ctx
+// without its cancellation: cancelling ctx is what starts a shutdown, and the
+// requests in flight must be left to finish (#117). Closing a connection
+// still cancels its request.
 func (api *HTTPAPI) newServer(ctx context.Context, handler http.Handler) *http.Server {
 	return &http.Server{
 		Handler:           handler,
@@ -126,7 +148,7 @@ func (api *HTTPAPI) newServer(ctx context.Context, handler http.Handler) *http.S
 		IdleTimeout:       serverIdleTimeout,
 		MaxHeaderBytes:    serverMaxHeaderBytes,
 		BaseContext: func(net.Listener) context.Context {
-			return ctx
+			return context.WithoutCancel(ctx)
 		},
 	}
 }
@@ -200,16 +222,36 @@ func (api *HTTPAPI) StartServer(ctx context.Context, port int, listen []string) 
 
 }
 
-// StopServer gracefully stops the HTTP server
+// StopServer shuts every listener's server down, letting in-flight requests
+// finish until ctx is done. Pass a context that is not already cancelled (serve
+// derives one with context.WithoutCancel and a timeout of
+// DefaultShutdownGracePeriod). A server still busy when ctx ends is closed, so
+// the caller can exit, and the error says so. Errors from the listeners are
+// joined.
 func (api *HTTPAPI) StopServer(ctx context.Context) error {
-	if api.listeners != nil {
-		for _, ln := range api.listeners {
-			_ = ln.Close()
-		}
-		api.listeners = nil
-	}
+	listeners := api.listeners
+	api.listeners = nil
 
-	return nil
+	errs := make([]error, len(listeners))
+	var wg sync.WaitGroup
+	for i, ln := range listeners {
+		wg.Go(func() {
+			err := ln.Shutdown(ctx)
+			if err == nil {
+				return
+			}
+			// The grace period ran out with requests still in flight: drop them.
+			api.logger.WarnContext(ctx, "Shutdown grace period ended, closing connections",
+				"address", ln.Listener.Addr().String(), "error", err)
+			errs[i] = errors.Join(
+				fmt.Errorf("graceful shutdown of %s: %w", ln.Listener.Addr(), err),
+				ln.Server.Close(),
+			)
+		})
+	}
+	wg.Wait()
+
+	return errors.Join(errs...)
 }
 
 // handleHealth handles GET /health requests
