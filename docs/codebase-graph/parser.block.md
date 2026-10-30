@@ -47,6 +47,6 @@ tags: block-expression, yield, lambda, speculative-parsing, backtracking
 - **Dependencies Risk:**
   - **Blocks accept only `let` and line comments as statements.** The loop condition is a two-kind check, so a `fact`, `use`, or trailing comment inside a block does not error as "not allowed here" - it simply ends the statement loop and then fails with `expected yield`. That error message is the single most misleading diagnostic in the parser.
   - **`yield` is mandatory and terminal.** There is no implicit last-expression return, and nothing may follow the yield expression before `}`.
-  - **Block spans use `From` for both ends.** The range is built from `lCurly.Range.From` and `rCurly.Range.**From**`, so a block's span stops at the *start* of its closing brace.
+  - **A block spans its braces.** The range runs from `lCurly.Range.From` to `rCurly.Range.To`, just past the closing brace. Rules, derives, lambdas and attachments that end in a block take their end from it (#236; it used to stop at the start of the `}`, one column short).
   - **Parentheses are erased.** Grouping is not represented in the AST, so a formatter cannot reproduce the author's parenthesisation and any AST-equality check treats `(a + b)` and `a + b` as identical.
   - **The two lambda paths produce different nodes.** The fast path yields `NewLambdaExpression` (untyped params, no return type); the typed path yields `NewLambdaExpressionFull`. Consumers must handle nil `ParamTypes`/`ParamOpts` slices from the fast path - see [[ast]].

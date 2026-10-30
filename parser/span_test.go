@@ -49,6 +49,13 @@ func (s *ParserTestSuite) TestStatementSpanEndsAtLastToken() {
 		{"export decision attach", true, "export decision of r attach a as 1", true},
 		{"export decision attach list", true, "export decision of r attach a as [1, 2]", true},
 		{"use", true, "use { x } from @sentrie/time as t", false},
+		// Statements that end in a block expression end just past its `}`.
+		{"let block", true, "let x = { yield 1 }", true},
+		{"let lambda", true, "let f = (x) => { yield x }", true},
+		{"rule block", true, "rule r = default false { yield true }", true},
+		{"derive", true, "derive d = (a: number) => { yield a }", true},
+		{"derive top-level", false, "derive d = (a: number) => { yield a }", true},
+		{"export decision attach block", true, "export decision of r attach a as { yield 1 }", true},
 	}
 	// What follows the statement. The statement itself is never read past its
 	// last token, so each suffix only changes what the lexer sees after it.
@@ -253,16 +260,38 @@ func (s *ParserTestSuite) TestStatementSpansAroundHeredoc() {
 
 // TestStatementSpanOfMultiLineStatementsPrintsBothLines checks that a statement
 // crossing lines ends on the line of its last token and that the printed range
-// names that line, not the one before it (#236). The closing brace of a rule
-// or block is deliberately not pinned to a column: a block expression ends at
-// the start of its `}` (parser/block.go), which is a separate problem.
+// names that line, not the one before it (#236). A block expression ends just
+// past its `}`, so the rule does too.
 func (s *ParserTestSuite) TestStatementSpanOfMultiLineStatementsPrintsBothLines() {
 	p := NewParserFromString("\n  rule r = default false {\n    yield true\n  }\n", "t.sentrie")
 	stmt := parsePolicyStatement(s.T().Context(), p)
 	s.Require().NoError(p.err)
 	s.Equal(tokens.Pos{Line: 2, Column: 3, Offset: 3}, stmt.Span().From)
-	s.Equal(4, stmt.Span().To.Line)
-	s.True(strings.HasPrefix(stmt.Span().String(), "t.sentrie:2:3-4:"), stmt.Span().String())
+	s.Equal(tokens.Pos{Line: 4, Column: 4, Offset: 46}, stmt.Span().To)
+	s.Equal("t.sentrie:2:3-4:4", stmt.Span().String())
+}
+
+// TestCommentStatementSpanCoversTheComment checks that a comment statement
+// spans from its `--` to just past its last character, not zero width at its
+// start. A comment runs to the end of its line, so only a newline or the end
+// of the input can follow it.
+func (s *ParserTestSuite) TestCommentStatementSpanCoversTheComment() {
+	for _, input := range []string{"\n  -- a note\n  rule", "\n  -- a note"} {
+		for _, policy := range []bool{true, false} {
+			p := NewParserFromString(input, "t.sentrie")
+			var stmt ast.Statement
+			if policy {
+				stmt = parsePolicyStatement(s.T().Context(), p)
+			} else {
+				stmt = parseStatement(s.T().Context(), p)
+			}
+			s.Require().NoError(p.err, "input: %q", input)
+			s.Equal(tokens.NewRange("t.sentrie",
+				tokens.Pos{Line: 2, Column: 3, Offset: 3},
+				tokens.Pos{Line: 2, Column: 12, Offset: 12},
+			), stmt.Span(), "input: %q policy: %v", input, policy)
+		}
+	}
 }
 
 // TestParseErrorsPrintOneBasedPositions pins the position users see in a

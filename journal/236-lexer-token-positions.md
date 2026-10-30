@@ -40,3 +40,11 @@
 - Observed, not changed: a heredoc whose terminator line has trailing whitespace or a CR (CRLF files) never terminates, because the terminator must equal the tag exactly. This predates the branch.
 - _Model: claude-sonnet-5-5_
 
+
+### 15:58 - Review round 1: end blocks and comments past their last token
+- Correction to the 15:49 entry: it said every statement kind ends just past its last token, including rule. That was only true for rules without a block body. A block expression ended at its `}` token's start, so block-bodied rules, derives, lambdas and block attachments, which take their end from the block, ended one column short (a block rule printed `5:3-8:3`). The sandbox check used single-line statements and missed it.
+- `parser/block.go` now ends a block at `rCurly.Range.To`. `parser/comment.go` ends a comment statement at `comment.Range.To` instead of its start, which made it zero width.
+- `parser/span_test.go` (from the test agent's a2cf1b6): added let block, let lambda, block rule, derive at policy and top level, and block attachment to the statement table across every suffix. `TestStatementSpanOfMultiLineStatementsPrintsBothLines` now pins the full end `2:3-4:4`, not only the `2:3-4:` prefix. New `TestCommentStatementSpanCoversTheComment`.
+- Comments stay out of the suffix table: a comment runs to the end of its line, so every same-line suffix becomes part of it. In a CRLF file the comment span includes the `\r` because `readComment` stops only at `\n`; the value is trimmed. Left as is and noted in the `parser.comment` node.
+- Updated the `parser.block` and `parser.comment` graph gotchas, which described the old ends.
+- _Model: claude-opus-5-5_
