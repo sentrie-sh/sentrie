@@ -308,6 +308,13 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 				return nil, fmt.Errorf("%s: %w", err.Error(), xerr.ErrUnresolvableFact(factName))
 			}
 
+			// A default that reads an omitted optional fact (or a missing field of one)
+			// evaluates to undefined. That is still a fact the caller left unresolved,
+			// not an internal type failure, so it is reported as one.
+			if val.IsUndefined() {
+				return nil, fmt.Errorf("default value is undefined: %w", xerr.ErrUnresolvableFact(factName))
+			}
+
 			if val.IsNull() && !ast.IsNullableTypeRef(factStatement.Type) {
 				return nil, fmt.Errorf("fact '%s' cannot have null default value: %w", factName, xerr.ErrInvalidInvocation(""))
 			}

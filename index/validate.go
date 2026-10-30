@@ -170,6 +170,10 @@ func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Polic
 			}
 		case *ast.FieldAccessExpression:
 			addNodes(g, []ast.Node{n.Left}, referedBy, policy)
+		case *ast.IsDefinedExpression:
+			addNodes(g, []ast.Node{n.Left}, referedBy, policy)
+		case *ast.IsEmptyExpression:
+			addNodes(g, []ast.Node{n.Left}, referedBy, policy)
 		case *ast.ImportClause:
 			// Import clauses don't contain self-references
 		default:
