@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package index
 
@@ -179,6 +166,10 @@ func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Polic
 				addNodes(g, []ast.Node{entry.Value}, referedBy, policy)
 			}
 		case *ast.FieldAccessExpression:
+			addNodes(g, []ast.Node{n.Left}, referedBy, policy)
+		case *ast.IsDefinedExpression:
+			addNodes(g, []ast.Node{n.Left}, referedBy, policy)
+		case *ast.IsEmptyExpression:
 			addNodes(g, []ast.Node{n.Left}, referedBy, policy)
 		case *ast.ImportClause:
 			// Import clauses don't contain self-references
