@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
 namespace rules2
 
 policy auth {
@@ -11,6 +14,11 @@ policy input {
 }
 
 policy consumer {
+	fact user?: document
+	fact resource?: document
+	fact subject?: document
+	fact obj?: document
+
 	rule checkAccess = import decision isAllowed from auth
 	                     with user     as subject
 	                     with resource as obj

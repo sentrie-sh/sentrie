@@ -115,6 +115,9 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 	case *ast.CastExpression:
 		return evalCast(ctx, ec, exec, p, t)
 
+	case *ast.IsExpression:
+		return evalIsType(ctx, ec, exec, p, t)
+
 	case *ast.UnaryExpression:
 		return evalUnary(ctx, ec, exec, p, t)
 

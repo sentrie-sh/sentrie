@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package parser
 
@@ -25,6 +12,16 @@ import (
 )
 
 func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
+	ref := parseBaseTypeRef(ctx, p)
+	if ref == nil {
+		return nil
+	}
+	return parseTypeRefSuffixes(ctx, p, ref, false)
+}
+
+// parseBaseTypeRef parses a type reference without its trailing `?` and
+// `@constraint(...)` suffixes.
+func parseBaseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 	validTypes := []tokens.Kind{tokens.Ident}
 	validTypes = append(validTypes, PRIMITIVE_TYPES...)
 	validTypes = append(validTypes, AGGREGATE_TYPES...)
@@ -108,7 +105,16 @@ func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		r.Rnge.To = rBracket.Range.To
 	}
 
-	if p.canExpect(tokens.TokenQuestion) {
+	return ref
+}
+
+// parseTypeRefSuffixes parses the optional nullable `?` and the constraints
+// that follow a type. With ternaryAware set, a `?` is the nullable suffix only
+// when questionIsNullable (with `{` read as a rule body) says so; otherwise it
+// is left for the ternary operator, which is what `x is string ? a : b` means
+// (the `is` operand sits above TERNARY precedence).
+func parseTypeRefSuffixes(ctx context.Context, p *Parser, ref ast.TypeRef, ternaryAware bool) ast.TypeRef {
+	if p.canExpect(tokens.TokenQuestion) && (!ternaryAware || p.questionIsNullable(true)) {
 		question := p.advance()
 		rnge := ref.Span()
 		rnge.To = question.Range.To

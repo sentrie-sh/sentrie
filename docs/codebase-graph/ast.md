@@ -47,8 +47,8 @@ tags: syntax-tree, front-end, data-model, code-generation, ir
   - **Side Effects:** None - all are inert data.
   - **Exceptions:** None; constructors cannot fail.
 
-- **Signature:** Expressions - `BlockExpression`, `LambdaExpression`, `CallExpression`, `InfixExpression`, `UnaryExpression`, `TernaryExpression`, `CastExpression`, `TransformExpression`, `FieldAccessExpression`, `IndexAccessExpression`, `PipelineHoleExpression`, `IsDefinedExpression`, `IsEmptyExpression`, `Identifier`, `TrailingCommentExpression`, `PrecedingCommentExpression`, and the literal family (`Integer`, `Float`, `String`, `Trinary`, `Null`, `List`, `Map`)
-  - **Behavior:** The evaluable surface. `BlockExpression` pairs statements with a mandatory `Yield` expression - blocks are expressions, not statements. `CallExpression` carries `Memoized`/`MemoizeTTL` so memoization is a *syntactic* property resolved by [[runtime]]. `PipelineHoleExpression` is the `#` placeholder substituted by `|>`.
+- **Signature:** Expressions - `BlockExpression`, `LambdaExpression`, `CallExpression`, `InfixExpression`, `UnaryExpression`, `TernaryExpression`, `CastExpression`, `TransformExpression`, `FieldAccessExpression`, `IndexAccessExpression`, `PipelineHoleExpression`, `IsDefinedExpression`, `IsEmptyExpression`, `IsExpression`, `Identifier`, `TrailingCommentExpression`, `PrecedingCommentExpression`, and the literal family (`Integer`, `Float`, `String`, `Trinary`, `Null`, `List`, `Map`)
+  - **Behavior:** The evaluable surface. `BlockExpression` pairs statements with a mandatory `Yield` expression - blocks are expressions, not statements. `CallExpression` carries `Memoized`/`MemoizeTTL` so memoization is a *syntactic* property resolved by [[runtime]]. `PipelineHoleExpression` is the `#` placeholder substituted by `|>`. `IsExpression` is `x is T`: `Type` alone for type syntax, `Right` alone for a value, and both for a bare or qualified name until [[index.is_resolve]] picks one (`Ambiguous()`).
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -68,7 +68,7 @@ tags: syntax-tree, front-end, data-model, code-generation, ir
   - **Exceptions:** None; returns `0` for a nil lambda rather than panicking.
 
 ## 4. Operational Context & Gotchas
-- **Statefulness:** Nodes are heap-allocated structs constructed once by the parser and thereafter treated as read-only. There is no interning, no parent pointers, and no visitor framework - traversal is open-coded type switching in [[index]] and [[runtime]]. `TypeRef.AddConstraint` is the one legitimate post-construction mutation and happens during parsing only.
+- **Statefulness:** Nodes are heap-allocated structs constructed once by the parser and thereafter treated as read-only. There is no interning, no parent pointers, and no visitor framework - traversal is open-coded type switching in [[index]] and [[runtime]]. `TypeRef.AddConstraint` is a post-construction mutation that happens during parsing only. The one mutation after parsing is [[index.is_resolve]] clearing `IsExpression.Right` or `IsExpression.Type` during validation.
 - **Performance/Scale Notes:** Every node embeds `*baseNode` (a pointer), so each node costs at least two allocations. `String()` implementations recurse over the whole subtree and allocate - never call them in evaluation hot paths, only in diagnostics.
 - **Dependencies Risk:** No external failure domain, but several structural hazards:
   - **Generated table drift.** `typeref_constraint_args_gen.go` is produced from [[constraints]] under the `generate` build tag and the generator **panics unless `GIT_USER_NAME` and `GIT_USER_EMAIL` are set**. Adding a constraint to [[constraints]] without re-running `go generate` means the parser rejects it as unknown while the runtime would have accepted it.

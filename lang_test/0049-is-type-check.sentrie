@@ -1,0 +1,53 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+namespace isops/types
+shape User { name: string  age: number }
+export shape User
+shape Name string@minlength(1)
+
+derive isUser = (v: document): trinary => { yield v is User }
+
+policy type_checks {
+  shape Local { ok: trinary }
+  let u = { "name": "a", "age": 1 }
+  let n = 5
+  let a1 = u is User
+  let a2 = u is not User
+  let a3 = u is isops/types/User
+  let a4 = { "ok": true } is Local
+  let a5 = "x" is Name
+  let a6 = "x" is string
+  let a7 = n is number and n is not string
+  let a8 = [1, 2] is list[number]
+  let a9 = { "k": 1 } is dict[number]
+  let a10 = u is document
+  let a11 = null is string?
+  let a12 = "abc" is string@minlength(2)
+  let a13 = ("x" is string ? 1 : 2)
+  let a14 = n is n
+  let a15 = isUser(u)
+  let b1 = true is boolean
+  let b2 = true is trinary
+  let b3 = [1, "a"] is record[number, string]
+  let b4 = u is User?
+  let b5 = [1] is list[number]?
+  let b6 = [u] is list[User]
+  let b7 = ["ab"] is list[string@minlength(2)]
+  let b8 = "x" is not string?
+  let b9 = u is not User?
+  let b10 = "ab" is string?@minlength(2)
+  let b11 = n is not string@minlength(2)
+  let b12 = null is Name?
+  let b13 = "x" is not Name
+  let b14 = u is User ? 1 : 2
+  let b15 = (u is User) and n is number@min(1)
+  let b16 = any([u], (d) => { yield d is User })
+  let b17 = u is not isops/types/User
+  let b18 = { "k": [1] } is dict[list[number]]
+  rule when_shape = default false when u is User { yield true }
+  rule when_nullable = default false when n is number? { yield true }
+  rule when_not = default false when u is not Name { yield true }
+  rule _corpus = { yield true }
+  export decision of _corpus
+}

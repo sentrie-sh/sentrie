@@ -105,6 +105,17 @@ func forEachDeriveExprChild(e ast.Expression, yield func(ast.Expression) error) 
 		return yield(n.Left)
 	case *ast.IsEmptyExpression:
 		return yield(n.Left)
+	case *ast.IsExpression:
+		// Right is set when the right-hand side is a value (or a name the
+		// index has not resolved yet); a type operand holds no expression
+		// walked here, as for CastExpression.
+		if err := yield(n.Left); err != nil {
+			return err
+		}
+		if n.Right != nil {
+			return yield(n.Right)
+		}
+		return nil
 	case *ast.TrailingCommentExpression:
 		return yield(n.Wrap)
 	case *ast.PrecedingCommentExpression:

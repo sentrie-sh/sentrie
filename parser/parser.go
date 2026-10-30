@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package parser
 
@@ -126,6 +113,28 @@ func (p *Parser) peek() tokens.Instance {
 		return tokens.Instance{Kind: tokens.EOF} // Return EOF if at end of file
 	}
 	return p.next
+}
+
+// canStartExpression reports whether t can begin an expression, that is,
+// whether a prefix handler is registered for its kind.
+func (p *Parser) canStartExpression(t tokens.Instance) bool {
+	_, ok := p.prefixHandlers[t.Kind]
+	return ok
+}
+
+// questionIsNullable decides, with the head on a `?` that follows a type in
+// expression position, whether the `?` is the nullable suffix or the ternary
+// operator. It is the ternary when the next token can start an expression.
+// With braceIsBody set, a `{` does not count: it is the body of a rule
+// (`when x is string? {`). Only a right-hand side that starts with a type
+// keyword sets it, since that syntax is new; after a bare name, which may be
+// a value, `x is y ? {...} : {...}` stays the ternary it always was.
+func (p *Parser) questionIsNullable(braceIsBody bool) bool {
+	next := p.peek()
+	if braceIsBody && next.IsOfKind(tokens.PunctLeftCurly) {
+		return true
+	}
+	return !p.canStartExpression(next)
 }
 
 // errorf adds a formatted error

@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package index
 
@@ -56,6 +43,11 @@ func (idx *Index) IsValid(ctx context.Context) error {
 }
 
 func (idx *Index) validate(ctx context.Context) error {
+	// Settle `x is Name` first: the walks below must not read a shape name
+	// as a reference to a value.
+	if err := idx.resolveIsExpressions(ctx); err != nil {
+		return err
+	}
 	// Check for self-references in rules and shapes
 	if err := idx.detectReferenceCycle(ctx); err != nil {
 		return err
@@ -154,6 +146,13 @@ func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Polic
 			}
 		case *ast.InfixExpression:
 			addNodes(g, []ast.Node{n.Left, n.Right}, referedBy, policy)
+		case *ast.IsExpression:
+			// A shape operand is not a reference to a rule or let.
+			nodes := []ast.Node{n.Left}
+			if n.Right != nil {
+				nodes = append(nodes, n.Right)
+			}
+			addNodes(g, nodes, referedBy, policy)
 		case *ast.UnaryExpression:
 			addNodes(g, []ast.Node{n.Right}, referedBy, policy)
 		case *ast.TernaryExpression:

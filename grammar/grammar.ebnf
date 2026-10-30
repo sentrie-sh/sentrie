@@ -92,7 +92,15 @@ lambdaExpr          ::= '(' ( IDENT ( ',' IDENT )* )? ')' '=>' blockExpr
 /* Specific Expression Types */
 equalityExpr        ::= addExpr ( '==' | '!=' ) addExpr
 relationalExpr      ::= addExpr ( '<' | '<=' | '>' | '>=' ) addExpr
-isExpr              ::= addExpr 'is' addExpr
+/* `x is T` is true when x validates against the type T (false when it does not, or x is undefined).
+   A right-hand side that starts with a type keyword is a typeRef; a '?' that is followed by a token
+   that can start an expression is the ternary operator, not a nullable suffix, except that '{' after a
+   type keyword is a rule body ('when x is string? {'); after a name, '? {' stays a ternary. A bare or
+   slash-qualified IDENT is a shape when it names one in scope (a name that is both a shape and a
+   value is an error) and otherwise the legacy equality `x == y`; a '?' or '@' suffix makes it a typeRef.
+   Any other right-hand side is the legacy equality. */
+isExpr              ::= addExpr 'is' 'not'? typeRef
+                      | addExpr 'is' 'not'? addExpr
                       | addExpr 'is' 'empty'
                       | addExpr 'is' 'not' 'empty'
                       | addExpr 'is' 'defined'

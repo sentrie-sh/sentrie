@@ -26,6 +26,7 @@ The central dispatch of the tree-walking evaluator. Every expression in Sentrie 
 | `runtime.eval` | `CALLS` | [[runtime.eval_block]] | Block expressions with `let`/`yield`. |
 | `runtime.eval` | `CALLS` | [[runtime.eval_ternary]] | Conditional and Elvis forms. |
 | `runtime.eval` | `CALLS` | [[runtime.eval_cast]] | `as` casts. |
+| `runtime.eval` | `CALLS` | [[runtime.eval_is_type]] | `x is T` shape and type checks. |
 | `runtime.eval` | `CALLS` | [[runtime.eval_lambda]] | Lambda closure creation. |
 | `runtime.eval` | `CALLS` | [[runtime.eval_transform]] | `transform … with` expressions. |
 | `runtime.eval` | `CALLS` | [[runtime.imports]] | `ImportClause` nodes become cross-policy decision imports. |
