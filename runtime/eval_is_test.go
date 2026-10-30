@@ -325,3 +325,25 @@ policy pol {
 	s.Require().NoError(err)
 	s.Equal(trinary.True, out.Decision.State)
 }
+
+// An undeclared identifier is a real error, not a missing value: 'is defined' must
+// not turn a typo into false.
+func (s *RuntimeTestSuite) TestIsDefinedOnUndeclaredIdentifierErrors() {
+	ctx := s.T().Context()
+	src := `namespace com/ex
+policy pol {
+  rule check_defined = { yield undeclared is defined }
+  rule check_empty = { yield undeclared is not empty }
+  export decision of check_defined
+  export decision of check_empty
+}
+`
+	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "undeclared.sentrie", src: src})
+	for _, rule := range []string{"check_defined", "check_empty"} {
+		s.Run(rule, func() {
+			_, err := exec.ExecRule(ctx, "com/ex", "pol", rule, nil)
+			s.Require().Error(err)
+			s.Contains(err.Error(), "identifier not found: undeclared")
+		})
+	}
+}
