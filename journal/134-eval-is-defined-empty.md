@@ -24,3 +24,9 @@
 - Derive bodies: `index/derive_purity.go` and `derive_expr_walk.go` already walk both nodes, and the evaluators resolve nothing themselves, so no derive gate is involved. A minimal end-to-end test covers a derive with an omitted optional parameter.
 - Added a `runtime.eval_is` graph node and linked it from `runtime.eval`, `runtime.eval_ident` and the overview catalog.
 - _Model: claude-opus-5-5_
+
+### 15:54 - Reference every is form from a rule in fixture 0013
+- `0013-is-defined-empty.sentrie` kept all four forms in unreferenced lets. Each form now sits in an exported rule, plus `null is defined`, `null is empty`, a missing document field and a derive body using `is empty` on an optional parameter.
+- lang_test only parses, indexes and validates, so the runtime assertions live in `runtime/eval_is_test.go` and the follow-up regression tests.
+- Added the SPDX header the fixture was missing.
+- _Model: claude-opus-5-5_

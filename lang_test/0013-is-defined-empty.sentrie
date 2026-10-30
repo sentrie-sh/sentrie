@@ -1,12 +1,27 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
 namespace isops
+
+derive blank = (v?: string): trinary => { yield v is empty }
+
 policy defined_empty {
+  fact user: document as user
   let lst = []
   let lst2 = [1, 2, 3]
-  let lst3 = [1]
   let m   = {"k": "v"}
-  let a1  = lst is empty
-  let a2  = lst is not empty
-  let a3  = m   is defined
-  let a4  = m   is not defined  rule _corpus = { yield true }
-  export decision of _corpus
+  rule list_is_empty = { yield lst is empty }
+  rule list_is_not_empty = { yield lst2 is not empty }
+  rule map_is_defined = { yield m is defined }
+  rule missing_is_not_defined = { yield user.missing is not defined }
+  rule null_is_defined = { yield null is defined }
+  rule null_is_empty = { yield null is empty }
+  rule derive_is_empty = { yield blank("") }
+  export decision of list_is_empty
+  export decision of list_is_not_empty
+  export decision of map_is_defined
+  export decision of missing_is_not_defined
+  export decision of null_is_defined
+  export decision of null_is_empty
+  export decision of derive_is_empty
 }
