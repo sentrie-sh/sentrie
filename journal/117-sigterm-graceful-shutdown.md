@@ -22,3 +22,9 @@
 - Bite checks (production file reverted, test run, restored): old `main.go` fails the in-flight and idle tests; `BaseContext` returning `ctx` fails the process in-flight test and `TestStopServerLetsAnInFlightRequestFinish`; the old close-only `StopServer` fails every `StopServer` test and the process test; a sequential drain loop fails the concurrency test; `Shutdown` without the listener close fails the unserved-listener test; `main.go` without the `stop()` goroutine fails the second-signal test.
 - Ruled out: asserting the first SIGTERM does not kill the process in the second-signal test (the old behaviour dies by the same signal, so it cannot be told apart without a race); a test of SIGINT (same `NotifyContext` registration as SIGTERM).
 - _Model: claude-sonnet-5-5_
+
+### 16:12 - Review round 1: StopServer no longer writes the listener slice
+- Review found a data race: `StopServer` set `api.listeners = nil` while `serve`'s `StartServer` goroutine reads the slice. It predated the branch, but graceful signals make it reachable when a pod is terminated during startup.
+- Fix: `StopServer` only reads the slice. A second call stays harmless because `Shutdown` is idempotent and `ErrClosed` is filtered. Added `TestStopServerDoesNotRaceWithStartServer` (Setup, `go StartServer`, immediate StopServer twice); it reported DATA RACE under `-race` before the fix and passes after.
+- Docs: `api.http.md` no longer says StopServer nils the slice; the StartServer bullet now says the deferred `wg.Wait()` blocks (it returns after every `Serve`) while the unread `errChan` still loses serve errors; the BaseContext bullet notes that with `--eval-timeout 0` and no ceiling only the grace-period `Close` ends a request.
+- _Model: claude-sonnet-5-5_

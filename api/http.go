@@ -229,8 +229,10 @@ func (api *HTTPAPI) StartServer(ctx context.Context, port int, listen []string) 
 // the caller can exit, and the error says so. Errors from the listeners are
 // joined.
 func (api *HTTPAPI) StopServer(ctx context.Context) error {
+	// Only read the slice: serve runs StartServer in a goroutine that reads it
+	// too, and a signal can arrive right after Setup. A second StopServer is
+	// harmless because Shutdown is idempotent and a closed listener is ignored.
 	listeners := api.listeners
-	api.listeners = nil
 
 	errs := make([]error, len(listeners))
 	var wg sync.WaitGroup

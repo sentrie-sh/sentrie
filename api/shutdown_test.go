@@ -246,3 +246,32 @@ func (s *APITestSuite) TestShutdownClosesAListenerNobodyServes() {
 	s.NoError(pair.Shutdown(s.T().Context()))
 	s.True(refuses(addr))
 }
+
+// TestStopServerDoesNotRaceWithStartServer: serve runs StartServer in a
+// goroutine and a signal can arrive at any point after Setup, so StopServer
+// must not write the listener slice StartServer reads. Run with -race.
+func (s *APITestSuite) TestStopServerDoesNotRaceWithStartServer() {
+	api := NewHTTPAPI(nil)
+	s.Require().NoError(api.Setup(s.T().Context(), 0, []string{"127.0.0.1"}))
+
+	started := make(chan struct{})
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		close(started)
+		api.StartServer(s.T().Context(), 0, []string{"127.0.0.1"})
+	}()
+	<-started
+
+	ctx, cancel := context.WithTimeout(s.T().Context(), 5*time.Second)
+	defer cancel()
+	s.NoError(api.StopServer(ctx))
+	// A second stop is harmless.
+	s.NoError(api.StopServer(ctx))
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		s.Fail("StartServer did not return after StopServer")
+	}
+}
