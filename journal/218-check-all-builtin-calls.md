@@ -29,3 +29,8 @@
 ### 23:21 - Restack onto the rebased 168-3 after the #154 stack merged
 - No conflicts. Build, vet and `go test -race ./...` pass.
 - _Model: claude-opus-5-5_
+
+### 10:33 - Restack onto main after the last stack merged
+- Rebased onto main (9b86baf, #241) now that every other PR has merged; this is the last open one. No conflicts.
+- Under Go 1.25: `go vet ./...`, `go test -race ./...`, `make lint` and `make docs-graph` pass.
+- _Model: claude-opus-5-5_
