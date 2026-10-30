@@ -346,7 +346,7 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 		PolicyName:  policy,
 		Namespace:   namespace,
 		RuleName:    rule,
-		Decision:    decision,
+		Decision:    decision.reported(),
 		Attachments: attachments,
 		RuleNode:    ruleNode,
 	}, err

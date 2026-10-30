@@ -66,6 +66,7 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 				wrappedErr := fmt.Errorf("invalid value for let declaration %s: %w", i, err)
 				return box.Undefined(), n.SetErr(wrappedErr), wrappedErr
 			}
+			val = bindTruthValue(val, v.Type)
 		}
 
 		ec.SetLocal(i.Value, val, false)

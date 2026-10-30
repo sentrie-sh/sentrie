@@ -22,6 +22,7 @@ type DecisionAttachments map[string]box.Value
 // Behaviour:
 // - undefined or null      → Unknown, keeping the original value
 // - boolean or unknown     → Decision with the same truth value
+// - import envelope        → its imported state (via box.TrinaryFrom)
 // - anything else          → box.TrinaryFrom(val)
 func DecisionOf(val box.Value) *Decision {
 	if val.IsUndefined() || val.IsNull() {
@@ -33,4 +34,24 @@ func DecisionOf(val box.Value) *Decision {
 	}
 
 	return &Decision{State: box.TrinaryFrom(val), Value: val}
+}
+
+// reported returns d as ExecRule reports it to its caller. Inside a policy a rule
+// whose body is an import keeps the envelope as its value, so references to the
+// rule can still read .state, .value and attachments. Outside, the envelope is
+// unwrapped to the imported value, so the reported value agrees with the state
+// the decision already carries from the envelope (#136).
+func (d *Decision) reported() *Decision {
+	if d == nil {
+		return nil
+	}
+	if _, ok := d.Value.DecisionState(); !ok {
+		return d
+	}
+	m, _ := d.Value.DictValue()
+	value, ok := m["value"]
+	if !ok {
+		value = box.Undefined()
+	}
+	return &Decision{State: d.State, Value: value}
 }

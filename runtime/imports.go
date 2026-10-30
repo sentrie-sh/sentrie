@@ -75,14 +75,17 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 		}
 	}
 
+	// The boundary conversion only rejects callables. The boxed value itself is
+	// injected, so an imported decision envelope bound by `with`, at any depth,
+	// keeps its state tag in the target policy instead of arriving as a plain,
+	// truthy dict (#136). ExecRule's FromBoundaryAny passes a box.Value through.
 	injectedFacts := make(map[string]any, len(facts))
 	for name, factValue := range facts {
-		b, err := box.TryToBoundaryAny(factValue)
-		if err != nil {
+		if _, err := box.TryToBoundaryAny(factValue); err != nil {
 			err = fmt.Errorf("import with fact %q: %w", name, err)
 			return box.Null(), n.SetErr(err), err
 		}
-		injectedFacts[name] = b
+		injectedFacts[name] = factValue
 	}
 
 	output, err := exec.ExecRule(ctx, ns, pol, rule, injectedFacts)
@@ -104,12 +107,14 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 // a map with "state" (a boolean, or unknown; see box.Trinary), "value" (decision payload), and one
 // entry per rule attachment.
 // "state" and "value" are applied after attachments so they cannot be shadowed by attachment names.
+// The map is boxed with box.DecisionEnvelope, so used as a truth value it is the imported
+// state, never the truthiness of a non-empty dict (#136).
 func executorOutputEnvelope(output *ExecutorOutput) box.Value {
 	if output == nil {
-		return box.Dict(map[string]box.Value{
+		return box.DecisionEnvelope(map[string]box.Value{
 			"state": box.Trinary(trinary.Unknown),
 			"value": box.Undefined(),
-		})
+		}, trinary.Unknown)
 	}
 
 	state := trinary.Unknown
@@ -123,5 +128,5 @@ func executorOutputEnvelope(output *ExecutorOutput) box.Value {
 	maps.Copy(m, map[string]box.Value(output.Attachments))
 	m["state"] = box.Trinary(state)
 	m["value"] = value
-	return box.Dict(m)
+	return box.DecisionEnvelope(m, state)
 }

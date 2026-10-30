@@ -93,6 +93,22 @@ func (s *RuntimeTestSuite) TestExecutorOutputEnvelopeIncludesDecisionAndAttachme
 	s.Require().Equal(box.Bool(false), m["state"])
 	s.Require().Equal(42.0, m["value"].Any())
 	s.Require().Equal("policy denied", m["reason"].Any())
+	s.Require().Equal(trinary.False, box.TrinaryFrom(envelope))
+}
+
+func (s *RuntimeTestSuite) TestDecisionOfImportEnvelopeReportsImportedValue() {
+	envelope := executorOutputEnvelope(&ExecutorOutput{
+		Decision: &Decision{State: trinary.False, Value: box.Bool(false)},
+	})
+
+	d := DecisionOf(envelope)
+	s.Require().Equal(trinary.False, d.State)
+	_, isEnvelope := d.Value.DecisionState()
+	s.Require().True(isEnvelope, "inside the policy the rule keeps the envelope")
+
+	reported := d.reported()
+	s.Require().Equal(trinary.False, reported.State)
+	s.Require().Equal(false, reported.Value.Any())
 }
 
 func (s *RuntimeTestSuite) TestImportDecisionMissingRequiredFactReturnsError() {

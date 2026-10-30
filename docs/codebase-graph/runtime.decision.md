@@ -19,6 +19,7 @@ The output contract of a rule: a Kleene `State` paired with the underlying `Valu
 | `runtime.decision` | `DEPENDS_ON` | [[trinary]] | `trinary.Value` is the state type; `Unknown` is the failure-safe default. |
 | [[runtime.executor]] | `CALLS` | [[runtime.decision]] | Wraps rule bodies, `default` clauses, and the error fallback. |
 | [[runtime.imports]] | `READS_FROM` | [[runtime.decision]] | Flattens `State` and `Value` into the import envelope dictionary. |
+| [[runtime.executor]] | `CALLS` | [[runtime.decision]] | `ExecRule` reports `decision.reported()`, which unwraps an import envelope to its imported value. |
 | [[cmd]] | `READS_FROM` | [[runtime.decision]] | Renders the decision as CLI output. |
 | [[api]] | `READS_FROM` | [[runtime.decision]] | Serializes it as the JSON response payload. |
 
@@ -40,9 +41,14 @@ The output contract of a rule: a Kleene `State` paired with the underlying `Valu
   - **Exceptions:** N/A.
 
 - **Signature:** `DecisionOf(val box.Value) -> *Decision`
-  - **Behavior:** Three-way coercion. Undefined or null yields `Unknown` while **preserving the original value**; a boolean or `unknown` (read with `TrinaryValue`) passes its truth value through; anything else is coerced via `box.TrinaryFrom`, which applies the language's truthiness rules.
+  - **Behavior:** Three-way coercion. Undefined or null yields `Unknown` while **preserving the original value**; a boolean or `unknown` (read with `TrinaryValue`) passes its truth value through; anything else is coerced via `box.TrinaryFrom`, which applies the language's truthiness rules. An import envelope yields its imported state (#136) and is kept as the value, so rule references still read its fields.
   - **Side Effects:** None.
   - **Exceptions:** None - it is a total function.
+
+- **Signature:** `(*Decision).reported() -> *Decision`
+  - **Behavior:** The decision as `ExecRule` reports it. When `Value` is an import envelope it returns a new decision whose value is the envelope's `value` (or undefined), keeping `State`; otherwise it returns the receiver unchanged. Nested imports therefore stay flat.
+  - **Side Effects:** None.
+  - **Exceptions:** None; nil-safe.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Immutable value type.
