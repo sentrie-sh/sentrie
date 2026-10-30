@@ -83,3 +83,27 @@ policy pol {
 	s.Require().NoError(runErr)
 	s.NotContains(out, "warning:")
 }
+
+const unknownWithFactPolicy = `namespace t
+policy q {
+  fact user?: document as user default {"role": "guest"}
+  rule ok = user.role == "admin"
+  export decision of ok
+}
+policy p {
+  rule typo  = import decision ok from t/q with usr  as {"role": "admin"}
+  rule right = import decision ok from t/q with user as {"role": "admin"}
+  export decision of typo
+  export decision of right
+}
+`
+
+// TestValidateCmdRejectsUnknownImportWithFact is the reproduction from #151:
+// validate used to exit 0 on a typo'd with name.
+func (s *CmdTestSuite) TestValidateCmdRejectsUnknownImportWithFact() {
+	dir := s.writeTestPack(unknownWithFactPolicy)
+	err := runValidateCLI(s.T().Context(), []string{"t/p", "--pack-location", dir})
+	s.Require().Error(err)
+	s.Contains(err.Error(), `import binds unknown fact "usr"`)
+	s.Contains(err.Error(), "policy t/q declares facts: user")
+}
