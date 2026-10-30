@@ -28,6 +28,7 @@ The central dispatch of the tree-walking evaluator. Every expression in Sentrie 
 | `runtime.eval` | `CALLS` | [[runtime.eval_cast]] | `as` casts. |
 | `runtime.eval` | `CALLS` | [[runtime.eval_lambda]] | Lambda closure creation. |
 | `runtime.eval` | `CALLS` | [[runtime.eval_transform]] | `transform … with` expressions. |
+| `runtime.eval` | `CALLS` | [[runtime.eval_is]] | `is defined` and `is empty` predicates. |
 | `runtime.eval` | `CALLS` | [[runtime.imports]] | `ImportClause` nodes become cross-policy decision imports. |
 | [[runtime.executor]] | `CALLS` | [[runtime.eval]] | Fact defaults, `when`, `default`, body, and attachments all enter here. |
 

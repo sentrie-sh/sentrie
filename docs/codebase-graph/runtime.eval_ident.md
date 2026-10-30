@@ -30,7 +30,7 @@ Resolves a bare identifier through a fixed precedence chain - local, fact, let, 
   - **Behavior:** Resolves in strict order:
     1. **Local** - an already-evaluated value, including lambda and derive parameters.
     2. **Derive fact guard** - inside a derive, a name matching a policy fact is refused with a targeted message rather than falling through.
-    3. **Fact** - resolved at the root context. A declared optional fact the caller omitted, with no default, is never injected and resolves to `Undefined` instead of falling through, so `is defined` guards and field chains on it degrade like a missing field.
+    3. **Fact** - resolved at the root context. A declared optional fact the caller omitted, with no default, is never injected and resolves to `Undefined` instead of falling through, so [[runtime.eval_is]] guards and field chains on it degrade like a missing field.
     4. **Let** - pushed onto the recursion stack, evaluated, type-validated if annotated, then cached via `SetLocal`.
     5. **Rule** - outside a derive only; executes the rule and caches its **decision value**.
     6. **Derive** - boxed as a callable so it can be passed to higher-order builtins.

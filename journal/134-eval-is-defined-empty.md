@@ -15,3 +15,12 @@
 - Derive path: the fact guard above already refuses every fact name inside a derive, and the new branch is also gated on `ec.evalDerive == nil`, so the derive resolution rule stays explicit.
 - Side effect worth noting: any expression over an omitted optional fact now propagates `Undefined` (and a rule over it yields `Unknown`) instead of failing the request. No existing test relied on the error.
 - _Model: claude-opus-5-5_
+
+### 15:52 - Evaluate is defined and is empty
+- Added `runtime/eval_is.go` with `evalIsDefined` and `evalIsEmpty`, wired into the `eval` switch next to the other delegating cases.
+- Semantics as agreed: `is defined` is `!IsUndefined()`, so `null` is defined. `is empty` is true for `""`, `[]`, `{}`, `null` and `undefined`; every other value, scalars included, is `false` rather than an error. A host document wrapping an empty `map[string]any` or `[]any` is also empty, mirroring the host shapes field and index access already read through.
+- Negation needs nothing new: `parser/is.go` wraps the node in a `not` unary, so `is not ...` goes through `evalUnary`. That returns a Kleene `box.Trinary`, while the positive forms return `box.Bool`; decisions agree, and #135 is normalising boolean boxing separately, so I left the unary path alone.
+- Trace: one node per predicate with op `is` and `operator` meta `defined`/`empty`, the operand attached as its child, matching `evalUnary`/`evalInfix`.
+- Derive bodies: `index/derive_purity.go` and `derive_expr_walk.go` already walk both nodes, and the evaluators resolve nothing themselves, so no derive gate is involved. A minimal end-to-end test covers a derive with an omitted optional parameter.
+- Added a `runtime.eval_is` graph node and linked it from `runtime.eval`, `runtime.eval_ident` and the overview catalog.
+- _Model: claude-opus-5-5_
