@@ -32,7 +32,12 @@ The registry of predicates that refine a type beyond its kind - `string@email`, 
 - **Signature:** `ConstraintChecker = func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error`
   - **Behavior:** Returns nil when the value satisfies the constraint, an error describing the violation otherwise.
   - **Side Effects:** None - all checkers are pure.
-  - **Exceptions:** The violation error.
+  - **Exceptions:** The violation error. A failure caused by the constraint's own arguments (wrong count, wrong kind, an invalid regexp, a zero divisor) matches `ErrInvalidArgument` under `errors.Is`, with its message unchanged; a failure caused by the value does not.
+
+- **Signature:** `ErrInvalidArgument`
+  - **Behavior:** Sentinel that separates a broken constraint from a non-conforming value. [[runtime.err_typedef]] reads it so `x is T` ([[runtime.eval_is_type]]) propagates a broken constraint as an error instead of returning `false`.
+  - **Side Effects:** None.
+  - **Exceptions:** None.
 
 - **Signature:** `ConstraintDefinition` - `{Name, NumArgs, Checker}`
   - **Behavior:** `NumArgs` declares the expected argument count, though each checker also re-checks its own argument count defensively.
@@ -67,5 +72,7 @@ The registry of predicates that refine a type beyond its kind - `string@email`, 
   - **`list` has only `not_empty`.** There is no size, min-length, or unique constraint, so list contracts must be expressed as rule logic instead.
   - **Constraint names are not validated statically.** A typo like `string@emial` is indistinguishable from a constraint that has not been implemented yet - both surface only when a decision is requested. This is the single highest-value fix in the constraint pipeline.
   - **String length constraints count bytes, not runes.** `len(s)` on a Go string is its byte length, so a `length(5)` constraint rejects a five-character string containing any multi-byte character. For a policy engine handling international identifiers this is a correctness issue, not a nit.
+  - **New argument checks must use `invalidArgf`.** An argument failure built with plain `fmt.Errorf` reads as a value mismatch, so `x is not T` with that broken constraint would be `true`.
+  - **Constraint arguments are not checked statically.** Arguments are literals, but their kinds and regexps are only checked when the constraint runs; this belongs with the static constraint-name check of #113.
   - **`NumArgs` is declared but not enforced by the framework.** Each checker re-validates its own argument count, so the field is documentation that can silently disagree with the implementation.
   - **The `*index.Policy` parameter is unused by every checker.** It exists so a constraint could one day resolve policy-scoped context; today it is dead weight in the signature.

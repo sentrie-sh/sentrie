@@ -17,6 +17,8 @@ The error vocabulary for runtime type validation. It defines one public sentinel
 | :--- | :--- | :--- | :--- |
 | `runtime.err_typedef` | `DEPENDS_ON` | [[ast]] | Reads `ast.TypeRefConstraint` for the constraint name and span. |
 | `runtime.err_typedef` | `DEPENDS_ON` | [[tokens]] | Accepts a `tokens.Range` position argument. |
+| `runtime.err_typedef` | `DEPENDS_ON` | [[constraints]] | `constraints.ErrInvalidArgument` decides whether a constraint failure is a mismatch. |
+| [[runtime.eval_is_type]] | `READS_FROM` | [[runtime.err_typedef]] | `isTypeMismatch` turns a mismatch into `false`. |
 | [[runtime.typeref]] | `CALLS` | [[runtime.err_typedef]] | Every per-kind type checker raises these. |
 | [[runtime.executor]] | `READS_FROM` | [[runtime.err_typedef]] | Fact-type validation failures surface as these errors. |
 | [[runtime.callable]] | `READS_FROM` | [[runtime.err_typedef]] | Parameter and return-type failures wrap these. |
@@ -34,9 +36,14 @@ The error vocabulary for runtime type validation. It defines one public sentinel
   - **Exceptions:** Panics on a nil constraint - it dereferences `c.Name`.
 
 - **Signature:** `ErrConstraintFailed(pos tokens.Range, c *ast.TypeRefConstraint, err error) -> error`
-  - **Behavior:** Reports a constraint that rejected a value, joining any underlying cause so it remains inspectable.
+  - **Behavior:** Reports a constraint that rejected a value, joining any underlying cause so it remains inspectable. The result carries a `typeRefFailure` marker that is a mismatch unless the checker's error matches `constraints.ErrInvalidArgument` (a broken constraint, not a non-conforming value).
   - **Side Effects:** None.
   - **Exceptions:** Panics on a nil constraint.
+
+- **Signature:** `typeRefFailure` / `errMismatch(format, args...)` / `errCheckFailed(err)` / `isTypeMismatch(err) -> bool`
+  - **Behavior:** A wrapper that leaves the message unchanged and records whether a validation error means only that the value does not conform. `errMismatch` builds a mismatch, `errCheckFailed` marks a failure to complete the check (a constraint argument that failed to evaluate), and `isTypeMismatch` lets the outermost marker in the chain decide. Unmarked errors are not mismatches.
+  - **Side Effects:** None.
+  - **Exceptions:** None.
 
 - **Signature:** `IsUnknownConstraint(err) -> bool` / `IsConstraintFailed(err) -> bool`
   - **Behavior:** The intended discrimination API, wrapping `errors.Is` against the unexported sentinels.

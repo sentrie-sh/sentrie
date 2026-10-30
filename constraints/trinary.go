@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package constraints
 
@@ -52,11 +39,11 @@ var TrinaryConstraintCheckers map[string]ConstraintDefinition = map[string]Const
 				return fmt.Errorf("expected trinary, got %s", val.Kind())
 			}
 			if len(args) != 1 {
-				return fmt.Errorf("eq constraint requires 1 argument")
+				return invalidArgf("eq constraint requires 1 argument")
 			}
 			expected, oka := args[0].TrinaryValue()
 			if !oka {
-				return fmt.Errorf("eq constraint expects a boolean argument")
+				return invalidArgf("eq constraint expects a boolean argument")
 			}
 			if tv != expected {
 				return fmt.Errorf("value %v is not equal to %v", tv, expected)
@@ -73,11 +60,11 @@ var TrinaryConstraintCheckers map[string]ConstraintDefinition = map[string]Const
 				return fmt.Errorf("expected trinary, got %s", val.Kind())
 			}
 			if len(args) != 1 {
-				return fmt.Errorf("neq constraint requires 1 argument")
+				return invalidArgf("neq constraint requires 1 argument")
 			}
 			expected, oka := args[0].TrinaryValue()
 			if !oka {
-				return fmt.Errorf("neq constraint expects a boolean argument")
+				return invalidArgf("neq constraint expects a boolean argument")
 			}
 			if tv == expected {
 				return fmt.Errorf("value %v is equal to %v - expected not equal", tv, expected)

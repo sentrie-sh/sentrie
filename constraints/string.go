@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package constraints
 
@@ -39,11 +26,11 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
 			if len(args) != 1 {
-				return fmt.Errorf("length constraint requires 1 argument")
+				return invalidArgf("length constraint requires 1 argument")
 			}
 			expectedLen, okn := args[0].NumberValue()
 			if !okn {
-				return fmt.Errorf("expected number, got %s", args[0].Kind())
+				return invalidArgf("expected number, got %s", args[0].Kind())
 			}
 			if len(s) != int(expectedLen) {
 				return fmt.Errorf("string length %d is not equal to %g", len(s), expectedLen)
@@ -60,11 +47,11 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
 			if len(args) != 1 {
-				return fmt.Errorf("minlength constraint requires 1 argument")
+				return invalidArgf("minlength constraint requires 1 argument")
 			}
 			expectedLen, okn := args[0].NumberValue()
 			if !okn {
-				return fmt.Errorf("expected number, got %s", args[0].Kind())
+				return invalidArgf("expected number, got %s", args[0].Kind())
 			}
 			if len(s) < int(expectedLen) {
 				return fmt.Errorf("string length %d is not greater than or equal to %g", len(s), expectedLen)
@@ -81,11 +68,11 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
 			if len(args) != 1 {
-				return fmt.Errorf("maxlength constraint requires 1 argument")
+				return invalidArgf("maxlength constraint requires 1 argument")
 			}
 			expectedLen, okn := args[0].NumberValue()
 			if !okn {
-				return fmt.Errorf("expected number, got %s", args[0].Kind())
+				return invalidArgf("expected number, got %s", args[0].Kind())
 			}
 			if len(s) > int(expectedLen) {
 				return fmt.Errorf("string length %d is not less than or equal to %g", len(s), expectedLen)
@@ -102,15 +89,15 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
 			if len(args) != 1 {
-				return fmt.Errorf("regexp constraint requires 1 argument")
+				return invalidArgf("regexp constraint requires 1 argument")
 			}
 			pattern, okp := args[0].StringValue()
 			if !okp {
-				return fmt.Errorf("expected string, got %s", args[0].Kind())
+				return invalidArgf("expected string, got %s", args[0].Kind())
 			}
 			matched, err := regexp.MatchString(pattern, s)
 			if err != nil {
-				return fmt.Errorf("invalid regexp pattern: %v", err)
+				return invalidArgf("invalid regexp pattern: %v", err)
 			}
 			if !matched {
 				return fmt.Errorf("string %q does not match pattern %q", s, pattern)
@@ -127,11 +114,11 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
 			if len(args) != 1 {
-				return fmt.Errorf("starts_with constraint requires 1 argument")
+				return invalidArgf("starts_with constraint requires 1 argument")
 			}
 			prefix, okp := args[0].StringValue()
 			if !okp {
-				return fmt.Errorf("expected string, got %s", args[0].Kind())
+				return invalidArgf("expected string, got %s", args[0].Kind())
 			}
 			if !strings.HasPrefix(s, prefix) {
 				return fmt.Errorf("string %q does not start with %q", s, prefix)
@@ -148,11 +135,11 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
 			if len(args) != 1 {
-				return fmt.Errorf("ends_with constraint requires 1 argument")
+				return invalidArgf("ends_with constraint requires 1 argument")
 			}
 			suffix, okp := args[0].StringValue()
 			if !okp {
-				return fmt.Errorf("expected string, got %s", args[0].Kind())
+				return invalidArgf("expected string, got %s", args[0].Kind())
 			}
 			if !strings.HasSuffix(s, suffix) {
 				return fmt.Errorf("string %q does not end with %q", s, suffix)
@@ -169,11 +156,11 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
 			if len(args) != 1 {
-				return fmt.Errorf("has_substring constraint requires 1 argument")
+				return invalidArgf("has_substring constraint requires 1 argument")
 			}
 			substring, okp := args[0].StringValue()
 			if !okp {
-				return fmt.Errorf("expected string, got %s", args[0].Kind())
+				return invalidArgf("expected string, got %s", args[0].Kind())
 			}
 			if !strings.Contains(s, substring) {
 				return fmt.Errorf("string %q does not contain %q", s, substring)
@@ -190,11 +177,11 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
 			if len(args) != 1 {
-				return fmt.Errorf("not_has_substring constraint requires 1 argument")
+				return invalidArgf("not_has_substring constraint requires 1 argument")
 			}
 			substring, okp := args[0].StringValue()
 			if !okp {
-				return fmt.Errorf("expected string, got %s", args[0].Kind())
+				return invalidArgf("expected string, got %s", args[0].Kind())
 			}
 			if strings.Contains(s, substring) {
 				return fmt.Errorf("string %q contains %q", s, substring)
@@ -360,12 +347,12 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
 			if len(args) < 1 {
-				return fmt.Errorf("one_of constraint requires at least 1 argument")
+				return invalidArgf("one_of constraint requires at least 1 argument")
 			}
 			for _, arg := range args {
 				argString, oka := arg.StringValue()
 				if !oka {
-					return fmt.Errorf("expected string, got %s", arg.Kind())
+					return invalidArgf("expected string, got %s", arg.Kind())
 				}
 				if s == argString {
 					return nil
@@ -383,12 +370,12 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
 			if len(args) < 1 {
-				return fmt.Errorf("not_one_of constraint requires at least 1 argument")
+				return invalidArgf("not_one_of constraint requires at least 1 argument")
 			}
 			for _, arg := range args {
 				argString, oka := arg.StringValue()
 				if !oka {
-					return fmt.Errorf("expected string, got %s", arg.Kind())
+					return invalidArgf("expected string, got %s", arg.Kind())
 				}
 				if s == argString {
 					return fmt.Errorf("string %q is one of the allowed values", s)
