@@ -13,3 +13,8 @@
 - Left on purpose: the `.sentra` file names used as dummy `tokens.Range.File` values in lexer, ast, parser and runtime tests. They are inert strings, and #236 is rewriting position tests in the same files, so renaming them here would only manufacture conflicts. Worth a follow-up once #236 lands.
 - Checks: `go build ./...`, `go test ./api/ ./parser/ ./loader/`, `make docs-graph` pass.
 - _Model: claude-opus-5-5_
+
+### 15:47 - Correct the scope of what was left
+- Review pointed out the earlier entry undercounts the `.sentra` dummy file names: they are also in ten `index/` test files (`index/shape_test.go`, `index/policy_test.go` and others), not only lexer, ast, parser and runtime tests.
+- Still left on purpose: the `index/` tests are being extended on the in-flight #150 and #151 branches, and the lexer/ast/parser ones on #236. A mechanical rename across about 400 literals is best done as one change once those land; it needs its own tracking issue rather than a note here.
+- _Model: claude-opus-5-5_
