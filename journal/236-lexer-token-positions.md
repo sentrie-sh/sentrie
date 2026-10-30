@@ -30,3 +30,13 @@
 - `tokens`: `Range.String` contract now states the base, the exclusive end and the start-only cases; the risk note says `Column: 0` is not a lexer position.
 - No `parser` node described the old position semantics or listed #236 as a known defect; `parser.use` was updated with the `tokenEnd` removal. `make docs-graph` passes.
 - _Model: claude-opus-5-5_
+
+### 15:55 - Statement span and diagnostic position tests
+- Added `parser/span_test.go` to the parser suite. `TestStatementSpanEndsAtLastToken` covers namespace, shape (block and alias), export shape, export derive, title, description, version, tag, fact (plain, optional, default), let (scalar, typed, list, dict), rule, export decision (plain and with attach) and use, each on line 2 after two spaces, followed by a newline, CRLF, a space, a semicolon, a same-line token, a trailing comment and EOF; it asserts the full From and To and that the offsets slice out exactly the statement text.
+- `TestStatementSpanCountsColumnsInRunesAndOffsetsInBytes` pins column-vs-byte with 2-, 3- and 4-byte runes. `TestProgramStatementSpans` parses one program with LF and again with CRLF and checks every statement's line and column, the sliced offsets and the printed multi-line range (shape, list `let`, policy). `TestStatementSpansAroundHeredoc` covers the heredoc terminator newline and a heredoc at EOF. `TestParseErrorsPrintOneBasedPositions` pins printed error positions on line 1 and later lines, for parse and lexer errors, and the multi-line form.
+- Shown to bite: reverting `lexer/lexer.go` to main fails all six tests, reverting `tokens/position.go` fails the multi-line, program, heredoc and diagnostic tests, and restoring only the heredoc newline consumption fails the heredoc test.
+- Ruled out: asserting the end of a statement whose last expression is a block (`rule ... { yield true }`, `let x = { yield 1 }`, `derive d = ... { yield n }`, `attach a as { yield 1 }`). They end at the start of the closing `}` (parser/block.go, left alone), so the multi-line rule test pins only the end line. List and dict literals end past `]`/`}` correctly.
+- Ruled out: trailing-comment suffix for statements that end in an expression; the expression wraps the comment and the statement spans it, which is intended.
+- Observed, not changed: a heredoc whose terminator line has trailing whitespace or a CR (CRLF files) never terminates, because the terminator must equal the tag exactly. This predates the branch.
+- _Model: claude-sonnet-5-5_
+
