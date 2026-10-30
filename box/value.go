@@ -491,12 +491,18 @@ func toBoundaryAnyLossy(v Value) any {
 }
 
 // FromBoundaryAny converts runtime boundary values back into boxed Value while
-// preserving undefined/null distinction.
+// preserving undefined/null distinction. A Value is returned as is. The case is
+// explicit for clarity, not a behaviour change (FromAny already returns a
+// Value): an in-process caller that hands over a boxed value, such as a `with`
+// binding, keeps a DecisionEnvelope tag. JSON and JS input is never a Value, so
+// it can never produce a DecisionEnvelope.
 func FromBoundaryAny(x any) Value {
 	if _, ok := x.(undefinedBoundaryToken); ok {
 		return Undefined()
 	}
 	switch t := x.(type) {
+	case Value:
+		return t
 	case []any:
 		out := make([]Value, 0, len(t))
 		for _, item := range t {

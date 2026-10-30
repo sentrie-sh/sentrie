@@ -61,3 +61,16 @@ func (s *BoxTestSuite) TestEqualValues_decisionEnvelopeComparesState() {
 	s.False(EqualValues(u, Bool(false)))
 	s.False(EqualValues(Dict(map[string]Value{"state": Bool(false)}), Bool(false)))
 }
+
+func (s *BoxTestSuite) TestFromBoundaryAny_keepsAValueAndNeverTagsBoundaryData() {
+	env := DecisionEnvelope(map[string]Value{"state": Trinary(trinary.False)}, trinary.False)
+	state, ok := FromBoundaryAny(env).DecisionState()
+	s.True(ok)
+	s.Equal(trinary.False, state)
+
+	// what JSON or a JS call hands over is plain data and decodes untagged
+	_, ok = FromBoundaryAny(ToBoundaryAny(env)).DecisionState()
+	s.False(ok)
+	_, ok = FromBoundaryAny(map[string]any{"state": false, "value": false}).DecisionState()
+	s.False(ok)
+}

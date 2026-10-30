@@ -71,14 +71,17 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 		}
 	}
 
+	// The boundary conversion only rejects callables. The boxed value itself is
+	// injected, so an imported decision envelope bound by `with`, at any depth,
+	// keeps its state tag in the target policy instead of arriving as a plain,
+	// truthy dict (#136). ExecRule's FromBoundaryAny passes a box.Value through.
 	injectedFacts := make(map[string]any, len(facts))
 	for name, factValue := range facts {
-		b, err := box.TryToBoundaryAny(factValue)
-		if err != nil {
+		if _, err := box.TryToBoundaryAny(factValue); err != nil {
 			err = fmt.Errorf("import with fact %q: %w", name, err)
 			return box.Null(), n.SetErr(err), err
 		}
-		injectedFacts[name] = b
+		injectedFacts[name] = factValue
 	}
 
 	output, err := exec.ExecRule(ctx, ns, pol, rule, injectedFacts)

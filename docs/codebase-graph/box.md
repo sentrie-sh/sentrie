@@ -53,7 +53,7 @@ tags: value-model, type-system, boundary-marshalling, runtime-data
   - **Exceptions:** `TryToBoundaryAny` returns `ErrCallableBoundary` if a callable appears anywhere in the tree; `ToBoundaryAny` instead degrades lossily to the string `"<callable>"`.
 
 - **Signature:** `FromBoundaryAny(x: any) -> Value`
-  - **Behavior:** Inverse of the above; reconstructs boxed values from boundary representations, restoring `undefined` from its sentinel.
+  - **Behavior:** Inverse of the above; reconstructs boxed values from boundary representations, restoring `undefined` from its sentinel. A `Value` is returned as is (an explicit case; `FromAny` always did this), so an in-process caller (a `with` binding) keeps a `DecisionEnvelope` tag; JSON and JS data is never a `Value`, so it can never decode tagged.
   - **Side Effects:** Allocates a boxed tree.
   - **Exceptions:** None - unrecognized types are wrapped as `Document`.
 
@@ -70,7 +70,7 @@ tags: value-model, type-system, boundary-marshalling, runtime-data
 - **Signature:** `DecisionEnvelope(m: map[string]Value, state: trinary.Value) -> Value` / `(Value).DecisionState() -> (trinary.Value, bool)`
   - **Behavior:** Boxes an imported decision's envelope as an ordinary `ValueDict` whose otherwise unused `u64` slot carries a tag and the state (#136). It indexes, iterates and serializes as a plain dict; only `TrinaryFrom` and `EqualValues` read the tag. `Dict` never sets `u64`, so a user dict with a `state` key cannot be mistaken for an envelope. An out-of-range state is stored as `Unknown`.
   - **Side Effects:** None; no extra allocation.
-  - **Exceptions:** None. The tag is per `Value`: a dict rebuilt from the entries, or one that crosses `TryToBoundaryAny`, is untagged.
+  - **Exceptions:** None. The tag is per `Value`: a dict rebuilt from the entries, or one that crosses `TryToBoundaryAny`, is untagged; `FromBoundaryAny` of a `Value` keeps it.
 
 - **Signature:** Constructors - `Undefined()`, `Null()`, `Bool[T ~bool]`, `Number[numeric]`, `String[T ~string]`, `Trinary`, `List`, `Dict`, `Document[T any]`, `Callable`, `FromAny`
   - **Behavior:** Kind-specific boxing. `Object`/`ObjectRef`/`SameObjectRef` are retained backward-compatible aliases for the `Document` family.
