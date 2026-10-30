@@ -27,7 +27,7 @@ Implements `import decision <rule> from <ns/policy> with <fact> as <expr>`: it r
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `ImportDecision(ctx, exec, ec, p, t *ast.ImportClause) -> (box.Value, *trace.Node, error)`
-  - **Behavior:** Requires a fully qualified `namespace/policy` source. Every `with` name must be a key of the **target** policy's `Facts`; an unknown name fails the import (it is never skipped), listing the facts the target declares. [[index.import_withs]] rejects the same names at index time. Marshals each value through the boundary codec, then calls `ExecRule` on the target and wraps the output.
+  - **Behavior:** Requires a fully qualified `namespace/policy` source. Every `with` name must be a key of the **target** policy's `Facts`; an unknown name fails the import (it is never skipped), listing the fact aliases the target accepts. [[index.import_withs]] rejects the same names at index time. Marshals each value through the boundary codec, then calls `ExecRule` on the target and wraps the output.
   - **Side Effects:** A complete nested rule execution, including the callee's own JS module binding and fact validation.
   - **Exceptions:** `import from must specify namespace/policy`; an unknown `with` name (`import binds unknown fact "x": policy ns/p accepts fact aliases: ...`, an `xerr.ImportUnknownFactError` wrapping `ErrIndex`, positioned at the `with` clause); policy resolution and export-verification failures; `with` evaluation errors; `import with fact %q: …` marshalling errors; anything the nested `ExecRule` raises.
 

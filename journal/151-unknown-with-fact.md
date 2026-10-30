@@ -33,3 +33,8 @@
 - Third copy of the ns/policy split: extracted `importTarget` in index/validate.go, used by `detectRuleCycle` and `checkImportWiths`. Did not fold the check into `detectRuleCycle`: it returns a graph plus the first failure and stops at a cycle, while the with check collects every miss. Left the runtime copy alone to stay clear of #136.
 - Runtime fallback now returns `ImportUnknownFactError` (wraps `ErrIndex`, carries the with clause's span) instead of `ErrInvalidInvocation`, so the API does not map a pack-authoring error to 400. Runtime test asserts `ErrIndex`.
 - _Model: claude-sonnet-5-5_
+
+### 15:54 - Review approved
+- Round-2 review approved. Took its one remaining suggestion: the runtime.imports graph node now says the error lists the fact aliases the target accepts, matching the message and the Exceptions line.
+- Left as is, per the review: when two facts share a declared name under different aliases, the hint appears once per alias.
+- _Model: claude-opus-5-5_
