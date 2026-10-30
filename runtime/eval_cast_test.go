@@ -243,9 +243,9 @@ func (s *RuntimeTestSuite) TestEvalCastNumberFromBool() {
 		ast.NewNumberTypeRef(stubRange()),
 		stubRange(),
 	)
-	_, node, err := evalCast(ctx, ec, exec, p, castExpr)
-	s.Require().Error(err)
-	s.Require().Contains(err.Error(), "cannot cast")
+	got, node, err := evalCast(ctx, ec, exec, p, castExpr)
+	s.Require().NoError(err)
+	s.Require().Equal(box.Number(0), got)
 	s.Require().NotNil(node)
 }
 

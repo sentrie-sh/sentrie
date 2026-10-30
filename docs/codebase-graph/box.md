@@ -28,7 +28,7 @@ tags: value-model, type-system, boundary-marshalling, runtime-data
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `EqualValues(a: Value, b: Value) -> bool`
-  - **Behavior:** Semantic equality including cross-kind numeric comparison. Backs the `==` / `!=` infix operators.
+  - **Behavior:** Semantic equality including cross-kind numeric comparison. Backs the `==` / `!=` infix operators. Any other kind mismatch is unequal, which is safe for booleans only because a known truth value always has the single kind `ValueBool` (see `Trinary` below).
   - **Side Effects:** None.
   - **Exceptions:** None - incomparable kinds return `false` rather than erroring.
 
@@ -68,11 +68,11 @@ tags: value-model, type-system, boundary-marshalling, runtime-data
   - **Exceptions:** None.
 
 - **Signature:** Constructors - `Undefined()`, `Null()`, `Bool[T ~bool]`, `Number[numeric]`, `String[T ~string]`, `Trinary`, `List`, `Dict`, `Document[T any]`, `Callable`, `FromAny`
-  - **Behavior:** Kind-specific boxing. `Object`/`ObjectRef`/`SameObjectRef` are retained backward-compatible aliases for the `Document` family.
+  - **Behavior:** Kind-specific boxing. `Trinary` normalises: `trinary.True`/`trinary.False` box as `ValueBool`, and only `trinary.Unknown` (or an out-of-range value, which `trinary` already reads as unknown) boxes as `ValueTrinary` ([#135](https://github.com/sentrie-sh/sentrie/issues/135)). So literals, logical operators, comparisons, facts and JS returns all yield the same boolean. `FromAny(trinary.Value)` goes through `Trinary` too. `Object`/`ObjectRef`/`SameObjectRef` are retained backward-compatible aliases for the `Document` family.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless package; `Value` is an immutable-by-convention struct passed by copy.
 - **Performance/Scale Notes:** `Value` is deliberately a compact three-field union (`kind`, `u64`, `ref any`) - scalars (bool, number, trinary) are stored inline in `u64` with **zero heap allocation**, while only strings, lists, dicts, documents, and callables touch `ref`. Prefer `TrinaryFrom` over `trinary.From(v.Any())` and prefer typed accessors over `Any()`, since `Any()` deep-copies list/dict trees. `MatchesValue` recompiles its regexp per invocation, so regex-heavy policies pay repeated compilation cost.
-- **Dependencies Risk:** No external failure domain. The principal hazards are semantic: (1) `Value` copies share the underlying `ref` slice/map, so mutating a list or dict obtained from `ListValue`/`DictValue` **aliases into every copy** - treat them as read-only; (2) `ToBoundaryAny` silently degrades callables to a placeholder string, so any path that must reject callables at a boundary has to use `TryToBoundaryAny` and honour `ErrCallableBoundary`; (3) `MarshalJSON` renders `undefined` as JSON `null`, erasing the undefined/null distinction at the serialization edge - consumers of [[api]] output cannot recover it.
+- **Dependencies Risk:** No external failure domain. The principal hazards are semantic: (1) `Value` copies share the underlying `ref` slice/map, so mutating a list or dict obtained from `ListValue`/`DictValue` **aliases into every copy** - treat them as read-only; (2) `ToBoundaryAny` silently degrades callables to a placeholder string, so any path that must reject callables at a boundary has to use `TryToBoundaryAny` and honour `ErrCallableBoundary`; (3) `MarshalJSON` renders `undefined` as JSON `null`, erasing the undefined/null distinction at the serialization edge - consumers of [[api]] output cannot recover it; (4) a `ValueTrinary` only ever holds `Unknown`, so code that switches on `ValueTrinary` to find a known boolean finds nothing - read truth values with `TrinaryValue()`, which accepts both kinds, and marshal `Unknown` as the JSON string `"unknown"`.

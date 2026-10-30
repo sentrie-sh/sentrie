@@ -16,7 +16,7 @@ tags: kleene-logic, three-valued-logic, policy-semantics, decision-model
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `trinary` | `LAYERED_ON` | [[tokens]] | `FromToken` reads `tokens.Instance` to map `true`/`false`/`unknown` keyword tokens into `Value`. |
-| [[box]] | `LAYERED_ON` | [[trinary]] | `box.Trinary` boxes a `trinary.Value`; `box.TrinaryFrom` derives the Kleene outcome of any boxed value. |
+| [[box]] | `LAYERED_ON` | [[trinary]] | `box.Trinary` boxes a `trinary.Value` (a known value as a bool, `Unknown` as a trinary); `box.TrinaryFrom` derives the Kleene outcome of any boxed value. |
 | [[ast]] | `LAYERED_ON` | [[trinary]] | Trinary literal AST nodes carry a resolved `trinary.Value`. |
 | [[parser]] | `LAYERED_ON` | [[trinary]] | Parses trinary literal tokens into typed values at parse time. |
 | [[runtime]] | `LAYERED_ON` | [[trinary]] | Boolean infix evaluation, `yield` semantics, and decision resolution delegate to `And`/`Or`/`Not`. |

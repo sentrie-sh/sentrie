@@ -5,3 +5,22 @@
 - Picked up with #236, #237, #134, #135, #136, #150, #151 and #117 in one batch; one pickup push and a draft PR per branch before implementation.
 - Decisions agreed with the maintainer before pickup: #134 treats `null` as defined and `null`/`undefined` as empty; #135 normalises known booleans to `ValueBool`; #136 keeps the envelope and reads its `state`; #150 implements the shape check.
 - _Model: claude-opus-5-5_
+
+### 15:52 - Box known truth values as bool
+- Normalised in one place: `box.Trinary` now returns `Bool(true)`/`Bool(false)` for `trinary.True`/`trinary.False` and a `ValueTrinary` only for `Unknown` (an out-of-range `trinary.Value` boxes as `Unknown`, matching how `trinary` already reads it). Every producer goes through it: literals (`runtime/eval.go`), `and`/`or`/`xor` (`eval_infix.go`), `not`/`!` (`eval_unary.go`), `as trinary` casts, `FromAny(trinary.Value)`, and the imported decision envelope's `state`. Comparisons, facts and JS returns already boxed `ValueBool`, so `box.EqualValues` and `ContainsValue` needed no change.
+- Chose constructor normalisation over patching each producer so no future caller can build a known `ValueTrinary`. Ruled out issue option 2 (kind-aware equality) as agreed.
+- `Value.TrinaryValue()` now accepts `ValueBool` too (True/False) and `ValueTrinary` (Unknown). Consumers that read truth values through it (the five trinary constraints, `DecisionOf`, `validateAgainstTrinaryTypeRef`) keep working when a known value is a bool; `validateAgainstTrinaryTypeRef` dropped its separate `BoolValue` branch. Truthiness consumers (ternary, `when`, `all`/`any`/`filter`, decisions) already used `TrinaryFrom`, which handles both kinds.
+- Audited `builtins/collection.go` `distinct` keying: the `tri:` key now only ever sees `Unknown`, and `true` from a literal and from a comparison share the `bool:` key, which is the fix.
+- Static kinds (`index/builtin_kind.go`): a `true`/`false` literal now resolves to `ValueBool` and `unknown` to `ValueTrinary`, mirroring the runtime. A `trinary`-typed value keeps static kind `ValueTrinary`, now meaning "bool or unknown"; `kindAllowed` admits it only where both kinds are allowed. No builtin parameter lists either kind today, so diagnostics are unchanged.
+- JSON shape: a decision whose rule body is a logical operator or a `true`/`false` literal now has `"value": true|false` (JSON boolean) instead of the string `"true"`/`"false"`. `state` keeps its string enum `"true"`/`"false"`/`"unknown"`. An `unknown` value still marshals as the string `"unknown"`. Inside policies, an imported decision's `state` is now a bool for a known state, so `d.state == true` holds; #136 decides how the envelope itself reads as a truth value.
+- Behaviour change worth review: `true as number` / `(not false) as number` now give `1`/`0` through the existing bool branch; before, a literal or logical result errored with "cannot cast trinary to number". `unknown as number` still errors.
+- Existing tests changed because they encoded the old split:
+  - `box/box_internal_test.go`: `Bool(true).TrinaryValue()` used to report not-ok; the wrong-kind probe is now `Number(1)`. Added `TestTrinaryBoxesKnownTruthAsBool`.
+  - `index/builtin_kind_internal_test.go`: a `true` literal resolves to `ValueBool`; added `unknown` and `kindAllowed` cases.
+  - `runtime/eval_unary_test.go`, `eval_infix_test.go` (xor), `eval_chain_test.go` (unary dispatch), `eval_branches_test.go` (`not true`): expected `trinary.True/False` from `.Any()`, now a Go bool / `box.Bool`.
+  - `runtime/eval_cast_test.go` `TestEvalCastNumberFromBool` and `eval_branches_test.go`: expected `false as number` and `(!false) as number` to error; they now yield `0`/`1`, and the error is asserted for `unknown as number` instead.
+  - `runtime/imports_test.go`, `eval_chain_gap_wave2_test.go`: envelope `state` is now `box.Bool`.
+  - `runtime/value_test.go`: `FromAny(trinary.True)` is `ValueBool`; `Trinary(False).Any()` is `false`; added the `Unknown` cases.
+- Verified the issue repro with the CLI: rules `a`, `b`, `c`, `not false` and `(true and true) == (1 == 1)` all decide `true` with `"value": true`.
+- Rewrote legacy license headers on touched files.
+- _Model: claude-opus-5-5_
