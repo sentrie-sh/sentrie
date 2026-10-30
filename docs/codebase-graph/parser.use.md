@@ -19,7 +19,6 @@ Parses `use { f, g } from ("./mod.js" | @pkg/mod) [as alias]` - the bridge betwe
 | `parser.use` | `CALLS` | [[ast]] | Emits `ast.NewUseStatement(modules, relativeFrom, libFrom, alias, span)`. |
 | `parser.use` | `CALLS` | [[tokens]] | `IsKeyword` decides whether an `@` path segment is a keyword token, and whether a default alias would be one. |
 | `parser.use` | `IMPORTS` | `std.strings` | Splits a relative path on `/` to derive the default alias. |
-| `parser.use` | `IMPORTS` | `std.unicode/utf8` | Counts multi-byte runes when rebuilding the end of the statement's last token. |
 | [[parser.policy]] | `CALLS` | [[parser.use]] | Registered for `tokens.KeywordUse` in the policy-scope table - `use` is policy-scoped, not namespace-scoped. |
 | [[runtime.js]] | `DEPENDS_ON` | [[parser.use]] | Resolves and loads the named module, exposing the listed exports under the alias. |
 | [[pack]] | `READS_FROM` | [[parser.use]] | Permission grants bound what a resolved module may access. |
@@ -42,5 +41,5 @@ Parses `use { f, g } from ("./mod.js" | @pkg/mod) [as alias]` - the bridge betwe
   - **Alias derivation assumes a path shape.** For a relative source the alias is the substring after the last `/`, including any file extension - `from "./util.js"` defaults the alias to `util.js`, not `util`. Explicit `as` is advisable for file-path imports.
   - **Keywords are names only inside the `@` path.** `advanceModulePathSegment` accepts a keyword token there and nowhere else; the import list and the `as` alias still require `Ident`. A keyword as the last segment cannot become the default alias, because call sites (`string.lower(x)`) would lex it as the keyword, so the parser demands an explicit `as` instead.
   - **`/` inside `@pkg/mod` reuses the division token**, the same overload noted in [[parser.fqn]].
-  - **The span end is rebuilt, not taken from the lexer.** A token's lexer end is the position of the rune after it, which before a newline is column 0 of the next line and at EOF is one column short ([[lexer]] `currentPosition`). `tokenEnd` rebuilds the end from the token's start and source width. Other statement parsers still take the lexer's end and share the defect.
+  - **The span end is the last token's lexer end.** Since #236 the [[lexer]] ends a token just past its last rune on that rune's line, so the span is taken from the token directly. #216's `tokenEnd`, which rebuilt the end from the token's start and width, became a no-op and was removed.
   - **Nothing is resolved here.** Whether the module exists, exports the named symbols, or is permitted by the pack's [[pack]] permissions is determined at runtime.

@@ -17,3 +17,10 @@
 - Checked every statement kind in a sandbox program: namespace, shape, export shape, title, description, version, tag, fact, let, rule and export decision all end just past their last token at end of line.
 - Left alone: `parser/block.go` ends a block expression at the start of its `}` rather than past it. It is not a statement span and is outside this issue.
 - _Model: claude-opus-5-5_
+
+### 15:49 - Remove the tokenEnd workaround from use
+- `tokenEnd` (#216) rebuilt a token's end as its start column plus its source width in runes, keeping the lexer's end for a value containing a newline. With the lexer fixed, the lexer's end is the start column plus the source rune count, on the start line, for every single-line token. `tokenEnd`'s rune count is the byte width less the value's multi-byte extras; string escapes only drop ASCII backslashes, so the source and value carry the same multi-byte extras and the two are equal. For a heredoc it already returned the lexer's end. So it was provably a no-op and is removed, with its `unicode/utf8` import; spans take `Range.To` directly.
+- The quoted-`@` path error now passes the string token's `Range` as is.
+- `parser/use_test.go` span tests pass unchanged after removal, which confirms the no-op.
+- Updated the `parser.use` graph node: dropped the `unicode/utf8` edge and replaced the rebuilt-end gotcha.
+- _Model: claude-opus-5-5_
