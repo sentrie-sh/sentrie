@@ -46,10 +46,10 @@ The foreign-function boundary between Sentrie and embedded JavaScript. A `jsModu
   - **Side Effects:** Executes the module body and the export in a VM nobody else sees; frees its slot on return.
   - **Exceptions:** `module has no JS binding`; slot wait or module load failure; `function %s not found in module %q`; `export '%q' is not callable`; `unexpected return type %s`; any JS exception or interrupt.
 
-- **Signature:** `normalizeBoundaryForJS(v any) -> any`
-  - **Behavior:** Recursively rewrites Sentrie's boundary-undefined marker into `goja.Undefined()` through lists and maps, so JS sees a genuine `undefined` rather than a sentinel object.
+- **Signature:** `normalizeBoundaryForJS(v any) -> (any, error)`
+  - **Behavior:** Recursively rewrites Sentrie's boundary-undefined marker into `goja.Undefined()` through lists and maps, so JS sees a genuine `undefined` rather than a sentinel object. Truth values are explicit: a boolean crosses as a JavaScript `boolean`, `trinary.Unknown` crosses as `undefined`, and an out-of-range `trinary.Value` is an error rather than a wrapped Go object (which JS would read as a truthy `object`, [#135](https://github.com/sentrie-sh/sentrie/issues/135)). Null, numbers and strings pass through; a host document keeps goja's reflection wrapping.
   - **Side Effects:** None; builds new containers.
-  - **Exceptions:** None.
+  - **Exceptions:** `trinary value %d cannot cross into JavaScript`, which `Call` returns before invoking the export.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Isolated per call ([#105](https://github.com/sentrie-sh/sentrie/issues/105)). Each call loads the module into a VM no other call has touched, so module-level state (counters, memo tables, `let` bindings) lives for exactly that call - including between two calls in one rule body and between concurrent rules under `ExecPolicy`.

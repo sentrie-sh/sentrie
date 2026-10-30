@@ -24,3 +24,11 @@
 - Verified the issue repro with the CLI: rules `a`, `b`, `c`, `not false` and `(true and true) == (1 == 1)` all decide `true` with `"value": true`.
 - Rewrote legacy license headers on touched files.
 - _Model: claude-opus-5-5_
+
+### 15:58 - Pass truth values into JavaScript as primitives
+- `normalizeBoundaryForJS` (`runtime/modules.go`) now enumerates what it converts and returns an error instead of falling through for truth values: `bool` crosses as a JavaScript `boolean`, `trinary.Unknown` as `undefined`, `trinary.True`/`False` (unreachable after the boxing change, handled so the boundary stays total) as `boolean`, and an out-of-range `trinary.Value` fails the call with `trinary value %d cannot cross into JavaScript`. Before, a trinary crossed as a goja-wrapped Go int, which JavaScript saw as a truthy `object`.
+- Null, numbers and strings pass through; a host document still gets goja's reflection wrapping, unchanged and out of scope here.
+- The return direction needed no change: a JS `boolean` already comes back as `box.Bool`, and JS `undefined` comes back as Sentrie `undefined`, not `unknown`.
+- CLI check against a TypeScript module: `kind(false)` is `"boolean:false"`, `kind(unknown)` is `"undefined:undefined"`, `add(true, false)` is `1`.
+- Added one minimal unit test for the mapping and the error; the cross-producer matrix and JS boundary tests are the test agent's.
+- _Model: claude-opus-5-5_

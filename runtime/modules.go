@@ -14,6 +14,7 @@ import (
 	"github.com/dop251/goja"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/runtime/js"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 // JSInstance is one loaded copy of a module, in its own VM.
@@ -196,25 +197,51 @@ func (m ModuleBinding) lookupExport(instance *JSInstance, name string) (goja.Val
 	return v, v != nil
 }
 
-func normalizeBoundaryForJS(v any) any {
+// normalizeBoundaryForJS maps a value produced by box.TryToBoundaryAny to the Go
+// value goja should convert for a JavaScript argument. Booleans cross as real
+// JavaScript booleans and trinary.Unknown crosses as undefined, so JavaScript
+// never sees a wrapped trinary object whose truthiness disagrees with Sentrie.
+func normalizeBoundaryForJS(v any) (any, error) {
 	if box.IsBoundaryUndefined(v) {
-		return goja.Undefined()
+		return goja.Undefined(), nil
 	}
 	switch t := v.(type) {
+	case nil, bool, float64, string:
+		return t, nil
+	case trinary.Value:
+		switch t {
+		case trinary.True:
+			return true, nil
+		case trinary.False:
+			return false, nil
+		case trinary.Unknown:
+			return goja.Undefined(), nil
+		default:
+			return nil, fmt.Errorf("trinary value %d cannot cross into JavaScript", int(t))
+		}
 	case []any:
 		out := make([]any, 0, len(t))
 		for _, item := range t {
-			out = append(out, normalizeBoundaryForJS(item))
+			x, err := normalizeBoundaryForJS(item)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, x)
 		}
-		return out
+		return out, nil
 	case map[string]any:
 		out := make(map[string]any, len(t))
 		for k, item := range t {
-			out[k] = normalizeBoundaryForJS(item)
+			x, err := normalizeBoundaryForJS(item)
+			if err != nil {
+				return nil, err
+			}
+			out[k] = x
 		}
-		return out
+		return out, nil
 	default:
-		return v
+		// A host document (box.ValueDocument) keeps goja's reflection wrapping.
+		return t, nil
 	}
 }
 
@@ -250,7 +277,11 @@ func (m ModuleBinding) Call(ctx context.Context, ec *ExecutionContext, fn string
 
 	ga := make([]goja.Value, 0, len(args))
 	for _, a := range args {
-		ga = append(ga, instance.rt.ToValue(normalizeBoundaryForJS(a)))
+		x, err := normalizeBoundaryForJS(a)
+		if err != nil {
+			return nil, err
+		}
+		ga = append(ga, instance.rt.ToValue(x))
 	}
 	out, err := fnc(goja.Undefined(), ga...)
 	if err != nil {
