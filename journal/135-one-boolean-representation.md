@@ -32,3 +32,13 @@
 - CLI check against a TypeScript module: `kind(false)` is `"boolean:false"`, `kind(unknown)` is `"undefined:undefined"`, `add(true, false)` is `1`.
 - Added one minimal unit test for the mapping and the error; the cross-producer matrix and JS boundary tests are the test agent's.
 - _Model: claude-opus-5-5_
+
+### 15:56 - Cross-producer boolean matrix and JS and JSON boundary tests
+- Added `runtime/bool_representation_test.go` on `RuntimeTestSuite`, three tests that run real policies through `newTempPackExecutor` with a local TypeScript module:
+  - Matrix: nine producers (literal, comparison, document fact, `trinary` fact, JS return, `not`, `and`, derive return typed `trinary`, `as trinary` cast), every ordered pair, under `==`, `in [x, 99]` and `[x, 99] contains y`. Each rule yields the four yes/no combinations and the test checks `[true, false, false, true]`; the failure message names the operator and the two producers.
+  - JS boundary: `typeof` is `"boolean"` for true and false from every producer, `a ? 1 : 0` is 1/0, unknown from a literal, `not unknown` and `true and unknown` arrives as `undefined` (and picks 0), and a list or dict holding truth values converts recursively.
+  - JSON: `json.Marshal` of `ExecPolicy` outputs (the encoder `exec --output json` and the serve API use): `value` is a JSON boolean for `not false`, `not true`, a comparison, a literal and `and`; `state` keeps `"true"`/`"false"`/`"unknown"`; `unknown` keeps the string value.
+- Proved they bite: with `box/value.go` from main all three fail (JSON `value` strings, matrix mismatches, JS `object`); with `normalizeBoundaryForJS` returning a trinary unchanged, the JS test fails on the `unknown` cases. Restored both afterwards.
+- Ruled out: imports (#136), a standalone `true as number` test (already covered by the changed `eval_cast_test.go`), and per-pair subtests (768 rules; one test with named messages is faster and still pinpoints the pair).
+- Syntax notes for future tests: facts must precede `use`, and a dict literal needs quoted keys.
+- _Model: claude-sonnet-5-5_
