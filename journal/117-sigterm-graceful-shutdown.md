@@ -28,3 +28,10 @@
 - Fix: `StopServer` only reads the slice. A second call stays harmless because `Shutdown` is idempotent and `ErrClosed` is filtered. Added `TestStopServerDoesNotRaceWithStartServer` (Setup, `go StartServer`, immediate StopServer twice); it reported DATA RACE under `-race` before the fix and passes after.
 - Docs: `api.http.md` no longer says StopServer nils the slice; the StartServer bullet now says the deferred `wg.Wait()` blocks (it returns after every `Serve`) while the unread `errChan` still loses serve errors; the BaseContext bullet notes that with `--eval-timeout 0` and no ceiling only the grace-period `Close` ends a request.
 - _Model: claude-sonnet-5-5_
+
+### 16:24 - Make the process tests deterministic
+- Review found a flake in `openPartialDecision`: `net.Dial` returns once the kernel finishes the handshake, before the child accepts, and nothing waited for the handler to start before SIGTERM. If `Shutdown` closed the listener first, the queued connection was reset, failing the in-flight test and turning the second-signal test into a clean exit 0.
+- The request now carries `Expect: 100-continue` and no body. Go writes `100 Continue` when the handler first reads the body, so reading it proves the request is in flight; only then is SIGTERM sent and the body written.
+- The binary is built once per test process (`sync.Once`, own temp dir removed and the Once reset in `TearDownSuite`, so `-count=N` rebuilds), not once per test. Resetting matters: the first version removed the dir and a second suite run in the same process found no binary.
+- Checked: `go test -race ./cmd/... -count=5` passes, lint clean, old `main.go` still fails the in-flight test.
+- _Model: claude-sonnet-5-5_
