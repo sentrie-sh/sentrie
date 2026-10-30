@@ -24,3 +24,9 @@
 - `parser/use_test.go` span tests pass unchanged after removal, which confirms the no-op.
 - Updated the `parser.use` graph node: dropped the `unicode/utf8` edge and replaced the rebuilt-end gotcha.
 - _Model: claude-opus-5-5_
+
+### 15:50 - Update the lexer and tokens graph nodes
+- `lexer`: new position-model gotcha (1-based lines and columns, exclusive end on the last rune's line) and the heredoc terminator newline note.
+- `tokens`: `Range.String` contract now states the base, the exclusive end and the start-only cases; the risk note says `Column: 0` is not a lexer position.
+- No `parser` node described the old position semantics or listed #236 as a known defect; `parser.use` was updated with the `tokenEnd` removal. `make docs-graph` passes.
+- _Model: claude-opus-5-5_
