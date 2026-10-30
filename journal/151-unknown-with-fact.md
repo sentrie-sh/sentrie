@@ -15,3 +15,12 @@
 - Seen, not fixed: the with-clause span ends at column 0 when the expression is a map literal (the literal's end position), so the reported range reads like 9:44-9:0. The start is right.
 - Kept the edit in runtime/imports.go confined to the with loop (plus the header and the xerr import) to limit conflicts with #136.
 - _Model: claude-sonnet-5-5_
+
+### 15:51 - Regression tests for #151
+- index (index/import_withs_test.go): the issue repro (typo'd `usr` rejected, valid `user` on the same target accepted), error type via errors.Is(ErrIndex) and ImportUnknownFactError, message listing sorted facts, span start (file, 0-based line, 1-based column, and the offset lands on the `with` keyword), a target with no facts, a valid optional and a valid required fact, matching by alias, several withs where only the bad ones are reported (in source order), and a cross-namespace target.
+- runtime (imports_test.go): ImportDecision called on a hand-built index, which never ran the check, returns an InvalidInvocation error for an unknown with name and sets the node error.
+- cmd (validate_test.go): `sentrie validate` returns an error (non-zero exit) on the issue's repro, naming the typo'd fact and the declared ones.
+- Span end columns are not asserted (lexer end-column bug, #236). Lines are 0-based in this lexer, columns 1-based.
+- Proved by reverting index/validate.go and runtime/imports.go to main: the reject tests (index, runtime, cmd) fail. A mutation that rejects every with name fails the accept tests, so they guard against over-rejection.
+- Header of runtime/imports_test.go rewritten to the SPDX form on touch.
+- _Model: claude-sonnet-5-5_
