@@ -32,7 +32,7 @@ Implements `import decision <rule> from <ns/policy> with <fact> as <expr>`: it r
   - **Exceptions:** `import from must specify namespace/policy`; an unknown `with` name (`import binds unknown fact "x": policy ns/p accepts fact aliases: ...`, an `xerr.ImportUnknownFactError` wrapping `ErrIndex`, positioned at the `with` clause); policy resolution and export-verification failures; `with` evaluation errors; `import with fact %q: …` marshalling errors; anything the nested `ExecRule` raises.
 
 - **Signature:** `executorOutputEnvelope(output *ExecutorOutput) -> box.Value`
-  - **Behavior:** Builds a dictionary of the attachments, then writes `state` and `value` **last** so an attachment named `state` or `value` cannot shadow them. A nil output yields `Unknown`/`Undefined`.
+  - **Behavior:** Builds a dictionary of the attachments, then writes `state` and `value` **last** so an attachment named `state` or `value` cannot shadow them. A nil output yields `Unknown`/`Undefined`. `state` is boxed with `box.Trinary`, so a known state is a bool (`state == true` holds) and only an unknown state is a `ValueTrinary`.
   - **Side Effects:** None.
   - **Exceptions:** None.
 

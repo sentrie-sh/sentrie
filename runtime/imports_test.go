@@ -90,7 +90,7 @@ func (s *RuntimeTestSuite) TestExecutorOutputEnvelopeIncludesDecisionAndAttachme
 	envelope := executorOutputEnvelope(output)
 	m, ok := envelope.DictValue()
 	s.Require().True(ok)
-	s.Require().Equal(trinary.False, m["state"].Any())
+	s.Require().Equal(box.Bool(false), m["state"])
 	s.Require().Equal(42.0, m["value"].Any())
 	s.Require().Equal("policy denied", m["reason"].Any())
 }

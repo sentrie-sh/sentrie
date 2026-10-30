@@ -40,7 +40,7 @@ The central dispatch of the tree-walking evaluator. Every expression in Sentrie 
   - **Exceptions:** `map key is not a string` for non-string map keys; `pipeline placeholder '#' must be used inside a pipeline call target`; `unsupported expression node: %T`.
 
 - **Signature:** Literal handling - `NullLiteral`, `TrinaryLiteral`, `IntegerLiteral`, `FloatLiteral`, `StringLiteral`, `ListLiteral`, `MapLiteral`
-  - **Behavior:** Scalars box directly. Lists evaluate elements in order, aborting on the first error. Maps evaluate **key then value** per entry, requiring the key to box as a string.
+  - **Behavior:** Scalars box directly; `true`/`false` box as `ValueBool` and `unknown` as `ValueTrinary`, through `box.Trinary`. Lists evaluate elements in order, aborting on the first error. Maps evaluate **key then value** per entry, requiring the key to box as a string.
   - **Side Effects:** None beyond tracing.
   - **Exceptions:** As above.
 

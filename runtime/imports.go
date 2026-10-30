@@ -101,7 +101,8 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 }
 
 // executorOutputEnvelope builds the boxed value returned from import expressions:
-// a map with "state" (trinary), "value" (decision payload), and one entry per rule attachment.
+// a map with "state" (a boolean, or unknown; see box.Trinary), "value" (decision payload), and one
+// entry per rule attachment.
 // "state" and "value" are applied after attachments so they cannot be shadowed by attachment names.
 func executorOutputEnvelope(output *ExecutorOutput) box.Value {
 	if output == nil {

@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package box
 
@@ -64,7 +51,7 @@ func (s *BoxTestSuite) TestValuePredicatesAndAliases() {
 func (s *BoxTestSuite) TestAccessorsWithWrongKindOrMalformedPayload() {
 	_, ok := Number(1).BoolValue()
 	s.False(ok)
-	_, ok = Bool(true).TrinaryValue()
+	_, ok = Number(1).TrinaryValue()
 	s.False(ok)
 	_, ok = Number(1).DocumentRef()
 	s.False(ok)
@@ -188,4 +175,19 @@ func (s *BoxTestSuite) TestEqualValues_InvalidKindFallsBackToFalse() {
 	s.False(EqualValues(String("x"), String("y")))
 	s.True(EqualValues(Trinary(trinary.True), Trinary(trinary.True)))
 	s.False(EqualValues(Trinary(trinary.True), Trinary(trinary.False)))
+}
+
+func (s *BoxTestSuite) TestTrinaryBoxesKnownTruthAsBool() {
+	s.Equal(Bool(true), Trinary(trinary.True))
+	s.Equal(Bool(false), Trinary(trinary.False))
+	s.Equal(ValueTrinary, Trinary(trinary.Unknown).Kind())
+	s.Equal(Trinary(trinary.Unknown), Trinary(trinary.Value(7)))
+	s.True(EqualValues(Bool(true), Trinary(trinary.True)))
+
+	tv, ok := Bool(false).TrinaryValue()
+	s.True(ok)
+	s.Equal(trinary.False, tv)
+	tv, ok = Trinary(trinary.Unknown).TrinaryValue()
+	s.True(ok)
+	s.Equal(trinary.Unknown, tv)
 }

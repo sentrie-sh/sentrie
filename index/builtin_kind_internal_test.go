@@ -357,7 +357,14 @@ func TestResolveKindLiteralVariants(t *testing.T) {
 
 	kind, ok = k.resolveKind(ast.NewTrinaryLiteral(trinary.True, rng))
 	require.True(t, ok)
+	require.Equal(t, box.ValueBool, kind)
+
+	kind, ok = k.resolveKind(ast.NewTrinaryLiteral(trinary.Unknown, rng))
+	require.True(t, ok)
 	require.Equal(t, box.ValueTrinary, kind)
+
+	require.False(t, kindAllowed([]box.ValueKind{box.ValueBool}, box.ValueTrinary))
+	require.True(t, kindAllowed([]box.ValueKind{box.ValueBool, box.ValueTrinary}, box.ValueTrinary))
 
 	_, ok = k.resolveKind(ast.NewNullLiteral(rng))
 	require.False(t, ok)

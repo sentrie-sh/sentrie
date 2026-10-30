@@ -29,7 +29,7 @@ Implements the four prefix operators: logical negation (`!` and `not`, which are
   - **Exceptions:** `unary + requires number`; `unary - requires number`; `unsupported unary op: %s`.
 
 - **Signature:** `!` and `not`
-  - **Behavior:** Identical: coerce with `box.TrinaryFrom`, apply Kleene `Not`. `not Unknown` is `Unknown`.
+  - **Behavior:** Identical: coerce with `box.TrinaryFrom`, apply Kleene `Not`, re-box with `box.Trinary`, so a known result is a `ValueBool` that equals a comparison's result. `not Unknown` is `Unknown`.
   - **Side Effects:** None.
   - **Exceptions:** None - coercion is total.
 

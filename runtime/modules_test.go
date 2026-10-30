@@ -10,6 +10,7 @@ import (
 
 	"github.com/dop251/goja"
 	"github.com/sentrie-sh/sentrie/box"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 func testModuleBindingWithExports(rt *goja.Runtime, exports map[string]goja.Value) ModuleBinding {
@@ -180,4 +181,19 @@ func (s *RuntimeTestSuite) TestModuleBindingCallSuccessAndErrorPaths() {
 	structOut, err := structBinding.Call(ctx, ec, "returnStruct")
 	s.Require().NoError(err)
 	s.Equal(map[string]any{"Field": "struct"}, structOut)
+}
+
+func (s *RuntimeTestSuite) TestNormalizeBoundaryForJSMapsTruthValues() {
+	in, err := box.TryToBoundaryAny(box.List([]box.Value{
+		box.Trinary(trinary.True),
+		box.Trinary(trinary.False),
+		box.Trinary(trinary.Unknown),
+	}))
+	s.Require().NoError(err)
+	out, err := normalizeBoundaryForJS(in)
+	s.Require().NoError(err)
+	s.Require().Equal([]any{true, false, goja.Undefined()}, out)
+
+	_, err = normalizeBoundaryForJS(map[string]any{"x": trinary.Value(7)})
+	s.Require().ErrorContains(err, "cannot cross into JavaScript")
 }

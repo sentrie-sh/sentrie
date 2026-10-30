@@ -39,6 +39,6 @@ Evaluates `x is defined` and `x is empty`, the documented guards against missing
 - **Performance/Scale Notes:** One operand evaluation and a length check; negligible.
 - **Dependencies Risk:**
   - **Only a value can be undefined; an error stays an error.** `x is defined` on an undeclared identifier, a field access on a non-dict, or a failing call still fails. Presence is decided by how the runtime already represents absence, not by swallowing evaluation errors.
-  - **The negated forms box differently.** The predicates return `box.Bool`, but `is not defined` / `is not empty` go through Kleene `Not` in [[runtime.eval_unary]], which returns a `box.Trinary`. Both coerce to the same trinary, so decisions agree; code inspecting the raw box sees two kinds.
+  - **The negated forms box the same way.** The predicates return `box.Bool`, and `is not defined` / `is not empty` go through Kleene `Not` in [[runtime.eval_unary]], whose `box.Trinary` result is also a `ValueBool` for a known outcome ([#135](https://github.com/sentrie-sh/sentrie/issues/135)). Only an operand that errors to `unknown` yields a `ValueTrinary`.
   - **A field present with an undefined value is indistinguishable from an absent one**, so `is defined` cannot separate them (see [[runtime.eval_access]]).
   - **`null` is defined but empty.** `x is defined and x is not empty` is the guard for "supplied and has content".
