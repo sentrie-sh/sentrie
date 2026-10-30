@@ -44,7 +44,7 @@ Defines the four user-facing commands and wires the loading pipeline behind each
 
 - **Signature:** `sentrie serve [--http-port 7529] [--pack-location ./] [--http-listen local] [--eval-timeout 10s] [--eval-max-timeout <d>]`
   - **Behavior:** Runs the full load-and-validate pipeline, constructs the executor, sets up listeners, starts serving in a goroutine, and blocks on context cancellation before stopping. The default port `7529` spells "PLCY" on a phone keypad.
-  - **Side Effects:** Binds sockets; serves decisions; closes the executor after the servers stop.
+  - **Side Effects:** Binds sockets; serves decisions; closes the executor after the servers stop. On a shutdown signal it calls `StopServer` with a context from `context.WithoutCancel(ctx)` bounded by `api.DefaultShutdownGracePeriod` (10s; no flag), so in-flight requests finish, and returns its error: nil (exit 0) on a clean drain.
   - **`--eval-max-timeout`:** `serve` only ([#243](https://github.com/sentrie-sh/sentrie/issues/243)). The ceiling a request may ask for with the `Sentrie-Timeout` header, a Go duration parsed by `parseEvalMaxTimeout` against the parsed `--eval-timeout`. Unset (the empty default) means the ceiling is `--eval-timeout`, so requests can only shorten; with `--eval-timeout 0` too, any value is allowed. With `--eval-timeout 0` and a ceiling, requests without the header run under the ceiling. Passed to `api.WithMaxRequestTimeout`.
   - **Exceptions:** Any pipeline error; bind failures; an `--eval-max-timeout` that is unparseable, zero or negative, or below a non-zero `--eval-timeout` (checked after the pack loads, before the executor is built).
 

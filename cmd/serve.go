@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/binaek/cling"
 	"github.com/sentrie-sh/sentrie/api"
@@ -116,5 +117,12 @@ func serveCmd(ctx context.Context, args []string) error {
 
 	<-ctx.Done()
 
-	return server.StopServer(ctx)
+	// ctx is already cancelled, which is what ended the wait, so the shutdown
+	// gets its own bounded context: in-flight requests finish within the grace
+	// period, then the connections are closed.
+	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), api.DefaultShutdownGracePeriod)
+	defer cancel()
+	slog.InfoContext(shutdownCtx, "Shutting down", "grace_period", api.DefaultShutdownGracePeriod.String())
+
+	return server.StopServer(shutdownCtx)
 }
