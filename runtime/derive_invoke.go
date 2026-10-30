@@ -47,6 +47,7 @@ func padAndValidateCallableArgs(ctx context.Context, ec *ExecutionContext, exec 
 			}
 			return nil, fmt.Errorf("%s argument %q: %w", argKind, name, err)
 		}
+		out[i] = bindTruthValue(out[i], lam.ParamTypes[i])
 	}
 	return out, nil
 }
@@ -88,6 +89,7 @@ func invokeDerive(ctx context.Context, callerEC *ExecutionContext, exec *executo
 		if err := validateValueAgainstTypeRef(ctx, child, exec, callerPolicy, val, lam.ReturnType, lam.Body.Span()); err != nil {
 			return box.Undefined(), fmt.Errorf("derive return: %w", err)
 		}
+		val = bindTruthValue(val, lam.ReturnType)
 	}
 	return val, nil
 }

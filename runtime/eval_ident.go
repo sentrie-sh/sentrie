@@ -34,6 +34,17 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		return v, n.SetResult(v), nil
 	}
 
+	// An optional fact the caller omitted, with no default, is never injected. It reads
+	// as undefined, the same value a missing field access yields, so 'x is defined' and
+	// 'x.y is defined' can guard it. Inside a derive the guard above has already refused
+	// every fact name, so this branch is only reachable outside one.
+	if ec.evalDerive == nil && p != nil {
+		if f, ok := p.Facts[i.Value]; ok && f.Optional {
+			v := box.Undefined()
+			return v, n.SetResult(v), nil
+		}
+	}
+
 	// we couldn't find anything yet - look for a let declaration in the ExecutionContext
 	if v, ok := ec.GetLet(i.Value); ok {
 		// Check for infinite recursion before evaluating the let declaration
@@ -55,6 +66,7 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 				wrappedErr := fmt.Errorf("invalid value for let declaration %s: %w", i, err)
 				return box.Undefined(), n.SetErr(wrappedErr), wrappedErr
 			}
+			val = bindTruthValue(val, v.Type)
 		}
 
 		ec.SetLocal(i.Value, val, false)

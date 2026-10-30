@@ -68,6 +68,7 @@ func (c *lambdaCallable) Invoke(ctx context.Context, site *CallSite, args []box.
 		if err := validateValueAgainstTypeRef(ctx, child, site.Exec, site.Policy, v, c.lambda.ReturnType, c.lambda.Body.Span()); err != nil {
 			return box.Undefined(), fmt.Errorf("lambda return: %w", err)
 		}
+		v = bindTruthValue(v, c.lambda.ReturnType)
 	}
 	return v, nil
 }

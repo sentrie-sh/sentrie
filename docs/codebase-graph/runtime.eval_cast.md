@@ -32,7 +32,7 @@ Implements `expr as <type>` - the language's only explicit conversion mechanism.
   - **Behavior:**
     - **String** - always succeeds via `val.String()`; every value has a string rendering.
     - **Number** - accepts a number as-is, parses a string with `ParseFloat`, and maps a boolean to `1`/`0`. Everything else errors.
-    - **Trinary** - always succeeds via `box.TrinaryFrom`, applying language truthiness.
+    - **Trinary** - always succeeds via `box.TrinaryFrom`, applying language truthiness; the result is a bool unless it is `Unknown`.
     - **List / Dict** - pure **assertions**: the value must already be that kind, and is returned unchanged.
     - **Shape** - returned unchanged with no structural check at this point.
     - **Default** - returned unchanged.

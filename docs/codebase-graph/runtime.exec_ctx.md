@@ -47,7 +47,7 @@ The per-execution scope chain: facts, policy lets, evaluated locals, module bind
   - **Exceptions:** None.
 
 - **Signature:** `(*ExecutionContext).InjectFact(ctx, name, v, isDefault, typeRef) -> error`
-  - **Behavior:** Root-only fact injection.
+  - **Behavior:** Root-only fact injection. Stores `bindTruthValue(v, typeRef)` ([[runtime.typeref_trinary]]), so an imported decision bound to a `bool`/`trinary` fact, injected or a default, holds its state (#136).
   - **Side Effects:** Mutates `facts`.
   - **Exceptions:** `ErrIllegalFactInjection` when called on any child.
 

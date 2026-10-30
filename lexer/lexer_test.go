@@ -160,3 +160,44 @@ func TestLexerPipelineHoleInsideCall(t *testing.T) {
 		}
 	}
 }
+
+// TestLexerTokenPositions checks that lines and columns are 1-based on every
+// line and that a token ends just past its last rune on its own line, whether
+// a space, a newline or EOF follows it (#236).
+func TestLexerTokenPositions(t *testing.T) {
+	type span struct{ fromLine, fromCol, toLine, toCol, toOff int }
+	testCases := []struct {
+		input string
+		want  []span
+	}{
+		{"ab cd", []span{{1, 1, 1, 3, 2}, {1, 4, 1, 6, 5}}},
+		{"ab\ncd\n", []span{{1, 1, 1, 3, 2}, {2, 1, 2, 3, 5}}},
+		{"x == y\n", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 5, 4}, {1, 6, 1, 7, 6}}},
+		{"\"é\"\n-- note\n", []span{{1, 1, 1, 4, 4}, {2, 1, 2, 8, 12}}},
+		{"<<<T\na\nT\nx", []span{{1, 1, 3, 2, 8}, {4, 1, 4, 2, 10}}},
+		// These operators took their end before their last read and ended one
+		// column short; check them mid-line, at the end of a line and at EOF.
+		{"a-b", []span{{1, 1, 1, 2, 1}, {1, 2, 1, 3, 2}, {1, 3, 1, 4, 3}}},
+		{"x -\n", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 4, 3}}},
+		{"x -", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 4, 3}}},
+		{"x ==\n", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 5, 4}}},
+		{"x ==", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 5, 4}}},
+		{"x =>\n", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 5, 4}}},
+		{"x =>", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 5, 4}}},
+		{"x |>\n", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 5, 4}}},
+		{"x |>", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 5, 4}}},
+	}
+	for _, tc := range testCases {
+		l := NewLexer(strings.NewReader(tc.input), "t.sentrie")
+		for i, want := range tc.want {
+			tok := l.NextToken()
+			got := span{tok.Range.From.Line, tok.Range.From.Column, tok.Range.To.Line, tok.Range.To.Column, tok.Range.To.Offset}
+			if got != want {
+				t.Fatalf("input %q token %d (%s %q): got %+v, want %+v", tc.input, i, tok.Kind, tok.Value, got, want)
+			}
+		}
+		if eof := l.NextToken(); eof.Kind != tokens.EOF {
+			t.Fatalf("input %q: expected EOF, got %s", tc.input, eof.Kind)
+		}
+	}
+}

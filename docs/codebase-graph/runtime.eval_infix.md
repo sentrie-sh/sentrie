@@ -38,7 +38,7 @@ Implements every binary operator in one switch: arithmetic, comparison, three-va
   - **Exceptions:** Coercion failure on the relational forms.
 
 - **Signature:** Logic - `and`, `or`, `xor`
-  - **Behavior:** Coerces both sides with `box.TrinaryFrom` and applies Kleene operators. `xor` is derived as `(l or r) and not (l and r)`.
+  - **Behavior:** Coerces both sides with `box.TrinaryFrom` and applies Kleene operators. `xor` is derived as `(l or r) and not (l and r)`. Results re-box with `box.Trinary`, so a known result is a `ValueBool`, the same kind comparisons produce.
   - **Side Effects:** None.
   - **Exceptions:** None.
 

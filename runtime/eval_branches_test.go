@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -162,7 +149,7 @@ func (s *RuntimeTestSuite) TestEvalReduceTransformTernaryUnaryBlockCastBranches(
 
 	unaryNot, _, err := evalUnary(ctx, ec, exec, p, ast.NewUnaryExpression("not", ast.NewTrinaryLiteral(trinary.True, stubRange()), stubRange()))
 	s.Require().NoError(err)
-	s.Require().Equal(trinary.False, unaryNot.Any())
+	s.Require().Equal(box.Bool(false), unaryNot)
 
 	unaryErrExpr := ast.NewUnaryExpression("+", ast.NewStringLiteral("x", stubRange()), stubRange())
 	_, _, err = evalUnary(ctx, ec, exec, p, unaryErrExpr)
@@ -180,7 +167,12 @@ func (s *RuntimeTestSuite) TestEvalReduceTransformTernaryUnaryBlockCastBranches(
 	s.Require().Error(err)
 
 	castBoolExpr := ast.NewCastExpression(ast.NewUnaryExpression("!", ast.NewTrinaryLiteral(trinary.False, stubRange()), stubRange()), ast.NewNumberTypeRef(stubRange()), stubRange())
-	_, _, err = evalCast(ctx, ec, exec, p, castBoolExpr)
+	castBool, _, err := evalCast(ctx, ec, exec, p, castBoolExpr)
+	s.Require().NoError(err)
+	s.Require().Equal(box.Number(1), castBool)
+
+	castUnknownExpr := ast.NewCastExpression(ast.NewTrinaryLiteral(trinary.Unknown, stubRange()), ast.NewNumberTypeRef(stubRange()), stubRange())
+	_, _, err = evalCast(ctx, ec, exec, p, castUnknownExpr)
 	s.Require().ErrorContains(err, "cannot cast trinary to number")
 
 	castParseErr := ast.NewCastExpression(ast.NewStringLiteral("abc", stubRange()), ast.NewNumberTypeRef(stubRange()), stubRange())

@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package box
 
@@ -114,8 +101,19 @@ func String[T ~string](x T) Value {
 	return Value{kind: ValueString, ref: string(x)}
 }
 
+// Trinary boxes a Kleene truth value. A known truth value is a boolean, so
+// trinary.True and trinary.False box as ValueBool and compare equal to every
+// other boolean. Only trinary.Unknown (and any value outside the three
+// constants, which trinary already treats as unknown) boxes as ValueTrinary.
 func Trinary(x trinary.Value) Value {
-	return Value{kind: ValueTrinary, u64: uint64(x)}
+	switch x {
+	case trinary.True:
+		return Bool(true)
+	case trinary.False:
+		return Bool(false)
+	default:
+		return Value{kind: ValueTrinary, u64: uint64(trinary.Unknown)}
+	}
 }
 
 func List(xs []Value) Value {
@@ -124,6 +122,34 @@ func List(xs []Value) Value {
 
 func Dict(m map[string]Value) Value {
 	return Value{kind: ValueDict, ref: m}
+}
+
+// decisionEnvelopeTag marks a dict built by DecisionEnvelope in the otherwise
+// unused u64 slot; the low byte holds the state offset by one. Dict never sets
+// u64, so no dict built from policy data, JSON or a module can carry the tag.
+const decisionEnvelopeTag uint64 = 1 << 8
+
+// DecisionEnvelope boxes m as a dict that carries an imported decision's state.
+// It reads, indexes and compares as an ordinary dict, but wherever it is used as
+// a truth value it is its state, never dict truthiness (#136). The tag lives
+// on this Value only: a dict rebuilt from it, or one that crosses a boundary,
+// is a plain dict again.
+func DecisionEnvelope(m map[string]Value, state trinary.Value) Value {
+	switch state {
+	case trinary.True, trinary.False:
+	default:
+		state = trinary.Unknown
+	}
+	return Value{kind: ValueDict, u64: decisionEnvelopeTag | uint64(state+1), ref: m}
+}
+
+// DecisionState returns the state carried by a DecisionEnvelope. For any other
+// value, a plain dict included, it returns (Unknown, false).
+func (v Value) DecisionState() (trinary.Value, bool) {
+	if v.kind != ValueDict || v.u64&decisionEnvelopeTag == 0 {
+		return trinary.Unknown, false
+	}
+	return trinary.Value(v.u64&0xff) - 1, true
 }
 
 func Document[T any](x T) Value {
@@ -186,11 +212,18 @@ func (v Value) StringValue() (string, bool) {
 	return s, ok
 }
 
+// TrinaryValue returns the truth value of a boolean or unknown value: a
+// ValueBool reports True or False and a ValueTrinary reports Unknown. Any
+// other kind reports (Unknown, false); use TrinaryFrom for truthiness.
 func (v Value) TrinaryValue() (trinary.Value, bool) {
-	if v.kind != ValueTrinary {
+	switch v.kind {
+	case ValueBool:
+		return trinary.From(v.u64 != 0), true
+	case ValueTrinary:
+		return trinary.Value(v.u64), true
+	default:
 		return trinary.Unknown, false
 	}
-	return trinary.Value(v.u64), true
 }
 
 func (v Value) ListValue() ([]Value, bool) {
@@ -223,7 +256,8 @@ func (v Value) ObjectRef() (any, bool) {
 }
 
 // TrinaryFrom returns the Kleene trinary outcome for b, matching trinary.From(b.Any()) without
-// materializing an intermediate any slice or map for Box values.
+// materializing an intermediate any slice or map for Box values. A DecisionEnvelope is the
+// one exception: it yields its carried state, not dict truthiness.
 func TrinaryFrom(b Value) trinary.Value {
 	switch b.kind {
 	case ValueUndefined, ValueNull:
@@ -244,6 +278,9 @@ func TrinaryFrom(b Value) trinary.Value {
 		}
 		return trinary.True
 	case ValueDict:
+		if state, ok := b.DecisionState(); ok {
+			return state
+		}
 		m, _ := b.ref.(map[string]Value)
 		if len(m) == 0 {
 			return trinary.False
@@ -472,12 +509,18 @@ func toBoundaryAnyLossy(v Value) any {
 }
 
 // FromBoundaryAny converts runtime boundary values back into boxed Value while
-// preserving undefined/null distinction.
+// preserving undefined/null distinction. A Value is returned as is. The case is
+// explicit for clarity, not a behaviour change (FromAny already returns a
+// Value): an in-process caller that hands over a boxed value, such as a `with`
+// binding, keeps a DecisionEnvelope tag. JSON and JS input is never a Value, so
+// it can never produce a DecisionEnvelope.
 func FromBoundaryAny(x any) Value {
 	if _, ok := x.(undefinedBoundaryToken); ok {
 		return Undefined()
 	}
 	switch t := x.(type) {
+	case Value:
+		return t
 	case []any:
 		out := make([]Value, 0, len(t))
 		for _, item := range t {

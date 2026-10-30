@@ -148,6 +148,12 @@ func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *inde
 	case *ast.TransformExpression:
 		return evalTransform(ctx, ec, exec, p, t)
 
+	case *ast.IsDefinedExpression:
+		return evalIsDefined(ctx, ec, exec, p, t)
+
+	case *ast.IsEmptyExpression:
+		return evalIsEmpty(ctx, ec, exec, p, t)
+
 	default:
 		err := fmt.Errorf("unsupported expression node: %T", t)
 		return box.Undefined(), trace.UnsupportedExpression(t).SetErr(err), err

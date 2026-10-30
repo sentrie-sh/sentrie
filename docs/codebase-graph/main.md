@@ -24,7 +24,7 @@ The process bootstrap: installs signal handling, resolves build-time version inf
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `main()`
-  - **Behavior:** Creates a background context cancelled by `SIGINT` or `SIGKILL`, resolves the version once, installs the default logger, builds the CLI, and executes it. On error it prints `Error: <err>` to stdout and exits 1.
+  - **Behavior:** Creates a background context cancelled by `SIGINT` or `SIGTERM` ([#117](https://github.com/sentrie-sh/sentrie/issues/117)), restores the default signal behaviour after the first one so a second signal terminates the process at once, resolves the version once, installs the default logger, builds the CLI, and executes it. On error it prints `Error: <err>` to stdout and exits 1.
   - **Side Effects:** Signal handlers; global logger; process exit.
   - **Exceptions:** None - errors become exit codes.
 
@@ -42,7 +42,7 @@ The process bootstrap: installs signal handling, resolves build-time version inf
 - **Statefulness:** Process-global - the default `slog` logger and the signal-derived context. `versionOnce` uses `sync.OnceValue` so version resolution happens at most once.
 - **Performance/Scale Notes:** Irrelevant; runs once. `AddSource: true` adds a small per-log-line cost that is paid for the process lifetime.
 - **Dependencies Risk:**
-  - **`os.Kill` cannot be caught.** `signal.NotifyContext(ctx, os.Interrupt, os.Kill)` registers `SIGKILL`, which the operating system does not deliver to the process - it is unstoppable by design. Only the `SIGINT` half works. Notably **`SIGTERM` is not registered**, which is the signal container orchestrators actually send, so a containerised Sentrie is killed rather than shut down cleanly. Since `serve` blocks on `ctx.Done()` to trigger its shutdown path, this means the graceful path is effectively unreachable in a container.
+  - **Signals.** `signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)`: `SIGTERM` is what Docker, Kubernetes and systemd send, and `SIGKILL` is deliberately absent because it cannot be caught. `syscall.SIGTERM` is defined on Windows, so there are no build tags. A goroutine calls `stop()` once the context is cancelled, so a second Ctrl-C or SIGTERM during a slow graceful shutdown gets the default action and kills the process. This applies to every command, not only `serve`. `serve` turns the first signal into a bounded graceful shutdown (see [[cmd]] and [[api.http]]), and a clean one exits 0.
   - **Logs go to stdout, and so does command output.** `exec` writes its table or JSON result to stdout as well, so at INFO level or above the machine-readable output is interleaved with JSON log lines. Anything piping `sentrie exec --output json` into a parser must suppress logging first. Logs conventionally belong on stderr.
   - **Errors are printed with `fmt.Printf`, not the logger**, so the failure message is unstructured while everything around it is JSON - and the comment describing red colouring does not match the code, which applies none.
   - **Debug mode logs the full `os.Args`.** Since `exec` accepts `--facts` as a JSON string, enabling debug can write potentially sensitive fact data into the log stream.

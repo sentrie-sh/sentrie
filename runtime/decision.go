@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -33,10 +20,10 @@ func (d Decision) ToTrinary() trinary.Value {
 type DecisionAttachments map[string]box.Value
 
 // Behaviour:
-// - nil           → Unknown
-// - *Decision     → as-is
-// - trinary.Value  → Decision with the same state
-// - anything else → trinary.From(val)
+// - undefined or null      → Unknown, keeping the original value
+// - boolean or unknown     → Decision with the same truth value
+// - import envelope        → its imported state (via box.TrinaryFrom)
+// - anything else          → box.TrinaryFrom(val)
 func DecisionOf(val box.Value) *Decision {
 	if val.IsUndefined() || val.IsNull() {
 		return &Decision{State: trinary.Unknown, Value: val}
@@ -47,4 +34,24 @@ func DecisionOf(val box.Value) *Decision {
 	}
 
 	return &Decision{State: box.TrinaryFrom(val), Value: val}
+}
+
+// reported returns d as ExecRule reports it to its caller. Inside a policy a rule
+// whose body is an import keeps the envelope as its value, so references to the
+// rule can still read .state, .value and attachments. Outside, the envelope is
+// unwrapped to the imported value, so the reported value agrees with the state
+// the decision already carries from the envelope (#136).
+func (d *Decision) reported() *Decision {
+	if d == nil {
+		return nil
+	}
+	if _, ok := d.Value.DecisionState(); !ok {
+		return d
+	}
+	m, _ := d.Value.DictValue()
+	value, ok := m["value"]
+	if !ok {
+		value = box.Undefined()
+	}
+	return &Decision{State: d.State, Value: value}
 }

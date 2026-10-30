@@ -21,7 +21,7 @@ Resolves a bare identifier through a fixed precedence chain - local, fact, let, 
 | `runtime.eval_ident` | `CALLS` | [[runtime.typeref]] | Validates a let's value against its declared type. |
 | `runtime.eval_ident` | `CALLS` | [[runtime.eval_call]] | Reuses `lookupDeriveByIdentifier` for the derive-as-value case. |
 | `runtime.eval_ident` | `CALLS` | [[runtime.callable]] | Boxes a derive as a `deriveCallable` for higher-order use. |
-| `runtime.eval_ident` | `READS_FROM` | [[index]] | Reads `Policy.Facts` (for the derive error message) and `Policy.Rules`. |
+| `runtime.eval_ident` | `READS_FROM` | [[index]] | Reads `Policy.Facts` (for the derive error message and to resolve an omitted optional fact as `Undefined`) and `Policy.Rules`. |
 | [[runtime.eval]] | `CALLS` | [[runtime.eval_ident]] | All `ast.Identifier` nodes dispatch here. |
 
 ## 3. Interface Contracts & Public Surface
@@ -30,8 +30,8 @@ Resolves a bare identifier through a fixed precedence chain - local, fact, let, 
   - **Behavior:** Resolves in strict order:
     1. **Local** - an already-evaluated value, including lambda and derive parameters.
     2. **Derive fact guard** - inside a derive, a name matching a policy fact is refused with a targeted message rather than falling through.
-    3. **Fact** - resolved at the root context.
-    4. **Let** - pushed onto the recursion stack, evaluated, type-validated if annotated, then cached via `SetLocal`.
+    3. **Fact** - resolved at the root context. A declared optional fact the caller omitted, with no default, is never injected and resolves to `Undefined` instead of falling through, so [[runtime.eval_is]] guards and field chains on it degrade like a missing field.
+    4. **Let** - pushed onto the recursion stack, evaluated, type-validated if annotated (a `bool`/`trinary` let bound to an import holds its state, via `bindTruthValue` in [[runtime.typeref_trinary]]), then cached via `SetLocal`.
     5. **Rule** - outside a derive only; executes the rule and caches its **decision value**.
     6. **Derive** - boxed as a callable so it can be passed to higher-order builtins.
   - **Side Effects:** Evaluates let initializers; executes rules; writes locals; mutates the recursion stack.

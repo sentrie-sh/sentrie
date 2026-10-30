@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -26,6 +13,7 @@ import (
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 	"github.com/sentrie-sh/sentrie/trinary"
+	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 // ImportDecision resolves an ImportClause with `with` facts for sandboxed execution,
@@ -67,10 +55,13 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 		}
 
 		for _, with := range t.Withs {
-			// find the fact in the target policy
+			// The target must declare the fact, keyed exactly as the index check
+			// (checkImportWiths) and ExecRule key it. An unknown name is an
+			// error, never skipped: a typo would otherwise run the target on
+			// its default (#151). Reached only when the index check did not run.
 			if _, ok := p.Facts[with.Name]; !ok {
-				// no point evaluating - the target policy does not need this fact
-				continue
+				err := xerr.ImportUnknownFactError{At: with.Span(), Message: xerr.ImportUnknownFactMessage(with.Name, ns+ast.FQNSeparator+pol, p.FactNamesByAlias())}
+				return box.Null(), n.SetErr(err), err
 			}
 
 			// evaluate the with expression in the context of this execution context
@@ -84,14 +75,17 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 		}
 	}
 
+	// The boundary conversion only rejects callables. The boxed value itself is
+	// injected, so an imported decision envelope bound by `with`, at any depth,
+	// keeps its state tag in the target policy instead of arriving as a plain,
+	// truthy dict (#136). ExecRule's FromBoundaryAny passes a box.Value through.
 	injectedFacts := make(map[string]any, len(facts))
 	for name, factValue := range facts {
-		b, err := box.TryToBoundaryAny(factValue)
-		if err != nil {
+		if _, err := box.TryToBoundaryAny(factValue); err != nil {
 			err = fmt.Errorf("import with fact %q: %w", name, err)
 			return box.Null(), n.SetErr(err), err
 		}
-		injectedFacts[name] = b
+		injectedFacts[name] = factValue
 	}
 
 	output, err := exec.ExecRule(ctx, ns, pol, rule, injectedFacts)
@@ -110,14 +104,17 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 }
 
 // executorOutputEnvelope builds the boxed value returned from import expressions:
-// a map with "state" (trinary), "value" (decision payload), and one entry per rule attachment.
+// a map with "state" (a boolean, or unknown; see box.Trinary), "value" (decision payload), and one
+// entry per rule attachment.
 // "state" and "value" are applied after attachments so they cannot be shadowed by attachment names.
+// The map is boxed with box.DecisionEnvelope, so used as a truth value it is the imported
+// state, never the truthiness of a non-empty dict (#136).
 func executorOutputEnvelope(output *ExecutorOutput) box.Value {
 	if output == nil {
-		return box.Dict(map[string]box.Value{
+		return box.DecisionEnvelope(map[string]box.Value{
 			"state": box.Trinary(trinary.Unknown),
 			"value": box.Undefined(),
-		})
+		}, trinary.Unknown)
 	}
 
 	state := trinary.Unknown
@@ -131,5 +128,5 @@ func executorOutputEnvelope(output *ExecutorOutput) box.Value {
 	maps.Copy(m, map[string]box.Value(output.Attachments))
 	m["state"] = box.Trinary(state)
 	m["value"] = value
-	return box.Dict(m)
+	return box.DecisionEnvelope(m, state)
 }

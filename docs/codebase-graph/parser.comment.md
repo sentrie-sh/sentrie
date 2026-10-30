@@ -33,6 +33,6 @@ Turns a `LineComment` or `TrailingComment` token into an `ast.CommentStatement`.
 - **Statefulness:** Stateless.
 - **Performance/Scale Notes:** Nothing notable.
 - **Dependencies Risk:**
-  - **The span is degenerate.** It is built from `head.Range.From` to `comment.Range.**From**` - both the same token's start position, since `head()` and the subsequent `advance()` return the same instance. Every `CommentStatement` therefore has a zero-width range that does not cover its own text.
+  - **The span covers the comment token.** It runs from the `--` to `comment.Range.To`, just past the comment's last character (#236; it used to be zero width at the start). A comment runs to the end of its line, so in a CRLF file the span includes the `\r`, though the trimmed value does not.
   - **Comment retention is inconsistent across the tree.** Top-level comments become statements ([[parser.parse]]); policy-body comments are silently dropped ([[parser.policy]]); block-body comments are parsed as statements; expression comments become wrapper nodes. Any tool that needs all comments cannot rely on a single mechanism.
   - **Leading vs trailing classification happens in the lexer**, not here, and both kinds map to the same AST node - so the distinction is lost at statement level even though it is preserved in expression position.

@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -103,9 +90,25 @@ func (s *RuntimeTestSuite) TestExecutorOutputEnvelopeIncludesDecisionAndAttachme
 	envelope := executorOutputEnvelope(output)
 	m, ok := envelope.DictValue()
 	s.Require().True(ok)
-	s.Require().Equal(trinary.False, m["state"].Any())
+	s.Require().Equal(box.Bool(false), m["state"])
 	s.Require().Equal(42.0, m["value"].Any())
 	s.Require().Equal("policy denied", m["reason"].Any())
+	s.Require().Equal(trinary.False, box.TrinaryFrom(envelope))
+}
+
+func (s *RuntimeTestSuite) TestDecisionOfImportEnvelopeReportsImportedValue() {
+	envelope := executorOutputEnvelope(&ExecutorOutput{
+		Decision: &Decision{State: trinary.False, Value: box.Bool(false)},
+	})
+
+	d := DecisionOf(envelope)
+	s.Require().Equal(trinary.False, d.State)
+	_, isEnvelope := d.Value.DecisionState()
+	s.Require().True(isEnvelope, "inside the policy the rule keeps the envelope")
+
+	reported := d.reported()
+	s.Require().Equal(trinary.False, reported.State)
+	s.Require().Equal(false, reported.Value.Any())
 }
 
 func (s *RuntimeTestSuite) TestImportDecisionMissingRequiredFactReturnsError() {
@@ -173,4 +176,78 @@ func (s *RuntimeTestSuite) TestImportDecisionMissingRequiredFactReturnsError() {
 	s.Require().True(val.IsNull())
 	s.Require().NotNil(node)
 	s.Require().Contains(node.Err, "required fact not found: req")
+}
+
+// TestImportDecisionUnknownWithFactReturnsError covers the runtime fallback of
+// #151: a pack whose index never ran the import check must still fail closed on
+// a with name the target does not declare, instead of running it on its default.
+func (s *RuntimeTestSuite) TestImportDecisionUnknownWithFactReturnsError() {
+	ctx := s.T().Context()
+	idx := index.CreateIndex()
+	exec := &executorImpl{index: idx}
+
+	nsFQN := ast.NewFQN([]string{"test", "ns"}, stubRange())
+	ns := &index.Namespace{
+		FQN:          nsFQN,
+		Policies:     map[string]*index.Policy{},
+		Shapes:       map[string]*index.Shape{},
+		ShapeExports: map[string]*index.ExportedShape{},
+	}
+	idx.Namespaces[nsFQN.String()] = ns
+
+	targetPolicy := &index.Policy{
+		Name:      "target",
+		FQN:       ast.CreateFQN(nsFQN, "target"),
+		Namespace: ns,
+		Lets:      map[string]*ast.VarDeclaration{},
+		Facts:     map[string]*ast.FactStatement{},
+		Rules:     map[string]*index.Rule{},
+		RuleExports: map[string]*index.ExportedRule{
+			"allow": {RuleName: "allow"},
+		},
+		Uses:   map[string]*ast.UseStatement{},
+		Shapes: map[string]*index.Shape{},
+	}
+	// An optional fact: without the check the typo'd binding would be skipped
+	// and the rule would run on the fact's absence.
+	targetPolicy.Facts["level"] = ast.NewFactStatement("level", nil, "level", nil, true, stubRange())
+	targetRuleStmt := ast.NewRuleStatement("allow", nil, nil, ast.NewTrinaryLiteral(trinary.True, stubRange()), stubRange())
+	targetPolicy.Rules["allow"] = &index.Rule{
+		Node:   targetRuleStmt,
+		Policy: targetPolicy,
+		Name:   "allow",
+		FQN:    ast.CreateFQN(targetPolicy.FQN, "allow"),
+		Body:   targetRuleStmt.Body,
+	}
+	ns.Policies[targetPolicy.Name] = targetPolicy
+
+	callerPolicy := &index.Policy{
+		Name:        "caller",
+		FQN:         ast.CreateFQN(nsFQN, "caller"),
+		Namespace:   ns,
+		Lets:        map[string]*ast.VarDeclaration{},
+		Facts:       map[string]*ast.FactStatement{},
+		Rules:       map[string]*index.Rule{},
+		RuleExports: map[string]*index.ExportedRule{},
+		Uses:        map[string]*ast.UseStatement{},
+		Shapes:      map[string]*index.Shape{},
+	}
+	ec := NewExecutionContext(callerPolicy, exec)
+
+	imp := ast.NewImportClause(
+		"allow",
+		ast.NewFQN([]string{"test", "ns", "target"}, stubRange()).Ptr(),
+		[]*ast.WithClause{
+			ast.NewWithClause("levl", ast.NewIntegerLiteral(3, stubRange()), stubRange()),
+		},
+		stubRange(),
+	)
+
+	val, node, err := ImportDecision(ctx, exec, ec, callerPolicy, imp)
+	s.Require().Error(err)
+	s.ErrorIs(err, xerr.ErrIndex)
+	s.Contains(err.Error(), `import binds unknown fact "levl": policy test/ns/target accepts fact aliases: level`)
+	s.True(val.IsNull())
+	s.Require().NotNil(node)
+	s.Contains(node.Err, `unknown fact "levl"`)
 }

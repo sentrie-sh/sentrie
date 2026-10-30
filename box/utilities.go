@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package box
 
@@ -20,6 +7,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 // MustNumbers returns both operands as float64 numbers, or an error if either is not numeric.
@@ -36,7 +25,15 @@ func MustNumbers(lhs, rhs Value) (float64, float64, error) {
 }
 
 // EqualValues compares two boxed values for semantic equality (including cross-kind number equality).
+// A DecisionEnvelope compared with a bool or trinary compares its state, so an imported decision
+// equals true only when its state is true; an unknown state equals neither true nor false.
 func EqualValues(a, b Value) bool {
+	if eq, ok := envelopeStateEquals(a, b); ok {
+		return eq
+	}
+	if eq, ok := envelopeStateEquals(b, a); ok {
+		return eq
+	}
 	if a.Kind() != b.Kind() {
 		an, aok := a.NumberValue()
 		bn, bok := b.NumberValue()
@@ -92,6 +89,22 @@ func EqualValues(a, b Value) bool {
 	default:
 		return false
 	}
+}
+
+// envelopeStateEquals compares env's decision state with a bool or trinary operand. It
+// reports ok false when env is not a DecisionEnvelope or other is not a truth literal.
+func envelopeStateEquals(env, other Value) (eq bool, ok bool) {
+	state, ok := env.DecisionState()
+	if !ok {
+		return false, false
+	}
+	if b, ok := other.BoolValue(); ok {
+		return state == trinary.From(b), true
+	}
+	if t, ok := other.TrinaryValue(); ok {
+		return state == t, true
+	}
+	return false, false
 }
 
 // MatchesValue returns whether haystack matches the regexp pattern; both must be strings.

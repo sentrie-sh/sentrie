@@ -46,7 +46,7 @@ A best-effort static type inferencer: given an expression and a lexical scope, i
   - **Exceptions:** None.
 
 - **Signature:** `typeRefKind(idx, policy, ref) -> (box.ValueKind, bool)`
-  - **Behavior:** Maps each type-ref implementation to a kind. Documented special cases: `ShapeTypeRef` delegates to `lookupShapeKind` (alias versus complex record); `NullableTypeRef` is **deliberately unknown** because runtime prechecks pass null through; `RecordTypeRef` maps to `ValueList`.
+  - **Behavior:** Maps each type-ref implementation to a kind. Documented special cases: `ShapeTypeRef` delegates to `lookupShapeKind` (alias versus complex record); `NullableTypeRef` is **deliberately unknown** because runtime prechecks pass null through; `RecordTypeRef` maps to `ValueList`; `TrinaryTypeRef` maps to `ValueTrinary`, which here means "bool or unknown" because at runtime a known truth value is a `ValueBool` ([#135](https://github.com/sentrie-sh/sentrie/issues/135)).
   - **Side Effects:** None.
   - **Exceptions:** None; unknown is a return value, not an error.
 
@@ -56,7 +56,7 @@ A best-effort static type inferencer: given an expression and a lexical scope, i
   - **Exceptions:** None.
 
 - **Signature:** `(*kindCheckCtx).resolveKind(expr) -> (box.ValueKind, bool)` / `resolveKindGuarded(expr, seen)`
-  - **Behavior:** Literals map directly (integer and float both to `ValueNumber`); a lambda is `ValueCallable`; a cast takes its target type; a call takes the builtin's result kind **only when the signature declares exactly one**. `NullLiteral` is explicitly **unknown**, not a null kind. Identifiers recurse through `resolveIdentKindGuarded` with a `seen` set guarding against self-referential lets.
+  - **Behavior:** Literals map directly (integer and float both to `ValueNumber`; `true`/`false` to `ValueBool` and `unknown` to `ValueTrinary`, mirroring `box.Trinary`); a lambda is `ValueCallable`; a cast takes its target type; a call takes the builtin's result kind **only when the signature declares exactly one**. `NullLiteral` is explicitly **unknown**, not a null kind. Identifiers recurse through `resolveIdentKindGuarded` with a `seen` set guarding against self-referential lets.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -71,7 +71,7 @@ A best-effort static type inferencer: given an expression and a lexical scope, i
   - **Exceptions:** None.
 
 - **Signature:** `kindAllowed(kinds, k) -> bool` / `builtinParamSigAt(sig, i) -> (ParamSig, bool)`
-  - **Behavior:** Membership test, and positional parameter lookup that falls back to the variadic tail once fixed params are exhausted.
+  - **Behavior:** Membership test, except that a static `ValueTrinary` (a `trinary`-typed value, bool or unknown at runtime) is allowed only where both `ValueBool` and `ValueTrinary` are; and positional parameter lookup that falls back to the variadic tail once fixed params are exhausted.
   - **Side Effects:** None.
   - **Exceptions:** None.
 

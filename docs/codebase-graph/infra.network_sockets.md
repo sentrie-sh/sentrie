@@ -27,9 +27,9 @@ Modelled as its own node because listener lifecycle is where several independent
   - **Exceptions:** A bind failure at startup is returned; a failure afterwards is not - see below.
 
 - **Signature:** Shutdown
-  - **Behavior:** `StopServer` calls `Close` on the server.
-  - **Side Effects:** Terminates active connections immediately.
-  - **Exceptions:** None surfaced.
+  - **Behavior:** `StopServer` calls `http.Server.Shutdown` on each server, bounded by the grace period `serve` supplies (10s), then `Close` on any that did not drain.
+  - **Side Effects:** Stops accepting connections; in-flight requests finish unless the grace period ends first.
+  - **Exceptions:** Joined errors for pairs that did not drain in time.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Long-lived OS resources held for the process lifetime. Nothing reopens a listener that dies.
@@ -37,5 +37,5 @@ Modelled as its own node because listener lifecycle is where several independent
 - **Dependencies Risk:**
   - **IPv6 predefined names cannot bind at all.** `local6` and `network6` resolve to already-bracketed hosts that `net.JoinHostPort` brackets again, producing `[[::1]]:7529` and `[[::]]:7529`, which `net.Listen` rejects. Filed as [#116](https://github.com/sentrie-sh/sentrie/issues/116).
   - **A listener that fails after startup dies silently.** `StartServer` writes serve errors to a channel nothing reads, and [[cmd]]'s `serve` then blocks on `ctx.Done()` - leaving a live process with no listeners and no error. See [[api.http]].
-  - **Shutdown is abrupt, not graceful.** `Close` rather than `http.Server.Shutdown` means an in-flight decision is dropped at exit. Compounded by [#117](https://github.com/sentrie-sh/sentrie/issues/117): `SIGTERM` is not registered at all, so orchestrated shutdown never reaches this path.
+  - **Shutdown drains for at most 10 seconds.** `SIGTERM` and `SIGINT` start a graceful shutdown ([#117](https://github.com/sentrie-sh/sentrie/issues/117)); a request still running after `DefaultShutdownGracePeriod` is dropped. The grace period is not configurable.
   - **The boundary is unauthenticated.** No authentication, wildcard CORS, and no body limit - filed as [#115](https://github.com/sentrie-sh/sentrie/issues/115). Anything that can reach the socket can request a decision.
