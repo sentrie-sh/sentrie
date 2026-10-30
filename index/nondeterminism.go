@@ -53,7 +53,7 @@ func UseBuiltinModuleKey(use *ast.UseStatement) (string, bool) {
 func (idx *Index) NondeterminismWarnings(ctx context.Context, isNondeterministicExport func(moduleKey, export string) bool) ([]Warning, error) {
 	var out []Warning
 
-	err := idx.forEachBuiltinCall(ctx, func(decl *builtins.Decl, call *ast.CallExpression) {
+	err := idx.forEachBuiltinCall(ctx, func(_ *kindCheckCtx, decl *builtins.Decl, call *ast.CallExpression) {
 		if !decl.Nondeterministic {
 			return
 		}
