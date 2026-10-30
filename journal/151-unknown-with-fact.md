@@ -24,3 +24,12 @@
 - Proved by reverting index/validate.go and runtime/imports.go to main: the reject tests (index, runtime, cmd) fail. A mutation that rejects every with name fails the accept tests, so they guard against over-rejection.
 - Header of runtime/imports_test.go rewritten to the SPDX form on touch.
 - _Model: claude-sonnet-5-5_
+
+### 15:53 - Review round 1 for #151
+- Message now names what is accepted: `import binds unknown fact "user": policy t/q accepts fact aliases: u; fact "user" is bound by its alias "u"` (a target with no facts still reads `declares no facts`). `xerr.ImportUnknownFactMessage` takes an alias to declared-name map, built by `Policy.FactNamesByAlias`, so the index and runtime share it. Tests: index (aliased fact hint), xerr (table), and the existing message assertions in index, runtime and cmd updated.
+- Correction to the 058f06f entry: it said a #147 change to the key needs no edit here. That is too strong. #147 may inject by name and bind by alias without re-keying `Policy.Facts`; this check, the runtime fallback and the message wording must follow #147's choice. The graph node says so now.
+- Removed `xerr.ErrImportUnknownFact` (no callers; the index and runtime build `ImportUnknownFactError` directly).
+- Moved the helper to index/policy.go as `FactNamesByAlias` (the sorted-names `FactNames` was no longer needed, the message sorts).
+- Third copy of the ns/policy split: extracted `importTarget` in index/validate.go, used by `detectRuleCycle` and `checkImportWiths`. Did not fold the check into `detectRuleCycle`: it returns a graph plus the first failure and stops at a cycle, while the with check collects every miss. Left the runtime copy alone to stay clear of #136.
+- Runtime fallback now returns `ImportUnknownFactError` (wraps `ErrIndex`, carries the with clause's span) instead of `ErrInvalidInvocation`, so the API does not map a pack-authoring error to 400. Runtime test asserts `ErrIndex`.
+- _Model: claude-sonnet-5-5_

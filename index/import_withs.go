@@ -8,19 +8,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"slices"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/xerr"
 )
-
-// FactNames returns the keys of p.Facts, sorted. These are the names an
-// `import decision ... with <name> as ...` clause must use: the runtime
-// (ImportDecision, ExecRule) looks facts up by exactly these keys.
-func (p *Policy) FactNames() []string {
-	return slices.Sorted(maps.Keys(p.Facts))
-}
 
 // checkImportWiths reports every `with` clause of an `import decision` whose
 // name is not a fact of the imported policy (#151). An import is only parsed
@@ -39,10 +31,7 @@ func (idx *Index) checkImportWiths(ctx context.Context) error {
 				if !ok || imp == nil || len(imp.Withs) == 0 {
 					continue
 				}
-				nsName, polName := policy.Namespace.FQN.String(), imp.FromPolicyFQN.LastSegment()
-				if len(imp.FromPolicyFQN.Parts) > 1 {
-					nsName = imp.FromPolicyFQN.Parent().String()
-				}
+				nsName, polName := importTarget(policy, imp)
 				target, err := idx.ResolvePolicy(nsName, polName)
 				if err != nil {
 					return fmt.Errorf("error resolving policy: %s: %w", err, xerr.ErrIndex)
@@ -56,7 +45,7 @@ func (idx *Index) checkImportWiths(ctx context.Context) error {
 					}
 					errs = append(errs, xerr.ImportUnknownFactError{
 						At:      w.Span(),
-						Message: xerr.ImportUnknownFactMessage(w.Name, nsName+ast.FQNSeparator+polName, target.FactNames()),
+						Message: xerr.ImportUnknownFactMessage(w.Name, nsName+ast.FQNSeparator+polName, target.FactNamesByAlias()),
 					})
 				}
 			}

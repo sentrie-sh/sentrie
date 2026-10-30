@@ -60,7 +60,7 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 			// error, never skipped: a typo would otherwise run the target on
 			// its default (#151). Reached only when the index check did not run.
 			if _, ok := p.Facts[with.Name]; !ok {
-				err := xerr.ErrInvalidInvocation(xerr.ImportUnknownFactMessage(with.Name, ns+ast.FQNSeparator+pol, p.FactNames()))
+				err := xerr.ImportUnknownFactError{At: with.Span(), Message: xerr.ImportUnknownFactMessage(with.Name, ns+ast.FQNSeparator+pol, p.FactNamesByAlias())}
 				return box.Null(), n.SetErr(err), err
 			}
 

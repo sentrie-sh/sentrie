@@ -78,7 +78,7 @@ policy p {
 	s.Equal(8, e.At.From.Line)
 	s.Equal(44, e.At.From.Column)
 	s.True(strings.HasPrefix(src[e.At.From.Offset:], "with usr  as"), "span must start at the with clause")
-	s.Equal(`import binds unknown fact "usr": policy t/q declares facts: user, zone`, e.Message)
+	s.Equal(`import binds unknown fact "usr": policy t/q accepts fact aliases: user, zone`, e.Message)
 }
 
 // TestImportWithUnknownFactListsDeclaredFactsSorted checks the diagnostic order
@@ -99,7 +99,7 @@ policy p {
 `})
 	errs := unknownFactErrors(err)
 	s.Require().Len(errs, 1)
-	s.Contains(errs[0].Message, "declares facts: alpha, mid, zeta")
+	s.Contains(errs[0].Message, "accepts fact aliases: alpha, mid, zeta")
 }
 
 func (s *IndexTestSuite) TestImportWithOnTargetWithoutFactsIsRejected() {
@@ -229,5 +229,28 @@ policy p {
 	s.Require().Len(errs, 1)
 	s.Equal("p.sentrie", errs[0].At.File)
 	s.Equal(2, errs[0].At.From.Line)
-	s.Equal(`import binds unknown fact "lvl": policy com/other/q declares facts: level`, errs[0].Message)
+	s.Equal(`import binds unknown fact "lvl": policy com/other/q accepts fact aliases: level`, errs[0].Message)
+}
+
+// TestImportWithByDeclaredNameOfAliasedFactHintsAlias: facts are bound by
+// alias, so `with user` does not reach `fact user as u`. The message must say
+// which names are accepted and point at the alias.
+func (s *IndexTestSuite) TestImportWithByDeclaredNameOfAliasedFactHintsAlias() {
+	err := s.validateSources([2]string{"f.sentrie", `namespace t
+policy q {
+  fact user?: document as u
+  rule ok = default true { yield true }
+  export decision of ok
+}
+policy p {
+  rule r = import decision ok from t/q with user as {"role": "admin"}
+  rule right = import decision ok from t/q with u as {"role": "admin"}
+  export decision of r
+  export decision of right
+}
+`})
+	s.Require().Error(err)
+	errs := unknownFactErrors(err)
+	s.Require().Len(errs, 1, "only the declared-name clause is rejected")
+	s.Equal(`import binds unknown fact "user": policy t/q accepts fact aliases: u; fact "user" is bound by its alias "u"`, errs[0].Message)
 }

@@ -5,6 +5,8 @@ package xerr
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/sentrie-sh/sentrie/tokens"
@@ -23,18 +25,22 @@ func (e ImportUnknownFactError) Error() string {
 
 func (e ImportUnknownFactError) Unwrap() error { return ErrIndex }
 
-// ErrImportUnknownFact reports, anchored at the with clause, a `with` name that
-// the imported policy does not declare. facts must already be sorted.
-func ErrImportUnknownFact(at tokens.Range, with, policy string, facts []string) error {
-	return ImportUnknownFactError{At: at, Message: ImportUnknownFactMessage(with, policy, facts)}
-}
-
 // ImportUnknownFactMessage is the message shared by the index check and the
-// runtime fallback, so the two always read the same. facts must already be sorted.
-func ImportUnknownFactMessage(with, policy string, facts []string) string {
-	declared := "declares no facts"
-	if len(facts) > 0 {
-		declared = "declares facts: " + strings.Join(facts, ", ")
+// runtime fallback. facts maps each fact alias of the imported policy (the
+// name a `with` clause must use, because Policy.Facts is keyed by alias) to the
+// fact's declared name. When a fact's declared name equals the `with` name but
+// its alias differs, the message says so.
+func ImportUnknownFactMessage(with, policy string, facts map[string]string) string {
+	aliases := slices.Sorted(maps.Keys(facts))
+	msg := fmt.Sprintf("import binds unknown fact %q: policy %s ", with, policy)
+	if len(aliases) == 0 {
+		return msg + "declares no facts"
 	}
-	return fmt.Sprintf("import binds unknown fact %q: policy %s %s", with, policy, declared)
+	msg += "accepts fact aliases: " + strings.Join(aliases, ", ")
+	for _, alias := range aliases {
+		if facts[alias] == with {
+			msg += fmt.Sprintf("; fact %q is bound by its alias %q", with, alias)
+		}
+	}
+	return msg
 }

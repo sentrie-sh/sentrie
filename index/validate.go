@@ -270,16 +270,7 @@ func (idx *Index) detectRuleCycle(ctx context.Context) (dag.G[*Rule], error) {
 					return nil, fmt.Errorf("validation cancelled: %w", xerr.ErrIndex)
 				}
 				if importClause, ok := rule.Body.(*ast.ImportClause); ok {
-					var ns, pol string
-					if len(importClause.FromPolicyFQN.Parts) == 1 {
-						// we only have a policy name - the namespace is the current policy's namespace
-						ns = policy.Namespace.FQN.String()
-						pol = importClause.FromPolicyFQN.Parts[0]
-					} else {
-						// we have a namespace and policy name
-						ns = strings.Join(importClause.FromPolicyFQN.Parts[:len(importClause.FromPolicyFQN.Parts)-1], ast.FQNSeparator)
-						pol = importClause.FromPolicyFQN.Parts[len(importClause.FromPolicyFQN.Parts)-1]
-					}
+					ns, pol := importTarget(policy, importClause)
 
 					p, err := idx.ResolvePolicy(ns, pol)
 					if err != nil {
@@ -392,4 +383,14 @@ func (idx *Index) detectShapeCycle(ctx context.Context) (dag.G[*Shape], error) {
 	}
 
 	return shapeDag, nil
+}
+
+// importTarget returns the namespace and policy name an import clause refers
+// to. A single-segment path names a policy in the importing policy's namespace.
+func importTarget(from *Policy, imp *ast.ImportClause) (ns, pol string) {
+	parts := imp.FromPolicyFQN.Parts
+	if len(parts) == 1 {
+		return from.Namespace.FQN.String(), parts[0]
+	}
+	return strings.Join(parts[:len(parts)-1], ast.FQNSeparator), parts[len(parts)-1]
 }

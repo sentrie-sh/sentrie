@@ -105,5 +105,5 @@ func (s *CmdTestSuite) TestValidateCmdRejectsUnknownImportWithFact() {
 	err := runValidateCLI(s.T().Context(), []string{"t/p", "--pack-location", dir})
 	s.Require().Error(err)
 	s.Contains(err.Error(), `import binds unknown fact "usr"`)
-	s.Contains(err.Error(), "policy t/q declares facts: user")
+	s.Contains(err.Error(), "policy t/q accepts fact aliases: user")
 }

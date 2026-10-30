@@ -40,8 +40,8 @@ tags: error-taxonomy, diagnostics, sentinel-errors, failure-modes
   - **Side Effects:** None.
   - **Exceptions:** All three implement `Unwrap()` for chain traversal.
 
-- **Signature:** `ErrImportUnknownFact(at, with, policy string, facts []string) -> error` / `ImportUnknownFactMessage(...)` / `ImportUnknownFactError{At, Message}`
-  - **Behavior:** Index-time error for an `import ... with <name>` that the imported policy does not declare; unwraps to `ErrIndex`. The message lists the declared facts. The message builder is shared with the runtime fallback in [[runtime.imports]].
+- **Signature:** `ImportUnknownFactError{At, Message}` / `ImportUnknownFactMessage(with, policy string, facts map[string]string) -> string`
+  - **Behavior:** Error for an `import ... with <name>` that the imported policy does not bind; unwraps to `ErrIndex`. Used as an index diagnostic and, positioned the same way, as the runtime fallback in [[runtime.imports]]. `facts` maps each fact alias to its declared name; the message lists the accepted aliases and, when a fact's declared name equals the `with` name but its alias differs, hints that it is bound by its alias.
   - **Side Effects:** None.
   - **Exceptions:** N/A.
 
