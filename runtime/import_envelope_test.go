@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
@@ -169,7 +170,7 @@ derive isTrue = (x: dict[trinary]): trinary => { yield x or false }
 	}
 
 	s.Equal("denied", run("why").Decision.Value.Any())
-	s.Equal(trinary.False, run("val").Decision.Value.Any())
+	s.Equal(false, run("val").Decision.Value.Any())
 	s.Equal(trinary.False, run("val").Decision.State)
 	s.Equal(trinary.True, run("stateEq").Decision.State)
 	s.Equal(trinary.Unknown, run("stateUnknown").Decision.Value.Any())
@@ -216,7 +217,7 @@ policy p {
 	s.Equal(trinary.True, forged.State)
 	raw, err := json.Marshal(forged)
 	s.Require().NoError(err)
-	s.JSONEq(`{"state":"true","value":{"state":"false","value":1}}`, string(raw))
+	s.JSONEq(`{"state":"true","value":{"state":false,"value":1}}`, string(raw))
 }
 
 // TestBareImportRuleReportsTheImportedDecision: the decision a bare-import rule
@@ -252,7 +253,7 @@ policy p2 {
 		s.Require().NoError(err)
 
 		s.Equal(st.state, imported.Decision.State, "state of imported %s", st.source)
-		s.Equal(st.state, imported.Decision.Value.Any(), "value of imported %s", st.source)
+		s.Equal(box.Trinary(st.state).Any(), imported.Decision.Value.Any(), "value of imported %s", st.source)
 
 		// byte for byte what the exporting rule itself reports
 		want, err := json.Marshal(source.Decision)
@@ -273,7 +274,7 @@ policy p2 {
 	n, err := exec.ExecRule(ctx, "t", "p2", "n", nil)
 	s.Require().NoError(err)
 	s.Equal(trinary.False, n.Decision.State)
-	s.Equal(trinary.False, n.Decision.Value.Any())
+	s.Equal(false, n.Decision.Value.Any())
 	s.Empty(n.Attachments, "attachments read through the import are not re-exported")
 
 	layer, err := exec.ExecRule(ctx, "t", "p2", "layer", nil)
@@ -283,7 +284,7 @@ policy p2 {
 	value, err := exec.ExecRule(ctx, "t", "p2", "value", nil)
 	s.Require().NoError(err)
 	s.Equal(trinary.False, value.Decision.State)
-	s.Equal(trinary.False, value.Decision.Value.Any(), "the nested value is the imported value, not an envelope")
+	s.Equal(false, value.Decision.Value.Any(), "the nested value is the imported value, not an envelope")
 
 	// q's own attachment is not carried through p, so p2 cannot see it
 	inherited, err := exec.ExecRule(ctx, "t", "p2", "inherited", nil)

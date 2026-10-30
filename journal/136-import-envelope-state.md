@@ -42,3 +42,12 @@
 - Corrected the `bindTruthValue` comment: the bound value crosses into JS as a boolean only once #135 lands. Noted that only the binding itself is rebound; an envelope inside a `list[trinary]`, `dict[trinary]` or shape field stays an envelope, which only JS can tell apart.
 - Rewrote the legacy header of `runtime/exec_ctx.go` on touch. Signing is still broken, so this round is left uncommitted.
 - _Model: claude-opus-5-5_
+
+### 02:52 - Merge main after #135, #134 and #151
+- Merged `main`. It conflicted where the PR description predicted, in `runtime/decision.go`, `runtime/typeref_trinary.go` and six graph nodes. Took the resolutions the batch's scratch integration produced, after checking that its snapshots of this branch and #135, #134 and #151 match the real branches file for file (journals aside).
+  - `validateAgainstTrinaryTypeRef`: #135's single `TrinaryValue` read, then this branch's `DecisionState` fallback; the `trinary` import goes.
+  - `DecisionOf` comment: #135's list plus the import envelope line. `bindTruthValue`'s comment now says a known state crosses into JS as a boolean.
+  - Graph nodes keep both sides; `runtime.imports` drops "unmatched clauses are skipped", which #151 made false.
+- Separate commit: `runtime/import_envelope_test.go` expected `trinary.False` and `"state":"false"` for known values. After #135 those are Go `false` and JSON `false`. A test expectation, not a behaviour change.
+- `make test`, `make docs-graph` and lint pass on the merged tree.
+- _Model: claude-opus-5-5_
