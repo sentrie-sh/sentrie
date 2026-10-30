@@ -18,7 +18,7 @@ import (
 )
 
 type ModuleSpec struct {
-	Key      string        // canonical key used by registry (e.g., @sentra/math or /abs/path/to/mod.ts)
+	Key      string        // canonical key used by registry (e.g., @sentrie/math or /abs/path/to/mod.ts)
 	Path     string        // filesystem path if not builtin
 	Dir      string        // base dir for resolving relative requires
 	Builtin  bool          // this is a builtin module

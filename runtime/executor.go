@@ -120,7 +120,7 @@ type executorImpl struct {
 	moduleLoads atomic.Int64
 }
 
-// NewExecutor builds an Executor with built-in @sentra/* modules registered.
+// NewExecutor builds an Executor with built-in @sentrie/* modules registered.
 func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) {
 	exec := &executorImpl{
 		index:            idx,
