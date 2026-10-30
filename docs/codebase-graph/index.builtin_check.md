@@ -33,7 +33,12 @@ Walks every expression a policy holds (fact defaults, policy lets, rule `default
   - **Exceptions:** `errors.Join` of every diagnostic; `validation cancelled` on context cancellation (checked per namespace, per policy and per derive).
 
 - **Signature:** `(*Index).forEachBuiltinCall(ctx, visit func(k *kindCheckCtx, decl *builtins.Decl, call *ast.CallExpression)) -> error`
-  - **Behavior:** The one walk over every expression site: per policy, a rule-flavoured `kindCheckCtx` (facts, lets and derives in scope) over fact defaults, lets, rule slots and export attachments; per derive, a derive-flavoured one over the lambda body. `visitBuiltinCalls` does the scope-aware traversal: a call is visited then recursed into; a **block** clones the scope and binds each `let` *after* walking its initializer; a **lambda** pushes a child scope with its parameters; an **`ast.ImportClause`** walks each `with` expression in the importing rule's scope (the runtime evaluates them there); everything else delegates to the generic child walker. Used by `checkBuiltinCalls`, `NondeterminismWarnings` and `CheckCapabilities`.
+  - **Behavior:** A filter over `forEachScopedExpr` that passes on each call the runtime sends to a builtin. Used by `checkBuiltinCalls`, `NondeterminismWarnings` and `CheckCapabilities`.
+  - **Side Effects:** None.
+  - **Exceptions:** `validation cancelled`.
+
+- **Signature:** `(*Index).forEachScopedExpr(ctx, visit func(k *kindCheckCtx, e ast.Expression)) -> error`
+  - **Behavior:** The one walk over every expression site: per policy, a rule-flavoured `kindCheckCtx` (facts, lets and derives in scope) over fact defaults, lets, rule slots and export attachments; per derive, a derive-flavoured one over the lambda body. `walkScopedExprs` does the scope-aware pre-order traversal: every node is visited before its children, so a visitor that rewrites a node ([[index.is_resolve]]) is walked as rewritten; a **block** clones the scope and binds each `let` *after* walking its initializer; a **lambda** pushes a child scope with its parameters; an **`ast.ImportClause`** walks each `with` expression in the importing rule's scope (the runtime evaluates them there); everything else delegates to the generic child walker. Used by `forEachBuiltinCall` and [[index.is_resolve]].
   - **Side Effects:** None; scopes are cloned, never mutated in place across branches.
   - **Exceptions:** `validation cancelled`.
 
@@ -50,6 +55,6 @@ Walks every expression a policy holds (fact defaults, policy lets, rule `default
   - **Unknown kinds pass silently.** `resolveKind` returns "not known" for most expressions, and unknown always means accept. This is deliberately biased toward **no false positives**, which means real errors routinely slip through to runtime.
   - **Shadowing precedence must match the runtime.** `isBuiltinCall` skips names bound locally or by a derive, mirroring the runtime's `getTarget` order. If the runtime's precedence changes, this check would validate against the wrong callee.
   - **Non-`VarDeclaration` statements in a block are skipped, not reported**, unlike the purity walk which rejects them - the two walkers disagree about how strict a block is.
-  - **Type-constraint arguments are not walked.** The parser accepts only literals there (`parseConstraintLiteral`), so no call can appear; if that ever loosens, the walk must learn about type refs.
-  - **`forEachDeriveExprChild` has no `ast.ImportClause` case**, because a derive cannot contain one; `visitBuiltinCalls` handles it explicitly instead. Any other expression type that the child walker rejects is silently skipped by this walk.
+  - **Type-constraint arguments are not walked**, including those of an `x is T` type or an `as T` cast. The parser accepts only literals there (`parseConstraintLiteral`), so no call can appear; if that ever loosens, the walk must learn about type refs.
+  - **`forEachDeriveExprChild` has no `ast.ImportClause` case**, because a derive cannot contain one; `walkScopedExprs` handles it explicitly instead. Any other expression type that the child walker rejects is silently skipped by this walk.
   - **Diagnostics are joined, so output can be long.** A pack with a systematic mistake reports every occurrence at once.

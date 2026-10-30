@@ -26,6 +26,8 @@ type Derive struct {
 	// programs after their helpers when using AddProgram, or keep helpers in the same file.
 	DefineShort map[string]*Derive
 	DefineFQN   map[string]*Derive
+
+	shapeScope *Policy // see ShapeScope
 }
 
 func (d *Derive) String() string {
@@ -103,6 +105,10 @@ func newDerive(name string, lam *ast.LambdaExpression, ns *Namespace, pol *Polic
 		fqn = ast.CreateFQN(ns.FQN, name)
 	}
 	def := cloneDeriveMap(visible)
+	scope := pol
+	if scope == nil {
+		scope = &Policy{Namespace: ns}
+	}
 	return &Derive{
 		Name:        name,
 		FQN:         fqn,
@@ -112,7 +118,23 @@ func newDerive(name string, lam *ast.LambdaExpression, ns *Namespace, pol *Polic
 		Statement:   stmt,
 		DefineShort: def,
 		DefineFQN:   buildDefineFQN(def),
+		shapeScope:  scope,
 	}
+}
+
+// ShapeScope is the policy whose shapes a derive body's types resolve
+// against: the derive's own policy, or for a namespace-level derive a Policy
+// that holds only the derive's namespace (no policy shapes, no rules). It is
+// the scope index.resolveIsExpressions resolves `x is Name` in, built once so
+// the runtime does not allocate one per evaluation.
+func (d *Derive) ShapeScope() *Policy {
+	if d.shapeScope != nil {
+		return d.shapeScope
+	}
+	if d.Policy != nil {
+		return d.Policy
+	}
+	return &Policy{Namespace: d.Namespace}
 }
 
 func (n *Namespace) addDerive(idx *Index, stmt *ast.DeriveStatement, visibleBefore map[string]*Derive) (*Derive, error) {

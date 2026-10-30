@@ -33,7 +33,7 @@ Implements every binary operator in one switch: arithmetic, comparison, three-va
   - **Exceptions:** `divide by zero`; coercion failure.
 
 - **Signature:** Comparison - `==`, `is`, `!=`, `<`, `<=`, `>`, `>=`
-  - **Behavior:** `==` and `is` are **the same operation**, both delegating to `box.EqualValues`. The four relational operators require numbers, so strings and dates cannot be ordered.
+  - **Behavior:** `==` and the infix `is` are **the same operation**, both delegating to `box.EqualValues`. Only an `is` whose right-hand side is neither type syntax nor a bare or qualified name reaches here as an infix; `x is T` and `x is Name` are `ast.IsExpression` and go to [[runtime.eval_is_type]], whose `evalIsEquality` repeats this equality when the index resolved the name to a value; the two must stay in step. The four relational operators require numbers, so strings and dates cannot be ordered.
   - **Side Effects:** None.
   - **Exceptions:** Coercion failure on the relational forms.
 
@@ -54,6 +54,6 @@ Implements every binary operator in one switch: arithmetic, comparison, three-va
   - **Undefined propagation overrides Kleene logic.** The blanket check runs before the switch, so `false and <undefined>` yields `Undefined` rather than `False`, even though Kleene logic defines that case. The three-valued semantics the language advertises are therefore not complete at the operator level - `Undefined` is a fourth state that absorbs everything.
   - **No short-circuit evaluation** means `a is defined and a.field > 0` still evaluates the right side. Guard patterns that look safe are not.
   - **`+` silently stringifies.** `1 + "a"` produces `"1a"` rather than a type error, because the string branch is checked before the numeric one. Combined with the lack of static type checking on operators, arithmetic typos degrade into concatenation.
-  - **`==` and `is` are indistinguishable at runtime**, so the two spellings are pure syntax preference - but [[parser.precedence]] gives them different precedence entries, which can change grouping.
+  - **`is` is equality only when its right-hand side is a value.** With a type or a shape name on the right it is a conformance check ([[runtime.eval_is_type]]) that returns `false`, not `Undefined`, for an undefined left operand; with a value it keeps the equality semantics here, including undefined propagation.
   - **`%` is floating-point modulo.** Since integers and floats collapse to one numeric kind in [[box]], `%` on values that look like integers still goes through `math.Mod`.
   - **The `default` branch is unreachable in practice** but is the only guard against [[parser.lookups]] registering an operator this switch does not implement - a mismatch would surface at request time.

@@ -31,6 +31,11 @@ tags: pure-functions, visibility, scoping, snapshot-semantics
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 
+- **Signature:** `(*Derive).ShapeScope() -> *Policy`
+  - **Behavior:** The policy whose shapes the derive body's `x is T` checks resolve against: `Policy`, or for a namespace-scoped derive a `Policy` value holding only `Namespace` (no policy shapes, rules or lets), built once in `newDerive`. Used by [[runtime.eval_is_type]] so a derive called from another namespace keeps its own shapes.
+  - **Side Effects:** None (a `Derive` built outside `newDerive` gets a fresh scope per call).
+  - **Exceptions:** None.
+
 - **Signature:** `(*Derive).VisibleFromPolicy(caller *Policy) -> error`
   - **Behavior:** Namespace-scoped derives (nil `Policy`) are always visible. A policy-scoped derive is visible only to its own policy, compared by FQN string.
   - **Side Effects:** None.

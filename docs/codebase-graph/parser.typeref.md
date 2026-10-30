@@ -36,9 +36,14 @@ tags: type-syntax, constraints, nullable, recursive-descent
     - `list` / `dict` → constructed with a nil child, then a required `[ T ]` fills it in recursively.
     - `record` → constructed empty, then `[ T, U, … ]` fills a positional field list.
 
-    Afterwards an optional `?` wraps the ref in `NullableTypeRef`, and a loop consumes `@constraint(...)` suffixes, each validated through `AddConstraint`.
+    Afterwards `parseTypeRefSuffixes` lets an optional `?` wrap the ref in `NullableTypeRef`, and a loop consumes `@constraint(...)` suffixes, each validated through `AddConstraint`. `parseTypeRef` is `parseBaseTypeRef` (the head and its brackets) followed by `parseTypeRefSuffixes` with `ternaryAware` off.
   - **Side Effects:** Consumes tokens; mutates the constructed ref (children, span, constraints).
   - **Exceptions:** `expected one of %v, got %s` for an invalid head; `cannot add constraint %s: %s at %s` wrapping the arity/unknown-name errors from [[ast.typeref]]; `nil` on a missing bracket or failed child type.
+
+- **Signature:** `parseTypeRefSuffixes(ctx, p, ref ast.TypeRef, ternaryAware bool) -> ast.TypeRef`
+  - **Behavior:** The `?` and constraint suffixes. With `ternaryAware` set (the right of `is`, see [[parser.is]]), `questionIsNullable(true)` decides: a `?` followed by a token that can start an expression, other than `{`, is left for the ternary operator, so `x is string ? a : b` is a ternary while `when x is string? { ... }` is a nullable type before a rule body. ([[parser.is]] applies the stricter rule, without the `{` exception, after a name.)
+  - **Side Effects:** Consumes tokens.
+  - **Exceptions:** As for the constraint loop above.
 
 - **Signature:** `parseTypeRefConstraint(ctx, p, _ ast.TypeRef) -> *ast.TypeRefConstraint`
   - **Behavior:** Parses `@name(lit, lit, …)`. Arguments go through [[parser.literal]], so only compile-time constants are accepted. The span covers `@` through the closing paren.

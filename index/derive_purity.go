@@ -149,6 +149,11 @@ func scanLambdasOutsideCalls(e ast.Expression, underCall bool) error {
 		return scanLambdasOutsideCalls(n.Left, underCall)
 	case *ast.IsEmptyExpression:
 		return scanLambdasOutsideCalls(n.Left, underCall)
+	case *ast.IsExpression:
+		if err := scanLambdasOutsideCalls(n.Left, underCall); err != nil {
+			return err
+		}
+		return scanLambdasOutsideCalls(n.Right, underCall)
 	case *ast.TrailingCommentExpression:
 		return scanLambdasOutsideCalls(n.Wrap, underCall)
 	case *ast.PrecedingCommentExpression:
@@ -189,7 +194,7 @@ func walkDeriveExprSeen(idx *Index, d *Derive, e ast.Expression, scope map[strin
 	case *ast.InfixExpression, *ast.UnaryExpression, *ast.TernaryExpression,
 		*ast.FieldAccessExpression, *ast.IndexAccessExpression, *ast.ListLiteral, *ast.MapLiteral,
 		*ast.CastExpression, *ast.TransformExpression, *ast.IsDefinedExpression, *ast.IsEmptyExpression,
-		*ast.IntegerLiteral, *ast.FloatLiteral, *ast.StringLiteral, *ast.NullLiteral, *ast.TrinaryLiteral,
+		*ast.IsExpression, *ast.IntegerLiteral, *ast.FloatLiteral, *ast.StringLiteral, *ast.NullLiteral, *ast.TrinaryLiteral,
 		*ast.PipelineHoleExpression, *ast.TrailingCommentExpression, *ast.PrecedingCommentExpression:
 		return forEachDeriveExprChild(e, func(child ast.Expression) error {
 			return walkDeriveExprSeen(idx, d, child, scope, seen)

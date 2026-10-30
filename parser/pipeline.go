@@ -115,6 +115,10 @@ func containsPipelineHole(expr ast.Expression) bool {
 		return containsPipelineHole(t.Left)
 	case *ast.IsEmptyExpression:
 		return containsPipelineHole(t.Left)
+	case *ast.IsExpression:
+		// Type carries no expressions that can hold a hole; a name right-hand
+		// side is an identifier chain, which cannot either.
+		return containsPipelineHole(t.Left) || containsPipelineHole(t.Right)
 	case *ast.TransformExpression:
 		return containsPipelineHole(t.Argument)
 	case *ast.PrecedingCommentExpression:
@@ -180,6 +184,8 @@ func substitutePipelineHoles(expr ast.Expression, replacement ast.Expression) as
 		return ast.NewIsDefinedExpression(substitutePipelineHoles(t.Left, replacement), t.Span())
 	case *ast.IsEmptyExpression:
 		return ast.NewIsEmptyExpression(substitutePipelineHoles(t.Left, replacement), t.Span())
+	case *ast.IsExpression:
+		return ast.NewIsExpression(substitutePipelineHoles(t.Left, replacement), t.Right, t.Type, t.Span())
 	case *ast.TransformExpression:
 		return ast.NewTransformExpression(substitutePipelineHoles(t.Argument, replacement), t.Transformer, t.Span())
 	case *ast.PrecedingCommentExpression:

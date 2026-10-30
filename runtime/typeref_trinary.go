@@ -5,7 +5,6 @@ package runtime
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
@@ -22,7 +21,7 @@ func validateAgainstTrinaryTypeRef(ctx context.Context, ec *ExecutionContext, ex
 		tv, ok = v.DecisionState()
 	}
 	if !ok {
-		return fmt.Errorf("value '%v' is not a bool at %s - expected bool", v, valueRange)
+		return errMismatch("value '%v' is not a bool at %s - expected bool", v, valueRange)
 	}
 
 	for _, constraint := range typeRef.GetConstraints() {
@@ -30,7 +29,7 @@ func validateAgainstTrinaryTypeRef(ctx context.Context, ec *ExecutionContext, ex
 		for i, argExpr := range constraint.Args {
 			csArg, _, err := eval(ctx, ec, exec.(*executorImpl), p, argExpr)
 			if err != nil {
-				return err
+				return errCheckFailed(err)
 			}
 			args[i] = csArg
 		}

@@ -43,6 +43,11 @@ func (idx *Index) IsValid(ctx context.Context) error {
 }
 
 func (idx *Index) validate(ctx context.Context) error {
+	// Settle `x is Name` first: the walks below must not read a shape name
+	// as a reference to a value.
+	if err := idx.resolveIsExpressions(ctx); err != nil {
+		return err
+	}
 	// Check for self-references in rules and shapes
 	if err := idx.detectReferenceCycle(ctx); err != nil {
 		return err
@@ -144,6 +149,13 @@ func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Polic
 			}
 		case *ast.InfixExpression:
 			addNodes(g, []ast.Node{n.Left, n.Right}, referedBy, policy)
+		case *ast.IsExpression:
+			// A shape operand is not a reference to a rule or let.
+			nodes := []ast.Node{n.Left}
+			if n.Right != nil {
+				nodes = append(nodes, n.Right)
+			}
+			addNodes(g, nodes, referedBy, policy)
 		case *ast.UnaryExpression:
 			addNodes(g, []ast.Node{n.Right}, referedBy, policy)
 		case *ast.TernaryExpression:

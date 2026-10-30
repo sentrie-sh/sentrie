@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -83,7 +70,7 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 	// so we need to validate the value against the complex shape
 	vm, ok := v.DictValue()
 	if !ok {
-		return fmt.Errorf("value %v is not a shape at %s - expected shape", v, pos)
+		return errMismatch("value %v is not a shape at %s - expected shape", v, pos)
 	}
 
 	// check the fields
@@ -93,11 +80,11 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 			if field.Optional {
 				continue
 			}
-			return fmt.Errorf("field %s is required at %s - expected field", field.Name, pos)
+			return errMismatch("field %s is required at %s - expected field", field.Name, pos)
 		}
 
 		if fieldValue.IsUndefined() {
-			return fmt.Errorf("field %s cannot be undefined at %s - expected field value", field.Name, pos)
+			return errMismatch("field %s cannot be undefined at %s - expected field value", field.Name, pos)
 		}
 
 		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, fieldValue, field.TypeRef, pos); err != nil {
@@ -110,7 +97,7 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 		for i, argExpr := range constraint.Args {
 			csArg, _, err := eval(ctx, ec, exec.(*executorImpl), p, argExpr)
 			if err != nil {
-				return err
+				return errCheckFailed(err)
 			}
 			args[i] = csArg
 		}
