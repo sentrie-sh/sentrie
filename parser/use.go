@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/tokens"
@@ -77,7 +76,7 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 		// whose name starts with `@` is still reachable as "./@name".
 		if strings.HasPrefix(fromModule.Value, "@") {
 			p.errorAtf(
-				tokens.NewRange(fromModule.Range.File, fromModule.Range.From, tokenEnd(fromModule)),
+				fromModule.Range,
 				"quoted module path %q is read as a file next to the policy; drop the quotes to import the module: from %s",
 				fromModule.Value, fromModule.Value,
 			)
@@ -85,7 +84,7 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 		}
 		p.advance()
 		relativeFrom = fromModule.Value
-		rnge.To = tokenEnd(fromModule)
+		rnge.To = fromModule.Range.To
 	} else {
 		if !p.expect(tokens.TokenAt) {
 			return nil
@@ -95,7 +94,7 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 			return nil
 		}
 		lastSegment = fromPackage
-		rnge.To = tokenEnd(fromPackage)
+		rnge.To = fromPackage.Range.To
 		from := []string{fromPackage.Value}
 		for p.canExpect(tokens.TokenDiv) {
 			p.advance() // consume '/'
@@ -104,7 +103,7 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 				return nil
 			}
 			lastSegment = fromModule
-			rnge.To = tokenEnd(fromModule)
+			rnge.To = fromModule.Range.To
 			from = append(from, fromModule.Value)
 		}
 		libFrom = from
@@ -129,7 +128,7 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 			return nil
 		}
 		alias = asAlias.Value
-		rnge.To = tokenEnd(asAlias)
+		rnge.To = asAlias.Range.To
 	} else if relativeFrom == "" {
 		// A keyword segment such as `string` in `@sentrie/string` is a valid
 		// path segment but not a valid identifier, so it cannot be the alias
@@ -155,28 +154,4 @@ func advanceModulePathSegment(p *Parser) (tokens.Instance, bool) {
 		return p.advance(), true
 	}
 	return p.advanceExpected(tokens.Ident)
-}
-
-// tokenEnd returns the position just past t on t's own line, the end a
-// statement span should carry when t is its last token.
-//
-// The lexer's end position is the position of the rune after the token, which
-// is right when that rune is on the same line but not otherwise: before a
-// newline it is reported as column 0 of the next line (#216), and at EOF it is
-// one column short. Offsets are right in every case, so the end is rebuilt
-// from the token's start and its source width. The width in runes is the byte
-// width less the extra bytes of multi-byte runes, which a string's escapes
-// carry over unchanged from source to value. A value containing a newline (a
-// heredoc) is not on one line, so it keeps the lexer's end.
-func tokenEnd(t tokens.Instance) tokens.Pos {
-	width := t.Range.To.Offset - t.Range.From.Offset
-	if width < 0 || strings.ContainsRune(t.Value, '\n') {
-		return t.Range.To
-	}
-	runes := width - (len(t.Value) - utf8.RuneCountInString(t.Value))
-	return tokens.Pos{
-		Line:   t.Range.From.Line,
-		Column: t.Range.From.Column + runes,
-		Offset: t.Range.To.Offset,
-	}
 }

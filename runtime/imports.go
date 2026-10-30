@@ -13,6 +13,7 @@ import (
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 	"github.com/sentrie-sh/sentrie/trinary"
+	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 // ImportDecision resolves an ImportClause with `with` facts for sandboxed execution,
@@ -54,10 +55,13 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 		}
 
 		for _, with := range t.Withs {
-			// find the fact in the target policy
+			// The target must declare the fact, keyed exactly as the index check
+			// (checkImportWiths) and ExecRule key it. An unknown name is an
+			// error, never skipped: a typo would otherwise run the target on
+			// its default (#151). Reached only when the index check did not run.
 			if _, ok := p.Facts[with.Name]; !ok {
-				// no point evaluating - the target policy does not need this fact
-				continue
+				err := xerr.ImportUnknownFactError{At: with.Span(), Message: xerr.ImportUnknownFactMessage(with.Name, ns+ast.FQNSeparator+pol, p.FactNamesByAlias())}
+				return box.Null(), n.SetErr(err), err
 			}
 
 			// evaluate the with expression in the context of this execution context

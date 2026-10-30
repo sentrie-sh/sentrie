@@ -95,4 +95,4 @@ Loose: "Look into how derive works and tell me what you find."
 
 Tight: "List every call site of `box.Value` constructors outside `box/`. Read the inbound edges to `[[box.value]]` in `docs/codebase-graph/` first, then confirm with `rg`. Return `file:line` and the enclosing function, one per line, nothing else." That is a Haiku task.
 
-Related: [Always work in a worktree](work-in-worktree.md), [Token efficiency](token-efficiency.md), [Trace data flow for race/guard audits](trace-data-flow-for-races.md), [`evalDerive` resolution](evalderive-resolution.md), [Journal convention](journal-convention.md)
+Related: [Implement, test and review loop](implement-review-test-loop.md), [Always work in a worktree](work-in-worktree.md), [Token efficiency](token-efficiency.md), [Trace data flow for race/guard audits](trace-data-flow-for-races.md), [`evalDerive` resolution](evalderive-resolution.md), [Journal convention](journal-convention.md)

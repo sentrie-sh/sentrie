@@ -21,6 +21,8 @@ type Lexer struct {
 	reader   *bufio.Reader
 	filename string
 
+	// line, column and offset locate the current rune: line and column are
+	// 1-based on every line, offset is the 0-based byte offset.
 	line   int
 	column int
 
@@ -30,6 +32,11 @@ type Lexer struct {
 	offset       int
 	currentWidth int
 	atEOF        bool
+
+	// end is the position just past the last consumed rune, on that rune's
+	// own line. A token's end is read from here, so a token before a newline
+	// or at EOF ends where its last rune does.
+	end tokens.Pos
 
 	identRegex *regexp.Regexp
 
@@ -43,6 +50,9 @@ func NewLexer(reader io.Reader, filename string) *Lexer {
 		filename:    filename,
 		currentLine: []rune{},
 		identRegex:  regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`),
+		line:        1,
+		column:      1,
+		end:         tokens.Pos{Line: 1, Column: 1},
 	}
 	l.readRune() // Initialize the first rune
 	return l
@@ -76,201 +86,218 @@ func (l *Lexer) NextToken() tokens.Instance {
 			if l.peekAhead() == '-' {
 				l.readRune() // consume second '-'
 				commentKind, value := l.readComment()
-				endPos := l.currentPosition()
+				endPos := l.endPosition()
 				return tokens.New(commentKind, value, tokens.NewRange(l.filename, startPos, endPos))
 			}
-			endPos := l.currentPosition()
 			l.readRune()
+			endPos := l.endPosition()
 			return tokens.New(tokens.TokenMinus, "-", tokens.NewRange(l.filename, startPos, endPos))
 
 		case '=':
 			if l.peekAhead() == '=' {
 				l.readRune()
-				endPos := l.currentPosition()
 				l.readRune()
+				endPos := l.endPosition()
 				return tokens.New(tokens.TokenEq, "==", tokens.NewRange(l.filename, startPos, endPos))
 			}
 			if l.peekAhead() == '>' {
 				l.readRune()
-				endPos := l.currentPosition()
 				l.readRune()
+				endPos := l.endPosition()
 				return tokens.New(tokens.TokenFatArrow, "=>", tokens.NewRange(l.filename, startPos, endPos))
 			}
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.TokenAssign, "=", tokens.NewRange(l.filename, startPos, endPos))
 
 		case '!':
 			if l.peekAhead() == '=' {
 				l.readRune()
 				l.readRune()
-				endPos := l.currentPosition()
+				endPos := l.endPosition()
 				return tokens.New(tokens.TokenNeq, "!=", tokens.NewRange(l.filename, startPos, endPos))
 			}
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.TokenBang, "!", tokens.NewRange(l.filename, startPos, endPos))
 
 		case '<':
 			if l.peekString(2) == "<<" {
 				value, err := l.readHereDoc()
 				if err != nil {
-					endPos := l.currentPosition()
+					endPos := l.endPosition()
 					return tokens.New(tokens.Error, err.Error(), tokens.NewRange(l.filename, startPos, endPos))
 				}
-				endPos := l.currentPosition()
+				endPos := l.endPosition()
 				return tokens.New(tokens.String, value, tokens.NewRange(l.filename, startPos, endPos))
 			}
 			if l.peekAhead() == '=' {
 				l.readRune()
 				l.readRune()
-				endPos := l.currentPosition()
+				endPos := l.endPosition()
 				return tokens.New(tokens.TokenLte, "<=", tokens.NewRange(l.filename, startPos, endPos))
 			}
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.TokenLt, "<", tokens.NewRange(l.filename, startPos, endPos))
 
 		case '>':
 			if l.peekAhead() == '=' {
 				l.readRune()
 				l.readRune()
-				endPos := l.currentPosition()
+				endPos := l.endPosition()
 				return tokens.New(tokens.TokenGte, ">=", tokens.NewRange(l.filename, startPos, endPos))
 			}
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.TokenGt, ">", tokens.NewRange(l.filename, startPos, endPos))
 
 		case '+':
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.TokenPlus, "+", tokens.NewRange(l.filename, startPos, endPos))
 		case '*':
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.TokenMul, "*", tokens.NewRange(l.filename, startPos, endPos))
 		case '/':
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.TokenDiv, "/", tokens.NewRange(l.filename, startPos, endPos))
 		case '%':
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.TokenMod, "%", tokens.NewRange(l.filename, startPos, endPos))
 		case '?':
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.TokenQuestion, "?", tokens.NewRange(l.filename, startPos, endPos))
 		case ':':
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.PunctColon, ":", tokens.NewRange(l.filename, startPos, endPos))
 		case '.':
 			if l.peekString(2) == ".." {
 				l.readRune()
 				l.readRune()
 				l.readRune()
-				endPos := l.currentPosition()
+				endPos := l.endPosition()
 				return tokens.New(tokens.TokenDotDotDot, "...", tokens.NewRange(l.filename, startPos, endPos))
 			}
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.TokenDot, ".", tokens.NewRange(l.filename, startPos, endPos))
 		case '@':
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.TokenAt, "@", tokens.NewRange(l.filename, startPos, endPos))
 		case '#':
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.TokenPipelineHole, "#", tokens.NewRange(l.filename, startPos, endPos))
 		case '|':
 			if l.peekAhead() == '>' {
 				l.readRune()
-				endPos := l.currentPosition()
 				l.readRune()
+				endPos := l.endPosition()
 				return tokens.New(tokens.TokenPipeForward, "|>", tokens.NewRange(l.filename, startPos, endPos))
 			}
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.Error, "unexpected '|': only '|>' is supported", tokens.NewRange(l.filename, startPos, endPos))
 		case ',':
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.PunctComma, ",", tokens.NewRange(l.filename, startPos, endPos))
 		case ';':
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.PunctSemicolon, ";", tokens.NewRange(l.filename, startPos, endPos))
 		case '(':
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.PunctLeftParentheses, "(", tokens.NewRange(l.filename, startPos, endPos))
 		case ')':
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.PunctRightParentheses, ")", tokens.NewRange(l.filename, startPos, endPos))
 		case '{':
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.PunctLeftCurly, "{", tokens.NewRange(l.filename, startPos, endPos))
 		case '}':
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.PunctRightCurly, "}", tokens.NewRange(l.filename, startPos, endPos))
 		case '[':
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.PunctLeftBracket, "[", tokens.NewRange(l.filename, startPos, endPos))
 		case ']':
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.PunctRightBracket, "]", tokens.NewRange(l.filename, startPos, endPos))
 
 		case '"':
 			value, err := l.readString()
 			if err != nil {
-				endPos := l.currentPosition()
+				endPos := l.endPosition()
 				return tokens.New(tokens.Error, err.Error(), tokens.NewRange(l.filename, startPos, endPos))
 			}
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.String, value, tokens.NewRange(l.filename, startPos, endPos))
 
 		default:
 			if unicode.IsLetter(l.current) || l.current == '_' {
 				value := l.readIdentifier()
 				if !l.identRegex.MatchString(value) {
-					endPos := l.currentPosition()
+					endPos := l.endPosition()
 					return tokens.Err(tokens.NewRange(l.filename, startPos, endPos), "invalid identifier: "+value)
 				}
 
 				// is this a known keyword?
 				if kind, isKeyword := tokens.IsKeyword(value); isKeyword {
-					endPos := l.currentPosition()
+					endPos := l.endPosition()
 					return tokens.New(kind, value, tokens.NewRange(l.filename, startPos, endPos))
 				}
-				endPos := l.currentPosition()
+				endPos := l.endPosition()
 				return tokens.New(tokens.Ident, value, tokens.NewRange(l.filename, startPos, endPos))
 			}
 
 			if unicode.IsDigit(l.current) {
 				value, kind := l.readNumber()
-				endPos := l.currentPosition()
+				endPos := l.endPosition()
 				return tokens.New(kind, value, tokens.NewRange(l.filename, startPos, endPos))
 			}
 
 			// Unknown character
 			char := string(l.current)
 			l.readRune()
-			endPos := l.currentPosition()
+			endPos := l.endPosition()
 			return tokens.New(tokens.Error, char, tokens.NewRange(l.filename, startPos, endPos))
 		}
 	}
 }
 
-// readRune reads the next rune from input
+// readRune consumes the current rune and reads the next one from input.
 func (l *Lexer) readRune() {
+	// Step past the rune being consumed: record where it ends, then move the
+	// position to the rune after it.
+	if l.currentWidth > 0 {
+		l.end = tokens.Pos{
+			Line:   l.line,
+			Column: l.column + 1,
+			Offset: l.offset + l.currentWidth,
+		}
+		l.offset += l.currentWidth
+		if l.current == '\n' {
+			l.line++
+			l.column = 1
+		} else {
+			l.column++
+		}
+	}
+
 	if l.atEOF {
 		l.current = 0
 		l.currentWidth = 0
@@ -279,14 +306,7 @@ func (l *Lexer) readRune() {
 
 	r, size, err := l.reader.ReadRune()
 	if err != nil {
-		if err == io.EOF {
-			l.atEOF = true
-			l.current = 0
-			l.currentWidth = 0
-			return
-		}
-		// For other errors, we could set current to an error rune
-		// For now, treat as EOF
+		// io.EOF ends the input; any other read error is treated as EOF too.
 		l.atEOF = true
 		l.current = 0
 		l.currentWidth = 0
@@ -295,17 +315,11 @@ func (l *Lexer) readRune() {
 
 	l.current = r
 	l.currentWidth = size
-	l.offset += size
 
 	// Update the current line buffer
 	l.currentLine = append(l.currentLine, r)
-
 	if r == '\n' {
-		l.line++
 		l.currentLine = []rune{}
-		l.column = 1
-	} else {
-		l.column++
 	}
 }
 
@@ -329,13 +343,21 @@ func (l *Lexer) peekAhead() rune {
 	return r
 }
 
-// currentPosition returns the current position
+// currentPosition returns the position of the current rune, which is where
+// the next token starts. At EOF it is the position just past the input.
 func (l *Lexer) currentPosition() tokens.Pos {
 	return tokens.Pos{
-		Offset: l.offset - l.currentWidth,
+		Offset: l.offset,
 		Line:   l.line,
-		Column: l.column - 1,
+		Column: l.column,
 	}
+}
+
+// endPosition returns the exclusive end of the token just read: the position
+// just past its last rune, on that rune's line. It is not the position of the
+// next rune, which is on the next line when the token ends a line.
+func (l *Lexer) endPosition() tokens.Pos {
+	return l.end
 }
 
 // skipWhitespace skips whitespace characters
@@ -515,10 +537,8 @@ func (l *Lexer) readHereDoc() (string, error) {
 
 		// If line equals the tag exactly, stop. Do not include this line.
 		if line == tag {
-			// Consume the newline after the terminator line if present.
-			if l.current == '\n' {
-				l.readRune()
-			}
+			// Leave the newline after the terminator for skipWhitespace, so
+			// the heredoc ends just past its tag.
 			break
 		}
 
