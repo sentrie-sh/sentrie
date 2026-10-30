@@ -480,7 +480,7 @@ policy q {
 	testCases := []struct {
 		name string
 		src  string
-		line int // 0-based line of the offending argument
+		line int // 1-based line of the offending argument
 	}{
 		{"policy let", `namespace com/ex
 policy p {
@@ -488,25 +488,25 @@ policy p {
   rule allow = default true { yield n > 0 }
   export decision of allow
 }
-`, 2},
+`, 3},
 		{"fact default", `namespace com/ex
 policy p {
   fact n?: number as n default count([1], [2])
   rule allow = default true { yield n > 0 }
   export decision of allow
 }
-`, 2},
+`, 3},
 		{"export attachment", `namespace com/ex
 policy p {
   rule allow = default true { yield true }
   export decision of allow attach n as count([1], [2])
 }
-`, 3},
+`, 4},
 		{"import with clause", target + `policy p {
   rule allow = import decision allow from com/ex/q with f as count([1], [2])
   export decision of allow
 }
-`, 7},
+`, 8},
 	}
 
 	for _, tc := range testCases {
@@ -538,7 +538,7 @@ policy p {
 	var kind xerr.BuiltinArgKindError
 	s.Require().ErrorAs(err, &kind)
 	s.Contains(kind.Message, "filter: first argument must be a list")
-	s.Equal(2, kind.At.From.Line)
+	s.Equal(3, kind.At.From.Line)
 	s.Equal(`"abc"`, src[kind.At.From.Offset:kind.At.To.Offset])
 }
 

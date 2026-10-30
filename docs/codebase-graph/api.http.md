@@ -40,9 +40,9 @@ Owns the HTTP surface: route registration, multi-address listener setup, server 
   - **Exceptions:** None returned.
 
 - **Signature:** `StopServer(ctx context.Context) -> error`
-  - **Behavior:** Closes each listener/server pair and nils the slice. `ListenerServerPair.Close` closes the listener then the server, returning early if the listener close fails.
-  - **Side Effects:** Terminates connections.
-  - **Exceptions:** Always returns nil - pair errors are discarded.
+  - **Behavior:** Gracefully shuts every pair down concurrently with `ListenerServerPair.Shutdown(ctx)` (`http.Server.Shutdown`, then a listener close in case `Serve` never ran) and waits for all of them. It only reads `api.listeners` (it does not clear it), because `StartServer` reads the slice from another goroutine; a second call is harmless since `Shutdown` is idempotent and an already closed listener is ignored. In-flight requests finish until `ctx` is done ([#117](https://github.com/sentrie-sh/sentrie/issues/117)). A pair whose shutdown fails (normally `ctx` ending with requests still running) is logged at WARN, then closed with `http.Server.Close` so the process can exit. `serve` passes a context derived with `context.WithoutCancel` and a timeout of `DefaultShutdownGracePeriod` (10s, a constant, not a flag).
+  - **Side Effects:** Stops accepting connections; waits for in-flight requests; drops any still running at the deadline.
+  - **Exceptions:** Joined errors, one per pair that did not drain in time (wrapping `context.DeadlineExceeded`), so an unclean shutdown makes `serve` exit 1. Nil on a clean drain.
 
 - **Signature:** `handleHealth(w, r)`
   - **Behavior:** Returns status and current time with HTTP 200, unconditionally.
@@ -58,9 +58,8 @@ Owns the HTTP surface: route registration, multi-address listener setup, server 
 - **Statefulness:** Holds the listener slice; not safe for concurrent `Setup`/`Stop`. One executor is shared by all handlers.
 - **Performance/Scale Notes:** The read timeout is fixed at 30 seconds. Evaluation is bounded by the request's deadline, and the write timeout is derived from the longest one allowed, so a slow policy fails with a 503 rather than a half-written response. Every listener's server comes from `newServer`, which also sets `ReadHeaderTimeout` (5s), `IdleTimeout` (60s) and `MaxHeaderBytes` (64 KiB) as named constants ([#247](https://github.com/sentrie-sh/sentrie/issues/247)), so a client sending headers slowly or idling on a keep-alive connection is disconnected well before the 30-second read timeout. None of them is a flag.
 - **Dependencies Risk:**
-  - **`StartServer` cannot report a serve error.** Errors go into `errChan`, and the deferred `wg.Wait()` followed by `close(errChan)` runs immediately - the function returns without waiting, and nothing ever reads the channel. A listener that fails after startup dies silently. `serve` in [[cmd]] launches this in a goroutine and then blocks on `ctx.Done()`, so the process stays alive with no listeners.
-  - **`StopServer` is not a graceful shutdown.** It calls `Close`, which terminates active connections immediately, rather than `http.Server.Shutdown`, which drains them. An in-flight decision is dropped at exit.
-  - **`ListenerServerPair.Close` returns early on the first error**, so a failed listener close leaves the server unclosed.
-  - **`BaseContext` returns the setup context**, so cancelling it cancels every in-flight request - correct for shutdown, but it means request contexts are tied to process lifetime rather than to the request.
+  - **`StartServer` cannot report a serve error.** Errors go into `errChan`, which nothing ever reads, so a listener that fails after startup dies silently. `serve` in [[cmd]] launches this in a goroutine and then blocks on `ctx.Done()`, so the process stays alive with no listeners. The deferred `wg.Wait()` does block, so `StartServer` returns only after every `Serve` has returned, which in `serve` means after `StopServer`'s `Shutdown`.
+  - **`ListenerServerPair.Close` returns early on the first error**, so a failed listener close leaves the server unclosed. It is now only the fallback after the grace period and the cleanup for a partial `Setup`.
+  - **`BaseContext` returns `context.WithoutCancel(setupCtx)`**: cancelling the serve context (the shutdown signal) must not cancel in-flight requests, or the drain would be pointless. Request contexts are still cancelled when their connection closes, which is how the `Close` fallback drops them, and the evaluation deadline bounds how long a request can run (with `--eval-timeout 0` and no ceiling there is no such bound, and only the grace-period `Close` ends the request).
   - **`Setup`'s `port` and `listen` are re-passed to `StartServer`**, which ignores them and uses the stored listeners. The parameters are vestigial and misleading.
   - **The `{target...}` wildcard swallows the entire path tail**, so path parsing and validation are entirely delegated to `ResolveSegments`.

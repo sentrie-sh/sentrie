@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package main
 
@@ -25,6 +12,7 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/google/uuid"
 	"github.com/sentrie-sh/sentrie/cmd"
@@ -71,8 +59,17 @@ var versionOnce = sync.OnceValue(func() vers.Info {
 func main() {
 	ctx := context.Background()
 
-	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
+	// SIGTERM is what Docker, Kubernetes and systemd send; SIGKILL cannot be
+	// caught, so it is not listed (#117). syscall.SIGTERM exists on Windows too.
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	// After the first signal restore the default behaviour, so a second signal
+	// during a slow graceful shutdown terminates the process at once.
+	go func() {
+		<-ctx.Done()
+		stop()
+	}()
 
 	// set an exit code
 	exitCode := 0
