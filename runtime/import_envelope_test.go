@@ -88,7 +88,7 @@ func (s *RuntimeTestSuite) TestImportedDecisionIsItsStateWherePolicyUsesATruthVa
 		}},
 		{"== true", "rule %[2]s = { yield %[1]s == true }", func(v trinary.Value) trinary.Value { return boolState(v.IsTrue()) }},
 		{"== false", "rule %[2]s = { yield %[1]s == false }", func(v trinary.Value) trinary.Value { return boolState((v == trinary.False)) }},
-		{"!= false", "rule %[2]s = { yield %[1]s != false }", func(v trinary.Value) trinary.Value { return boolState(!(v == trinary.False)) }},
+		{"!= false", "rule %[2]s = { yield %[1]s != false }", func(v trinary.Value) trinary.Value { return boolState(v != trinary.False) }},
 		{"!= true", "rule %[2]s = { yield %[1]s != true }", func(v trinary.Value) trinary.Value { return boolState(!v.IsTrue()) }},
 	}
 
