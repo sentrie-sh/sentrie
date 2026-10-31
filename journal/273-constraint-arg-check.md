@@ -5,3 +5,9 @@
 - Picked up with #269, #270, #271, #272 and #273 in one batch; one pickup push and a draft PR per branch before implementation.
 - Decision agreed with the maintainer before pickup: check constraint arguments when the pack is indexed (count, kinds, and that a regexp compiles), reported by `sentrie validate`, and at runtime check the arguments before the value's kind so a broken argument errors on every input. Constraint names stay with #113.
 - _Model: claude-opus-5-5_
+
+### 14:48 - Argument metadata in constraints
+- `index` cannot import `constraints` while `constraints` imports `index` for the `*index.Policy` checker parameter, and index tests are internal, so a registration hook could not be tested there with the real tables. The parameter was unused by every checker, so it is dropped from `ConstraintChecker`; that inverts the edge and lets `Index.Validate` read the definitions directly. Ruled out: a hook set from `constraints` init (untestable in `index`), and a generated table like `ast`'s (cannot carry the regexp and divisor rules).
+- `ConstraintDefinition` gains `Arg` (checks each argument: number, string, boolean, regexp that compiles, non-zero divisor, number or number list) and `Args` (rules across arguments: range minimum <= maximum), and `CheckArgs` checks the count against `NumArgs` then those. Every table entry is built with `define`, whose `Checker` runs `CheckArgs` first, so the static check, the runtime and a direct checker call share one argument check and cannot disagree. Checker bodies no longer re-check their arguments.
+- Messages are unchanged, with one new one: a constraint that takes no arguments and is given some says `<name> constraint takes no arguments` (unreachable from source today, since the parser's generated tables already reject the count).
+- _Model: claude-opus-5-5_

@@ -38,7 +38,7 @@ func validateAgainstTrinaryTypeRef(ctx context.Context, ec *ExecutionContext, ex
 			return ErrUnknownConstraint(constraint)
 		}
 
-		if err := checker.Checker(ctx, p, box.Trinary(tv), args); err != nil {
+		if err := checker.Checker(ctx, box.Trinary(tv), args); err != nil {
 			return ErrConstraintFailed(valueRange, constraint, err)
 		}
 	}

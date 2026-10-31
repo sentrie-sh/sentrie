@@ -32,7 +32,7 @@ func validateAgainstStringTypeRef(ctx context.Context, ec *ExecutionContext, exe
 			return ErrUnknownConstraint(constraint)
 		}
 
-		if err := checker.Checker(ctx, p, v, args); err != nil {
+		if err := checker.Checker(ctx, v, args); err != nil {
 			return ErrConstraintFailed(valueRange, constraint, err)
 		}
 	}
