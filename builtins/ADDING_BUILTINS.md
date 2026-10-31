@@ -46,6 +46,7 @@ runtime.CallSite              implements builtins.Env
 | [`builtins.go`](builtins.go) | `Env`, `Fn`, `Decl`, `Sig`, `ParamSig`, `Precheck`, `Table`, `IsDeriveSafe`, `hofSig` helper |
 | [`scalar.go`](scalar.go) | Scalar builtins (`count`, `merge`, `flatten`, …) and private helpers |
 | [`collection.go`](collection.go) | Higher-order builtins (`filter`, `reduce`, …), `iterArgs`, `reduceArgs` |
+| [`glob.go`](glob.go), [`object.go`](object.go), [`units.go`](units.go) | Pure stdlib builtins: `glob_match`; `object_get`, `object_keys`, `object_remove`, `object_union`, `object_filter`; `parse_quantity`, `parse_duration` |
 | `*_test.go` | Tests; use `invoke()` + `noopEnv()` (see [Testing](#testing)) |
 
 Pick **scalar** vs **collection** by whether the builtin invokes callables via `env.Call`.
@@ -224,11 +225,11 @@ Populate `Sig.Result.Kinds` for every entry (validate-time propagation):
 
 | Result kinds | Builtins |
 |--------------|----------|
-| `{bool}` | `all`, `any` |
-| `{list}` | `as_list`, `filter`, `collect`, `flatten`, `flatten_deep`, `normalise_list`, `distinct` |
-| `{number}` | `count`, `now`, `now_ms` |
-| `{dict}` | `merge` |
-| `nil` (any) | `error`, `first`, `reduce` |
+| `{bool}` | `all`, `any`, `glob_match` |
+| `{list}` | `as_list`, `filter`, `collect`, `flatten`, `flatten_deep`, `normalise_list`, `distinct`, `object_keys` |
+| `{number}` | `count`, `now`, `now_ms`, `parse_quantity`, `parse_duration` |
+| `{dict}` | `merge`, `object_union`, `object_remove`, `object_filter` |
+| `nil` (any) | `error`, `first`, `reduce`, `object_get` |
 
 ---
 
@@ -328,7 +329,7 @@ Must flow through real `eval_call` dispatch, not bypass it.
 
 ---
 
-## Reference: current builtins (15)
+## Reference: current builtins (24)
 
 | Name | File | Arity | Notes |
 |------|------|-------|-------|
@@ -340,10 +341,17 @@ Must flow through real `eval_call` dispatch, not bypass it.
 | `error` | scalar | 1+ | variadic; never returns |
 | `filter`, `first` | collection | 2 | HOF |
 | `flatten`, `flatten_deep` | scalar | 1–2 / 1 | depth optional |
+| `glob_match` | glob | 3 | `glob_match(pattern, delimiters, value)`; `*`, `**`, `?`, `[a-z]`, `\`; no `{a,b}`; linear-time matcher |
 | `merge` | scalar | 2 | strict dict |
 | `normalise_list` | scalar | 1 | |
 | `now` | scalar | 0 | `ExecutionStart().Unix()`: seconds, like `@sentrie/time.now()` and JWT `exp`; `Nondeterministic`, so not callable in derives |
 | `now_ms` | scalar | 0 | `ExecutionStart().UnixMilli()`; `Nondeterministic`, so not callable in derives |
+| `object_get` | object | 3 | `(obj, path, default)`; path is a list of segments or one segment |
+| `object_keys` | object | 1 | sorted keys |
+| `object_remove`, `object_filter` | object | 2 | list of top-level keys |
+| `object_union` | object | 2 | deep merge, second wins (same merge as `merge`) |
+| `parse_quantity` | units | 1 | Kubernetes quantity (`10Gi`, `500m`, `2e3`) to a number |
+| `parse_duration` | units | 1 | Go duration (`2h`, `1h30m`) to seconds |
 | `reduce` | collection | 3 | reducer arity 2 or 3 |
 
 ---
