@@ -61,6 +61,9 @@ func (idx *Index) validate(ctx context.Context) error {
 	if err := idx.detectReferenceCycle(ctx); err != nil {
 		return err
 	}
+	if err := idx.detectContributionSelfReference(ctx); err != nil {
+		return err
+	}
 	rg, err := idx.detectRuleCycle(ctx)
 	if err != nil {
 		return err
@@ -124,6 +127,11 @@ func (idx *Index) detectReferenceCycle(ctx context.Context) error {
 				g.AddNode(String(rule.Name))
 				if err := addNodes(g, []ast.Node{rule.Default, rule.When, rule.Body}, String(rule.Name), policy); err != nil {
 					return fmt.Errorf("%s: %w", err, xerr.ErrIndex)
+				}
+				for _, c := range rule.Contributions {
+					if err := addNodes(g, []ast.Node{c.When, c.Body}, String(rule.Name), policy); err != nil {
+						return fmt.Errorf("%s: %w", err, xerr.ErrIndex)
+					}
 				}
 			}
 

@@ -234,6 +234,14 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 				return nil, err
 			}
 
+		case *ast.ContributeStatement:
+			if phase != policyPhaseBody {
+				phase = policyPhaseBody
+			}
+			if err := p.addContribution(stmt); err != nil {
+				return nil, err
+			}
+
 		case *ast.RuleExportStatement:
 			if phase != policyPhaseBody {
 				phase = policyPhaseBody
