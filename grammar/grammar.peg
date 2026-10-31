@@ -151,7 +151,8 @@ IDENT = [a-zA-Z] [a-zA-Z0-9_]*
 KEYWORD = [a-zA-Z] [a-zA-Z0-9_]* /* restricted to the reserved words */
 STRING = '"' (!["\\] . / "\\" .)* '"'
 INT = [0-9]+
-FLOAT = [0-9]+ "." [0-9]+
+/* A literal with a fraction, an exponent, or both is a FLOAT. A malformed exponent ("1e", "1e+") or a bare decimal point before one ("1.e5") is a lexing error, not a number followed by an identifier. */
+FLOAT = [0-9]+ ("." [0-9]+)? [eE] [+-]? [0-9]+ / [0-9]+ "." [0-9]+
 TRINARY = "true" / "false" / "unknown"
 Comment = "--" (!"\n" .)* "\n"
 

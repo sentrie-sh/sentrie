@@ -235,3 +235,20 @@ func (s *ParserTestSuite) TestParseErrorEdgeCases() {
 		}
 	}
 }
+
+// TestParseErrorUnexpectedCharacter tests that an unknown character is
+// reported with the lexer's message naming it, both in expression position
+// and as a constraint argument.
+func (s *ParserTestSuite) TestParseErrorUnexpectedCharacter() {
+	src := "namespace com/example\npolicy p {\n  rule r = $\n  export decision of r\n}\n"
+	parser := NewParserFromString(src, "test.sentra")
+	_, err := parser.ParseProgram(s.T().Context())
+	s.Require().Error(err)
+	s.Contains(err.Error(), `unexpected character "$"`)
+
+	parser = NewParserFromString("shape T { amount:number @min($) }", "test.sentra")
+	stmt := parseShapeStatement(s.T().Context(), parser)
+	s.Nil(stmt)
+	s.Require().Error(parser.err)
+	s.Contains(parser.err.Error(), `unexpected character "$"`)
+}

@@ -51,9 +51,9 @@ tags: literals, atoms, prefix-handlers, leaf-expressions
   - **Exceptions:** `invalid integer literal %q at %s: %w` on overflow or malformed input.
 
 - **Signature:** `parseFloatLiteral(ctx, p) -> ast.Expression`
-  - **Behavior:** `strconv.ParseFloat(value, 64)` → `FloatLiteral`.
+  - **Behavior:** `strconv.ParseFloat(value, 64)` → `FloatLiteral`. The token text may carry an exponent (`1e5`, `2.5E-3`), which `ParseFloat` accepts as is.
   - **Side Effects:** Consumes a token.
-  - **Exceptions:** `invalid float literal %q at %s: %w`.
+  - **Exceptions:** `invalid float literal %q: %w`, reported at the literal's own span (#180), including an exponent out of `float64` range (`1e400`).
 
 - **Signature:** `parseStringLiteral(ctx, p) -> ast.Expression`
   - **Behavior:** Wraps the already-unescaped token value (escape processing happened in [[lexer]]) in `StringLiteral`. Heredoc content arrives through this same path.

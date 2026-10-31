@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package parser
 
@@ -41,6 +28,11 @@ func parseConstraintLiteral(ctx context.Context, p *Parser) ast.Expression {
 		return parseConstraintListLiteral(ctx, p)
 	case tokens.PunctLeftCurly:
 		return parseConstraintMapLiteral(ctx, p)
+	case tokens.Error:
+		// A lexical error such as a malformed number literal: report the
+		// lexer's message rather than calling it a non-literal.
+		p.errorf("%s", p.current.Value)
+		return nil
 	default:
 		p.errorf("constraint arguments must be literals, got %s at %s", p.current.Kind, p.current.Range.From)
 		return nil

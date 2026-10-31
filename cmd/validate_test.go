@@ -107,3 +107,36 @@ func (s *CmdTestSuite) TestValidateCmdRejectsUnknownImportWithFact() {
 	s.Contains(err.Error(), `import binds unknown fact "usr"`)
 	s.Contains(err.Error(), "policy t/q accepts fact aliases: user")
 }
+
+const exponentLiteralPolicy = `namespace com/ex
+policy pol {
+  rule ok = default false { yield 1e5 == 100000 and 2.5e-3 * 1000 == 2.5 }
+  export decision of ok
+}
+`
+
+// TestValidateCmdAcceptsExponentLiterals pins #180: validate accepts a policy
+// that uses exponent number literals.
+func (s *CmdTestSuite) TestValidateCmdAcceptsExponentLiterals() {
+	dir := s.writeTestPack(exponentLiteralPolicy)
+	err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+	s.Require().NoError(err)
+}
+
+// TestValidateCmdReportsMalformedExponentLiteral pins #180: a malformed
+// exponent fails validate with the lexer's own message and the position of the
+// literal, not a "no prefix parse function" error.
+func (s *CmdTestSuite) TestValidateCmdReportsMalformedExponentLiteral() {
+	policy := `namespace com/ex
+policy pol {
+  rule ok = default false { yield 1e+ == 1 }
+  export decision of ok
+}
+`
+	dir := s.writeTestPack(policy)
+	err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+	s.Require().Error(err)
+	s.Contains(err.Error(), `invalid number literal "1e+": the exponent needs at least one digit`)
+	s.Contains(err.Error(), "policy.sentrie:3:35-38")
+	s.NotContains(err.Error(), "no prefix parse function")
+}
