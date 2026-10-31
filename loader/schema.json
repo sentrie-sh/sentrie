@@ -149,6 +149,25 @@
         }
       ]
     },
+    "data": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Static reference data: each name maps to a JSON file relative to the pack root",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "metadata": {
       "oneOf": [
         {
