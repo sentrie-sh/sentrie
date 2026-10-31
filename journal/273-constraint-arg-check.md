@@ -45,3 +45,8 @@
 - Did not add a way to skip the wrapper's second `CheckArgs` for bound constraints: with the cache it is a few map lookups, and skipping it would need a second, unchecked entry point on `ConstraintDefinition`.
 - Test: `TestRegexpPatternIsCompiledOnce` (same `*regexp.Regexp` before and after checking values, through `export_test.go`), and an invalid pattern errors every time.
 - _Model: claude-opus-5-5_
+
+### 03:06 - Graph edges after review
+- Dropped the eight `READS_FROM` rows in `constraints` that pointed the typeref validators at the per-kind tables, and the `CALLS runtime.eval` row (constraint argument evaluation) from the seven typeref nodes that had one. Both moved to `bindConstraints` in `runtime.typeref_constraints`, whose rows already say so.
+- Folded a duplicated "Test and CI pass" entry out of the journal commit; it was appended twice while commits waited on signing.
+- _Model: claude-opus-5-5_

@@ -16,7 +16,6 @@ Validates a value against the `document` type - the schemaless container intende
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `runtime.typeref_document` | `CALLS` | [[runtime.typeref_constraints]] | `bindConstraints` before the kind check, `checkConstraints` after it. |
-| `runtime.typeref_document` | `CALLS` | [[runtime.eval]] | Evaluates constraint argument expressions. |
 | `runtime.typeref_document` | `CALLS` | [[runtime.err_typedef]] | Constraint error constructors. |
 | [[runtime.typeref]] | `CALLS` | [[runtime.typeref_document]] | Dispatched for `*ast.DocumentTypeRef`. |
 

@@ -20,14 +20,6 @@ The registry of predicates that refine a type beyond its kind - `string@email`, 
 | [[index.constraint_args]] | `READS_FROM` | `constraints` | `ForTypeRef` and `CheckArgs`, the static argument check run by `sentrie validate`. |
 | [[runtime.typeref_constraints]] | `READS_FROM` | `constraints` | `ForTypeRef`, `CheckArgs` before the value's kind, then `Checker`. |
 | `constraints` | `IMPORTS` | `ext.google.uuid` | The `uuid` string constraint. |
-| [[runtime.typeref_string]] | `READS_FROM` | `constraints` | `StringContraintCheckers`. |
-| [[runtime.typeref_number]] | `READS_FROM` | `constraints` | `NumberContraintCheckers`. |
-| [[runtime.typeref_trinary]] | `READS_FROM` | `constraints` | `TrinaryConstraintCheckers`. |
-| [[runtime.typeref_list]] | `READS_FROM` | `constraints` | `ListContraintCheckers`. |
-| [[runtime.typeref_dict]] | `READS_FROM` | `constraints` | `DictContraintCheckers` - **empty**. |
-| [[runtime.typeref_document]] | `READS_FROM` | `constraints` | `DocumentContraintCheckers` - **empty**. |
-| [[runtime.typeref_record]] | `READS_FROM` | `constraints` | `RecordContraintCheckers` - **empty**. |
-| [[runtime.typeref_shape]] | `READS_FROM` | `constraints` | `ShapeContraintCheckers` - **empty**. |
 
 ## 3. Interface Contracts & Public Surface
 

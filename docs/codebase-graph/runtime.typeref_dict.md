@@ -16,7 +16,6 @@ Validates a value against the `dict` type. Deliberately shallow: it confirms the
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `runtime.typeref_dict` | `CALLS` | [[runtime.typeref_constraints]] | `bindConstraints` before the kind check, `checkConstraints` after it. |
-| `runtime.typeref_dict` | `CALLS` | [[runtime.eval]] | Evaluates constraint argument expressions. |
 | `runtime.typeref_dict` | `CALLS` | [[runtime.err_typedef]] | Constraint error constructors. |
 | [[runtime.typeref]] | `CALLS` | [[runtime.typeref_dict]] | Dispatched for `*ast.DictTypeRef`. |
 

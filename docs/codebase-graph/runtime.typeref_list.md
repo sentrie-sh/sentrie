@@ -17,7 +17,6 @@ Validates a value against a `list<T>` type. It is the first of the recursive val
 | :--- | :--- | :--- | :--- |
 | `runtime.typeref_list` | `CALLS` | [[runtime.typeref]] | Recurses once per element against `typeRef.ElemType`. |
 | `runtime.typeref_list` | `CALLS` | [[runtime.typeref_constraints]] | `bindConstraints` before the kind check, `checkConstraints` after it. |
-| `runtime.typeref_list` | `CALLS` | [[runtime.eval]] | Evaluates constraint argument expressions. |
 | `runtime.typeref_list` | `CALLS` | [[runtime.err_typedef]] | Constraint error constructors. |
 | [[runtime.typeref]] | `CALLS` | [[runtime.typeref_list]] | Dispatched for `*ast.ListTypeRef`. |
 
