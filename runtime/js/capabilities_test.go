@@ -19,11 +19,9 @@ func (s *JSTestSuite) mustGrant(src string) *capabilities.Capabilities {
 }
 
 func (s *JSTestSuite) newGrantTestRegistry() (*Registry, string) {
-	// Resolve the temp dir: on macOS it sits behind a symlink, and nested
-	// relative requires from a symlinked pack root are refused (a
-	// pre-existing confineToPackRoot limitation, reported separately).
-	packRoot, err := filepath.EvalSymlinks(s.T().TempDir())
-	s.Require().NoError(err)
+	// Left unresolved on purpose: on macOS the temp dir sits behind a
+	// symlink, which nested relative requires must handle (#242).
+	packRoot := s.T().TempDir()
 	s.Require().NoError(os.WriteFile(filepath.Join(packRoot, "plain.ts"), []byte("export const x = 1;"), 0o644))
 	s.Require().NoError(os.WriteFile(filepath.Join(packRoot, "needs_uuid.ts"),
 		[]byte("const u = require('@sentrie/uuid');\nexport const id = () => u.v4();"), 0o644))

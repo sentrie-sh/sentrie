@@ -129,55 +129,71 @@ func evalSymlinksExisting(path string) (string, error) {
 	return filepath.Join(resolvedDir, filepath.Base(path)), nil
 }
 
-func (r *Registry) confineToPackRoot(path string) (string, error) {
-	packRoot := filepath.Clean(r.PackRoot)
-	path = filepath.Clean(path)
-
-	packRootRelative, err := filepath.Rel(packRoot, path)
+// confineToPackRoot resolves path and the pack root through every existing
+// symlink and refuses path unless it lies inside the root. It returns the
+// resolved path and its OS-separated relative form under the resolved root.
+//
+// Containment is decided only after both sides are resolved. A nested
+// require joins onto the requiring module's Dir, which is already resolved,
+// so comparing it lexically against an unresolved root (a pack under a
+// symlinked deploy directory, or macOS /var -> /private/var) would refuse a
+// valid pack (#242). path is cleaned before resolution, so a ".." never
+// survives into the resolved form. The resolved path is read, except a
+// probed .ts/.js, which relativeToLocal confines and then reads by its own
+// name.
+func (r *Registry) confineToPackRoot(path string) (resolvedPath, packRootRelative string, err error) {
+	resolvedPackRoot, err := evalSymlinksExisting(r.PackRoot)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	if isOutsidePackRoot(packRootRelative) {
-		return "", fmt.Errorf("relative path is outside the packroot: %s", packRootRelative)
-	}
-
-	resolvedPackRoot, err := evalSymlinksExisting(packRoot)
+	resolvedPath, err = evalSymlinksExisting(path)
 	if err != nil {
-		return "", err
-	}
-	resolvedPath, err := evalSymlinksExisting(path)
-	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	packRootRelative, err = filepath.Rel(resolvedPackRoot, resolvedPath)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if isOutsidePackRoot(packRootRelative) {
-		return "", fmt.Errorf("relative path is outside the packroot: %s", packRootRelative)
+		return "", "", fmt.Errorf("relative path is outside the packroot: %s", packRootRelative)
 	}
 
-	return resolvedPath, nil
+	return resolvedPath, packRootRelative, nil
 }
 
-func (r *Registry) relativeToLocal(fromDir, spec string) (key, path, dir string, err error) {
-	path, err = r.confineToPackRoot(filepath.Join(fromDir, spec))
-	if err != nil {
-		return "", "", "", err
-	}
+// moduleExtensions are tried, in order, for a local specifier without an
+// extension.
+var moduleExtensions = []string{".ts", ".js"}
 
-	resolvedPackRoot, err := evalSymlinksExisting(filepath.Clean(r.PackRoot))
-	if err != nil {
-		return "", "", "", err
-	}
-	packRootRelative, err := filepath.Rel(resolvedPackRoot, path)
+func (r *Registry) relativeToLocal(fromDir, spec string) (key, path, dir string, err error) {
+	path, packRootRelative, err := r.confineToPackRoot(filepath.Join(fromDir, spec))
 	if err != nil {
 		return "", "", "", err
 	}
 
 	key = "@local/" + filepath.ToSlash(packRootRelative)
-	return key, path, filepath.Dir(path), nil
+	dir = filepath.Dir(path)
+
+	// Probe extensions here rather than after resolution: the probed file can
+	// itself be a symlink, so it is confined like any other path. Path keeps
+	// the probed name (not the link target) so SourceName and Dir are those
+	// of the specifier the pack wrote.
+	if filepath.Ext(path) == "" {
+		for _, ext := range moduleExtensions {
+			candidate := path + ext
+			if _, statErr := os.Stat(candidate); statErr != nil {
+				continue
+			}
+			if _, _, err := r.confineToPackRoot(candidate); err != nil {
+				return "", "", "", err
+			}
+			path = candidate
+			break
+		}
+	}
+
+	return key, path, dir, nil
 }
 
 // Resolve a require() from within a module file.
@@ -232,13 +248,7 @@ func (r *Registry) getOrCreateModule(key, path, dir string, builtin bool) *Modul
 			m.SourceTS = tsSource
 		}
 	} else {
-		if filepath.Ext(path) == "" {
-			if _, statErr := os.Stat(path + ".ts"); statErr == nil {
-				path = path + ".ts"
-			} else if _, statErr2 := os.Stat(path + ".js"); statErr2 == nil {
-				path = path + ".js"
-			}
-		}
+		// relativeToLocal has already probed and confined the extension.
 		m.Path = path
 	}
 
