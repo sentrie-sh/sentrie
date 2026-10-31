@@ -85,6 +85,8 @@ type Executor interface {
 	ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) ([]*ExecutorOutput, error)
 	ExecRule(ctx context.Context, namespace, policy, rule string, facts map[string]any) (*ExecutorOutput, error)
 	Index() *index.Index
+	// BuiltinModules lists the registered built-in modules, sorted, for health checks.
+	BuiltinModules() []string
 	// Close releases every loaded module. Evaluations started afterwards fail
 	// with ErrExecutorClosed once they need a module. Close is idempotent.
 	Close() error
@@ -157,6 +159,10 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 
 func (e *executorImpl) Index() *index.Index {
 	return e.index
+}
+
+func (e *executorImpl) BuiltinModules() []string {
+	return e.jsRegistry.BuiltinModules()
 }
 
 // Close drops every loaded module and rejects later module loads. A module call
