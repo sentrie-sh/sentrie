@@ -1,0 +1,23 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+namespace com/example/contributions
+
+policy access {
+  fact user: document as user
+  fact resource: document as resource
+
+  -- a list rule built up from independent conditions, in declaration order
+  rule deny: list[string] = []
+  contribute deny when user.disabled { yield "user disabled" }
+  contribute deny when resource.owner != user.id { yield "not owner" }
+  contribute deny { yield user.suspension_reason }
+
+  -- a boolean rule ORs its own value with its contributions
+  rule allow: boolean = count(deny) == 0
+  contribute allow when user.admin { yield true }
+
+  export decision of allow
+    attach reasons as deny
+  export decision of deny
+}
