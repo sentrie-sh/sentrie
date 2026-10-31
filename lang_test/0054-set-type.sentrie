@@ -1,0 +1,35 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+namespace sets/types
+shape Roles set[string]
+shape Grants { roles: set[string]  scopes: list[set[number]] }
+
+derive missing = (need: set[string], have: set[string]): set[string] => { yield difference(need, have) }
+derive nonempty = (xs: set[number]): boolean => { yield count(xs) > 0 }
+
+policy set_checks {
+  fact required: set[string]
+  fact held: set[string]
+  fact maybe?: set[number]? default null
+  fact grants?: Grants
+
+  let s1: set[number] = [3, 1, 2]
+  let s2 = set(["b", "a", "b"])
+  let s3 = union(required, held)
+  let s4 = intersection(required, ["admin"])
+  let s5 = difference(held, required)
+  let s6 = is_subset(required, held) and is_superset(held, required)
+  let s7 = "read" in held and held contains "write"
+  let s8 = count(held) == 2
+  let s9 = held is set[string] and held is not set[number]
+  let s10 = maybe is set[number]?
+  let s11 = ["a"] as set[string]
+  let s12 = held is Roles
+  let s13 = nonempty(s1)
+  let s14 = missing(required, held)
+  let s15 = set([]) is set[number]
+
+  rule ok = { yield s6 and s7 and s8 and s9 }
+  export decision of ok
+}
