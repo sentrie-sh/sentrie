@@ -265,16 +265,20 @@ func (l *Lexer) NextToken() tokens.Instance {
 			}
 
 			if unicode.IsDigit(l.current) {
-				value, kind := l.readNumber()
+				value, kind, err := l.readNumber()
 				endPos := l.endPosition()
+				if err != nil {
+					return tokens.Err(tokens.NewRange(l.filename, startPos, endPos), err.Error())
+				}
 				return tokens.New(kind, value, tokens.NewRange(l.filename, startPos, endPos))
 			}
 
-			// Unknown character
-			char := string(l.current)
+			// Unknown character: the token value is the diagnostic, so it names
+			// the character rather than carrying it bare.
+			char := l.current
 			l.readRune()
 			endPos := l.endPosition()
-			return tokens.New(tokens.Error, char, tokens.NewRange(l.filename, startPos, endPos))
+			return tokens.Err(tokens.NewRange(l.filename, startPos, endPos), fmt.Sprintf("unexpected character %q", string(char)))
 		}
 	}
 }
@@ -379,29 +383,72 @@ func (l *Lexer) readIdentifier() string {
 	return result.String()
 }
 
-// readNumber reads an integer or float
-func (l *Lexer) readNumber() (string, tokens.Kind) {
+// readNumber reads an integer or float literal. A literal is an Int when it
+// is digits only, and a Float when it has a fraction (`digits.digits`), an
+// exponent (`[eE][+-]?digits`), or both. A malformed exponent (`1e`, `1e+`)
+// or a decimal point with no digit after it before an exponent (`1.e5`) is
+// an error rather than a number followed by an identifier.
+func (l *Lexer) readNumber() (string, tokens.Kind, error) {
 	result := bytes.NewBufferString("")
 	kind := tokens.Int
 
 	// consume digits
+	l.readDigits(result)
+
+	if l.current == '.' {
+		switch next := l.peekAhead(); {
+		case unicode.IsDigit(next):
+			kind = tokens.Float
+			result.WriteRune(l.current)
+			l.readRune() // consume '.'
+			// consume the rest of the digits
+			l.readDigits(result)
+		case isExponentMarker(next):
+			result.WriteRune(l.current)
+			l.readRune() // consume '.'
+			l.readExponent(result)
+			return "", tokens.Error, fmt.Errorf("invalid number literal %q: a digit must follow the decimal point", result.String())
+		}
+	}
+
+	if isExponentMarker(l.current) {
+		kind = tokens.Float
+		if !l.readExponent(result) {
+			return "", tokens.Error, fmt.Errorf("invalid number literal %q: the exponent needs at least one digit", result.String())
+		}
+	}
+
+	return result.String(), kind, nil
+}
+
+// readDigits consumes a run of digits into result.
+func (l *Lexer) readDigits(result *bytes.Buffer) {
 	for unicode.IsDigit(l.current) {
 		result.WriteRune(l.current)
 		l.readRune()
 	}
+}
 
-	if l.current == '.' && unicode.IsDigit(l.peekAhead()) {
-		kind = tokens.Float
+// readExponent consumes an exponent starting at its `e` or `E` marker: the
+// marker, an optional sign, and the digits. It reports whether at least one
+// digit followed, so the exponent is well formed.
+func (l *Lexer) readExponent(result *bytes.Buffer) bool {
+	result.WriteRune(l.current)
+	l.readRune() // consume 'e' or 'E'
+	if l.current == '+' || l.current == '-' {
 		result.WriteRune(l.current)
-		l.readRune() // consume '.'
-		// consume the rest of the digits
-		for unicode.IsDigit(l.current) {
-			result.WriteRune(l.current)
-			l.readRune()
-		}
+		l.readRune()
 	}
+	if !unicode.IsDigit(l.current) {
+		return false
+	}
+	l.readDigits(result)
+	return true
+}
 
-	return result.String(), kind
+// isExponentMarker reports whether r starts the exponent of a number literal.
+func isExponentMarker(r rune) bool {
+	return r == 'e' || r == 'E'
 }
 
 // readComment reads a line comment starting with --
