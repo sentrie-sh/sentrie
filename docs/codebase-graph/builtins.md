@@ -31,7 +31,7 @@ The single registry of Sentrie's native functions and the declarative machinery 
   - **Exceptions:** Propagated from the callee.
 
 - **Signature:** `Table map[string]*Decl`
-  - **Behavior:** Sixteen builtins. Collection higher-order functions - `all`, `any`, `filter`, `first`, `collect`, `reduce`, `distinct`; list shaping - `as_list`, `normalise_list`, `flatten`, `flatten_deep`, `count`, `merge`; the clock - `now` (Unix **seconds**) and `now_ms` (Unix milliseconds), both the pinned execution start of the current `ExecRule`; and `error`. `now` returned milliseconds until [#153](https://github.com/sentrie-sh/sentrie/issues/153) unified it with `@sentrie/time.now()` and JWT `exp`/`nbf`. The map key **must** equal `Decl.Name`, enforced by a test.
+  - **Behavior:** Twenty-two builtins. Collection higher-order functions - `all`, `any`, `filter`, `first`, `collect`, `reduce`, `distinct`; list shaping - `as_list`, `normalise_list`, `flatten`, `flatten_deep`, `count`, `merge`; sets - `set`, `union`, `intersection`, `difference`, `is_subset`, `is_superset` (in `set.go`, over [[box.set]]; strict, each operand a set or list, set or bool result, [#162](https://github.com/sentrie-sh/sentrie/issues/162)); the clock - `now` (Unix **seconds**) and `now_ms` (Unix milliseconds), both the pinned execution start of the current `ExecRule`; and `error`. `now` returned milliseconds until [#153](https://github.com/sentrie-sh/sentrie/issues/153) unified it with `@sentrie/time.now()` and JWT `exp`/`nbf`. The map key **must** equal `Decl.Name`, enforced by a test.
   - **Side Effects:** None.
   - **Exceptions:** None.
 

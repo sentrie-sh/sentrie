@@ -9,7 +9,7 @@ tags: type-syntax, constraints, nullable, recursive-descent
 # Node: parser.typeref (Type Reference and Constraint Syntax)
 
 ## 1. Architectural Role & Intent
-`parser/typeref.go` parses every type annotation in the language: the scalar keywords, the parameterised aggregates `list[T]`/`dict[T]`/`record[T, U]`, named shape references, the `?` nullable suffix, and the `@name(args)` constraint suffixes. It is the syntactic counterpart of [[ast.typeref]] and the point where **parse-time constraint validation** happens - an unknown or wrongly-arity'd constraint is rejected here, before any evaluation, by delegating to the AST's generated permission tables.
+`parser/typeref.go` parses every type annotation in the language: the scalar keywords, the parameterised aggregates `list[T]`/`set[T]`/`dict[T]`/`record[T, U]`, named shape references, the `?` nullable suffix, and the `@name(args)` constraint suffixes. It is the syntactic counterpart of [[ast.typeref]] and the point where **parse-time constraint validation** happens - an unknown or wrongly-arity'd constraint is rejected here, before any evaluation, by delegating to the AST's generated permission tables.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -35,6 +35,7 @@ tags: type-syntax, constraints, nullable, recursive-descent
     - `Ident` → an FQN parsed into a `ShapeTypeRef`.
     - `list` / `dict` → constructed with a nil child, then a required `[ T ]` fills it in recursively.
     - `record` → constructed empty, then `[ T, U, … ]` fills a positional field list.
+    - `set` followed by `[` → `parseSetTypeRef` builds a `SetTypeRef` (#162). `set` is **not a keyword**, so `set(...)` stays a builtin call; `atSetTypeRef` recognises the identifier `set` only when the next token is `[`, which no shape name can be followed by, so a bare `set` is still a shape reference.
 
     Afterwards `parseTypeRefSuffixes` lets an optional `?` wrap the ref in `NullableTypeRef`, and a loop consumes `@constraint(...)` suffixes, each validated through `AddConstraint`. `parseTypeRef` is `parseBaseTypeRef` (the head and its brackets) followed by `parseTypeRefSuffixes` with `ternaryAware` off.
   - **Side Effects:** Consumes tokens; mutates the constructed ref (children, span, constraints).

@@ -21,17 +21,23 @@ func TestTableWellFormed(t *testing.T) {
 		"as_list":        kindList,
 		"collect":        kindList,
 		"count":          kindNumber,
+		"difference":     kindList,
 		"distinct":       kindList,
 		"error":          nil,
 		"filter":         kindList,
 		"first":          nil,
 		"flatten":        kindList,
 		"flatten_deep":   kindList,
+		"intersection":   kindList,
+		"is_subset":      kindBool,
+		"is_superset":    kindBool,
 		"merge":          kindDict,
 		"normalise_list": kindList,
 		"now":            kindNumber,
 		"now_ms":         kindNumber,
 		"reduce":         nil,
+		"set":            kindList,
+		"union":          kindList,
 	}
 
 	for key, d := range Table {

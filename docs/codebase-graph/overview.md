@@ -311,6 +311,7 @@ graph TD
 - [[runtime.typeref_dict]] - dict validation
 - [[runtime.typeref_document]] - document validation
 - [[runtime.typeref_list]] - list validation
+- [[runtime.typeref_set]] - set validation and binding
 - [[runtime.typeref_number]] - number validation
 - [[runtime.typeref_record]] - record validation
 - [[runtime.typeref_shape]] - shape validation
@@ -320,6 +321,7 @@ graph TD
 ### Module / File
 
 - [[api.net]] - listen address resolution
+- [[box.set]] - set values and set algebra
 - [[index.builtin_kind]] - builtin kind inference
 - [[index.policy_stmt]] - policy statement indexing
 - [[main]] - process entrypoint

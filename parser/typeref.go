@@ -31,6 +31,10 @@ func parseBaseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		return nil
 	}
 
+	if p.atSetTypeRef() {
+		return parseSetTypeRef(ctx, p)
+	}
+
 	var ref ast.TypeRef
 	switch p.current.Kind {
 	case tokens.KeywordString:
@@ -178,4 +182,30 @@ func parseTypeRefConstraint(ctx context.Context, p *Parser, _ ast.TypeRef) *ast.
 	rnge.To = rightParentheses.Range.To
 
 	return ast.NewTypeRefConstraint(name.Value, args, rnge)
+}
+
+// atSetTypeRef reports whether the head starts a `set[T]` type. `set` is not a
+// keyword, so that `set(...)` stays a call to the set builtin: it is a type
+// only where an identifier is followed by `[`, which no shape name can be.
+func (p *Parser) atSetTypeRef() bool {
+	return p.current.Kind == tokens.Ident && p.current.Value == "set" && p.peek().IsOfKind(tokens.PunctLeftBracket)
+}
+
+// parseSetTypeRef parses `set[T]` without its suffixes.
+func parseSetTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
+	start := p.advance()
+	if !p.expect(tokens.PunctLeftBracket) {
+		return nil
+	}
+	elemType := parseTypeRef(ctx, p)
+	if elemType == nil {
+		return nil
+	}
+	rBracket, found := p.advanceExpected(tokens.PunctRightBracket)
+	if !found {
+		return nil
+	}
+	rnge := start.Range
+	rnge.To = rBracket.Range.To
+	return ast.NewSetTypeRef(elemType, rnge)
 }
