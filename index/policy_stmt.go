@@ -27,7 +27,7 @@ func policyStmtKindOf(stmt ast.Statement) policyStmtKind {
 		return policyStmtComment
 	case *ast.TitleStatement, *ast.DescriptionStatement, *ast.VersionStatement, *ast.TagStatement:
 		return policyStmtMetadata
-	case *ast.FactStatement:
+	case *ast.FactStatement, *ast.DataStatement:
 		return policyStmtFact
 	case *ast.UseStatement:
 		return policyStmtUse

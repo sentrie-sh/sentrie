@@ -217,6 +217,13 @@ func checkDeriveIdentifier(d *Derive, name string, scope map[string]struct{}) er
 				return fmt.Errorf("facts are not available inside a derive (%q)", name)
 			}
 		}
+		// Mirrors the runtime guard in evalIdent: pack data is policy-scoped,
+		// so a derive receives it only as an argument.
+		if d.Policy.Data != nil {
+			if _, ok := d.Policy.Data[name]; ok {
+				return fmt.Errorf("pack data is not available inside a derive (%q); pass it as an argument", name)
+			}
+		}
 		if d.Policy.Rules != nil {
 			if _, ok := d.Policy.Rules[name]; ok {
 				return fmt.Errorf("rules cannot be referenced inside a derive (%q)", name)

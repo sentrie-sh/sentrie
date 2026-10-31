@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package index
 
@@ -62,6 +49,7 @@ type Policy struct {
 
 	Lets        map[string]*ast.VarDeclaration
 	Facts       map[string]*ast.FactStatement
+	Data        map[string]*ast.DataStatement // alias -> pack data declaration
 	Rules       map[string]*Rule
 	Derives     map[string]*Derive
 	RuleExports map[string]*ExportedRule
@@ -102,6 +90,7 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 		Statements:      policy.Statements,
 		Lets:            make(map[string]*ast.VarDeclaration),
 		Facts:           make(map[string]*ast.FactStatement),
+		Data:            make(map[string]*ast.DataStatement),
 		Rules:           make(map[string]*Rule),
 		Derives:         make(map[string]*Derive),
 		RuleExports:     make(map[string]*ExportedRule),
@@ -197,6 +186,20 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 				return nil, err
 			}
 
+		case *ast.DataStatement:
+			// A data declaration is a policy input like a fact, but it may sit
+			// anywhere in the header: among facts, or among uses.
+			switch phase {
+			case policyPhaseMeta:
+				phase = policyPhaseFacts
+			case policyPhaseFacts, policyPhaseUses:
+			case policyPhaseBody:
+				return nil, latePolicyHeaderErr("data", stmt.Span().String())
+			}
+			if err := p.AddData(stmt); err != nil {
+				return nil, err
+			}
+
 		case *ast.UseStatement:
 			switch phase {
 			case policyPhaseMeta:
@@ -209,6 +212,9 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 			}
 			if _, ok := p.Uses[stmt.As]; ok {
 				return nil, fmt.Errorf("cannot rebind to existing alias '%s' at %s: %w", stmt.As, stmt.Span(), xerr.ErrIndex)
+			}
+			if d, ok := p.Data[stmt.As]; ok {
+				return nil, xerr.ErrConflict("use alias", stmt.Span(), d.Span())
 			}
 			p.Uses[stmt.As] = stmt
 
@@ -339,6 +345,22 @@ func (p *Policy) AddFact(fact *ast.FactStatement) error {
 
 	p.Facts[fact.Alias] = fact
 	p.seenIdentifiers[fact.Alias] = fact
+	return nil
+}
+
+// AddData registers a `data` declaration under its alias. The alias shares the
+// policy's identifier space with facts, lets and rules, and may not reuse a
+// `use` alias.
+func (p *Policy) AddData(data *ast.DataStatement) error {
+	if seen, ok := p.seenIdentifiers[data.Alias]; ok {
+		return xerr.ErrConflict("data declaration", data.Span(), seen.Span())
+	}
+	if use, ok := p.Uses[data.Alias]; ok {
+		return xerr.ErrConflict("data declaration", data.Span(), use.Span())
+	}
+
+	p.Data[data.Alias] = data
+	p.seenIdentifiers[data.Alias] = data
 	return nil
 }
 

@@ -59,6 +59,9 @@ func (idx *Index) validate(ctx context.Context) error {
 	if err := idx.checkImportWiths(ctx); err != nil {
 		return err
 	}
+	if err := idx.checkPackData(ctx); err != nil {
+		return err
+	}
 	sg, err := idx.detectShapeCycle(ctx)
 	if err != nil {
 		return err
