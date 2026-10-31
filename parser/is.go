@@ -15,10 +15,11 @@ import (
 //
 // A right-hand side that starts with a type keyword (string, number, boolean,
 // trinary, document, list, dict, record) is a type and builds an
-// IsExpression. A bare or slash-qualified name builds an IsExpression that
-// carries both readings, for the index to resolve against the shapes in scope,
-// unless a `?` or `@constraint` suffix marks it as a type. Any other
-// right-hand side is the legacy equality synonym, an InfixExpression "is".
+// IsExpression. A bare `any` is the top type. A bare or slash-qualified name
+// builds an IsExpression that carries both readings, for the index to resolve
+// against the shapes in scope, unless a `?` or `@constraint` suffix or a `|`
+// marks it as a type. A type may be a union `T1 | T2`. Any other right-hand
+// side is the legacy equality synonym, an InfixExpression "is".
 func parseIsExpression(ctx context.Context, p *Parser, left ast.Expression, precedence Precedence) ast.Expression {
 	start := p.head()
 
@@ -53,6 +54,10 @@ func parseIsExpression(ctx context.Context, p *Parser, left ast.Expression, prec
 		if typ == nil {
 			return nil
 		}
+		typ = parseUnionTail(ctx, p, typ, true)
+		if typ == nil {
+			return nil
+		}
 		rnge.To = typ.Span().To
 		expr = ast.NewIsExpression(left, nil, typ, isSpan(left, rnge))
 	} else {
@@ -63,12 +68,21 @@ func parseIsExpression(ctx context.Context, p *Parser, left ast.Expression, prec
 		rnge.To = right.Span().To
 		if parts, ok := ast.FlattenSlashIdentChain(right); ok {
 			fqn := ast.NewFQN(parts, right.Span())
-			var typ ast.TypeRef = ast.NewShapeTypeRef(&fqn, right.Span())
+			typ := namedTypeRef(&fqn)
+			_, isAny := typ.(*ast.AnyTypeRef)
 			// A name may be a value, so `?` before `{` stays the ternary here
 			// (`x is y ? {...} : {...}`), unlike after a type keyword.
-			if p.canExpect(tokens.TokenAt) || (p.canExpect(tokens.TokenQuestion) && p.questionIsNullable(false)) {
-				// a suffix only a type can carry: this is a shape, not a value
-				typ = parseTypeRefSuffixes(ctx, p, typ, true)
+			suffixed := p.canExpect(tokens.TokenAt) || (p.canExpect(tokens.TokenQuestion) && p.questionIsNullable(false))
+			if isAny || suffixed || p.canExpect(tokens.TokenPipe) {
+				// `any`, or a suffix or `|` only a type can carry: this is a
+				// type, not a value
+				if suffixed {
+					typ = parseTypeRefSuffixes(ctx, p, typ, true)
+					if typ == nil {
+						return nil
+					}
+				}
+				typ = parseUnionTail(ctx, p, typ, true)
 				if typ == nil {
 					return nil
 				}

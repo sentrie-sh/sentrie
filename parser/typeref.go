@@ -11,12 +11,55 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
+// parseTypeRef parses a full type reference: one member, or a union
+// `T1 | T2 | ...` of members, each with its own `?` and constraint suffixes.
 func parseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
+	ref := parseTypeRefMember(ctx, p, false)
+	if ref == nil {
+		return nil
+	}
+	return parseUnionTail(ctx, p, ref, false)
+}
+
+// parseTypeRefMember parses one union member: a base type and its suffixes.
+func parseTypeRefMember(ctx context.Context, p *Parser, ternaryAware bool) ast.TypeRef {
 	ref := parseBaseTypeRef(ctx, p)
 	if ref == nil {
 		return nil
 	}
-	return parseTypeRefSuffixes(ctx, p, ref, false)
+	return parseTypeRefSuffixes(ctx, p, ref, ternaryAware)
+}
+
+// parseUnionTail extends first into a union while a `|` follows. `|` binds
+// looser than the `?` and `@constraint(...)` suffixes and than the brackets
+// of list[...], dict[...] and record[...], so `string | number?` is
+// `string | (number?)` and `list[string | number]` is a list of a union.
+// There is no grouping syntax: a union of nullable members accepts null
+// whichever member carries the `?`.
+func parseUnionTail(ctx context.Context, p *Parser, first ast.TypeRef, ternaryAware bool) ast.TypeRef {
+	if !p.canExpect(tokens.TokenPipe) {
+		return first
+	}
+	members := []ast.TypeRef{first}
+	for p.canExpect(tokens.TokenPipe) {
+		p.advance()
+		member := parseTypeRefMember(ctx, p, ternaryAware)
+		if member == nil {
+			return nil
+		}
+		members = append(members, member)
+	}
+	rnge := first.Span()
+	rnge.To = members[len(members)-1].Span().To
+	return ast.NewUnionTypeRef(members, rnge)
+}
+
+// parseBarePipeInExpression reports a `|` after an expression: it only
+// separates union type members, and the pipeline operator is `|>`.
+func parseBarePipeInExpression(_ context.Context, p *Parser, _ ast.Expression, _ Precedence) ast.Expression {
+	p.errorf("unexpected '|': only '|>' is supported in an expression; '|' separates the members of a union type")
+	p.advance() // consume the '|' so the expression loop does not see it again
+	return nil
 }
 
 // parseBaseTypeRef parses a type reference without its trailing `?` and
@@ -44,7 +87,7 @@ func parseBaseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		if fqn == nil {
 			return nil
 		}
-		ref = ast.NewShapeTypeRef(fqn, fqn.Rnge)
+		ref = namedTypeRef(fqn)
 	case tokens.KeywordList:
 		ref = ast.NewListTypeRef(nil, p.advance().Range) // elemType will be set later
 	case tokens.KeywordDict:
@@ -178,4 +221,14 @@ func parseTypeRefConstraint(ctx context.Context, p *Parser, _ ast.TypeRef) *ast.
 	rnge.To = rightParentheses.Range.To
 
 	return ast.NewTypeRefConstraint(name.Value, args, rnge)
+}
+
+// namedTypeRef is the type a name denotes in a type position: the top type
+// for a bare `any`, otherwise a shape reference. `any` is not a keyword, so
+// it stays an identifier (the quantifier builtin) in expressions.
+func namedTypeRef(fqn *ast.FQN) ast.TypeRef {
+	if len(fqn.Parts) == 1 && fqn.Parts[0] == ast.AnyTypeName {
+		return ast.NewAnyTypeRef(fqn.Rnge)
+	}
+	return ast.NewShapeTypeRef(fqn, fqn.Rnge)
 }

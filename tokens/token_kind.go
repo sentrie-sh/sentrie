@@ -94,6 +94,7 @@ const (
 
 	TokenPipelineHole Kind = "PipelineHole"
 	TokenPipeForward  Kind = "PipeForward"
+	TokenPipe         Kind = "Pipe" // `|`, separates union type members
 
 	// Punctuation
 	PunctComma            Kind = "Comma"
