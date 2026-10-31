@@ -42,8 +42,8 @@ tags: syntax-tree, front-end, data-model, code-generation, ir
   - **Side Effects:** None.
   - **Exceptions:** None.
 
-- **Signature:** Declaration statements - `NamespaceStatement`, `PolicyStatement`, `FactStatement`, `UseStatement`, `VarDeclaration`, `RuleStatement`, `ShapeStatement`, `DeriveStatement`, `ExportDeriveStatement`, `RuleExportStatement`, `ShapeExportStatement`, `ImportClause`, `WithClause`, `AttachmentClause`, `CommentStatement`, and the policy-metadata trio `TitleStatement`/`DescriptionStatement`/`VersionStatement`/`TagStatement`
-  - **Behavior:** Structural surface of a policy pack. `RuleStatement` carries `Default`, `When`, and `Body` as independent optional expressions; `FactStatement` carries type, alias, default expression, and an `Optional` flag; `UseStatement` distinguishes a relative path (`RelativeFrom`) from a library reference (`LibFrom`).
+- **Signature:** Declaration statements - `NamespaceStatement`, `PolicyStatement`, `FactStatement`, `DataStatement`, `UseStatement`, `VarDeclaration`, `RuleStatement`, `ShapeStatement`, `DeriveStatement`, `ExportDeriveStatement`, `RuleExportStatement`, `ShapeExportStatement`, `ImportClause`, `WithClause`, `AttachmentClause`, `CommentStatement`, and the policy-metadata trio `TitleStatement`/`DescriptionStatement`/`VersionStatement`/`TagStatement`
+  - **Behavior:** Structural surface of a policy pack. `RuleStatement` carries `Default`, `When`, and `Body` as independent optional expressions; `FactStatement` carries type, alias, default expression, and an `Optional` flag; `DataStatement` carries the `[data]` entry name, an optional type (nil when omitted) and an alias; `UseStatement` distinguishes a relative path (`RelativeFrom`) from a library reference (`LibFrom`).
   - **Side Effects:** None - all are inert data.
   - **Exceptions:** None; constructors cannot fail.
 

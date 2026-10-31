@@ -9,7 +9,7 @@ tags: policy-model, scoping, metadata, decision-export, phase-ordering
 # Node: index.Policy (Policy Scope and Declaration Ordering)
 
 ## 1. Architectural Role & Intent
-`Policy` is the semantic model of one `policy { … }` block: its metadata, facts (keyed by **alias**), module `use` bindings, lets, rules, shapes, derives, and its exported decisions. `createPolicy` is both constructor and validator, and its defining job is enforcing a **four-phase declaration order** - metadata, then facts, then uses, then body - that the grammar does not express. It also enforces the pack's central contract: a policy with no exported rule is rejected outright.
+`Policy` is the semantic model of one `policy { … }` block: its metadata, facts (keyed by **alias**), pack `data` declarations (keyed by alias), module `use` bindings, lets, rules, shapes, derives, and its exported decisions. `createPolicy` is both constructor and validator, and its defining job is enforcing a **four-phase declaration order** - metadata, then facts, then uses, then body - that the grammar does not express. It also enforces the pack's central contract: a policy with no exported rule is rejected outright.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -25,13 +25,14 @@ tags: policy-model, scoping, metadata, decision-export, phase-ordering
 | `index.policy` | `CALLS` | [[index.namespace]] | Registered via `addPolicy`, which enforces cross-kind name uniqueness. |
 | [[index.index]] | `CALLS` | [[index.policy]] | `AddProgram` calls `createPolicy` with a clone of the namespace's visible derives. |
 | [[index.resolve]] | `READS_FROM` | [[index.policy]] | `VerifyRuleExported` is declared on this type. |
-| [[index.builtin_kind]] | `READS_FROM` | [[index.policy]] | Seeds the static kind-check scope from `Facts`, `Lets`, and `Derives`. |
-| [[runtime]] | `READS_FROM` | [[index.policy]] | Resolves facts by alias, lets, rules, uses, and exported decisions. |
+| [[index.builtin_kind]] | `READS_FROM` | [[index.policy]] | Seeds the static kind-check scope from `Facts`, `Data`, `Lets`, and `Derives`. |
+| [[index.pack_data]] | `READS_FROM` | [[index.policy]] | Checks every `Data` declaration against the pack manifest. |
+| [[runtime]] | `READS_FROM` | [[index.policy]] | Resolves facts by alias, data by alias, lets, rules, uses, and exported decisions. |
 
 ## 3. Interface Contracts & Public Surface
 
-- **Signature:** `Policy` struct - `{ Statement, Namespace, Name, FQN, FilePath, Statements, Title *string, Description *string, VersionLiteral string, Version *semver.Version, TagPairs []PolicyTagPair, TagsByKey map[string][]string, Lets, Facts, Rules, Derives, RuleExports map[string]*ExportedRule, Uses, Shapes }` plus unexported `seenIdentifiers`
-  - **Behavior:** `Facts` is keyed by **alias** (defaulting to the declared name), `Uses` by import alias, `RuleExports` by rule name. `Title` and `Description` are pointers so "absent" is distinguishable from "empty". `TagPairs` preserves source order; `TagsByKey` is the derived multi-map for queries.
+- **Signature:** `Policy` struct - `{ Statement, Namespace, Name, FQN, FilePath, Statements, Title *string, Description *string, VersionLiteral string, Version *semver.Version, TagPairs []PolicyTagPair, TagsByKey map[string][]string, Lets, Facts, Data, Rules, Derives, RuleExports map[string]*ExportedRule, Uses, Shapes }` plus unexported `seenIdentifiers`
+  - **Behavior:** `Facts` and `Data` are keyed by **alias** (defaulting to the declared name), `Uses` by import alias, `RuleExports` by rule name. `Title` and `Description` are pointers so "absent" is distinguishable from "empty". `TagPairs` preserves source order; `TagsByKey` is the derived multi-map for queries.
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 
@@ -43,7 +44,12 @@ tags: policy-model, scoping, metadata, decision-export, phase-ordering
 - **Signature:** `createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Program, idx *Index, nsDerives map[string]*Derive) -> (*Policy, error)`
   - **Behavior:** Walks the body once, skipping comments, advancing a `policyPhase` state machine (`meta → facts → uses → body`) and rejecting any statement that appears out of phase. Builds `TagsByKey` at the end and requires at least one rule export.
   - **Side Effects:** Registers policy-scoped derives into `idx.DerivesByFQN`.
-  - **Exceptions:** `ErrPolicyMetadataContiguous` (metadata after facts/uses but before body); `latePolicyHeaderErr` (metadata, fact, use, or derive after the body started); `ErrPolicyFactAfterUse`; duplicate metadata conflicts; `ErrPolicyEmptyTitle`; `ErrPolicyInvalidVersion`; `ErrPolicyEmptyTagKey`; `cannot export unknown rule`; `cannot rebind to existing alias`; `unsupported statement in policy`; `policy '%s' does not export any rules`.
+  - **Exceptions:** `ErrPolicyMetadataContiguous` (metadata after facts/uses but before body); `latePolicyHeaderErr` (metadata, fact, data, use, or derive after the body started); `ErrPolicyFactAfterUse`; duplicate metadata conflicts; `ErrPolicyEmptyTitle`; `ErrPolicyInvalidVersion`; `ErrPolicyEmptyTagKey`; `cannot export unknown rule`; `cannot rebind to existing alias`; `unsupported statement in policy`; `policy '%s' does not export any rules`.
+
+- **Signature:** `(*Policy).AddData(data *ast.DataStatement) -> error`
+  - **Behavior:** Keys by `data.Alias` and registers it in `seenIdentifiers`, so a data alias conflicts with any fact, let or rule of the same name; it also refuses an alias already bound by a `use`. A `data` declaration may appear in the metadata, facts or uses phase and moves `meta` to `facts`; after the body has started it is `latePolicyHeaderErr("data")`. A later `use` whose alias is a data alias is a conflict too.
+  - **Side Effects:** Mutates `Data`.
+  - **Exceptions:** `ErrConflict("data declaration", …)`; `ErrConflict("use alias", …)` from the `use` case.
 
 - **Signature:** `(*Policy).AddFact(fact) -> error`
   - **Behavior:** Keys by `fact.Alias` and registers it in `seenIdentifiers`. Enforces that a **required (non-optional) fact cannot carry a default**.

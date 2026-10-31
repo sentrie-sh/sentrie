@@ -22,6 +22,7 @@ Resolves a bare identifier through a fixed precedence chain - local, fact, let, 
 | `runtime.eval_ident` | `CALLS` | [[runtime.eval_call]] | Reuses `lookupDeriveByIdentifier` for the derive-as-value case. |
 | `runtime.eval_ident` | `CALLS` | [[runtime.callable]] | Boxes a derive as a `deriveCallable` for higher-order use. |
 | `runtime.eval_ident` | `READS_FROM` | [[index]] | Reads `Policy.Facts` (for the derive error message and to resolve an omitted optional fact as `Undefined`) and `Policy.Rules`. |
+| `runtime.eval_ident` | `CALLS` | [[runtime.pack_data]] | `packDataValue` for a `data` alias. |
 | [[runtime.eval]] | `CALLS` | [[runtime.eval_ident]] | All `ast.Identifier` nodes dispatch here. |
 
 ## 3. Interface Contracts & Public Surface
@@ -30,12 +31,13 @@ Resolves a bare identifier through a fixed precedence chain - local, fact, let, 
   - **Behavior:** Resolves in strict order:
     1. **Local** - an already-evaluated value, including lambda and derive parameters.
     2. **Derive fact guard** - inside a derive, a name matching a policy fact is refused with a targeted message rather than falling through.
-    3. **Fact** - resolved at the root context. A declared optional fact the caller omitted, with no default, is never injected and resolves to `Undefined` instead of falling through, so [[runtime.eval_is]] guards and field chains on it degrade like a missing field.
-    4. **Let** - pushed onto the recursion stack, evaluated, type-validated if annotated (a `bool`/`trinary` let bound to an import holds its state, via `bindTruthValue` in [[runtime.typeref_trinary]]), then cached via `SetLocal`.
-    5. **Rule** - outside a derive only; executes the rule and caches its **decision value**.
-    6. **Derive** - boxed as a callable so it can be passed to higher-order builtins.
+    3. **Pack data** - a `data` alias of the policy returns the value loaded at pack load ([[runtime.pack_data]]); inside a derive it is refused explicitly with `pack data is not available inside a derive`, mirroring [[index.derive_purity]].
+    4. **Fact** - resolved at the root context. A declared optional fact the caller omitted, with no default, is never injected and resolves to `Undefined` instead of falling through, so [[runtime.eval_is]] guards and field chains on it degrade like a missing field.
+    5. **Let** - pushed onto the recursion stack, evaluated, type-validated if annotated (a `bool`/`trinary` let bound to an import holds its state, via `bindTruthValue` in [[runtime.typeref_trinary]]), then cached via `SetLocal`.
+    6. **Rule** - outside a derive only; executes the rule and caches its **decision value**.
+    7. **Derive** - boxed as a callable so it can be passed to higher-order builtins.
   - **Side Effects:** Evaluates let initializers; executes rules; writes locals; mutates the recursion stack.
-  - **Exceptions:** `facts are not available inside a derive (%q)`; `xerr.ErrInfiniteRecursion` from the let guard; `invalid value for let declaration %s`; `identifier not found: %s`.
+  - **Exceptions:** `facts are not available inside a derive (%q)`; `pack data is not available inside a derive (%q)`; `pack data %q is not loaded`; `xerr.ErrInfiniteRecursion` from the let guard; `invalid value for let declaration %s`; `identifier not found: %s`.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless itself, but it **mutates the execution context** as a cache - the first read of a let or rule changes the context for every later read.
@@ -47,4 +49,4 @@ Resolves a bare identifier through a fixed precedence chain - local, fact, let, 
   - **Recursion detection covers lets but not rules here.** The let branch pushes the identifier onto the reference stack; the rule branch relies on `execRule` pushing the rule's FQN. The two use **different key spaces** - a bare name versus a fully-qualified name - so a let and a rule with the same name occupy separate stack entries.
   - **Purity is enforced by two separate mechanisms.** The fact guard produces a good message, but the real protection is structural: a detached derive context has no facts map and no parent, so `GetFact` finds nothing. The rule branch is gated explicitly on `evalDerive == nil`.
   - **The fact guard reads `p.Facts` with the identifier as key**, and that map is **alias-keyed** - so the friendly error only appears for the alias, not the declared name.
-  - **`identifier not found` is the catch-all.** Because resolution has six stages, this message gives no indication of which stage was expected to match, making typos in derive names and typos in fact aliases indistinguishable.
+  - **`identifier not found` is the catch-all.** Because resolution has seven stages, this message gives no indication of which stage was expected to match, making typos in derive names and typos in fact aliases indistinguishable.

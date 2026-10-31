@@ -251,6 +251,7 @@ graph TD
 - [[runtime.js.alias_runtime]] - CommonJS VM host
 - [[runtime.js.registry]] - module resolution and compilation
 - [[runtime.modules]] - JavaScript module binding and per-call VMs
+- [[runtime.pack_data]] - pack data reads and once-per-executor type validation
 
 ### Function / Endpoint
 
@@ -261,6 +262,7 @@ graph TD
 - [[index.derive_expr_walk]] - derive expression traversal
 - [[index.derive_purity]] - derive purity enforcement
 - [[index.import_withs]] - unknown `with` fact check for imports
+- [[index.pack_data]] - `data` declarations must name loaded manifest entries
 - [[index.is_resolve]] - `is` shape-or-value resolution
 - [[index.resolve]] - symbol resolution
 - [[index.segments]] - path segment resolution
@@ -274,6 +276,7 @@ graph TD
 - [[parser.export_shape]] - shape export parsing
 - [[parser.expression]] - Pratt expression driver
 - [[parser.fact]] - fact declaration parsing
+- [[parser.data]] - pack data declaration parsing (contextual `data` keyword)
 - [[parser.fqn]] - fully-qualified name parsing
 - [[parser.infix]] - infix operator parsing
 - [[parser.is]] - `is` expression parsing
