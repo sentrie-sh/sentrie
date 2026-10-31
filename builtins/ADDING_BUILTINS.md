@@ -47,6 +47,7 @@ runtime.CallSite              implements builtins.Env
 | [`scalar.go`](scalar.go) | Scalar builtins (`count`, `merge`, `flatten`, …) and private helpers |
 | [`collection.go`](collection.go) | Higher-order builtins (`filter`, `reduce`, …), `iterArgs`, `reduceArgs` |
 | [`glob.go`](glob.go), [`object.go`](object.go), [`units.go`](units.go) | Pure stdlib builtins: `glob_match`; `object_get`, `object_keys`, `object_remove`, `object_union`, `object_filter`; `parse_quantity`, `parse_duration` |
+| [`set.go`](set.go) | Set builtins (`set`, `union`, `intersection`, `difference`, `is_subset`, `is_superset`) over `box` sets |
 | `*_test.go` | Tests; use `invoke()` + `noopEnv()` (see [Testing](#testing)) |
 
 Pick **scalar** vs **collection** by whether the builtin invokes callables via `env.Call`.
@@ -225,8 +226,8 @@ Populate `Sig.Result.Kinds` for every entry (validate-time propagation):
 
 | Result kinds | Builtins |
 |--------------|----------|
-| `{bool}` | `all`, `any`, `glob_match` |
-| `{list}` | `as_list`, `filter`, `collect`, `flatten`, `flatten_deep`, `normalise_list`, `distinct`, `object_keys` |
+| `{bool}` | `all`, `any`, `glob_match`, `is_subset`, `is_superset` |
+| `{list}` | `as_list`, `filter`, `collect`, `flatten`, `flatten_deep`, `normalise_list`, `distinct`, `object_keys`, `set`, `union`, `intersection`, `difference` |
 | `{number}` | `count`, `now`, `now_ms`, `parse_quantity`, `parse_duration` |
 | `{dict}` | `merge`, `object_union`, `object_remove`, `object_filter` |
 | `nil` (any) | `error`, `first`, `reduce`, `object_get` |
@@ -329,7 +330,7 @@ Must flow through real `eval_call` dispatch, not bypass it.
 
 ---
 
-## Reference: current builtins (24)
+## Reference: current builtins (30)
 
 | Name | File | Arity | Notes |
 |------|------|-------|-------|
@@ -353,6 +354,9 @@ Must flow through real `eval_call` dispatch, not bypass it.
 | `parse_quantity` | units | 1 | Kubernetes quantity (`10Gi`, `500m`, `2e3`) to a number |
 | `parse_duration` | units | 1 | Go duration (`2h`, `1h30m`) to seconds |
 | `reduce` | collection | 3 | reducer arity 2 or 3 |
+| `set` | set | 1 | strict; builds a set (distinct, canonical order) from a list |
+| `union`, `intersection`, `difference` | set | 2 | strict; each operand a set or list; set result |
+| `is_subset`, `is_superset` | set | 2 | strict; each operand a set or list; bool result |
 
 ---
 

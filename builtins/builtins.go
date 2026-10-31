@@ -103,6 +103,7 @@ var Table = map[string]*Decl{
 	"as_list":        declAsList,
 	"collect":        declCollect,
 	"count":          declCount,
+	"difference":     declDifference,
 	"distinct":       declDistinct,
 	"error":          declError,
 	"filter":         declFilter,
@@ -110,6 +111,9 @@ var Table = map[string]*Decl{
 	"flatten":        declFlatten,
 	"flatten_deep":   declFlattenDeep,
 	"glob_match":     declGlobMatch,
+	"intersection":   declIntersection,
+	"is_subset":      declIsSubset,
+	"is_superset":    declIsSuperset,
 	"merge":          declMerge,
 	"normalise_list": declNormaliseList,
 	"now":            declNow,
@@ -122,6 +126,8 @@ var Table = map[string]*Decl{
 	"parse_duration": declParseDuration,
 	"parse_quantity": declParseQuantity,
 	"reduce":         declReduce,
+	"set":            declSet,
+	"union":          declUnion,
 }
 
 // IsDeriveSafe reports whether name is a builtin allowed inside derive bodies
