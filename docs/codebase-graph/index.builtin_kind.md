@@ -71,7 +71,7 @@ A best-effort static type inferencer: given an expression and a lexical scope, i
   - **Exceptions:** None.
 
 - **Signature:** `kindAllowed(kinds, k) -> bool` / `builtinParamSigAt(sig, i) -> (ParamSig, bool)`
-  - **Behavior:** Membership test, except that a static `ValueTrinary` (a `trinary`-typed value, bool or unknown at runtime) is allowed only where both `ValueBool` and `ValueTrinary` are; and positional parameter lookup that falls back to the variadic tail once fixed params are exhausted.
+  - **Behavior:** Membership test, except that a static `ValueTrinary` (a `trinary`-typed value, bool or unknown at runtime) is allowed only where both `ValueBool` and `ValueTrinary` are, and a static `ValueDocument` is allowed where `ValueDict` is (a document is always a dict at runtime, so `merge(d, {})` on a `document` fact no longer fails validation); and positional parameter lookup that falls back to the variadic tail once fixed params are exhausted.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
