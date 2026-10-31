@@ -26,7 +26,7 @@ The most substantial validator: it resolves a shape reference through a three-ti
 
 - **Signature:** `validateAgainstShapeTypeRef(ctx, ec, exec Executor, p *index.Policy, v box.Value, typeRef *ast.ShapeTypeRef, pos tokens.Range) -> error`
   - **Behavior:** Four phases.
-    1. **Resolution** - policy shapes first (the source comment notes this deliberately overrides the namespace), then namespace shapes, then, only when the reference has **more than two segments**, a cross-namespace lookup guarded by `VerifyShapeExported`.
+    1. **Resolution** (`resolveShapeTypeRef`, shared with the closest-member choice in [[runtime.typeref_union]]) - policy shapes first (the source comment notes this deliberately overrides the namespace), then namespace shapes, then, only when the reference has **more than two segments**, a cross-namespace lookup guarded by `VerifyShapeExported`.
     2. **Alias short-circuit** - if `shape.AliasOf` is set, revalidate the whole value against that type and return.
     3. **Field walk** - the value must be a dict; each declared field is looked up, missing optional fields are skipped, missing required fields error, a present-but-undefined field errors, and each present field recurses.
     4. **Constraints** - shape-level checkers.

@@ -32,7 +32,7 @@ tags: tokenization, scanner, front-end, source-positions, heredoc
 - **Signature:** `(*Lexer).NextToken() -> tokens.Instance`
   - **Behavior:** Returns the next token, popping the push-back stack first. Skips whitespace, then dispatches on the current rune: multi-character operators (`==`, `=>`, `!=`, `<=`, `>=`, `|>`, `...`, `<<<`), single-character operators and punctuation, `--` comments, `"`-delimited strings, `<<<TAG` heredocs, numbers (`Int` vs `Float` by embedded `.`), and identifiers (promoted to keyword kinds via [[tokens]]). Returns `tokens.EofInstance` at end of input.
   - **Side Effects:** Advances the reader and mutates line/column/offset counters; consumes from the push-back stack.
-  - **Exceptions:** **Never returns a Go `error`.** All lexical failures are encoded in-band as `tokens.Error` tokens carrying the message as their value - unterminated strings, malformed heredocs, invalid identifiers, unknown runes, and a bare `|` without `>`. The caller must inspect token kind, not an error return.
+  - **Exceptions:** **Never returns a Go `error`.** All lexical failures are encoded in-band as `tokens.Error` tokens carrying the message as their value - unterminated strings, malformed heredocs, invalid identifiers, and unknown runes. A bare `|` is a `tokens.TokenPipe` (it separates union type members); the parser rejects it in an expression. The caller must inspect token kind, not an error return.
 
 - **Signature:** `(*Lexer).PushBack(t: tokens.Instance)`
   - **Behavior:** Returns a token to the stream as a **LIFO** stack; the next `NextToken` yields it. This is the parser's backtracking primitive.

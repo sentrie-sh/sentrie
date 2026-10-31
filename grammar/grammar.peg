@@ -97,7 +97,8 @@ RelationalExpr = AddExpr ("<" / "<=" / ">" / ">=") AddExpr
    that can start an expression is the ternary operator, not a nullable suffix, except that '{' after a
    type keyword is a rule body ('when x is string? {'); after a name, '? {' stays a ternary. A bare or
    slash-qualified IDENT is a shape when it names one in scope (a name that is both a shape and a
-   value is an error) and otherwise the legacy equality `x == y`; a `?` or `@` suffix makes it a TypeRef.
+   value is an error) and otherwise the legacy equality `x == y`; a `?` or `@` suffix or a `|` makes it
+   a TypeRef. A bare `any` is always the top type here; compare with a value named `any` using `==`.
    Any other right-hand side is the legacy equality. */
 IsExpr = AddExpr "is" ("not")? TypeRef
        / AddExpr "is" ("not")? AddExpr
@@ -136,7 +137,15 @@ MapEntry = STRING ":" Expr
 ShapeDecl = "shape" IDENT (TypeRef / ComplexShape)
 ComplexShape = ("with" TypeName)? "{" ShapeElement+ "}"
 ShapeElement = IDENT ("?")? ":" TypeRef
-TypeRef = (PrimitiveType / TypeName / ListType / DictType / RecordType) ("?")? TypeRefConstraint*
+/* A union matches when any member matches. `|` binds looser than a member's `?` and constraints and
+   than brackets: `string | number?` is `string | (number?)`, and constraints bind to the member they
+   follow. There is no grouping syntax. */
+TypeRef = TypeRefMember ("|" TypeRefMember)*
+TypeRefMember = (PrimitiveType / AnyType / TypeName / ListType / DictType / RecordType) ("?")? TypeRefConstraint*
+/* `any` accepts every defined value, null included, and takes no constraints. It is not a keyword:
+   a bare `any` in a type position is the top type, `any(...)` in an expression is the quantifier,
+   and no shape may be named `any`. */
+AnyType = "any"
 
 TypeRefConstraint = "@" IDENT "(" CommaSeparatedExpr? ")"
 PrimitiveType = "int" / "float" / "string" / "bool" / "document"

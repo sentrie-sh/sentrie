@@ -138,6 +138,12 @@ func (k *kindCheckCtx) checkIsTypeShapes(t ast.TypeRef) []isSiteError {
 			errs = append(errs, k.checkIsTypeShapes(f)...)
 		}
 		return errs
+	case *ast.UnionTypeRef:
+		var errs []isSiteError
+		for _, m := range tr.Members {
+			errs = append(errs, k.checkIsTypeShapes(m)...)
+		}
+		return errs
 	}
 	return nil
 }

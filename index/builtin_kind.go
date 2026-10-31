@@ -187,7 +187,8 @@ func (k *kindCheckCtx) isBuiltinCall(c *ast.CallExpression) (*builtins.Decl, boo
 // typeRefKind maps a static TypeRef to a runtime ValueKind when certain.
 // The switch must list every ast.TypeRef implementation; the parser rejects unknown refs.
 // ShapeTypeRef delegates to lookupShapeKind (alias vs complex). NullableTypeRef is
-// unknown in v1 because runtime Precheck passes null through.
+// unknown in v1 because runtime Precheck passes null through; AnyTypeRef and
+// UnionTypeRef admit more than one kind, so they are unknown too.
 // RecordTypeRef maps to ValueList (runtime requires ListValue). TrinaryTypeRef maps to
 // ValueTrinary, which here stands for "boolean or unknown": at runtime a known truth value
 // is a ValueBool and only unknown is a ValueTrinary, so kindAllowed admits it only where
@@ -209,7 +210,7 @@ func typeRefKind(idx *Index, policy *Policy, ref ast.TypeRef) (box.ValueKind, bo
 		return box.ValueDict, true
 	case *ast.DocumentTypeRef:
 		return box.ValueDocument, true
-	case *ast.NullableTypeRef:
+	case *ast.NullableTypeRef, *ast.AnyTypeRef, *ast.UnionTypeRef:
 		return 0, false
 	case *ast.RecordTypeRef:
 		return box.ValueList, true

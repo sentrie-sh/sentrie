@@ -30,9 +30,10 @@ Parses the `is` family: `x is defined`, `x is empty`, the type check `x is T` (#
   - **Behavior:** Consumes `is`, optionally consumes `not`, then dispatches on the follower:
     - `defined` → `IsDefinedExpression(left)`
     - `empty` → `IsEmptyExpression(left)`
-    - a type keyword (`string`, `number`, `boolean`, `trinary`, `document`, `list`, `dict`, `record`) → a full type reference, built as `IsExpression(left, Type)`
+    - a type keyword (`string`, `number`, `boolean`, `trinary`, `document`, `list`, `dict`, `record`) → a full type reference, including a union `T1 | T2` ([[parser.typeref]]), built as `IsExpression(left, Type)`
     - otherwise parses a right operand at `EQUALITY` precedence:
-      - a bare or slash-qualified identifier followed by `@` or a nullable `?` → that name as a shape type with its suffixes, `IsExpression(left, Type)`
+      - a bare `any` → the top type, `IsExpression(left, Type)`; a value named `any` is compared with `==`
+      - a bare or slash-qualified identifier followed by `@`, a nullable `?` or `|` → that name as a shape type with its suffixes and any further union members, `IsExpression(left, Type)`
       - a bare or slash-qualified identifier with no suffix → `IsExpression(left, Right, Type)` carrying both readings for [[index.is_resolve]]
       - anything else → `InfixExpression(left, "is", right)`, the legacy equality
 

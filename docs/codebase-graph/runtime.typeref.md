@@ -15,7 +15,7 @@ The single entry point for all runtime type checking. It strips nullability, the
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.typeref` | `DEPENDS_ON` | [[ast]] | `IsNullableTypeRef`, `UnwrapNullableTypeRef`, and the eight concrete type-ref kinds. |
+| `runtime.typeref` | `DEPENDS_ON` | [[ast]] | `IsNullableTypeRef`, `UnwrapNullableTypeRef`, and the ten concrete type-ref kinds. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_string]] | String targets. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_number]] | Number targets. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_trinary]] | Trinary and bool targets. |
@@ -24,6 +24,7 @@ The single entry point for all runtime type checking. It strips nullability, the
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_shape]] | Shape targets; recurses per field. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_document]] | Document targets. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_record]] | Record (positional tuple) targets. |
+| `runtime.typeref` | `CALLS` | [[runtime.typeref_union]] | Union and `any` targets. |
 | [[runtime.executor]] | `CALLS` | [[runtime.typeref]] | Validates injected fact values against their declared types. |
 | [[runtime.eval_ident]] | `CALLS` | [[runtime.typeref]] | Validates a let's value against its annotation on first read. |
 | [[runtime.derive_invoke]] | `CALLS` | [[runtime.typeref]] | Validates derive parameters and return values. |

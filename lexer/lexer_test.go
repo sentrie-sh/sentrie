@@ -95,33 +95,25 @@ func TestLexerPipelineMultilineSequence(t *testing.T) {
 	}
 }
 
-func TestLexerRejectsBarePipe(t *testing.T) {
-	l := NewLexer(strings.NewReader("value | len"), "test.sent")
-	_ = mustNextToken(t, l) // value
-	tok := mustNextToken(t, l)
-	if tok.Kind != tokens.Error {
-		t.Fatalf("expected error token, got %s", tok.Kind)
+// A bare `|` separates union type members; the parser rejects it in an
+// expression, where only `|>` is an operator.
+func TestLexerBarePipe(t *testing.T) {
+	cases := map[string][]tokens.Kind{
+		"value | len":  {tokens.Ident, tokens.TokenPipe, tokens.Ident, tokens.EOF},
+		"value |":      {tokens.Ident, tokens.TokenPipe, tokens.EOF},
+		"value || len": {tokens.Ident, tokens.TokenPipe, tokens.TokenPipe, tokens.Ident, tokens.EOF},
+		"a|b|>c":       {tokens.Ident, tokens.TokenPipe, tokens.Ident, tokens.TokenPipeForward, tokens.Ident, tokens.EOF},
 	}
-	if !strings.Contains(tok.Value, "only '|>' is supported") {
-		t.Fatalf("expected pipe error message, got %q", tok.Value)
-	}
-}
-
-func TestLexerRejectsTrailingPipeAtEOF(t *testing.T) {
-	l := NewLexer(strings.NewReader("value |"), "test.sent")
-	_ = mustNextToken(t, l) // value
-	tok := mustNextToken(t, l)
-	if tok.Kind != tokens.Error {
-		t.Fatalf("expected error token, got %s", tok.Kind)
-	}
-}
-
-func TestLexerRejectsDoublePipe(t *testing.T) {
-	l := NewLexer(strings.NewReader("value || len"), "test.sent")
-	_ = mustNextToken(t, l) // value
-	tok := mustNextToken(t, l)
-	if tok.Kind != tokens.Error {
-		t.Fatalf("expected error token, got %s", tok.Kind)
+	for src, want := range cases {
+		got := collectKinds(src)
+		if len(got) != len(want) {
+			t.Fatalf("%q: expected %d tokens, got %d: %v", src, len(want), len(got), got)
+		}
+		for i := range want {
+			if got[i] != want[i] {
+				t.Fatalf("%q: token %d: expected %s, got %s", src, i, want[i], got[i])
+			}
+		}
 	}
 }
 
