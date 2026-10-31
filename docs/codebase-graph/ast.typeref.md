@@ -9,7 +9,7 @@ tags: type-system, constraints, parse-time-validation, code-generation
 # Node: ast.TypeRef (Type Reference Family)
 
 ## 1. Architectural Role & Intent
-`TypeRef` is the sealed interface for every type annotation writable in Sentrie - `string`, `number`, `trinary`, `list[T]`, `dict[T]`, `record[…]`, `document`, a named `shape`, and the `T?` nullable wrapper - plus the constraint suffixes those types accept. Its distinguishing responsibility is that it is the **only AST family that validates itself at parse time**: each concrete type ref carries a generated table of which named constraints it permits and how many arguments each takes, so `string.between(1, 5)` on a `number` is rejected while the parser is still running rather than at evaluation.
+`TypeRef` is the sealed interface for every type annotation writable in Sentrie - `string`, `number`, `trinary`, `list[T]`, `set[T]`, `dict[T]`, `record[…]`, `document`, a named `shape`, and the `T?` nullable wrapper - plus the constraint suffixes those types accept. Its distinguishing responsibility is that it is the **only AST family that validates itself at parse time**: each concrete type ref carries a generated table of which named constraints it permits and how many arguments each takes, so `string.between(1, 5)` on a `number` is rejected while the parser is still running rather than at evaluation.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -51,8 +51,8 @@ tags: type-system, constraints, parse-time-validation, code-generation
   - **Side Effects:** None.
   - **Exceptions:** None.
 
-- **Signature:** Composite refs - `NewListTypeRef(elem, span)`, `NewDictTypeRef(valueType, span)`, `NewRecordTypeRef(fields, span)`, `NewShapeTypeRef(ref: *FQN, span)`
-  - **Behavior:** `list[T]` and `dict[T]` carry a single child type (dicts are string-keyed, so only the value type is expressible). `record[…]` carries a positional field list. `ShapeTypeRef` is a **by-name reference** holding an `FQN` that stays unresolved until [[index]] links it to a `ShapeStatement`.
+- **Signature:** Composite refs - `NewListTypeRef(elem, span)`, `NewSetTypeRef(elem, span)`, `NewDictTypeRef(valueType, span)`, `NewRecordTypeRef(fields, span)`, `NewShapeTypeRef(ref: *FQN, span)`
+  - **Behavior:** `list[T]`, `set[T]` and `dict[T]` carry a single child type (`set[T]` takes the list constraint table, since a set is a list at runtime, #162) (dicts are string-keyed, so only the value type is expressible). `record[…]` carries a positional field list. `ShapeTypeRef` is a **by-name reference** holding an `FQN` that stays unresolved until [[index]] links it to a `ShapeStatement`.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
