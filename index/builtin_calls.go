@@ -75,6 +75,10 @@ func (idx *Index) forEachScopedExpr(ctx context.Context, visit scopedExprVisitor
 				k.walkScopedExprs(rule.Default, visit)
 				k.walkScopedExprs(rule.When, visit)
 				k.walkScopedExprs(rule.Body, visit)
+				for _, c := range rule.Contributions {
+					k.walkScopedExprs(c.When, visit)
+					k.walkScopedExprs(c.Body, visit)
+				}
 			}
 			for _, export := range policy.RuleExports {
 				if export == nil {
