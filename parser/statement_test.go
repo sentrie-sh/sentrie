@@ -20,7 +20,7 @@ func (s *ParserTestSuite) TestParseNamespaceStatement() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		stmt := parseNamespaceStatement(s.T().Context(), parser)
 		s.NoError(parser.err, "Expected no error for: %s", tc.input)
 		s.NotNil(stmt, "Expected statement for: %s", tc.input)
@@ -39,7 +39,7 @@ func (s *ParserTestSuite) TestParseNamespaceStatementInvalid() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		stmt := parseNamespaceStatement(s.T().Context(), parser)
 		s.Error(parser.err, "Expected error for: %s", tc)
 		s.Nil(stmt, "Expected nil statement for: %s", tc)
@@ -58,7 +58,7 @@ func (s *ParserTestSuite) TestParsePolicyStatement() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		stmt := parseThePolicyStatement(s.T().Context(), parser)
 		s.NoError(parser.err, "Expected no error for: %s", tc.input)
 		s.NotNil(stmt, "Expected statement for: %s", tc.input)
@@ -79,7 +79,7 @@ func (s *ParserTestSuite) TestParsePolicyStatementInvalid() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		stmt := parseThePolicyStatement(s.T().Context(), parser)
 		s.Error(parser.err, "Expected error for: %s", tc)
 		s.Nil(stmt, "Expected nil statement for: %s", tc)
@@ -100,7 +100,7 @@ func (s *ParserTestSuite) TestParseRuleStatement() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		stmt := parseRuleStatement(s.T().Context(), parser)
 		s.NoError(parser.err, "Expected no error for: %s", tc.input)
 		s.NotNil(stmt, "Expected statement for: %s", tc.input)
@@ -124,7 +124,7 @@ func (s *ParserTestSuite) TestParseRuleStatementInvalid() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		stmt := parseRuleStatement(s.T().Context(), parser)
 		s.Error(parser.err, "Expected error for: %s", tc)
 		s.Nil(stmt, "Expected nil statement for: %s", tc)
@@ -152,7 +152,7 @@ func (s *ParserTestSuite) TestParseFactStatement() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		stmt := parseFactStatement(s.T().Context(), parser)
 		s.NoError(parser.err, "Expected no error for: %s (%s)", tc.input, tc.description)
 		s.NotNil(stmt, "Expected statement for: %s (%s)", tc.input, tc.description)
@@ -180,7 +180,7 @@ func (s *ParserTestSuite) TestParseFactStatementInvalid() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		stmt := parseFactStatement(s.T().Context(), parser)
 		s.Error(parser.err, "Expected error for: %s (%s)", tc.input, tc.description)
 		s.Nil(stmt, "Expected nil statement for: %s (%s)", tc.input, tc.description)
@@ -199,7 +199,7 @@ func (s *ParserTestSuite) TestParseShapeStatement() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		stmt := parseShapeStatement(s.T().Context(), parser)
 		s.NoError(parser.err, "Expected no error for: %s", tc.input)
 		s.NotNil(stmt, "Expected statement for: %s", tc.input)
@@ -212,7 +212,7 @@ func (s *ParserTestSuite) TestParseShapeStatement() {
 
 // TestParseShapeStatementEmpty tests parsing empty shape statements
 func (s *ParserTestSuite) TestParseShapeStatementEmpty() {
-	parser := NewParserFromString("shape User { }", "test.sentra")
+	parser := NewParserFromString("shape User { }", "test.sentrie")
 	stmt := parseShapeStatement(s.T().Context(), parser)
 	s.NoError(parser.err, "Expected no error for empty shape")
 	s.NotNil(stmt, "Expected statement for empty shape")
@@ -233,7 +233,7 @@ func (s *ParserTestSuite) TestParseShapeStatementInvalid() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		stmt := parseShapeStatement(s.T().Context(), parser)
 		s.Error(parser.err, "Expected error for: %s", tc)
 		s.Nil(stmt, "Expected nil statement for: %s", tc)
@@ -253,7 +253,7 @@ func (s *ParserTestSuite) TestParseUseStatement() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		stmt := parseUseStatement(s.T().Context(), parser)
 		s.NoError(parser.err, "Expected no error for: %s", tc.input)
 		s.NotNil(stmt, "Expected statement for: %s", tc.input)
@@ -273,7 +273,7 @@ func (s *ParserTestSuite) TestParseUseStatementInvalid() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		stmt := parseUseStatement(s.T().Context(), parser)
 		s.Error(parser.err, "Expected error for: %s", tc)
 		s.Nil(stmt, "Expected nil statement for: %s", tc)
@@ -292,7 +292,7 @@ func (s *ParserTestSuite) TestParseRuleExportStatement() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		stmt := parseRuleExportStatement(s.T().Context(), parser)
 		s.NoError(parser.err, "Expected no error for: %s", tc.input)
 		s.NotNil(stmt, "Expected statement for: %s", tc.input)
@@ -313,7 +313,7 @@ func (s *ParserTestSuite) TestParseRuleExportStatementInvalid() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		stmt := parseRuleExportStatement(s.T().Context(), parser)
 		s.Error(parser.err, "Expected error for: %s", tc)
 		s.Nil(stmt, "Expected nil statement for: %s", tc)
@@ -332,7 +332,7 @@ func (s *ParserTestSuite) TestParseShapeExportStatement() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		stmt := parseExportStatement(s.T().Context(), parser)
 		s.NoError(parser.err, "Expected no error for: %s", tc.input)
 		s.NotNil(stmt, "Expected statement for: %s", tc.input)
@@ -353,7 +353,7 @@ func (s *ParserTestSuite) TestParseShapeExportStatementInvalid() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		stmt := parseExportStatement(s.T().Context(), parser)
 		s.Error(parser.err, "Expected error for: %s", tc)
 		s.Nil(stmt, "Expected nil statement for: %s", tc)
@@ -370,7 +370,7 @@ policy user {
 	shape User { name:string age:int }
 }
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Expected no error for complex nested statements")
 	s.NotNil(program, "Expected program for complex nested statements")
@@ -404,7 +404,7 @@ func (s *ParserTestSuite) TestParseStatementEdgeCases() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		_, err := parser.ParseProgram(s.T().Context())
 
 		if tc.shouldError {
@@ -418,7 +418,7 @@ func (s *ParserTestSuite) TestParseStatementEdgeCases() {
 func (s *ParserTestSuite) TestParsePolicyMetadataKeywordOutsidePolicyBody() {
 	src := `namespace com/example
 title "x"`
-	parser := NewParserFromString(src, "test.sentra")
+	parser := NewParserFromString(src, "test.sentrie")
 	_, err := parser.ParseProgram(s.T().Context())
 	s.Error(err)
 	s.Contains(err.Error(), "only allowed inside a policy")
@@ -438,7 +438,7 @@ policy p {
   rule allow = default true { yield true }
   export decision of allow
 }`
-	parser := NewParserFromString(src, "test.sentra")
+	parser := NewParserFromString(src, "test.sentrie")
 	prg, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(prg)
@@ -473,7 +473,7 @@ policy p {
 }
 
 func (s *ParserTestSuite) TestParseTagStatementInvalid() {
-	parser := NewParserFromString(`policy p { tag "a" "b" }`, "test.sentra")
+	parser := NewParserFromString(`policy p { tag "a" "b" }`, "test.sentrie")
 	_, err := parser.ParseProgram(s.T().Context())
 	s.Error(err)
 }
@@ -487,7 +487,7 @@ policy p {
     yield count(result) > 0
   }
 }`
-	parser := NewParserFromString(src, "test.sentra")
+	parser := NewParserFromString(src, "test.sentrie")
 	_, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 }
@@ -498,7 +498,7 @@ policy p {
   fact attrs: dict[string]
   rule allow = { yield true }
 }`
-	parser := NewParserFromString(src, "test.sentra")
+	parser := NewParserFromString(src, "test.sentrie")
 	_, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 }
@@ -509,13 +509,13 @@ policy p {
   fact attrs: map[string]
   rule allow = { yield true }
 }`
-	parser := NewParserFromString(src, "test.sentra")
+	parser := NewParserFromString(src, "test.sentrie")
 	_, err := parser.ParseProgram(s.T().Context())
 	s.Error(err)
 }
 
 func (s *ParserTestSuite) TestParsePolicyExportDeriveRejected() {
-	parser := NewParserFromString("export derive helper", "policy_export.sentra")
+	parser := NewParserFromString("export derive helper", "policy_export.sentrie")
 	stmt := parseRuleExportStatement(s.T().Context(), parser)
 	s.Nil(stmt)
 	s.Error(parser.err)

@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -27,11 +14,11 @@ import (
 )
 
 func (r *RuntimeTestSuite) TestValidateAgainstBoolTypeRef() {
-	typeRef := ast.NewTrinaryTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+	typeRef := ast.NewTrinaryTypeRef(tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 
 	r.Run("should return an error if the value is a string", func() {
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstTrinaryTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny("not a bool"), typeRef, mockExpr.Span())
 
 		r.Error(err)
@@ -40,7 +27,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstBoolTypeRef() {
 
 	r.Run("should return an error if the value is an int64", func() {
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstTrinaryTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny(int64(123)), typeRef, mockExpr.Span())
 
 		r.Error(err)
@@ -49,7 +36,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstBoolTypeRef() {
 
 	r.Run("should return an error if the value is a float64", func() {
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstTrinaryTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny(float64(123)), typeRef, mockExpr.Span())
 
 		r.Error(err)
@@ -58,7 +45,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstBoolTypeRef() {
 
 	r.Run("should return an error if the value is a string number", func() {
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstTrinaryTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny("123"), typeRef, mockExpr.Span())
 
 		r.Error(err)
@@ -67,7 +54,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstBoolTypeRef() {
 
 	r.Run("should not return an error if the value is boolean true", func() {
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstTrinaryTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny(true), typeRef, mockExpr.Span())
 
 		r.NoError(err)
@@ -75,7 +62,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstBoolTypeRef() {
 
 	r.Run("should not return an error if the value is boolean false", func() {
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstTrinaryTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny(false), typeRef, mockExpr.Span())
 
 		r.NoError(err)
@@ -83,7 +70,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstBoolTypeRef() {
 
 	r.Run("should not return an error if the value is trinary unknown", func() {
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstTrinaryTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny(trinary.Unknown), typeRef, mockExpr.Span())
 
 		r.NoError(err)
@@ -91,7 +78,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstBoolTypeRef() {
 
 	r.Run("should not return an error if the value is trinary true", func() {
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstTrinaryTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny(trinary.True), typeRef, mockExpr.Span())
 
 		r.NoError(err)
@@ -99,7 +86,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstBoolTypeRef() {
 
 	r.Run("should not return an error if the value is trinary false", func() {
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstTrinaryTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny(trinary.False), typeRef, mockExpr.Span())
 
 		r.NoError(err)

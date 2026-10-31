@@ -20,7 +20,7 @@ func (s *RuntimeTestSuite) TestValidateValueAgainstTypeRefNormalizesBoxedValue()
 		&index.Policy{},
 		box.String("hello"),
 		typeRef,
-		tokens.Range{File: "test.sentra"},
+		tokens.Range{File: "test.sentrie"},
 	)
 	s.Require().NoError(err)
 }
@@ -34,7 +34,7 @@ func (s *RuntimeTestSuite) TestValidateValueAgainstTypeRefNullableAndNilTypeRefB
 		&index.Policy{},
 		box.Null(),
 		nullable,
-		tokens.Range{File: "test.sentra"},
+		tokens.Range{File: "test.sentrie"},
 	)
 	s.Require().NoError(err)
 
@@ -45,7 +45,7 @@ func (s *RuntimeTestSuite) TestValidateValueAgainstTypeRefNullableAndNilTypeRefB
 		&index.Policy{},
 		box.String("anything"),
 		nil,
-		tokens.Range{File: "test.sentra"},
+		tokens.Range{File: "test.sentrie"},
 	)
 	s.Require().NoError(err)
 }

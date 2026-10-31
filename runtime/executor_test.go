@@ -375,7 +375,7 @@ func (s *RuntimeTestSuite) TestBindUsesBindsPreparedModule() {
 	exec := testExecutorForModuleBinding()
 	use := ast.NewUseStatement([]string{"md5"}, "", []string{constants.APPNAME, "hash"}, "hash", stubRange())
 	policy := &index.Policy{
-		FilePath: "policy.sentra",
+		FilePath: "policy.sentrie",
 		Uses:     map[string]*ast.UseStatement{"hash": use},
 	}
 	ec := NewExecutionContext(policy, exec)
