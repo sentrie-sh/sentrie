@@ -9,7 +9,7 @@ tags: type-conversion, coercion, validation, defect
 # Node: runtime.evalCast (Type Cast Evaluation)
 
 ## 1. Architectural Role & Intent
-Implements `expr as <type>` - the language's only explicit conversion mechanism. It converts to string, number, or trinary; asserts (without converting) for list, dict, and shape targets; and is *intended* to validate the converted value against the full target type, including constraints, before returning. That validation is currently ineffective - see the defect note below.
+Implements `expr as <type>` - the language's only explicit conversion mechanism. It converts to string, number, or trinary; asserts (without converting) for list, dict, and shape targets; and validates the converted value against the full target type, including constraints, before returning.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -18,7 +18,7 @@ Implements `expr as <type>` - the language's only explicit conversion mechanism.
 | `runtime.eval_cast` | `DEPENDS_ON` | [[ast]] | Switches on the target `ast.TypeRef` implementation. |
 | `runtime.eval_cast` | `DEPENDS_ON` | [[box]] | `String`, `Number`, `Trinary`, `TrinaryFrom`, `NumberValue`, `StringValue`, `BoolValue`, `Kind`. |
 | `runtime.eval_cast` | `CALLS` | [[runtime.eval]] | Evaluates the operand expression. |
-| `runtime.eval_cast` | `CALLS` | [[runtime.typeref]] | `validateValueAgainstTypeRef` - invoked, but its result is discarded. |
+| `runtime.eval_cast` | `CALLS` | [[runtime.typeref]] | `validateValueAgainstTypeRef` in `typeCheckScope(ec, p)`. |
 | [[runtime.eval]] | `CALLS` | [[runtime.eval_cast]] | `ast.CastExpression` nodes dispatch here. |
 
 ## 3. Interface Contracts & Public Surface
@@ -44,6 +44,7 @@ Implements `expr as <type>` - the language's only explicit conversion mechanism.
 - **Performance/Scale Notes:** Negligible except for the intended post-cast validation, which would walk shapes and constraints.
 - **Dependencies Risk:**
   - **Cast validation and panic recovery are effective.** Return values are named so the deferred closure can assign `result` and `err`; validation failures and recovered panics surface as errors with a non-nil trace node.
+  - **Inside a derive, the target type resolves in the derive's scope** (`typeCheckScope`, [[runtime.typeref]]): its policy, or its namespace for a namespace-level derive, not the calling policy ([#271](https://github.com/sentrie-sh/sentrie/issues/271)).
   - **String casts never fail.** Because `val.String()` is total, `someDict as string` produces a rendered dictionary rather than an error - combined with the dead validation, there is no guard against nonsensical conversions.
   - **List, dict, and shape casts do not convert.** They are assertions, so `as` cannot be used to coerce a JS-returned structure into a shape; it only checks the outer kind, and for shapes not even that.
   - **Number casts accept booleans**, which combined with trinary truthiness means round-tripping a trinary through number loses the `Unknown` state.

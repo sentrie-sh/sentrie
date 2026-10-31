@@ -59,7 +59,10 @@ func invokeDerive(ctx context.Context, callerEC *ExecutionContext, exec *executo
 		return box.Undefined(), err
 	}
 	lam := d.Lambda
-	args, err := padAndValidateDeriveArgs(ctx, callerEC, exec, callerPolicy, lam, args)
+	// Parameter and return types resolve shapes in the derive's own scope,
+	// as the index does, not in the calling policy (see typeCheckScope).
+	scope := d.ShapeScope()
+	args, err := padAndValidateDeriveArgs(ctx, callerEC, exec, scope, lam, args)
 	if err != nil {
 		return box.Undefined(), err
 	}
@@ -78,6 +81,9 @@ func invokeDerive(ctx context.Context, callerEC *ExecutionContext, exec *executo
 		child.SetLocal(name, args[i], true)
 	}
 
+	// The body keeps the calling policy: a lambda the caller passed in is
+	// applied with it, while every type check in the body resolves in the
+	// derive's scope through child.evalDerive.
 	val, _, err := evalBlock(ctx, child, exec, callerPolicy, lam.Body)
 	if err != nil {
 		return box.Undefined(), err
@@ -86,7 +92,7 @@ func invokeDerive(ctx context.Context, callerEC *ExecutionContext, exec *executo
 		return box.Undefined(), fmt.Errorf("derive cannot yield a callable value")
 	}
 	if lam.ReturnType != nil {
-		if err := validateValueAgainstTypeRef(ctx, child, exec, callerPolicy, val, lam.ReturnType, lam.Body.Span()); err != nil {
+		if err := validateValueAgainstTypeRef(ctx, child, exec, scope, val, lam.ReturnType, lam.Body.Span()); err != nil {
 			return box.Undefined(), fmt.Errorf("derive return: %w", err)
 		}
 		val = bindTruthValue(val, lam.ReturnType)

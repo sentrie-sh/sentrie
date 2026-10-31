@@ -62,7 +62,7 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 
 		// check the type of the let declaration
 		if v.Type != nil {
-			if err := validateValueAgainstTypeRef(ctx, ec, exec, p, val, v.Type, v.Value.Span()); err != nil {
+			if err := validateValueAgainstTypeRef(ctx, ec, exec, typeCheckScope(ec, p), val, v.Type, v.Value.Span()); err != nil {
 				wrappedErr := fmt.Errorf("invalid value for let declaration %s: %w", i, err)
 				return box.Undefined(), n.SetErr(wrappedErr), wrappedErr
 			}

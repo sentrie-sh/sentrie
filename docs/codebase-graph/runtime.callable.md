@@ -21,7 +21,7 @@ Unifies the two things Sentrie can invoke - an anonymous lambda and a named deri
 | `runtime.callable` | `CALLS` | [[runtime.exec_ctx]] | Lambda invocation builds an **attached** child from the capture context. |
 | `runtime.callable` | `CALLS` | [[runtime.derive_invoke]] | Argument padding/validation and `invokeDerive`. |
 | `runtime.callable` | `CALLS` | [[runtime.eval_block]] | Lambda bodies are always block expressions. |
-| `runtime.callable` | `CALLS` | [[runtime.typeref]] | Validates typed parameters and declared return types. |
+| `runtime.callable` | `CALLS` | [[runtime.typeref]] | Validates typed parameters and declared return types, in `typeCheckScope(c.capture, site.Policy)`. |
 | [[runtime.builtin_call]] | `CALLS` | [[runtime.callable]] | `CallSite.Call` and `CallableArity` unwrap and invoke. |
 | [[runtime.eval_lambda]] | `CALLS` | [[runtime.callable]] | Boxes a lambda literal into a `lambdaCallable`. |
 
@@ -38,7 +38,7 @@ Unifies the two things Sentrie can invoke - an anonymous lambda and a named deri
   - **Exceptions:** None.
 
 - **Signature:** `(*lambdaCallable).Invoke(ctx, site, args) -> (box.Value, error)`
-  - **Behavior:** Returns `ctx.Err()` first if the context has ended. Collection builtins invoke a callable once per element, so this is the evaluator's per-iteration deadline check ([#225](https://github.com/sentrie-sh/sentrie/issues/225)); it costs about 2 ns against about 1 us per invocation. Then pads and validates arguments, builds an attached child of the **capture** context (not the call site's context), force-binds parameters as locals, evaluates the body, then validates the declared return type if present.
+  - **Behavior:** Returns `ctx.Err()` first if the context has ended. Collection builtins invoke a callable once per element, so this is the evaluator's per-iteration deadline check ([#225](https://github.com/sentrie-sh/sentrie/issues/225)); it costs about 2 ns against about 1 us per invocation. Then pads and validates arguments, builds an attached child of the **capture** context (not the call site's context), force-binds parameters as locals, evaluates the body, then validates the declared return type if present. Parameter and return types resolve shapes in `typeCheckScope(c.capture, site.Policy)`: where the lambda was written, so a lambda in a derive body uses the derive's scope and a policy lambda applied inside a derive keeps its policy ([#271](https://github.com/sentrie-sh/sentrie/issues/271)).
   - **Side Effects:** Body evaluation, including any module calls the body performs.
   - **Exceptions:** the context error; arity errors; parameter type-validation errors; `lambda return: …` on return-type mismatch.
 

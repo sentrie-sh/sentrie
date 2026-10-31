@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -24,6 +11,24 @@ import (
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
+
+// typeCheckScope is the policy whose shapes a type check resolves against:
+// the evaluating policy, or inside a derive body the derive's own policy, or
+// for a namespace-level derive a scope holding only the derive's namespace
+// (index.Derive.ShapeScope). Every type check in a derive body (casts, typed
+// lets, `is`, and the types of a lambda written there) resolves here, as the
+// index does; the calling policy would fail on, or silently pick, a different
+// shape when the derive is called from another namespace or from a policy
+// that declares a shape of the same name.
+//
+// ec.evalDerive is the lexically enclosing derive, so a lambda written in a
+// policy and applied inside a derive still resolves in that policy.
+func typeCheckScope(ec *ExecutionContext, p *index.Policy) *index.Policy {
+	if d := ec.evalDerive; d != nil {
+		return d.ShapeScope()
+	}
+	return p
+}
 
 func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef ast.TypeRef, valueRange tokens.Range) error {
 	if ast.IsNullableTypeRef(typeRef) {

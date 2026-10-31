@@ -19,7 +19,7 @@ The runtime half of derive purity. It pads and type-validates arguments, then ev
 | `runtime.derive_invoke` | `DEPENDS_ON` | [[ast]] | `RequiredLambdaArity`, `ParamTypes`, `ParamOpts`, `ReturnType`. |
 | `runtime.derive_invoke` | `CALLS` | [[runtime.exec_ctx]] | `DetachedChildContext`, `PushRefStack`/`PopRefStack`, `SetLocal`. |
 | `runtime.derive_invoke` | `CALLS` | [[runtime.eval_block]] | Derive bodies are always block expressions. |
-| `runtime.derive_invoke` | `CALLS` | [[runtime.typeref]] | `validateValueAgainstTypeRef` for typed parameters and returns. |
+| `runtime.derive_invoke` | `CALLS` | [[runtime.typeref]] | `validateValueAgainstTypeRef` for typed parameters and returns, in the derive's `ShapeScope`. |
 | [[runtime.callable]] | `CALLS` | [[runtime.derive_invoke]] | `deriveCallable.Invoke` delegates here; lambdas share the argument padder. |
 | [[runtime.eval_call]] | `CALLS` | [[runtime.derive_invoke]] | Direct derive calls by name or FQN. |
 
@@ -31,7 +31,7 @@ The runtime half of derive purity. It pads and type-validates arguments, then ev
   - **Exceptions:** `too many arguments: want at most %d, got %d`; `not enough arguments: want at least %d, got %d`; `%s argument %q: …` on type failure.
 
 - **Signature:** `invokeDerive(ctx, callerEC, exec, callerPolicy, d *index.Derive, args) -> (box.Value, error)`
-  - **Behavior:** Returns `ctx.Err()` first if the context has ended, which bounds derive chains and derive callbacks in collection builtins ([#225](https://github.com/sentrie-sh/sentrie/issues/225)). Then validates arguments, creates a detached child, marks it with `evalDerive = d`, pushes the derive's FQN onto the cloned reference stack, force-binds parameters as locals, evaluates the body, rejects a callable result, then validates the declared return type.
+  - **Behavior:** Returns `ctx.Err()` first if the context has ended, which bounds derive chains and derive callbacks in collection builtins ([#225](https://github.com/sentrie-sh/sentrie/issues/225)). Then validates arguments, creates a detached child, marks it with `evalDerive = d`, pushes the derive's FQN onto the cloned reference stack, force-binds parameters as locals, evaluates the body with `callerPolicy`, rejects a callable result, then validates the declared return type. Parameter and return types resolve shapes in `d.ShapeScope()` (the derive's policy, or its namespace), never the caller's.
   - **Side Effects:** Body evaluation under purity restrictions; reference-stack mutation on the child only.
   - **Exceptions:** the context error; argument errors; `xerr.ErrInfiniteRecursion` via `PushRefStack`; `derive cannot yield a callable value`; `derive return: …`.
 
@@ -41,7 +41,8 @@ The runtime half of derive purity. It pads and type-validates arguments, then ev
 - **Dependencies Risk:**
   - **The detached context is the runtime purity boundary**, and it is enforced structurally rather than by checks: with no facts map, no lets, and no parent, there is simply nothing for a fact lookup to find. [[index.derive_purity]] provides the good error message; this provides the guarantee.
   - **Recursion detection is per-branch, not global.** `PushRefStack` operates on the *child*, whose stack was cloned from the caller. Sibling calls therefore cannot see each other's frames - correct for detecting true cycles, but it means a derive invoked many times in a fan-out pattern is never flagged regardless of depth.
-  - **`callerPolicy` is passed through to body evaluation.** A derive's body is evaluated with the **caller's** policy for type-ref and shape resolution, so a derive that references a shape resolves it against whoever called it rather than where it was declared. Cross-policy derive reuse can therefore resolve shapes differently per call site.
+  - **`callerPolicy` is passed through to body evaluation, but not to type checks.** The body runs with the caller's policy, so a lambda the caller passed in is applied in its own policy. Every type check in the body (cast, typed let, `is`, a body lambda's types) resolves shapes through `typeCheckScope` ([[runtime.typeref]]), which reads `child.evalDerive` and returns the derive's scope, and the parameter and return types use `d.ShapeScope()` directly; so an exported derive keeps its own shapes from any namespace ([#271](https://github.com/sentrie-sh/sentrie/issues/271)). A new type-check site must do the same.
+  - **Constraint arguments of parameter types evaluate in the caller's context.** Parameters are validated before the detached child exists, so an identifier in a constraint argument (`x: string@minlength(n)`) resolves in `callerEC`; the index does not walk those arguments for purity.
   - **The no-callable-return rule is enforced twice** - statically by `yieldHasNoLambda` in [[index.derive_purity]] and dynamically here - because a derive could otherwise return a closure over its detached context and leak it into an impure scope.
   - **Optional parameters are padded with `undefined`, not with a declared default.** Derives have no default-parameter syntax, so an omitted optional is always undefined and the body must handle it.
   - **`argKind` exists purely for message wording**, so a shared failure in the padder reads as "lambda argument" or "derive argument" depending on the caller - useful when tracing which invocation path failed.
