@@ -18,7 +18,7 @@ A best-effort static type inferencer: given an expression and a lexical scope, i
 | `index.builtin_kind` | `DEPENDS_ON` | [[box]] | `box.ValueKind` is the inference result vocabulary. |
 | `index.builtin_kind` | `DEPENDS_ON` | [[ast]] | Maps every `ast.TypeRef` implementation to a kind and uses `ast.RequiredLambdaArity`. |
 | `index.builtin_kind` | `DEPENDS_ON` | [[builtins]] | Reads `builtins.Table` for callee identification and `Sig.Result.Kinds` to infer a call's kind. |
-| `index.builtin_kind` | `READS_FROM` | [[index.policy]] | Seeds the rule scope from `Facts`, `Lets`, `Derives`, and the namespace's derives. |
+| `index.builtin_kind` | `READS_FROM` | [[index.policy]] | Seeds the rule scope from `Facts`, `Data` (with the loaded value's kind via `bindingFromData`), `Lets`, `Derives`, and the namespace's derives. |
 | `index.builtin_kind` | `READS_FROM` | [[index.derive]] | Seeds the derive scope from lambda params and the `DefineShort` snapshot. |
 | `index.builtin_kind` | `READS_FROM` | [[index.shape]] | Hops through `Model.Fields` to type field-access chains. |
 | [[index.builtin_check]] | `CALLS` | [[index.builtin_kind]] | Its sole consumer. |

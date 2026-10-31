@@ -9,7 +9,7 @@ tags: language-specification, documentation, reference-artifact, syntax
 # Node: Grammar (Reference Language Specification)
 
 ## 1. Architectural Role & Intent
-`grammar` holds the normative written specification of Sentrie's surface syntax in two notations - `grammar.ebnf` and `grammar.peg` - covering program structure, declarations (`namespace`, `policy`, `fact`, `use`, `let`, `rule`, `shape`, `derive`, exports), the full expression precedence ladder, and type references with constraints. It exists as the human- and agent-readable contract that [[lexer]] and [[parser]] are expected to implement. It is **documentation, not build input**: no Go file, `Makefile` target, or CI job reads these files, and no parser is generated from them.
+`grammar` holds the normative written specification of Sentrie's surface syntax in two notations - `grammar.ebnf` and `grammar.peg` - covering program structure, declarations (`namespace`, `policy`, `fact`, the contextual `data`, `use`, `let`, `rule`, `shape`, `derive`, exports), the full expression precedence ladder, and type references with constraints. It exists as the human- and agent-readable contract that [[lexer]] and [[parser]] are expected to implement. It is **documentation, not build input**: no Go file, `Makefile` target, or CI job reads these files, and no parser is generated from them.
 
 ## 2. Graph Edges (Strict Relational Data)
 
