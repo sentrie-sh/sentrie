@@ -241,6 +241,7 @@ graph TD
 - [[index.program]] - per-file inventory
 - [[index.rule]] - rule semantic model
 - [[index.shape]] - shape composition and hydration
+- [[index.status]] - read-only index health report
 - [[parser.parser]] - parser state and driver
 - [[parser.program]] - top-level program assembly
 - [[runtime.builtin_call]] - the builtin `Env` adapter
@@ -255,6 +256,7 @@ graph TD
 ### Function / Endpoint
 
 - [[api.handle_decision]] - `POST /decision`
+- [[api.health]] - `GET /health` and `GET /health/deep`
 - [[index.builtin_check]] - static builtin call validation
 - [[index.commit]] - index finalisation
 - [[index.derive_cycle]] - derive cycle detection

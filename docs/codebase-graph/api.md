@@ -18,6 +18,7 @@ The network-facing façade over the policy engine. It translates HTTP requests i
 | `api` | `LAYERED_ON` | [[runtime]] | Holds a `runtime.Executor` and calls `ExecPolicy` / `ExecRule`. |
 | `api` | `LAYERED_ON` | [[index]] | `executor.Index().ResolveSegments` turns a URL path into namespace, policy, and rule. |
 | `api` | `LAYERED_ON` | [[api.middleware]] | Request ID assignment. |
+| `api` | `CALLS` | [[index.status]] | The deep health check reads `Index.Status()`. |
 | `api` | `READS_FROM` | [[runtime.trace]] | `ExecutorOutput` carries the trace tree, which is serialised into responses. |
 | [[cmd]] | `CALLS` | `api` | `serve` constructs the HTTP API and starts it. |
 
@@ -38,8 +39,8 @@ The network-facing façade over the policy engine. It translates HTTP requests i
   - **Side Effects:** Full policy evaluation.
   - **Exceptions:** RFC 9457 Problem Details on the handled error paths.
 
-- **Signature:** `GET /health`
-  - **Behavior:** Returns `{"status":"healthy","time":"<RFC3339>"}` with HTTP 200. Unconditional - it does **not** check the executor, the index, or module loading, so it reports healthy for a process that cannot serve a single decision.
+- **Signature:** `GET /health` and `GET /health/deep` - see [[api.health]]
+  - **Behavior:** `/health` returns `{"check_id","status","time"}` with HTTP 200, unconditionally (liveness). `/health/deep` reports the index, executor, JS runtime and pack per component and answers 503 when any is unhealthy (readiness) ([#40](https://github.com/sentrie-sh/sentrie/issues/40)).
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -51,4 +52,4 @@ The network-facing façade over the policy engine. It translates HTTP requests i
   - **`local6` and `network6` cannot bind** because the addresses are double-bracketed - see [[api.net]].
   - **Responses embed the full trace tree**, which contains evaluated fact values. Any caller that can reach the endpoint can read back the data the policy saw.
   - **`API` and `HTTPAPI` are parallel, unrelated types.** The former looks like the intended abstraction and is entirely unused; a reader looking for the service entry point should go to `HTTPAPI`.
-  - **Health is a liveness probe only.** Using it as a readiness probe will route traffic to an instance whose pack failed to load - though in practice `serve` exits before starting the server if loading fails, so the window is narrow.
+  - **`/health` is a liveness probe only.** Use `/health/deep` as the readiness probe; see [[api.health]].

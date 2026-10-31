@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -268,6 +269,20 @@ func (r *Registry) PrepareUse(localFrom string, libFrom []string, fileDir string
 	// Warm compile best-effort
 	_, err = r.programFor(mod)
 	return mod, err
+}
+
+// BuiltinModules returns the keys of every registered built-in module (Go and
+// TypeScript backed), sorted, e.g. "@sentrie/math".
+func (r *Registry) BuiltinModules() []string {
+	names := make([]string, 0, len(r.goBuiltins)+len(r.tsBuiltins))
+	for name := range r.goBuiltins {
+		names = append(names, name)
+	}
+	for name := range r.tsBuiltins {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
 }
 
 // CompiledPrograms reports how many module programs this registry has compiled.

@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package index
 
@@ -23,11 +10,14 @@ import (
 
 func (idx *Index) Commit(ctx context.Context) error {
 	idx.commitOnce.Do(func() {
-		idx.commitError = idx.commit(ctx)
-		if idx.commitError != nil {
-			idx.commitError = fmt.Errorf("commit error: %w", idx.commitError)
+		err := idx.commit(ctx)
+		if err != nil {
+			err = fmt.Errorf("commit error: %w", err)
 		}
+		idx.stateMu.Lock()
+		idx.commitError = err
 		idx.committed = 1
+		idx.stateMu.Unlock()
 	})
 	return idx.commitError
 }

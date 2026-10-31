@@ -163,8 +163,8 @@ func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error 
 		),
 	)
 
-	// Health check endpoint
-	mux.Handle("GET /health", http.HandlerFunc(api.handleHealth))
+	// Liveness and readiness probes
+	api.registerHealthRoutes(mux)
 
 	bindings, err := resolveBindings(port, listen)
 	if err != nil {
@@ -209,6 +209,12 @@ func (api *HTTPAPI) StartServer(ctx context.Context, port int, listen []string) 
 				slog.String("method", "GET"),
 				slog.String("address", ln.Listener.Addr().String()),
 				slog.String("url", fmt.Sprintf("http://%s/health", ln.Listener.Addr().String())))
+
+			api.logger.DebugContext(ctx,
+				"Deep health check endpoint available",
+				slog.String("method", "GET"),
+				slog.String("address", ln.Listener.Addr().String()),
+				slog.String("url", fmt.Sprintf("http://%s/health/deep", ln.Listener.Addr().String())))
 			if err := server.Serve(ln.Listener); err != nil && err != http.ErrServerClosed {
 				errChan <- err
 			}
@@ -254,21 +260,6 @@ func (api *HTTPAPI) StopServer(ctx context.Context) error {
 	wg.Wait()
 
 	return errors.Join(errs...)
-}
-
-// handleHealth handles GET /health requests
-func (api *HTTPAPI) handleHealth(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	response := map[string]interface{}{
-		"status": "healthy",
-		"time":   time.Now().UTC().Format(time.RFC3339),
-	}
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		api.logger.DebugContext(r.Context(), "Error encoding health response", "error", err)
-	}
 }
 
 // writeErrorResponse writes a Problem Details error response in JSON format
