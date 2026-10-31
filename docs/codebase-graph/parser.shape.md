@@ -42,6 +42,7 @@ Parses `shape <ident>` in its two mutually exclusive forms: a **simple** alias t
   - **Exceptions:** Returns `nil` for a missing name, any legacy `!` form, a missing `:`, or a type-reference failure.
 
 ## 4. Operational Context & Gotchas
+- **No shape may be named `any`.** `parseShapeStatement` rejects it, since a bare `any` in a type position is the top type ([[parser.typeref]]).
 - **Statefulness:** Stateless functions; the `Cmplx` value accumulates fields during the parse.
 - **Performance/Scale Notes:** Two debug logs per field. Nothing else notable.
 - **Dependencies Risk:**
