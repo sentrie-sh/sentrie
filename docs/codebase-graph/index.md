@@ -26,7 +26,7 @@ tags: semantic-analysis, symbol-table, validation, dependency-graph, middle-end
 | [[loader]] | `LAYERED_ON` | [[index]] | Supplies the parsed programs that populate the index. |
 | [[runtime]] | `LAYERED_ON` | [[index]] | Resolves namespaces, policies, rules, and derives against the committed index during evaluation. |
 | [[cmd]] | `CALLS` | [[index]] | `validate` and `exec` build an index, call `Validate`, and report or proceed; `validate` also prints `NondeterminismWarnings`. |
-| [[api]] | `CALLS` | [[index]] | Serves evaluation requests against a pre-built index. |
+| [[api]] | `CALLS` | [[index]] | Serves evaluation requests against a pre-built index and reads its `Status()` for the deep health check. |
 
 ## 3. Interface Contracts & Public Surface
 
@@ -44,6 +44,11 @@ tags: semantic-analysis, symbol-table, validation, dependency-graph, middle-end
   - **Behavior:** Runs the full validation pipeline exactly once and then commits; the pipeline includes [[index.import_withs]], which rejects a `with` name the imported policy does not declare. See [[index.validate]].
   - **Side Effects:** Populates the rule and shape DAGs; triggers [[index.commit]].
   - **Exceptions:** Any validation failure, wrapped as `validation error: …`.
+
+- **Signature:** `(*Index).Status() -> Status` - see [[index.status]]
+  - **Behavior:** Read-only report of validation and commit state, their errors, and definition counts. Never validates.
+  - **Side Effects:** None.
+  - **Exceptions:** None.
 
 - **Signature:** `(*Index).NondeterminismWarnings(ctx, isNondeterministicExport func(moduleKey, export string) bool) -> ([]Warning, error)` / `UseBuiltinModuleKey(use) -> (string, bool)` / `Warning{At, Message}`
   - **Behavior:** Non-fatal diagnostics for `sentrie validate`: one `Warning` per call to a `builtins.Decl.Nondeterministic` builtin, one per name a `use` imports from a builtin module that the supplied lookup marks nondeterministic (the caller passes `js.IsNondeterministicExport`; nil skips modules), and one per `use` of a pack-local module, whose TypeScript can read `Date.now()`/`Math.random()` unseen. Sorted by file and position. Builtin calls are found by `forEachBuiltinCall` (`builtin_calls.go`), the same walk [[index.builtin_check]] and the capabilities check use. It covers fact defaults, policy lets, rule slots (including `import decision ... with` expressions), export attachments and derive bodies, and resolves callees as the runtime's `getTarget` does (visible derive, then builtin, never a local binding), so a local named like a builtin does not hide the call.
