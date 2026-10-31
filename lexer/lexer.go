@@ -123,12 +123,11 @@ func (l *Lexer) NextToken() tokens.Instance {
 
 		case '<':
 			if l.peekString(2) == "<<" {
-				value, err := l.readHereDoc()
+				value, endPos, err := l.readHereDoc()
 				if err != nil {
 					endPos := l.endPosition()
 					return tokens.New(tokens.Error, err.Error(), tokens.NewRange(l.filename, startPos, endPos))
 				}
-				endPos := l.endPosition()
 				return tokens.New(tokens.String, value, tokens.NewRange(l.filename, startPos, endPos))
 			}
 			if l.peekAhead() == '=' {
@@ -481,23 +480,30 @@ func (l *Lexer) peekString(n int) string {
 	return string(b)
 }
 
-// readHereDoc reads a heredoc starting at the first '<' of '<<<'.
-func (l *Lexer) readHereDoc() (string, error) {
+// readHereDoc reads a heredoc starting at the first '<' of '<<<'. It returns
+// the value and the heredoc's end, just past the terminator tag.
+//
+// Line endings may be LF or CRLF: a trailing '\r' is dropped from every body
+// line, so the value always has LF line endings, and the terminator line may
+// carry trailing spaces, tabs and a '\r' after the tag (#270).
+func (l *Lexer) readHereDoc() (string, tokens.Pos, error) {
+	start := l.currentPosition()
+
 	// We are currently on the first '<'. Consume the 3 '<'.
 	l.readRune() // 1st '<'
 	if l.current != '<' {
-		return "", io.ErrUnexpectedEOF
+		return "", tokens.Pos{}, io.ErrUnexpectedEOF
 	}
 	l.readRune() // 2nd '<'
 	if l.current != '<' {
-		return "", io.ErrUnexpectedEOF
+		return "", tokens.Pos{}, io.ErrUnexpectedEOF
 	}
 	l.readRune() // 3rd '<'
 
 	// Disallow spaces before tag to keep syntax tight.
 	// Require TAG immediately.
 	if !unicode.IsLetter(l.current) && l.current != '_' {
-		return "", fmt.Errorf("heredoc requires identifier tag after <<<: %w", InvalidHereDocSyntaxError(l.filename, l.currentPosition()))
+		return "", tokens.Pos{}, fmt.Errorf("heredoc requires identifier tag after <<<: %w", InvalidHereDocSyntaxError(l.filename, l.currentPosition()))
 	}
 
 	// Read TAG (identifier)
@@ -508,14 +514,14 @@ func (l *Lexer) readHereDoc() (string, error) {
 	}
 	tag := tagBuilder.String()
 	if tag == "" || !l.identRegex.MatchString(tag) {
-		return "", fmt.Errorf("invalid heredoc tag: %w", InvalidHereDocSyntaxError(l.filename, l.currentPosition()))
+		return "", tokens.Pos{}, fmt.Errorf("invalid heredoc tag: %w", InvalidHereDocSyntaxError(l.filename, l.currentPosition()))
 	}
 
 	// Read to end of the tag line
 	for l.current != '\n' && l.current != 0 {
 		// No trailing junk allowed (only whitespace)
 		if !unicode.IsSpace(l.current) && l.current != '\r' {
-			return "", fmt.Errorf("unexpected characters after heredoc tag %q: %w", tag, InvalidHereDocSyntaxError(l.filename, l.currentPosition()))
+			return "", tokens.Pos{}, fmt.Errorf("unexpected characters after heredoc tag %q: %w", tag, InvalidHereDocSyntaxError(l.filename, l.currentPosition()))
 		}
 		l.readRune()
 	}
@@ -524,34 +530,42 @@ func (l *Lexer) readHereDoc() (string, error) {
 		l.readRune()
 	}
 
-	// Now collect lines until a line that is exactly == tag
+	// Now collect lines until the terminator: a line that is the tag, with no
+	// indentation, optionally followed by spaces, tabs and a '\r'.
 	var sb strings.Builder
 	for {
-		// Capture the current line (without the trailing '\n')
+		// Capture the current line (without the trailing '\n'). tagEnd is
+		// just past the line's first len(tag) runes: the heredoc's end if
+		// this line turns out to be the terminator.
 		var lineBuf []rune
+		tagEnd := l.endPosition()
 		for l.current != '\n' && l.current != 0 {
 			lineBuf = append(lineBuf, l.current)
 			l.readRune()
+			if len(lineBuf) == len(tag) {
+				tagEnd = l.endPosition()
+			}
 		}
 		line := string(lineBuf)
 
-		// If line equals the tag exactly, stop. Do not include this line.
-		if line == tag {
-			// Leave the newline after the terminator for skipWhitespace, so
-			// the heredoc ends just past its tag.
-			break
+		// The terminator ends the heredoc and is not part of the value. Its
+		// trailing whitespace and newline are left for skipWhitespace, and
+		// the heredoc ends just past its tag.
+		if strings.TrimRight(line, " \t\r") == tag {
+			return sb.String(), tagEnd, nil
 		}
 
-		// Otherwise, append the line and restore newline if we had one.
-		sb.WriteString(line)
+		// Otherwise, append the line without a CRLF's '\r' and restore the
+		// newline if we had one.
+		sb.WriteString(strings.TrimSuffix(line, "\r"))
 		switch l.current {
 		case '\n':
 			sb.WriteByte('\n')
 			l.readRune()
 		case 0:
-			// EOF before terminator
-			return "", UnterminatedStringError(l.filename, l.currentPosition())
+			// EOF before the terminator. Point at the heredoc's start: the
+			// end of the file says nothing about which heredoc is open.
+			return "", tokens.Pos{}, fmt.Errorf("heredoc <<<%s has no terminator line %q: %w", tag, tag, UnterminatedStringError(l.filename, start))
 		}
 	}
-	return sb.String(), nil
 }

@@ -175,6 +175,10 @@ func TestLexerTokenPositions(t *testing.T) {
 		{"x == y\n", []span{{1, 1, 1, 2, 1}, {1, 3, 1, 5, 4}, {1, 6, 1, 7, 6}}},
 		{"\"é\"\n-- note\n", []span{{1, 1, 1, 4, 4}, {2, 1, 2, 8, 12}}},
 		{"<<<T\na\nT\nx", []span{{1, 1, 3, 2, 8}, {4, 1, 4, 2, 10}}},
+		// A CRLF heredoc and a terminator with trailing whitespace end just
+		// past the tag (#270).
+		{"<<<T\r\na\r\nT\r\nx", []span{{1, 1, 3, 2, 10}, {4, 1, 4, 2, 13}}},
+		{"<<<T\na\nT \t\nx", []span{{1, 1, 3, 2, 8}, {4, 1, 4, 2, 12}}},
 		// These operators took their end before their last read and ended one
 		// column short; check them mid-line, at the end of a line and at EOF.
 		{"a-b", []span{{1, 1, 1, 2, 1}, {1, 2, 1, 3, 2}, {1, 3, 1, 4, 3}}},
