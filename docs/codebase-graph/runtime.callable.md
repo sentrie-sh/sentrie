@@ -24,6 +24,7 @@ Unifies the two things Sentrie can invoke - an anonymous lambda and a named deri
 | `runtime.callable` | `CALLS` | [[runtime.typeref]] | Validates typed parameters and declared return types. |
 | [[runtime.builtin_call]] | `CALLS` | [[runtime.callable]] | `CallSite.Call` and `CallableArity` unwrap and invoke. |
 | [[runtime.eval_lambda]] | `CALLS` | [[runtime.callable]] | Boxes a lambda literal into a `lambdaCallable`. |
+| [[runtime.eval_call]] | `CALLS` | [[runtime.callable]] | Calls a let-bound or parameter-bound callable directly (#161). |
 
 ## 3. Interface Contracts & Public Surface
 
@@ -38,9 +39,9 @@ Unifies the two things Sentrie can invoke - an anonymous lambda and a named deri
   - **Exceptions:** None.
 
 - **Signature:** `(*lambdaCallable).Invoke(ctx, site, args) -> (box.Value, error)`
-  - **Behavior:** Returns `ctx.Err()` first if the context has ended. Collection builtins invoke a callable once per element, so this is the evaluator's per-iteration deadline check ([#225](https://github.com/sentrie-sh/sentrie/issues/225)); it costs about 2 ns against about 1 us per invocation. Then pads and validates arguments, builds an attached child of the **capture** context (not the call site's context), force-binds parameters as locals, evaluates the body, then validates the declared return type if present.
+  - **Behavior:** Returns `ctx.Err()` first if the context has ended. Collection builtins invoke a callable once per element, so this is the evaluator's per-iteration deadline check ([#225](https://github.com/sentrie-sh/sentrie/issues/225)); it costs about 2 ns against about 1 us per invocation. Then takes a call depth from the call site (`enterCall` in [[runtime.exec_ctx]]; the depth and the eval frame counter follow the call chain, not the capture), pads and validates arguments, builds an attached child of the **capture** context (not the call site's context) at that depth, force-binds parameters as locals, evaluates the body, then validates the declared return type if present.
   - **Side Effects:** Body evaluation, including any module calls the body performs.
-  - **Exceptions:** the context error; arity errors; parameter type-validation errors; `lambda return: …` on return-type mismatch.
+  - **Exceptions:** the context error; `lambda call depth exceeded (limit 1000)`; arity errors; parameter type-validation errors; `lambda return: …` on return-type mismatch.
 
 - **Signature:** `(*deriveCallable).Invoke(ctx, site, args) -> (box.Value, error)` / `Arity() -> int`
   - **Behavior:** Delegates to `invokeDerive` with the call site's context, which builds a **detached** child. `Arity` is nil-safe and returns 0 for a nil derive.
@@ -58,6 +59,6 @@ Unifies the two things Sentrie can invoke - an anonymous lambda and a named deri
 - **Dependencies Risk:**
   - **Late binding is a deliberate semantic choice with sharp edges.** Because the capture is a live reference, a lambda invoked after its defining scope has been mutated observes the **new** values, not those in effect at definition. Callbacks stored and invoked later can therefore see a different environment than the one they were written against.
   - **The two `Invoke` implementations use different contexts.** Lambdas build from `c.capture` (lexical scoping); derives build from `site.EC` (the caller). That asymmetry is correct - derives are context-free by design - but means a derive and a lambda passed to the same builtin resolve free identifiers differently.
-  - **Lambdas escape derive purity only through the context they carry.** A lambda defined inside a derive body captures the detached context, so purity holds; a lambda defined outside and passed in would carry the full attached chain. Purity checking in [[index.derive_purity]] is what prevents that construction, not anything here.
+  - **Lambdas escape derive purity only through the context they carry.** A lambda defined inside a derive body captures the detached context, so purity holds; a lambda defined outside and passed in carries the full attached chain. A direct call to such a lambda inside a derive is refused by `bindingCallTarget` in [[runtime.eval_call]], which reads `capture.evalDerive`; nothing here stops a builtin invoked inside a derive from calling it.
   - **`lambdaCallable.Invoke` does not nil-check `c.lambda.Body`**, relying on the parser always producing a block. A lambda whose body failed to parse would panic rather than error.
   - **The derive `Arity()` nil-guard has no counterpart on the lambda side**, so the two implementations differ in robustness for no stated reason.

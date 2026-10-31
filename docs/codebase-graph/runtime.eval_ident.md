@@ -23,6 +23,7 @@ Resolves a bare identifier through a fixed precedence chain - local, fact, let, 
 | `runtime.eval_ident` | `CALLS` | [[runtime.callable]] | Boxes a derive as a `deriveCallable` for higher-order use. |
 | `runtime.eval_ident` | `READS_FROM` | [[index]] | Reads `Policy.Facts` (for the derive error message and to resolve an omitted optional fact as `Undefined`) and `Policy.Rules`. |
 | [[runtime.eval]] | `CALLS` | [[runtime.eval_ident]] | All `ast.Identifier` nodes dispatch here. |
+| [[runtime.eval_call]] | `CALLS` | [[runtime.eval_ident]] | A call whose callee names a value binding evaluates it here first (#161). |
 
 ## 3. Interface Contracts & Public Surface
 

@@ -264,6 +264,14 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 
 // ExecRule executes an exported rule and returns the result
 func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, injectedFacts map[string]any) (_ *ExecutorOutput, err error) {
+	return e.execRuleFrom(ctx, namespace, policy, rule, injectedFacts, nil)
+}
+
+// execRuleFrom is ExecRule for a rule evaluated on behalf of caller, an
+// importing rule's context (nil for a top-level evaluation). The new root
+// context takes over the caller's call depth and eval frame counter, so an
+// imported decision does not reset the recursion limits.
+func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule string, injectedFacts map[string]any, caller *ExecutionContext) (_ *ExecutorOutput, err error) {
 	ctx, done := e.withEvalDeadline(ctx)
 	defer func() { err = done(err) }()
 
@@ -277,6 +285,7 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 	}
 
 	ec := NewExecutionContext(p, e)
+	ec.inheritDepth(caller)
 	defer ec.Dispose()
 
 	for factName, factStatement := range p.Facts {

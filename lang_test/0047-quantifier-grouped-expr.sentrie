@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
 namespace quantifier_grouped_expr
 policy test {
 	-- Collection builtins with lambdas (grouped / block forms)
@@ -6,7 +9,9 @@ policy test {
 	let evens = filter(nums, (n) => { yield n % 2 == 0 })
 	let existsEven = any(nums, (n) => { yield n % 2 == 0 })
 	let allPos = all(nums, (n) => { yield n > 0 })
-	let first = first(nums, (n) => { yield n > 3 })
+	-- Not "let first = first(...)": a let shadows the builtin it is named
+	-- after in calls too, so that would call itself (#161).
+	let firstMatch = first(nums, (n) => { yield n > 3 })
 	let distincted = distinct(nums)
 
 	-- Test nested calls

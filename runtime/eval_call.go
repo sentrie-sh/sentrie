@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
@@ -89,8 +91,10 @@ func evalCall(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *
 	// call the target
 	out, err := wrappedTarget(ctx, args...)
 	if err != nil {
-		if errors.Is(err, xerr.InjectedError{}) {
-			// if this error is injected from code, we revert to the error message
+		if errors.Is(err, xerr.InjectedError{}) || errors.Is(err, ErrCallDepthExceeded) || errors.Is(err, ErrEvalDepthExceeded) {
+			// An injected error keeps the user's message. A depth error is
+			// returned as is, or each of the up to MaxCallDepth levels would
+			// add its own "failed to call function" prefix.
 			return box.Undefined(), n.SetErr(err), err
 		}
 		err = fmt.Errorf("failed to call function '%s': %w", t.Callee.String(), err)
@@ -251,7 +255,24 @@ func lookupDeriveBySlashFQ(ec *ExecutionContext, exec *executorImpl, p *index.Po
 	return d, nil
 }
 
-func getTarget(_ context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, c *ast.CallExpression) (func(context.Context, ...box.Value) (box.Value, error), error) {
+// getTarget resolves a call's callee. The precedence is lexical, innermost
+// first, and is mirrored by index.kindCheckCtx (isBuiltinCall, localCallee):
+//
+//  1. a slash-qualified derive FQN of three or more segments;
+//  2. for an identifier callee, a value binding: a local (lambda parameter or
+//     evaluated let), a let, and outside a derive body a fact or a rule. The
+//     binding is evaluated like an identifier reference and must hold a
+//     callable (#161), so a let or parameter shadows a derive or builtin of
+//     the same name;
+//  3. a visible derive by short name;
+//  4. a builtin;
+//  5. `alias.fn` against the policy's module bindings.
+//
+// Inside a derive body (ec.evalDerive != nil) every step decides explicitly:
+// facts and rules are not bindings there, a bound callable must be pure (see
+// bindingCallTarget), impure builtins and module calls are refused, and an
+// unresolved callee is an error.
+func getTarget(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, c *ast.CallExpression) (func(context.Context, ...box.Value) (box.Value, error), error) {
 	if fqn := ast.SlashCalleeFQNS(c.Callee); fqn != "" {
 		parts := strings.Split(fqn, ast.FQNSeparator)
 		// Require at least three segments (e.g. com/ex/name) so a two-segment slash chain
@@ -273,6 +294,9 @@ func getTarget(_ context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 
 	var nameForBuiltin string
 	if id, ok := c.Callee.(*ast.Identifier); ok {
+		if calleeIsBinding(ec, p, id.Value) {
+			return bindingCallTarget(ctx, ec, exec, p, c, id)
+		}
 		if d := lookupDeriveByIdentifier(ec, p, id.Value); d != nil {
 			return func(ctx context.Context, args ...box.Value) (box.Value, error) {
 				return invokeDerive(ctx, ec, exec, p, d, args)
@@ -312,8 +336,11 @@ func getTarget(_ context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 	}
 
 	if module == "" || fn == "" {
-		e := xerr.ErrImportResolution(module, p.Namespace.FQN.String())
-		return nil, e
+		// Not a binding, derive, builtin or `alias.fn`: an unknown callee,
+		// refused alike inside and outside a derive body. The import error is
+		// kept for a name the policy imports from a module, which has to be
+		// called through its alias.
+		return nil, unresolvedCalleeError(p, calleeStr)
 	}
 
 	modulebinding, ok := ec.Module(module)
@@ -337,4 +364,97 @@ func getTarget(_ context.Context, ec *ExecutionContext, exec *executorImpl, p *i
 		out, err := modulebinding.Call(ctx, ec, fn, anyArgs...)
 		return box.FromBoundaryAny(out), err
 	}, nil
+}
+
+// calleeIsBinding reports whether an identifier callee names a value binding,
+// which takes precedence over a derive or builtin of the same name. The
+// lookups are the ones evalIdent makes before it reaches derives: locals and
+// lets, and outside a derive body facts (injected or declared) and rules.
+// Inside a derive body facts and rules are not bindings, matching evalIdent's
+// guards; the detached derive context holds neither anyway.
+func calleeIsBinding(ec *ExecutionContext, p *index.Policy, name string) bool {
+	if _, ok := ec.GetLocal(name); ok {
+		return true
+	}
+	if _, ok := ec.GetLet(name); ok {
+		return true
+	}
+	if ec.evalDerive != nil {
+		return false
+	}
+	if _, ok := ec.GetFact(name); ok {
+		return true
+	}
+	if p != nil {
+		if _, ok := p.Facts[name]; ok {
+			return true
+		}
+		if _, ok := p.Rules[name]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+// bindingCallTarget calls the callable a value binding holds (#161). The
+// binding is evaluated as an identifier reference would be, so a lazy let is
+// evaluated, type-checked and cached, and a let that calls itself is reported
+// as a self-reference.
+//
+// Inside a derive body only a pure callable may be called: a derive, or a
+// lambda created while evaluating some derive body, whose captured context is
+// a detached derive context without facts, rules or modules and whose body the
+// purity check walked. A lambda created outside any derive (passed in as an
+// argument) captures the caller's full context and is refused. The static
+// side (index.checkDeriveCall) is stricter: it accepts only a let bound
+// directly to a lambda literal, which always yields such a lambda.
+//
+// A memoized call through a binding is refused: the memo key is the call site
+// and the arguments, so a lambda that captures facts or parameters would be
+// answered from another execution's cache.
+func bindingCallTarget(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, c *ast.CallExpression, id *ast.Identifier) (func(context.Context, ...box.Value) (box.Value, error), error) {
+	name := id.Value
+	if c.Memoized {
+		return nil, fmt.Errorf("%q is a local value and cannot be memoized with '!': memoization applies to derives, builtins and module functions", name)
+	}
+	v, _, err := evalIdent(ctx, ec, exec, p, id)
+	if err != nil {
+		return nil, err
+	}
+	if !v.IsCallable() {
+		return nil, fmt.Errorf("cannot call %q: it is a %s value, not a function", name, v.Kind())
+	}
+	callable, err := callableFromValue(v)
+	if err != nil {
+		return nil, err
+	}
+	if ec.evalDerive != nil {
+		switch fn := callable.(type) {
+		case *deriveCallable:
+			// Derives are pure by construction.
+		case *lambdaCallable:
+			if fn.capture == nil || fn.capture.evalDerive == nil {
+				return nil, fmt.Errorf("calling %q is not permitted inside a derive - the lambda was defined outside the derive and could read facts or call modules", name)
+			}
+		default:
+			return nil, fmt.Errorf("calling %q is not permitted inside a derive - it is not a derive or a lambda defined in a derive", name)
+		}
+	}
+	return func(ctx context.Context, args ...box.Value) (box.Value, error) {
+		return callable.Invoke(ctx, &CallSite{EC: ec, Exec: exec, Policy: p}, args)
+	}, nil
+}
+
+// unresolvedCalleeError reports a callee that names nothing callable. The
+// "unable to resolve import" error is reserved for a name the policy imports
+// with `use`, which is called through its module alias, not bare.
+func unresolvedCalleeError(p *index.Policy, callee string) error {
+	if p != nil {
+		for _, alias := range slices.Sorted(maps.Keys(p.Uses)) {
+			if use := p.Uses[alias]; use != nil && slices.Contains(use.Modules, callee) {
+				return fmt.Errorf("%q is imported from module alias %q and must be called as %s.%s(...): %w", callee, alias, alias, callee, xerr.ErrImportResolution(alias, callee))
+			}
+		}
+	}
+	return fmt.Errorf("unknown function %q: it is not a let, parameter, fact, derive or builtin in scope", callee)
 }
