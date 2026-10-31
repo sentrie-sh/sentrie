@@ -27,6 +27,7 @@ const (
 
 var precedences = map[tokens.Kind]Precedence{
 	tokens.TokenPipeForward:     PIPELINE,
+	tokens.TokenPipe:            PIPELINE, // only to report a bare `|` in an expression
 	tokens.TokenQuestion:        TERNARY,
 	tokens.KeywordOr:            OR,
 	tokens.KeywordXor:           XOR,

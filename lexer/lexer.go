@@ -203,7 +203,7 @@ func (l *Lexer) NextToken() tokens.Instance {
 			}
 			l.readRune()
 			endPos := l.endPosition()
-			return tokens.New(tokens.Error, "unexpected '|': only '|>' is supported", tokens.NewRange(l.filename, startPos, endPos))
+			return tokens.New(tokens.TokenPipe, "|", tokens.NewRange(l.filename, startPos, endPos))
 		case ',':
 			l.readRune()
 			endPos := l.endPosition()

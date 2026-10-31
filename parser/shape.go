@@ -25,6 +25,10 @@ func parseShapeStatement(ctx context.Context, p *Parser) ast.Statement {
 
 	name := nameToken.Value
 	rnge.To = nameToken.Range.To
+	if name == ast.AnyTypeName {
+		p.errorAtf(nameToken.Range, "cannot declare a shape named %q: it is the built-in top type", name)
+		return nil
+	}
 
 	var simpleTypeRef ast.TypeRef
 	var complexShape *ast.Cmplx
