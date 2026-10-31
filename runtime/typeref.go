@@ -60,6 +60,10 @@ func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec
 		return validateAgainstDocumentTypeRef(ctx, ec, exec, p, v, t, valueRange)
 	case *ast.RecordTypeRef:
 		return validateAgainstRecordTypeRef(ctx, ec, exec, p, v, t, valueRange)
+	case *ast.UnionTypeRef:
+		return validateAgainstUnionTypeRef(ctx, ec, exec, p, v, t, valueRange)
+	case *ast.AnyTypeRef:
+		return validateAgainstAnyTypeRef(v, valueRange)
 	}
 
 	return nil

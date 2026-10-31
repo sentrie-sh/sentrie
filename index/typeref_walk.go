@@ -109,8 +109,8 @@ func (idx *Index) forEachTypeRef(ctx context.Context, visit typeRefVisitor) erro
 }
 
 // forEachNestedTypeRef visits t and, in pre-order, every type ref nested in
-// it: list and set element, dict value and record field types. A nullable is not
-// visited itself; its inner type is.
+// it: list and set element, dict value, record field and union member types.
+// A nullable is not visited itself; its inner type is.
 func forEachNestedTypeRef(t ast.TypeRef, visit func(ast.TypeRef)) {
 	switch n := t.(type) {
 	case nil:
@@ -130,6 +130,10 @@ func forEachNestedTypeRef(t ast.TypeRef, visit func(ast.TypeRef)) {
 	case *ast.RecordTypeRef:
 		for _, f := range n.Fields {
 			forEachNestedTypeRef(f, visit)
+		}
+	case *ast.UnionTypeRef:
+		for _, m := range n.Members {
+			forEachNestedTypeRef(m, visit)
 		}
 	}
 }
