@@ -24,5 +24,10 @@
 - Errors are `xerr.ConstraintArgError` at the constraint's span, matching `ErrIndex` and `constraints.ErrInvalidArgument`; all are reported, sorted, since the walk is over maps.
 - Two runtime tests had broken arguments in validated packs (`TestEvalIsTypeCheckErrorsPropagate`, `TestEvalIsTypeDenyRuleDoesNotFailOpen`); those cases now fail validation, so they moved to the index suite, with the runtime path covered on an unvalidated index. Committing without validating panics (`commit` needs the shape DAG), so a "commit only" test helper was ruled out.
 - Found while writing tests: `number@in(...)` cannot be written, because `in` lexes as a keyword and the parser wants an identifier after `@`. Out of scope; noted for the maintainer.
-- Checked the issue's reproduction with a built binary: `sentrie validate` and `sentrie exec` now both fail with `a.sentrie:6:28-40: invalid argument to constraint 'regexp': invalid regexp pattern: error parsing regexp: missing closing ]: \`[\`: index error`.
+- Checked the issue's reproduction with a built binary: `sentrie validate` and `sentrie exec` now both fail with ``a.sentrie:6:28-40: invalid argument to constraint 'regexp': invalid regexp pattern: error parsing regexp: missing closing ]: `[`: index error``.
+- _Model: claude-opus-5-5_
+
+### 20:22 - Graph
+- New nodes `index.constraint_args` and `runtime.typeref_constraints`. `constraints` loses the `LAYERED_ON index` edge and the "not checked statically" and "`NumArgs` not enforced" gotchas, and records `CheckArgs`, `ForTypeRef` and the unwritable `in` constraint. `index`, `index.validate` and every `runtime.typeref_*` node now say where arguments are checked.
+- The `constraints` gotchas about unknown names and empty tables are #113's and were left as they are, though the parser already rejects unknown names.
 - _Model: claude-opus-5-5_

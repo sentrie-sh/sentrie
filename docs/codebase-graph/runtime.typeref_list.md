@@ -16,7 +16,7 @@ Validates a value against a `list<T>` type. It is the first of the recursive val
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `runtime.typeref_list` | `CALLS` | [[runtime.typeref]] | Recurses once per element against `typeRef.ElemType`. |
-| `runtime.typeref_list` | `DEPENDS_ON` | [[constraints]] | `constraints.ListContraintCheckers`. |
+| `runtime.typeref_list` | `CALLS` | [[runtime.typeref_constraints]] | `bindConstraints` before the kind check, `checkConstraints` after it. |
 | `runtime.typeref_list` | `CALLS` | [[runtime.eval]] | Evaluates constraint argument expressions. |
 | `runtime.typeref_list` | `CALLS` | [[runtime.err_typedef]] | Constraint error constructors. |
 | [[runtime.typeref]] | `CALLS` | [[runtime.typeref_list]] | Dispatched for `*ast.ListTypeRef`. |
@@ -24,7 +24,7 @@ Validates a value against a `list<T>` type. It is the first of the recursive val
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `validateAgainstListTypeRef(ctx, ec, exec Executor, p *index.Policy, v box.Value, typeRef *ast.ListTypeRef, pos tokens.Range) -> error`
-  - **Behavior:** Requires `v.ListValue()`, validates each element, then runs list constraints. Elements are checked **before** constraints, so a `@size` violation is reported only if every element already type-checks.
+  - **Behavior:** Binds its constraints first ([[runtime.typeref_constraints]]: arguments evaluated and checked against the definition, so a broken argument errors for any value, #273), then requires `v.ListValue()`, validates each element, then runs list constraints. An element type's own constraints are bound per element, so an empty list never checks them at runtime ([[index.constraint_args]] does). Elements are checked **before** constraints, so a `@size` violation is reported only if every element already type-checks.
   - **Side Effects:** Element validation can evaluate nested constraint arguments.
   - **Exceptions:** `value %v is not an array at %s - expected array`; `item is not valid at %s: %w`; constraint errors.
 
