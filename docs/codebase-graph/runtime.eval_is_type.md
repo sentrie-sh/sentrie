@@ -19,7 +19,7 @@ Implements `x is T` (#150): a total predicate that answers whether a value valid
 | `runtime.eval_is_type` | `CALLS` | [[runtime.eval]] | Evaluates the operands. |
 | `runtime.eval_is_type` | `CALLS` | [[runtime.typeref]] | `validateValueAgainstTypeRef`, then `isTypeMismatch` on its error. |
 | `runtime.eval_is_type` | `CALLS` | [[index.is_resolve]] | `(*Index).LookupShape`, only for a node an unvalidated index left ambiguous. |
-| `runtime.eval_is_type` | `READS_FROM` | [[runtime.exec_ctx]] | `evalDerive` selects the derive's own shape scope. |
+| `runtime.eval_is_type` | `READS_FROM` | [[runtime.exec_ctx]] | `evalDerive` selects the derive's own shape scope, through `typeCheckScope` in [[runtime.typeref]]. |
 | `runtime.eval_is_type` | `DEPENDS_ON` | [[box]] | `box.Bool` results; `EqualValues` on the equality path. |
 | [[runtime.eval]] | `CALLS` | [[runtime.eval_is_type]] | `ast.IsExpression` nodes dispatch here. |
 
@@ -30,17 +30,14 @@ Implements `x is T` (#150): a total predicate that answers whether a value valid
   - **Side Effects:** Operand and constraint-argument evaluation.
   - **Exceptions:** Errors from evaluating `Left`; validation errors that are not mismatches: an unknown or unexported shape (including one named by a nested field), a constraint whose own arguments are invalid (`constraints.ErrInvalidArgument`: wrong kind or count, invalid regexp, zero divisor), a constraint argument that fails to evaluate; `LookupShape` errors on the unvalidated path.
 
-- **Signature:** `isShapeScope(ec, p) -> *index.Policy`
-  - **Behavior:** The policy whose shapes the check resolves against: `p` outside a derive; inside a derive body `(*index.Derive).ShapeScope()`: the derive's own policy, or for a namespace-level derive a `Policy` holding only the derive's namespace. This is the scope [[index.is_resolve]] resolved the names in.
-  - **Side Effects:** None; the derive's scope comes from `(*index.Derive).ShapeScope`, built once when the derive is indexed.
-  - **Exceptions:** None.
+- **Shape scope:** the check resolves shapes in `typeCheckScope(ec, p)` ([[runtime.typeref]]): `p` outside a derive, the derive's own policy or namespace inside one. This is the scope [[index.is_resolve]] resolved the names in.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless.
 - **Performance/Scale Notes:** One full validation of the value per evaluation; a list of shapes checks every field of every element.
 - **Dependencies Risk:**
   - **Derive bodies are allowed.** The check resolves no identifier or callee itself; `Left` and the constraint arguments go through [[runtime.eval]], whose identifier and call paths apply the `evalDerive` gates.
-  - **Derive shapes resolve in the derive's scope, unlike casts and typed parameters.** An exported derive that checks `v is Foo` works from any namespace and never picks up a caller's shape named `Foo`. Casts, typed parameters and return types inside derives still validate against the caller's policy (`invokeDerive` passes `callerPolicy`); that pre-existing problem is a follow-up.
+  - **Derive shapes resolve in the derive's scope.** An exported derive that checks `v is Foo` works from any namespace and never picks up a caller's shape named `Foo`; casts, typed lets, parameter and return types in a derive resolve the same way since [#271](https://github.com/sentrie-sh/sentrie/issues/271).
   - **Nested field shapes resolve in the same scope as the outer shape's site**, not in the namespace that declared the outer shape, as for every typed value; a qualified shape from another namespace whose fields name that namespace's local shapes is the same pre-existing problem.
   - **An omitted optional fact fails before `is` runs.** Evaluating the operand raises "identifier not found" today; once #134 lands an omitted optional fact resolves as undefined and `x is T` is `false`.
   - **`is not T` and `is T` both return a bool.** `not` produces a `box.Trinary`, which boxes a known outcome as `ValueBool` since [#135](https://github.com/sentrie-sh/sentrie/issues/135).

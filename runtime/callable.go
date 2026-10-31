@@ -50,7 +50,10 @@ func (c *lambdaCallable) Invoke(ctx context.Context, site *CallSite, args []box.
 	if err := ctx.Err(); err != nil {
 		return box.Undefined(), err
 	}
-	args, err := padAndValidateCallableArgs(ctx, site.EC, site.Exec, site.Policy, c.lambda, args, "lambda")
+	// The lambda's types resolve where it was written: in the enclosing
+	// derive's scope for a lambda in a derive body, else in the policy.
+	scope := typeCheckScope(c.capture, site.Policy)
+	args, err := padAndValidateCallableArgs(ctx, site.EC, site.Exec, scope, c.lambda, args, "lambda")
 	if err != nil {
 		return box.Undefined(), err
 	}
@@ -65,7 +68,7 @@ func (c *lambdaCallable) Invoke(ctx context.Context, site *CallSite, args []box.
 		return box.Undefined(), err
 	}
 	if c.lambda.ReturnType != nil {
-		if err := validateValueAgainstTypeRef(ctx, child, site.Exec, site.Policy, v, c.lambda.ReturnType, c.lambda.Body.Span()); err != nil {
+		if err := validateValueAgainstTypeRef(ctx, child, site.Exec, scope, v, c.lambda.ReturnType, c.lambda.Body.Span()); err != nil {
 			return box.Undefined(), fmt.Errorf("lambda return: %w", err)
 		}
 		v = bindTruthValue(v, c.lambda.ReturnType)
