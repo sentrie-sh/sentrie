@@ -33,7 +33,7 @@ The single entry point for all runtime type checking. It strips nullability, the
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `validateValueAgainstTypeRef(ctx, ec, exec Executor, p *index.Policy, v box.Value, typeRef ast.TypeRef, valueRange tokens.Range) -> error`
-  - **Behavior:** If the type ref is nullable and the value is null, passes immediately; otherwise unwraps the nullable and dispatches on the concrete kind. **An unrecognised type ref returns `nil`** - an unconditional pass.
+  - **Behavior:** If the type ref is nullable and the value is null, binds the inner type's constraints ([[runtime.typeref_constraints]]) so a broken argument still errors (#273), and otherwise passes; otherwise unwraps the nullable and dispatches on the concrete kind. **An unrecognised type ref returns `nil`** - an unconditional pass.
   - **Side Effects:** None directly, but the per-kind validators evaluate constraint argument expressions, which can call builtins and derives.
   - **Exceptions:** Whatever the delegated validator returns. Errors that say the value does not conform (every kind check, a missing or undefined shape field, a record length mismatch, and `ErrConstraintFailed` unless the checker's error matches `constraints.ErrInvalidArgument`) carry a `typeRefFailure` mismatch marker that leaves the message unchanged; a constraint argument that fails to evaluate is wrapped as a non-mismatch failure; unknown shapes and constraints carry no marker.
 

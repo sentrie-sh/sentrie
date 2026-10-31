@@ -15,7 +15,7 @@ Validates a value against the `dict` type. Deliberately shallow: it confirms the
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.typeref_dict` | `DEPENDS_ON` | [[constraints]] | `constraints.DictContraintCheckers`. |
+| `runtime.typeref_dict` | `CALLS` | [[runtime.typeref_constraints]] | `bindConstraints` before the kind check, `checkConstraints` after it. |
 | `runtime.typeref_dict` | `CALLS` | [[runtime.eval]] | Evaluates constraint argument expressions. |
 | `runtime.typeref_dict` | `CALLS` | [[runtime.err_typedef]] | Constraint error constructors. |
 | [[runtime.typeref]] | `CALLS` | [[runtime.typeref_dict]] | Dispatched for `*ast.DictTypeRef`. |
@@ -23,7 +23,7 @@ Validates a value against the `dict` type. Deliberately shallow: it confirms the
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `validateAgainstDictTypeRef(ctx, ec, exec Executor, p *index.Policy, v box.Value, typeRef *ast.DictTypeRef, pos tokens.Range) -> error`
-  - **Behavior:** Requires `v.DictValue()`, then runs dict constraints. No recursion into members.
+  - **Behavior:** Binds its constraints first ([[runtime.typeref_constraints]]: arguments evaluated and checked against the definition, so a broken argument errors for any value, #273), then requires `v.DictValue()`, then runs dict constraints. No recursion into members.
   - **Side Effects:** Constraint argument evaluation.
   - **Exceptions:** `value %v is not a dict`; `ErrUnknownConstraint`; `ErrConstraintFailed`.
 

@@ -266,6 +266,7 @@ graph TD
 - [[index.derive_expr_walk]] - derive expression traversal
 - [[index.derive_purity]] - derive purity enforcement
 - [[index.expr_walk]] - general child walker for reference analysis
+- [[index.constraint_args]] - static constraint argument check
 - [[index.import_withs]] - unknown `with` fact check for imports
 - [[index.is_resolve]] - `is` shape-or-value resolution
 - [[index.resolve]] - symbol resolution
@@ -314,6 +315,7 @@ graph TD
 - [[runtime.eval_unary]] - prefix operators
 - [[runtime.imports]] - cross-policy decision imports
 - [[runtime.typeref]] - type validation dispatcher
+- [[runtime.typeref_constraints]] - constraint binding and checking
 - [[runtime.typeref_dict]] - dict validation
 - [[runtime.typeref_document]] - document validation
 - [[runtime.typeref_list]] - list validation

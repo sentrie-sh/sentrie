@@ -21,6 +21,7 @@ tags: semantic-analysis, symbol-table, validation, dependency-graph, middle-end
 | `index` | `LAYERED_ON` | [[xerr]] | Every diagnostic is an `xerr` sentinel or `ErrConflict`, giving structured two-span conflict errors. |
 | `index` | `LAYERED_ON` | [[builtins]] | Reads builtin declarations and signatures to validate call sites; consults `IsDeriveSafe` for purity and `Decl.Nondeterministic` for warnings. |
 | `index` | `LAYERED_ON` | [[box]] | Uses `box.ValueKind` as the vocabulary for static argument-kind checking. |
+| `index` | `LAYERED_ON` | [[constraints]] | [[index.constraint_args]] checks constraint arguments with each definition's `CheckArgs`. |
 | `index` | `READS_FROM` | [[capabilities]] | `CheckCapabilities` tests every builtin call and `use` against the operator's grant. |
 | `index` | `IMPORTS` | `ext.masterminds.semver` | Parses and validates per-policy `version` metadata. |
 | [[loader]] | `LAYERED_ON` | [[index]] | Supplies the parsed programs that populate the index. |
@@ -41,7 +42,7 @@ tags: semantic-analysis, symbol-table, validation, dependency-graph, middle-end
   - **Exceptions:** Name conflicts, unknown derive exports, unsupported top-level statements.
 
 - **Signature:** `(*Index).Validate(ctx) -> error` / `(*Index).IsValid(ctx) -> error`
-  - **Behavior:** Runs the full validation pipeline exactly once and then commits; the pipeline includes [[index.import_withs]], which rejects a `with` name the imported policy does not declare. See [[index.validate]].
+  - **Behavior:** Runs the full validation pipeline exactly once and then commits; the pipeline includes [[index.import_withs]], which rejects a `with` name the imported policy does not declare, and [[index.constraint_args]], which rejects a broken constraint argument. See [[index.validate]].
   - **Side Effects:** Populates the rule and shape DAGs; triggers [[index.commit]].
   - **Exceptions:** Any validation failure, wrapped as `validation error: …`.
 
