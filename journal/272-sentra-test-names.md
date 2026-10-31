@@ -14,3 +14,8 @@
 - Checked docs/codebase-graph for `sentra`: no hits, so no node changes.
 - Ruled out: a separate header-only commit; the header rewrite touches only files the rename also touches, so one commit keeps the change atomic.
 - _Model: claude-sonnet-5-5_
+
+### 14:58 - Correct the header count
+- Review found `index/index_test.go` still carried the Apache boilerplate after its two SPDX lines (a mixed header); my check only looked at the first two lines. Dropped lines 3-14.
+- Corrected count: 18 headers rewritten, 26 already SPDX (not 17 and 27 as in the 14:46 entry).
+- _Model: claude-sonnet-5-5_
