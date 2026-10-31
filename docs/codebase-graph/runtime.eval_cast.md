@@ -26,7 +26,7 @@ Implements `expr as <type>` - the language's only explicit conversion mechanism.
 - **Signature:** `evalCast(ctx, ec, e, p, cast *ast.CastExpression) -> (box.Value, *trace.Node, error)`
   - **Behavior:** Evaluates the operand, then dispatches on the target type ref.
   - **Side Effects:** Operand evaluation.
-  - **Exceptions:** `cannot cast %s to number`; `cannot cast %s to list`; `cannot cast %s to dict`; `strconv.ParseFloat` errors.
+  - **Exceptions:** `cannot cast %s to number`; `cannot cast %s to list`; `cannot cast %s to set`; `cannot cast to set: %w`; `cannot cast %s to dict`; `strconv.ParseFloat` errors.
 
 - **Signature:** Conversion rules by target
   - **Behavior:**
@@ -34,6 +34,7 @@ Implements `expr as <type>` - the language's only explicit conversion mechanism.
     - **Number** - accepts a number as-is, parses a string with `ParseFloat`, and maps a boolean to `1`/`0`. Everything else errors.
     - **Trinary** - always succeeds via `box.TrinaryFrom`, applying language truthiness; the result is a bool unless it is `Unknown`.
     - **List / Dict** - pure **assertions**: the value must already be that kind, and is returned unchanged.
+    - **Set** - converts a list into a set with `box.NewSet` ([[box.set]]), dropping duplicates as `set()` does (#162), each element bound as `T` is; a non-list or an element with no set order errors. `as set[T]?` converts the same way unless the value is null; every other nullable target is returned unchanged for validation.
     - **Shape** - returned unchanged with no structural check at this point.
     - **Default** - returned unchanged.
   - **Side Effects:** None.

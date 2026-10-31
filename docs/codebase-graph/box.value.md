@@ -16,6 +16,7 @@ tags: value-model, tagged-union, type-system, memory-layout
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `box.value` | `DEPENDS_ON` | [[trinary]] | `TrinaryValue()` unpacks the `u64` slot into a `trinary.Value`; `TrinaryFrom` projects any kind onto the Kleene lattice. |
+| `box.value` | `DEPENDS_ON` | [[box.set]] | `IsSet()` reads the set tag that `box/set.go` stores in a list's `u64` slot; a set has kind `ValueList` (#162). |
 | `box.value` | `DEPENDS_ON` | [[box]] | Member of the `box` package; shares the boundary-marshalling helpers in `box/utilities.go`. |
 | [[runtime.eval]] | `CALLS` | [[box.value]] | Every expression evaluation constructs and destructures `Value` instances. |
 | [[builtins]] | `CALLS` | [[box.value]] | Builtin implementations use the typed accessors to validate argument kinds. |
@@ -63,6 +64,11 @@ tags: value-model, tagged-union, type-system, memory-layout
   - **Behavior:** JSON serialization for API and CLI output. `Undefined` is emitted as JSON `null`.
   - **Side Effects:** Deep copy via `Any()`.
   - **Exceptions:** Returns an error for callable values ("cannot marshal callable value to JSON"); otherwise propagates `encoding/json` errors.
+
+- **Signature:** `IsSet() -> bool`
+  - **Behavior:** Reports whether a `ValueList` carries the set tag; see [[box.set]]. A set is not a separate kind, so `Kind()` is `ValueList` and `ListValue()` returns its distinct, canonically sorted elements.
+  - **Side Effects:** None.
+  - **Exceptions:** None.
 
 - **Signature:** `ValueKind` enum - `ValueInvalid`, `ValueUndefined`, `ValueNull`, `ValueBool`, `ValueNumber`, `ValueString`, `ValueTrinary`, `ValueList`, `ValueDict`, `ValueDocument`, `ValueCallable` (with `ValueObject` aliasing `ValueDocument`)
   - **Behavior:** The closed kind set. `ValueInvalid` is the zero value, so an unassigned `Value` is detectably invalid rather than masquerading as undefined.
