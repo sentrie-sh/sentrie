@@ -17,3 +17,12 @@
 - Self-recursion (`rule r = r`, #155) untouched.
 - New graph node `index.expr_walk`; updated `index.validate`, `index.derive_expr_walk`, overview catalog.
 - _Model: claude-sonnet-5-5_
+
+### 14:47 - Regression tests for the cycle walk
+- Added to `index/validate_walk_test.go`: `TestValidate_ReferenceCycleAcrossMixedKinds` (three-node cycles that change kind each hop, cast inside index access inside a map key, `is defined` / `is empty` / `is T` left side, a value on the right of `is`, lambda bodies, `default` and `when` slots) and `TestValidate_AcyclicPackUsingEveryKindStillValidates` (shape operands, field names that equal rule names, comments, lambdas, import `with`, ternary and elvis, no cycle reported).
+- Added `TestValidateCmdRejectsReferenceCycleThroughCastAndIndex` to `cmd/validate_test.go`, next to the existing #151 validate test: same CLI path, cycle through a cast and an index access.
+- Bite check: with `index/validate.go` restored from main, the index kinds, `default`/`when`, mixed-kind and cmd tests fail; the `is` and lambda cases pass on main too (the old switch already covered them), so they are regression guards, not new-behaviour proofs. The acyclic test fails if the walker yields a field name as an identifier (checked by temporary mutation).
+- Ruled out: a shape-operand false-positive test that bites. A shape name equal to a rule name is rejected earlier ("names both a shape and a value"), and an edge to a name that is not a rule is ignored by the DAG, so no input can show it.
+- Ruled out: a built-binary test; the existing validate tests run the CLI in process, so the new one does too. The built binary was run by hand: cyclic pack exits 1 with `infinite recursion: a -> b -> a`, acyclic exits 0; the main-built binary exits 0 on the cyclic pack.
+- _Model: claude-sonnet-5-5_
+

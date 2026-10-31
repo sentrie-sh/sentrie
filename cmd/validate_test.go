@@ -107,3 +107,22 @@ func (s *CmdTestSuite) TestValidateCmdRejectsUnknownImportWithFact() {
 	s.Contains(err.Error(), `import binds unknown fact "usr"`)
 	s.Contains(err.Error(), "policy t/q accepts fact aliases: user")
 }
+
+const castCyclePolicy = `namespace t
+policy p {
+  rule a = { yield b as number
+  }
+  rule b = { yield [a][0]
+  }
+  export decision of a
+}
+`
+
+// TestValidateCmdRejectsReferenceCycleThroughCastAndIndex is the reproduction
+// from #269: validate used to exit 0 on a cycle that only exec could find.
+func (s *CmdTestSuite) TestValidateCmdRejectsReferenceCycleThroughCastAndIndex() {
+	dir := s.writeTestPack(castCyclePolicy)
+	err := runValidateCLI(s.T().Context(), []string{"t/p", "--pack-location", dir})
+	s.Require().Error(err)
+	s.Contains(err.Error(), "infinite recursion")
+}
