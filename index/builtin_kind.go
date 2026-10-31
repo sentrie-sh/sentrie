@@ -203,7 +203,7 @@ func typeRefKind(idx *Index, policy *Policy, ref ast.TypeRef) (box.ValueKind, bo
 		return box.ValueNumber, true
 	case *ast.TrinaryTypeRef:
 		return box.ValueTrinary, true
-	case *ast.ListTypeRef:
+	case *ast.ListTypeRef, *ast.SetTypeRef:
 		return box.ValueList, true
 	case *ast.DictTypeRef:
 		return box.ValueDict, true

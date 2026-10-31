@@ -130,6 +130,8 @@ func (k *kindCheckCtx) checkIsTypeShapes(t ast.TypeRef) []isSiteError {
 		return k.checkIsTypeShapes(tr.Inner)
 	case *ast.ListTypeRef:
 		return k.checkIsTypeShapes(tr.ElemType)
+	case *ast.SetTypeRef:
+		return k.checkIsTypeShapes(tr.ElemType)
 	case *ast.DictTypeRef:
 		return k.checkIsTypeShapes(tr.ValueType)
 	case *ast.RecordTypeRef:

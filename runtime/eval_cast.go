@@ -44,7 +44,7 @@ func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *ind
 			}
 		}
 	}()
-	switch target.(type) {
+	switch t := target.(type) {
 	case *ast.StringTypeRef:
 		result = box.String(val.String())
 
@@ -78,6 +78,22 @@ func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *ind
 		}
 		result = val
 
+	case *ast.SetTypeRef:
+		if result, err = castToSet(val, t.ElemType); err != nil {
+			return box.Value{}, node.SetErr(err), err
+		}
+
+	case *ast.NullableTypeRef:
+		// `as set[T]?` converts like `as set[T]` unless the value is null;
+		// every other nullable target is returned unchanged for validation
+		if inner, isSet := t.Inner.(*ast.SetTypeRef); isSet && !val.IsNull() {
+			if result, err = castToSet(val, inner.ElemType); err != nil {
+				return box.Value{}, node.SetErr(err), err
+			}
+		} else {
+			result = val
+		}
+
 	case *ast.DictTypeRef:
 		if val.Kind() != box.ValueDict {
 			err = fmt.Errorf("cannot cast %s to dict", val.Kind())
@@ -94,4 +110,18 @@ func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *ind
 
 	node = node.SetResult(result).SetErr(err)
 	return
+}
+
+// castToSet is `as set[T]`: an explicit conversion, so duplicates are dropped
+// as by set(). Elements are bound as T is, as a set[T] binding binds them.
+func castToSet(val box.Value, elemType ast.TypeRef) (box.Value, error) {
+	xs, ok := val.ListValue()
+	if !ok {
+		return box.Value{}, fmt.Errorf("cannot cast %s to set", val.Kind())
+	}
+	set, err := box.NewSet(setElementsAs(xs, elemType))
+	if err != nil {
+		return box.Value{}, fmt.Errorf("cannot cast to set: %w", err)
+	}
+	return set, nil
 }
