@@ -556,3 +556,79 @@ policy p {
 `, "f.sentrie")
 	s.Require().NoError(err)
 }
+
+func (s *IndexTestSuite) TestBuiltinCheckStdlibArityAndKind() {
+	cases := []struct {
+		name string
+		expr string
+		msg  string
+	}{
+		{"glob_match too few", `glob_match("a", ["/"])`, "glob_match requires 3 arguments"},
+		{"glob_match delimiters string", `glob_match("a", "/", "b")`, "glob_match: delimiters must be a list of single-character strings"},
+		{"glob_match pattern number", `glob_match(1, ["/"], "b")`, "glob_match: pattern must be a string"},
+		{"object_keys too many", `object_keys({}, {})`, "object_keys requires 1 argument"},
+		{"object_keys string", `object_keys("a")`, "object_keys: argument must be a dict"},
+		{"object_get too few", `object_get({}, "a")`, "object_get requires 3 arguments"},
+		{"object_remove keys string", `object_remove({}, "a")`, "object_remove: keys must be a list of strings"},
+		{"object_filter dict first", `object_filter(1, ["a"])`, "object_filter: first argument must be a dict"},
+		{"object_union too few", `object_union({})`, "object_union requires 2 arguments"},
+		{"parse_quantity number", `parse_quantity(5)`, "parse_quantity: argument must be a string"},
+		{"parse_duration too many", `parse_duration("1h", "2h")`, "parse_duration requires 1 argument"},
+	}
+	for _, tc := range cases {
+		s.Run(tc.name, func() {
+			err := s.parseAndValidate("namespace com/ex\npolicy p {\n  rule allow = { yield "+tc.expr+" }\n  export decision of allow\n}\n", "f.sentrie")
+			s.Require().Error(err)
+			s.Contains(err.Error(), tc.msg)
+		})
+	}
+}
+
+func (s *IndexTestSuite) TestBuiltinCheckStdlibWellFormedAccept() {
+	err := s.parseAndValidate(`namespace com/ex
+policy p {
+  fact d: document as d
+  rule allow = {
+    let g = glob_match("/a/**", ["/"], "/a/b")
+    let k = object_keys({ "a": 1 })
+    let v = object_get(d, ["a", "b"], 0)
+    let r = object_remove({ "a": 1 }, ["a"])
+    let f = object_filter({ "a": 1 }, ["a"])
+    let u = object_union({ "a": 1 }, { "b": 2 })
+    yield g and parse_quantity("10Gi") > 0 and parse_duration("2h") > 0
+  }
+  export decision of allow
+}
+`, "f.sentrie")
+	s.Require().NoError(err)
+}
+
+// A document is always a dict at runtime, so the static kind check must accept
+// a document fact wherever a dict is required (this also covers merge; the count case is a regression guard, since count is never kind-checked).
+func (s *IndexTestSuite) TestBuiltinCheckDocumentFactAcceptedAsDict() {
+	for _, expr := range []string{
+		`object_keys(d)`,
+		`object_union(d, {})`,
+		`object_remove(d, ["a"])`,
+		`object_filter(d, ["a"])`,
+		`merge(d, {})`,
+		`count(d)`,
+	} {
+		s.Run(expr, func() {
+			err := s.parseAndValidate("namespace com/ex\npolicy p {\n  fact d: document as d\n  rule allow = { yield "+expr+" }\n  export decision of allow\n}\n", "f.sentrie")
+			s.Require().NoError(err)
+		})
+	}
+}
+
+func (s *IndexTestSuite) TestBuiltinCheckDocumentFactStillRejectedAsList() {
+	err := s.parseAndValidate(`namespace com/ex
+policy p {
+  fact d: document as d
+  rule allow = { yield filter(d, (x) => { yield x }) }
+  export decision of allow
+}
+`, "f.sentrie")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "filter: first argument must be a list")
+}

@@ -464,6 +464,10 @@ func (k *kindCheckCtx) resolveCallableArity(expr ast.Expression) (int, bool) {
 }
 
 func kindAllowed(kinds []box.ValueKind, k box.ValueKind) bool {
+	if k == box.ValueDocument {
+		// A document is always a dict at runtime (runtime/typeref_document.go).
+		return slices.Contains(kinds, box.ValueDict)
+	}
 	if k == box.ValueTrinary {
 		// A trinary-typed value may be either kind at runtime (see typeRefKind).
 		return slices.Contains(kinds, box.ValueBool) && slices.Contains(kinds, box.ValueTrinary)
