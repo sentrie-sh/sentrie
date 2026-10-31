@@ -376,3 +376,73 @@ func (s *RuntimeTestSuite) TestEvalInfixMembershipAndComparisonAliases() {
 		})
 	}
 }
+
+func (s *RuntimeTestSuite) TestEvalInfixRelationalOrdersStringsByByte() {
+	ctx := s.T().Context()
+	p := newEvalTestPolicy()
+	ec := NewExecutionContext(p, &executorImpl{})
+	str := func(v string) ast.Expression { return ast.NewStringLiteral(v, stubRange()) }
+
+	tests := []struct {
+		name     string
+		operator string
+		left     string
+		right    string
+		want     bool
+	}{
+		{name: "less than", operator: "<", left: "a", right: "b", want: true},
+		{name: "less than equal strings", operator: "<", left: "a", right: "a", want: false},
+		{name: "less than or equal on equal strings", operator: "<=", left: "a", right: "a", want: true},
+		{name: "less than or equal on greater", operator: "<=", left: "b", right: "a", want: false},
+		{name: "greater than", operator: ">", left: "b", right: "a", want: true},
+		{name: "greater than equal strings", operator: ">", left: "a", right: "a", want: false},
+		{name: "greater than or equal on equal strings", operator: ">=", left: "a", right: "a", want: true},
+		{name: "greater than or equal on lesser", operator: ">=", left: "a", right: "b", want: false},
+		{name: "prefix orders first", operator: "<", left: "ab", right: "abc", want: true},
+		{name: "empty string orders first", operator: "<", left: "", right: "a", want: true},
+		{name: "uppercase orders before lowercase", operator: "<", left: "Z", right: "a", want: true},
+		{name: "digits compare by byte not value", operator: "<", left: "10", right: "9", want: true},
+		{name: "iso timestamps sort chronologically", operator: "<", left: "2026-01-31T23:59:59Z", right: "2026-02-01T00:00:00Z", want: true},
+		{name: "multibyte runes compare by utf8 bytes", operator: ">", left: "é", right: "z", want: true},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			expr := ast.NewInfixExpression(str(tt.left), str(tt.right), tt.operator, stubRange())
+			got, _, err := evalInfix(ctx, ec, &executorImpl{}, p, expr)
+			s.Require().NoError(err)
+			s.Require().Equal(tt.want, got.Any())
+		})
+	}
+
+	s.Run("mixed string and number stays an error", func() {
+		for _, op := range []string{"<", "<=", ">", ">="} {
+			expr := ast.NewInfixExpression(str("a"), ast.NewIntegerLiteral(1, stubRange()), op, stubRange())
+			_, _, err := evalInfix(ctx, ec, &executorImpl{}, p, expr)
+			s.Require().ErrorContains(err, "left operand is not a number", op)
+
+			expr = ast.NewInfixExpression(ast.NewIntegerLiteral(1, stubRange()), str("a"), op, stubRange())
+			_, _, err = evalInfix(ctx, ec, &executorImpl{}, p, expr)
+			s.Require().ErrorContains(err, "right operand is not a number", op)
+		}
+	})
+
+	s.Run("string and unknown stays an error", func() {
+		expr := ast.NewInfixExpression(str("a"), ast.NewTrinaryLiteral(trinary.Unknown, stubRange()), "<", stubRange())
+		_, _, err := evalInfix(ctx, ec, &executorImpl{}, p, expr)
+		s.Require().ErrorContains(err, "left operand is not a number")
+	})
+
+	s.Run("undefined operand makes the result undefined", func() {
+		missing := ast.NewFieldAccessExpression(ast.NewMapLiteral([]ast.MapEntry{}, stubRange()), "missing", stubRange())
+		for _, op := range []string{"<", "<=", ">", ">="} {
+			got, _, err := evalInfix(ctx, ec, &executorImpl{}, p, ast.NewInfixExpression(str("a"), missing, op, stubRange()))
+			s.Require().NoError(err)
+			s.Require().True(got.IsUndefined(), op)
+
+			got, _, err = evalInfix(ctx, ec, &executorImpl{}, p, ast.NewInfixExpression(missing, str("a"), op, stubRange()))
+			s.Require().NoError(err)
+			s.Require().True(got.IsUndefined(), op)
+		}
+	})
+}

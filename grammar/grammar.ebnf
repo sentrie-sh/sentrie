@@ -91,6 +91,9 @@ lambdaExpr          ::= '(' ( IDENT ( ',' IDENT )* )? ')' '=>' blockExpr
 
 /* Specific Expression Types */
 equalityExpr        ::= addExpr ( '==' | '!=' ) addExpr
+/* `<`, `<=`, `>`, `>=` order two numbers numerically and two strings by byte order (Go's strings.Compare),
+   which is not locale-aware: "B" < "a". Any other pair of operands, including a string and a number, is an
+   error; an undefined operand makes the result undefined. */
 relationalExpr      ::= addExpr ( '<' | '<=' | '>' | '>=' ) addExpr
 /* `x is T` is true when x validates against the type T (false when it does not, or x is undefined).
    A right-hand side that starts with a type keyword is a typeRef; a '?' that is followed by a token
