@@ -121,7 +121,8 @@ func MatchesValue(haystack, pattern Value) (bool, error) {
 }
 
 // ContainsValue implements infix `contains` / `in` semantics for string, list, and dict haystacks.
-// For dict haystacks, only string-key lookup and dict-subset containment are supported.
+// For dict haystacks, only string-key lookup and dict-subset containment are supported. A set
+// haystack (a list built by NewSet) is searched by binary search for a scalar needle.
 func ContainsValue(haystack, needle Value) bool {
 	switch haystack.Kind() {
 	case ValueString:
@@ -130,6 +131,9 @@ func ContainsValue(haystack, needle Value) bool {
 		return ok && n != "" && strings.Contains(h, n)
 	case ValueList:
 		xs, _ := haystack.ListValue()
+		if haystack.IsSet() && isScalarSetNeedle(needle) {
+			return setContains(xs, needle)
+		}
 		for _, v := range xs {
 			if EqualValues(v, needle) {
 				return true
