@@ -3,7 +3,7 @@ id: runtime.eval_cast
 type: Function / Endpoint
 language: Go
 file_path: runtime/eval_cast.go
-tags: type-conversion, coercion, validation, defect
+tags: type-conversion, coercion, validation
 ---
 
 # Node: runtime.evalCast (Type Cast Evaluation)

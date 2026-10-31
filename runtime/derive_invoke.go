@@ -60,7 +60,7 @@ func invokeDerive(ctx context.Context, callerEC *ExecutionContext, exec *executo
 	}
 	lam := d.Lambda
 	// Parameter and return types resolve shapes in the derive's own scope,
-	// as the index does, not in the calling policy (see typeCheckScope).
+	// as `is` does (#150), not in the calling policy (see typeCheckScope).
 	scope := d.ShapeScope()
 	args, err := padAndValidateDeriveArgs(ctx, callerEC, exec, scope, lam, args)
 	if err != nil {

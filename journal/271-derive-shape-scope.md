@@ -25,3 +25,10 @@
 - Lazy lets: an unused `let c = v as Nope` is never evaluated, so the missing-shape test yields the binding.
 - End to end: built `sentrie exec` on a two-namespace pack; this branch returns the derive-scoped result, a build of main errors with the caller's `Foo`.
 - _Model: claude-sonnet-5-5_
+
+### 20:25 - Address review suggestions
+- Reworded the comments in `runtime/derive_invoke.go` and `runtime/typeref.go`: the type checks resolve "as `is` does (#150)", not "as the index does". The index only looks up shape names at `is` sites, so the old wording claimed a static check that does not exist.
+- Dropped the stale `defect` tag from the `runtime.eval_cast` node; this branch removed its defect claim.
+- Declined: folding the hand-written caller source in the first two derive scope tests into the later helpers. Optional tidy-up, and the tests already bite.
+- Not fixed here, pre-existing: `runtime/typeref_shape.go` recurses into a shape's alias and field types with the caller's policy, so an exported shape whose field names another shape of its own namespace fails at exec from another namespace while validate passes. Same class of bug, wider than derives; left for its own issue.
+- _Model: claude-opus-5-5_

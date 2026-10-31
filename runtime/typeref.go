@@ -16,8 +16,8 @@ import (
 // the evaluating policy, or inside a derive body the derive's own policy, or
 // for a namespace-level derive a scope holding only the derive's namespace
 // (index.Derive.ShapeScope). Every type check in a derive body (casts, typed
-// lets, `is`, and the types of a lambda written there) resolves here, as the
-// index does; the calling policy would fail on, or silently pick, a different
+// lets, `is`, and the types of a lambda written there) resolves here, as `is`
+// does (#150); the calling policy would fail on, or silently pick, a different
 // shape when the derive is called from another namespace or from a policy
 // that declares a shape of the same name.
 //
