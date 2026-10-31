@@ -23,3 +23,7 @@
 - Bite checks: lexer.go and coverage_errors_test.go from main fail the three new lexer tests and the runtime test. Mutations of the branch's lexer also fail them: stripping every `\r` from body lines, ending on a tag prefix, and ending on a tag suffix.
 - Ran the built `sentrie validate` and `sentrie exec` on a CRLF pack: validates, `s == "hello\n\n  world\n"` is true, the second heredoc is `"second\n"`, identical to the LF pack. An unterminated CRLF heredoc reports the `<<<EOT` position.
 - _Model: claude-sonnet-5-5_
+
+### 20:19 - Make trailing spaces explicit in the heredoc tests
+- Review: the `second  ` and `TWO  ` lines in `runtime/heredoc_crlf_test.go` now come from string concatenation, so an editor that trims whitespace cannot weaken the test; rewrapped the `TestProgramStatementSpans` doc comment in `parser/span_test.go`.
+- _Model: claude-sonnet-5-5_
