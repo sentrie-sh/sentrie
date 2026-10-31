@@ -17,7 +17,7 @@ The finalization step that flattens shape composition. It topologically sorts th
 | :--- | :--- | :--- | :--- |
 | `index.commit` | `DEPENDS_ON` | [[dag]] | Calls `TopoSort` on the stored shape graph to derive the hydration order. |
 | `index.commit` | `CALLS` | [[index.shape]] | Invokes `resolveDependency` per shape, which copies base fields into derived ones. |
-| `index.commit` | `MUTATES` | [[index.index]] | Writes `committed` and `commitError`. |
+| `index.commit` | `MUTATES` | [[index.index]] | Writes `committed` and `commitError` under `stateMu`. |
 | [[index.validate]] | `CALLS` | [[index.commit]] | Invoked automatically after a successful validation, inside the validation `Once`. |
 
 ## 3. Interface Contracts & Public Surface

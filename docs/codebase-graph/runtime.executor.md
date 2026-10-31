@@ -71,6 +71,11 @@ The top-level driver: it owns the index, the JS registry, the loaded modules, an
   - **Side Effects:** Full concurrent evaluation; JS execution; cache population.
   - **Exceptions:** Policy resolution failure; joined per-rule errors; a synthesized `panic in ExecRule "<rule>": …` error joined with the others.
 
+- **Signature:** `(*executorImpl).BuiltinModules() -> []string`
+  - **Behavior:** The sorted keys of every built-in module registered on the executor's registry (`@sentrie/uuid` ... `@sentrie/js`), Go and TypeScript backed. Part of the `Executor` interface so [[api.health]] can report them.
+  - **Side Effects:** None.
+  - **Exceptions:** None.
+
 - **Signature:** `(*executorImpl).ExecRule(ctx, namespace, policy, rule, injectedFacts) -> (*ExecutorOutput, error)`
   - **Behavior:** Verifies the rule is exported, creates the context, then for each declared fact: uses the injected value if present, errors if a required fact is missing, or evaluates the declared default. A default that errors or evaluates to `Undefined` (for example one reading an omitted optional fact) is `ErrUnresolvableFact`; an omitted optional fact with no default is left uninjected and reads as `Undefined` (see [[runtime.eval_ident]]). Binds lets, binds `use` modules, and delegates to `execRule`. On error with no decision, substitutes an `Unknown` decision so the envelope is always populated. Reports `decision.reported()`, so a rule whose body is a bare import reports the imported value, not the import envelope (#136).
   - **Side Effects:** Mutates the execution context; executes JavaScript.
