@@ -1,0 +1,37 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+namespace stdlib/gou
+
+derive can_read = (path: string): boolean => { yield glob_match("/repos/*/issues/**", ["/"], path) }
+derive mem_bytes = (q: string): number => { yield parse_quantity(q) }
+
+policy glob_object_units {
+  fact resource: string as resource
+  fact settings: dict[number] as settings
+
+  let defaults = { "limits": { "cpu": 1, "mem": 2 }, "labels": ["a"] }
+  let merged = object_union(defaults, { "limits": { "mem": 4 }, "labels": ["b"] })
+  let names = object_keys(merged)
+  let public = object_filter(merged, ["labels"])
+  let hidden = object_remove(merged, ["labels"])
+  let mem = object_get(merged, ["limits", "mem"], 0)
+  let first_label = object_get(merged, ["labels", 0], "none")
+  let ttl = parse_duration("1h30m")
+  let cap = parse_quantity("10Gi")
+
+  rule readable = default false {
+    yield can_read(resource) and mem_bytes("500m") < cap and ttl > 0
+  }
+  rule shaped = {
+    yield glob_match("*.example.com", ["."], "api.example.com")
+      and mem == 4
+      and first_label == "b"
+      and count(names) == 2
+      and count(object_keys(public)) == 1
+      and count(object_keys(hidden)) == 1
+      and count(object_keys(settings)) >= 0
+  }
+  export decision of readable
+  export decision of shaped
+}
