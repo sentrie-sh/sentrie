@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package parser
 
@@ -23,7 +10,7 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
-// rule <ident> = 'default' expr 'when' expr ( { expr } | importClause )
+// rule <ident> [':' typeRef] = 'default' expr 'when' expr ( { expr } | importClause )
 func parseRuleStatement(ctx context.Context, parser *Parser) ast.Statement {
 	ruleToken, found := parser.advanceExpected(tokens.KeywordRule)
 	if !found {
@@ -37,6 +24,16 @@ func parseRuleStatement(ctx context.Context, parser *Parser) ast.Statement {
 	}
 	name := nameToken.Value
 	rnge.To = nameToken.Range.To
+
+	// Optional declared type, as on `let`
+	var typeRef ast.TypeRef
+	if parser.canExpect(tokens.PunctColon) {
+		parser.advance() // consume ':'
+		typeRef = parseTypeRef(ctx, parser)
+		if typeRef == nil {
+			return nil
+		}
+	}
 
 	// Assignment operator is required for rule declarations
 	if !parser.expect(tokens.TokenAssign) {
@@ -82,5 +79,7 @@ func parseRuleStatement(ctx context.Context, parser *Parser) ast.Statement {
 		rnge.To = expression.Span().To
 	}
 
-	return ast.NewRuleStatement(name, defaultExpr, whenExpr, bodyExpr, rnge)
+	stmt := ast.NewRuleStatement(name, defaultExpr, whenExpr, bodyExpr, rnge)
+	stmt.Type = typeRef
+	return stmt
 }

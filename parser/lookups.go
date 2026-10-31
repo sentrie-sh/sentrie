@@ -90,6 +90,7 @@ func (p *Parser) registerParseFns() {
 	p.registerPolicyStatementHandler(tokens.KeywordVersion, parseVersionStatement)
 	p.registerPolicyStatementHandler(tokens.KeywordTag, parseTagStatement)
 	p.registerPolicyStatementHandler(tokens.KeywordRule, parseRuleStatement)
+	p.registerPolicyStatementHandler(tokens.KeywordContribute, parseContributeStatement)
 	p.registerPolicyStatementHandler(tokens.KeywordFact, parseFactStatement)
 	p.registerPolicyStatementHandler(tokens.KeywordExport, parseRuleExportStatement)
 	p.registerPolicyStatementHandler(tokens.KeywordLet, parseLetsStatement)
