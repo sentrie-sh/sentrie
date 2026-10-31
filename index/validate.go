@@ -72,6 +72,9 @@ func (idx *Index) validate(ctx context.Context) error {
 	if err := idx.checkBuiltinCalls(ctx); err != nil {
 		return err
 	}
+	if err := idx.checkConstraintArgs(ctx); err != nil {
+		return err
+	}
 
 	idx.ruleDag = rg
 	idx.shapeDag = sg

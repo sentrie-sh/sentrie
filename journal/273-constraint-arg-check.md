@@ -18,3 +18,11 @@
 - An unknown constraint name is now reported at the same point (before the kind check). The parser already rejects unknown names through `ast`'s generated tables, so this is unreachable from source.
 - A broken argument inside a list item type is still only reached per item, so an empty list or a non-list does not report it at runtime; the static check covers every position.
 - _Model: claude-opus-5-5_
+
+### 20:20 - Static check in Index.Validate
+- `checkConstraintArgs` runs last in `validate`. It walks facts, policy lets, shape aliases and fields (each `ShapeStatement` once, so composed fields are not reported twice), derive parameter and return types, and through `forEachScopedExpr` block lets, lambda types, casts and `is` types, recursing into list, dict and record element types. Each constraint's literal arguments are folded to values and checked with the definition's `CheckArgs`, so the index and the runtime share one check. Unknown names are skipped (#113); a non-literal argument is skipped, though the parser only accepts literals (`parseConstraintLiteral`).
+- Errors are `xerr.ConstraintArgError` at the constraint's span, matching `ErrIndex` and `constraints.ErrInvalidArgument`; all are reported, sorted, since the walk is over maps.
+- Two runtime tests had broken arguments in validated packs (`TestEvalIsTypeCheckErrorsPropagate`, `TestEvalIsTypeDenyRuleDoesNotFailOpen`); those cases now fail validation, so they moved to the index suite, with the runtime path covered on an unvalidated index. Committing without validating panics (`commit` needs the shape DAG), so a "commit only" test helper was ruled out.
+- Found while writing tests: `number@in(...)` cannot be written, because `in` lexes as a keyword and the parser wants an identifier after `@`. Out of scope; noted for the maintainer.
+- Checked the issue's reproduction with a built binary: `sentrie validate` and `sentrie exec` now both fail with `a.sentrie:6:28-40: invalid argument to constraint 'regexp': invalid regexp pattern: error parsing regexp: missing closing ]: \`[\`: index error`.
+- _Model: claude-opus-5-5_
