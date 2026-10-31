@@ -46,6 +46,7 @@ runtime.CallSite              implements builtins.Env
 | [`builtins.go`](builtins.go) | `Env`, `Fn`, `Decl`, `Sig`, `ParamSig`, `Precheck`, `Table`, `IsDeriveSafe`, `hofSig` helper |
 | [`scalar.go`](scalar.go) | Scalar builtins (`count`, `merge`, `flatten`, …) and private helpers |
 | [`collection.go`](collection.go) | Higher-order builtins (`filter`, `reduce`, …), `iterArgs`, `reduceArgs` |
+| [`set.go`](set.go) | Set builtins (`set`, `union`, `intersection`, `difference`, `is_subset`, `is_superset`) over `box` sets |
 | `*_test.go` | Tests; use `invoke()` + `noopEnv()` (see [Testing](#testing)) |
 
 Pick **scalar** vs **collection** by whether the builtin invokes callables via `env.Call`.
@@ -224,8 +225,8 @@ Populate `Sig.Result.Kinds` for every entry (validate-time propagation):
 
 | Result kinds | Builtins |
 |--------------|----------|
-| `{bool}` | `all`, `any` |
-| `{list}` | `as_list`, `filter`, `collect`, `flatten`, `flatten_deep`, `normalise_list`, `distinct` |
+| `{bool}` | `all`, `any`, `is_subset`, `is_superset` |
+| `{list}` | `as_list`, `filter`, `collect`, `flatten`, `flatten_deep`, `normalise_list`, `distinct`, `set`, `union`, `intersection`, `difference` |
 | `{number}` | `count`, `now`, `now_ms` |
 | `{dict}` | `merge` |
 | `nil` (any) | `error`, `first`, `reduce` |
@@ -328,7 +329,7 @@ Must flow through real `eval_call` dispatch, not bypass it.
 
 ---
 
-## Reference: current builtins (15)
+## Reference: current builtins (22)
 
 | Name | File | Arity | Notes |
 |------|------|-------|-------|
@@ -345,6 +346,9 @@ Must flow through real `eval_call` dispatch, not bypass it.
 | `now` | scalar | 0 | `ExecutionStart().Unix()`: seconds, like `@sentrie/time.now()` and JWT `exp`; `Nondeterministic`, so not callable in derives |
 | `now_ms` | scalar | 0 | `ExecutionStart().UnixMilli()`; `Nondeterministic`, so not callable in derives |
 | `reduce` | collection | 3 | reducer arity 2 or 3 |
+| `set` | set | 1 | strict; builds a set (distinct, canonical order) from a list |
+| `union`, `intersection`, `difference` | set | 2 | strict; each operand a set or list; set result |
+| `is_subset`, `is_superset` | set | 2 | strict; each operand a set or list; bool result |
 
 ---
 
