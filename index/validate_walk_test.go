@@ -256,15 +256,62 @@ func (suite *IndexTestSuite) TestForEachExprChildCoversEveryASTNode() {
 	}
 	suite.Empty(missing, "ast kinds with no forEachExprChild coverage: add a case to forEachExprChild and a sample here")
 
+	// The identifier names each sample must yield, directly or through its
+	// descendants. A kind whose case yields nothing (or too little) fails here
+	// even though it returns no error.
+	expected := map[string][]string{
+		"CallExpression":             {"a", "f"},
+		"InfixExpression":            {"l", "r"},
+		"UnaryExpression":            {"u"},
+		"TernaryExpression":          {"c", "e", "t"},
+		"BlockExpression":            {"y"},
+		"LambdaExpression":           {"b"},
+		"FieldAccessExpression":      {"l"},
+		"IndexAccessExpression":      {"i", "l"},
+		"ListLiteral":                {"v"},
+		"MapLiteral":                 {"k", "v"},
+		"CastExpression":             {"e"},
+		"TransformExpression":        {"a"},
+		"IsDefinedExpression":        {"l"},
+		"IsEmptyExpression":          {"l"},
+		"IsExpression":               {"l", "r"},
+		"TrailingCommentExpression":  {"w"},
+		"PrecedingCommentExpression": {"w"},
+		"ImportClause":               {"v"},
+		"WithClause":                 {"v"},
+		"AttachmentClause":           {"a"},
+		"VarDeclaration":             {"val"},
+		"RuleStatement":              {"b"},
+	}
 	for name, node := range samples {
 		suite.Run(name, func() {
-			suite.NoError(forEachExprChild(node, func(sast.Node) error { return nil }))
+			got, err := yieldedIdentifiers(node)
+			suite.Require().NoError(err)
+			suite.Equal(expected[name], got)
 		})
 	}
 
 	suite.Run("unknown node", func() {
 		suite.Error(forEachExprChild(sast.NewDeriveStatement("d", nil, r), func(sast.Node) error { return nil }))
 	})
+}
+
+// yieldedIdentifiers returns the sorted names of every identifier reachable from
+// n through forEachExprChild, descending recursively. n itself is not counted.
+func yieldedIdentifiers(n sast.Node) ([]string, error) {
+	var names []string
+	var visit func(sast.Node) error
+	visit = func(c sast.Node) error {
+		if id, ok := c.(*sast.Identifier); ok {
+			names = append(names, id.Value)
+		}
+		return forEachExprChild(c, visit)
+	}
+	if err := forEachExprChild(n, visit); err != nil {
+		return nil, err
+	}
+	sort.Strings(names)
+	return names, nil
 }
 
 // astNodeKinds lists the ast types that implement expressionNode, plus the

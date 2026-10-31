@@ -26,3 +26,9 @@
 - Ruled out: a built-binary test; the existing validate tests run the CLI in process, so the new one does too. The built binary was run by hand: cyclic pack exits 1 with `infinite recursion: a -> b -> a`, acyclic exits 0; the main-built binary exits 0 on the cyclic pack.
 - _Model: claude-sonnet-5-5_
 
+### 14:58 - Walker coverage test checks the children, review suggestions declined
+- `TestForEachExprChildCoversEveryASTNode` now compares the identifier names each sample yields (recursively) with an expected set, so a kind given an empty `return nil` case fails. Bite check: replacing the cast case body with `return nil` fails the CastExpression sample; restored from HEAD.
+- Declined review suggestion: prefix the unsupported-node error in `index/validate.go` with the policy and rule name. The path is unreachable from the parser today and the error already names the node type.
+- Declined here: make `forEachDeriveExprChild` delegate to `forEachExprChild`. Out of scope for this issue; left as a follow-up.
+- _Model: claude-sonnet-5-5_
+
