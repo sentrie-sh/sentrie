@@ -78,7 +78,7 @@ The registry of predicates that refine a type beyond its kind - `string@email`, 
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Package-level maps built at initialisation, read-only thereafter.
-- **Performance/Scale Notes:** Checkers are cheap, but they run on **every** validation. Inside [[runtime.typeref_list]] that means once per element, and the constraint's argument expressions are re-evaluated per element too. The `regexp` constraint compiles its pattern on each invocation rather than caching (once in `CheckArgs`, once to match), so a regex constraint on a list element type recompiles per element.
+- **Performance/Scale Notes:** Checkers are cheap, but they run on **every** validation. Inside [[runtime.typeref_list]] that means once per element, and the constraint's argument expressions are re-evaluated per element too. The `regexp` constraint caches each compiled pattern in a package-level map keyed by the pattern, so `CheckArgs` (at validation, before each value, and inside the `Checker`) and the match share one compilation per process; patterns come from source literals, so the cache is bounded by the pack.
 - **Dependencies Risk:**
   - **Four of the eight tables are empty.** `dict`, `document`, `record`, and `shape` have no constraints at all. Because [[runtime.err_typedef]] turns an unrecognised constraint into a **runtime** error, and nothing validates constraint names at index time, any constraint written on one of these types passes `sentrie validate` and then fails at decision time with `unknown constraint`. Filed as [#113](https://github.com/sentrie-sh/sentrie/issues/113).
   - **`list` has only `not_empty`.** There is no size, min-length, or unique constraint, so list contracts must be expressed as rule logic instead.

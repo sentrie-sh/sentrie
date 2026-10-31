@@ -35,7 +35,7 @@ The constraint step every typeref validator shares. It splits a type ref's const
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless.
-- **Performance/Scale Notes:** Arguments are evaluated and checked on every validation, and each definition's `Checker` re-runs `CheckArgs` itself, so a `regexp` pattern is compiled twice per value. Inside a list element type that is per element.
+- **Performance/Scale Notes:** Arguments are evaluated and checked on every validation, and each definition's `Checker` re-runs `CheckArgs` itself, so a constraint's arguments are checked twice per value (per element inside a list element type). For `regexp` both checks and the match reuse one compiled pattern from [[constraints]]' cache, so the pattern is compiled once per process.
 - **Dependencies Risk:**
   - **Only the type ref being validated is bound.** A broken argument on a list element type is reached only per element, so an empty list or a non-list value does not report it at runtime. [[index.constraint_args]] covers every position statically, and `sentrie validate`, `exec` and `serve` all validate before evaluating.
   - **An unknown name is reported before the kind check.** The parser already rejects unknown names, so this is reachable only if [[ast]]'s generated tables drift from [[constraints]].

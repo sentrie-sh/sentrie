@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"sync"
 
 	"github.com/sentrie-sh/sentrie/box"
 )
@@ -106,10 +107,31 @@ func regexpArg(name string, arg box.Value) error {
 		return err
 	}
 	pattern, _ := arg.StringValue()
-	if _, err := regexp.Compile(pattern); err != nil {
+	if _, err := compilePattern(pattern); err != nil {
 		return invalidArgf("invalid regexp pattern: %v", err)
 	}
 	return nil
+}
+
+// compiledPatterns caches each regexp pattern that compiled, keyed by the
+// pattern. Patterns come from constraint literals in the pack's source, so
+// the cache is bounded by the pack. A constraint's arguments are checked when
+// the index is validated, again before each value, and once more inside its
+// Checker; with the cache a pattern is compiled once per process.
+var compiledPatterns sync.Map // string -> *regexp.Regexp
+
+// compilePattern returns the compiled pattern, compiling and caching it on
+// first use. A pattern that fails to compile is not cached.
+func compilePattern(pattern string) (*regexp.Regexp, error) {
+	if re, ok := compiledPatterns.Load(pattern); ok {
+		return re.(*regexp.Regexp), nil
+	}
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, err
+	}
+	actual, _ := compiledPatterns.LoadOrStore(pattern, re)
+	return actual.(*regexp.Regexp), nil
 }
 
 // divisorArg requires a non-zero number argument.

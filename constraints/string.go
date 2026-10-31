@@ -74,8 +74,12 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
 			pattern, _ := args[0].StringValue()
-			// CheckArgs has compiled the pattern, so MustCompile cannot panic.
-			if !regexp.MustCompile(pattern).MatchString(s) {
+			// CheckArgs has compiled and cached the pattern.
+			re, err := compilePattern(pattern)
+			if err != nil {
+				return invalidArgf("invalid regexp pattern: %v", err)
+			}
+			if !re.MatchString(s) {
 				return fmt.Errorf("string %q does not match pattern %q", s, pattern)
 			}
 			return nil
