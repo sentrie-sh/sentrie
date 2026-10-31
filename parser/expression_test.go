@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package parser
 
@@ -71,6 +58,76 @@ func (s *ParserTestSuite) TestParseExpressionFloatLiteral() {
 	floatLit, ok := expr.(*ast.FloatLiteral)
 	s.True(ok)
 	s.Equal(3.14, floatLit.Value)
+}
+
+// TestParseExpressionExponentFloatLiteral tests that number literals with an
+// exponent parse as float literals with the value the exponent gives.
+func (s *ParserTestSuite) TestParseExpressionExponentFloatLiteral() {
+	cases := map[string]float64{
+		"1e5":     1e5,
+		"1E5":     1e5,
+		"1e+5":    1e5,
+		"1e-5":    1e-5,
+		"2.5e-3":  2.5e-3,
+		"2.5E+10": 2.5e10,
+	}
+	for input, want := range cases {
+		parser := NewParserFromString(input, "test.sentra")
+		expr := parser.parseExpression(s.T().Context(), LOWEST)
+		s.Require().NoError(parser.err, input)
+
+		floatLit, ok := expr.(*ast.FloatLiteral)
+		s.Require().True(ok, "%s parsed as %T", input, expr)
+		s.Equal(want, floatLit.Value, input)
+	}
+}
+
+// TestParseExpressionExponentInArithmetic tests that an exponent literal is a
+// single operand, so a sign in the exponent is not read as an operator.
+func (s *ParserTestSuite) TestParseExpressionExponentInArithmetic() {
+	parser := NewParserFromString("1e-3 - 2", "test.sentra")
+	expr := parser.parseExpression(s.T().Context(), LOWEST)
+	s.Require().NoError(parser.err)
+
+	infix, ok := expr.(*ast.InfixExpression)
+	s.Require().True(ok, "parsed as %T", expr)
+	s.Equal("-", infix.Operator)
+	left, ok := infix.Left.(*ast.FloatLiteral)
+	s.Require().True(ok, "left parsed as %T", infix.Left)
+	s.Equal(1e-3, left.Value)
+}
+
+// TestParseProgramRejectsMalformedNumberLiteral tests that malformed exponent
+// forms fail with the lexer's message instead of parsing as a number followed
+// by an identifier.
+func (s *ParserTestSuite) TestParseProgramRejectsMalformedNumberLiteral() {
+	cases := map[string]string{
+		"1e":   "the exponent needs at least one digit",
+		"1e+":  "the exponent needs at least one digit",
+		"1E-":  "the exponent needs at least one digit",
+		"1.e5": "a digit must follow the decimal point",
+	}
+	for literal, message := range cases {
+		src := "namespace com/example\npolicy p {\n  rule r = " + literal + "\n  export decision of r\n}\n"
+		parser := NewParserFromString(src, "test.sentra")
+		_, err := parser.ParseProgram(s.T().Context())
+		s.Require().Error(err, literal)
+		s.Contains(err.Error(), "invalid number literal", literal)
+		s.Contains(err.Error(), message, literal)
+		s.NotContains(err.Error(), "no prefix parse function", literal)
+	}
+}
+
+// TestParseProgramRejectsOutOfRangeExponent tests that an exponent too large
+// for a float64 is a parse error rather than an infinite value.
+func (s *ParserTestSuite) TestParseProgramRejectsOutOfRangeExponent() {
+	src := "namespace com/example\npolicy p {\n  rule r = 1e400\n  export decision of r\n}\n"
+	parser := NewParserFromString(src, "test.sentra")
+	_, err := parser.ParseProgram(s.T().Context())
+	s.Require().Error(err)
+	s.Contains(err.Error(), "invalid float literal \"1e400\"")
+	s.Contains(err.Error(), "parsing error at test.sentra:3:12-17:", "the error points at the literal")
+	s.NotContains(err.Error(), "%!", "the error has no formatting artifacts")
 }
 
 // TestParseExpressionBooleanLiteral tests parsing boolean literal expressions

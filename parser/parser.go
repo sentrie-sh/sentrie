@@ -163,5 +163,11 @@ func (p *Parser) registerInfix(tokenType tokens.Kind, fn infixParser) {
 }
 
 func (p *Parser) noPrefixParseFnError(t tokens.Instance) {
+	if t.IsOfKind(tokens.Error) {
+		// A lexical error, such as a malformed number literal: its value is
+		// already the diagnostic, so report it as is.
+		p.errorf("%s", t.Value)
+		return
+	}
 	p.errorf("no prefix parse function found for '%s' at %s", t.Value, t.Range)
 }

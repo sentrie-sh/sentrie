@@ -134,6 +134,38 @@ func (s *ParserTestSuite) TestParseTypeRefAdditionalCollectionBranches() {
 	s.Len(recordRef.Fields, 2)
 }
 
+func (s *ParserTestSuite) TestParseTypeRefConstraintAcceptsExponentLiterals() {
+	parser := NewParserFromString("shape T { amount:number @min(1e-3) @max(2.5E+6) @not_in([1e2, 5]) }", "test.sentra")
+	stmt := parseShapeStatement(s.T().Context(), parser)
+	s.Require().NoError(parser.err)
+	s.Require().NotNil(stmt)
+
+	shapeStmt, ok := stmt.(*ast.ShapeStatement)
+	s.Require().True(ok)
+	constraints := shapeStmt.Complex.Fields["amount"].Type.GetConstraints()
+	s.Require().Len(constraints, 3)
+
+	minArg, ok := constraints[0].Args[0].(*ast.FloatLiteral)
+	s.Require().True(ok, "min arg parsed as %T", constraints[0].Args[0])
+	s.Equal(1e-3, minArg.Value)
+	maxArg, ok := constraints[1].Args[0].(*ast.FloatLiteral)
+	s.Require().True(ok, "max arg parsed as %T", constraints[1].Args[0])
+	s.Equal(2.5e6, maxArg.Value)
+	list, ok := constraints[2].Args[0].(*ast.ListLiteral)
+	s.Require().True(ok, "in arg parsed as %T", constraints[2].Args[0])
+	first, ok := list.Values[0].(*ast.FloatLiteral)
+	s.Require().True(ok, "in element parsed as %T", list.Values[0])
+	s.Equal(1e2, first.Value)
+}
+
+func (s *ParserTestSuite) TestParseTypeRefConstraintRejectsMalformedExponent() {
+	parser := NewParserFromString("shape T { amount:number @min(1e) }", "test.sentra")
+	stmt := parseShapeStatement(s.T().Context(), parser)
+	s.Nil(stmt)
+	s.Require().Error(parser.err)
+	s.Contains(parser.err.Error(), "invalid number literal")
+}
+
 func (s *ParserTestSuite) TestParseTypeRefConstraintValidationFailureBubblesAsParserError() {
 	parser := NewParserFromString("shape T { name:string @minlength() }", "test.sentra")
 	stmt := parseShapeStatement(s.T().Context(), parser)
