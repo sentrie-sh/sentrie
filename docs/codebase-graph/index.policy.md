@@ -20,6 +20,7 @@ tags: policy-model, scoping, metadata, decision-export, phase-ordering
 | `index.policy` | `DEPENDS_ON` | [[xerr]] | Uses `ErrConflict`, `ErrPolicyMetadataContiguous`, `ErrPolicyEmptyTitle`, `ErrPolicyInvalidVersion`, `ErrPolicyEmptyTagKey`, `ErrPolicyFactAfterUse`, `ErrInvalidInvocation`, `ErrIndex`. |
 | `index.policy` | `CALLS` | [[index.policy_stmt]] | `policyStmtKindOf` classifies statements (to skip comments); `buildTagsByKey` derives the tag index. |
 | `index.policy` | `CALLS` | [[index.rule]] | `AddRule` builds `Rule` records via `createRule`. |
+| `index.policy` | `CALLS` | [[index.contribute]] | `addContribution` attaches each `contribute` statement to its already-declared rule. |
 | `index.policy` | `CALLS` | [[index.shape]] | `AddShape` builds policy-local shapes via `createShape`. |
 | `index.policy` | `CALLS` | [[index.derive]] | `addDerive` with the namespace snapshot overlaid by the policy's derives-so-far. |
 | `index.policy` | `CALLS` | [[index.namespace]] | Registered via `addPolicy`, which enforces cross-kind name uniqueness. |
