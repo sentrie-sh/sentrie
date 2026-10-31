@@ -152,7 +152,9 @@ func (s *IndexTestSuite) TestValidateDerivePureNilBodyAndWalkBranches() {
 			r,
 		),
 	}
-	s.NoError(validateDerivePure(idx, paramCall))
+	// A parameter may hold a lambda defined outside any derive, so calling one
+	// is refused (#161).
+	s.ErrorContains(validateDerivePure(idx, paramCall), `calling parameter "f" is not permitted inside a derive`)
 
 	s.Error(validateDerivePure(idx, &Derive{
 		Name: "badCall", FQN: ast.CreateFQN(nsFQN, "badCall"), Namespace: ns,
@@ -184,7 +186,7 @@ func (s *IndexTestSuite) TestWalkDeriveBlockAndScanLambdasRejectUnsupportedState
 		ast.NewIntegerLiteral(1, r),
 		r,
 	)
-	err := walkDeriveBlock(CreateIndex(), &Derive{}, badStmt, map[string]struct{}{})
+	err := walkDeriveBlock(CreateIndex(), &Derive{}, badStmt, map[string]deriveBinding{})
 	s.Error(err)
 
 	err = scanLambdasOutsideCalls(badStmt, false)
@@ -202,14 +204,14 @@ func (s *IndexTestSuite) TestWalkDeriveExprSeenCyclicAndLambdaBody() {
 		r,
 	)
 	d := &Derive{Name: "c", FQN: ast.NewFQN([]string{"com", "ex", "c"}, r)}
-	s.Error(walkDeriveExprSeen(idx, d, cyclicRoot, map[string]struct{}{}, map[ast.Expression]struct{}{}))
+	s.Error(walkDeriveExprSeen(idx, d, cyclicRoot, map[string]deriveBinding{}, map[ast.Expression]struct{}{}))
 
 	lam := ast.NewLambdaExpression(
 		[]string{"p"},
 		ast.NewBlockExpression(nil, ast.NewIdentifier("p", r), r),
 		r,
 	)
-	s.NoError(walkDeriveExprSeen(idx, d, lam, map[string]struct{}{}, map[ast.Expression]struct{}{}))
+	s.NoError(walkDeriveExprSeen(idx, d, lam, map[string]deriveBinding{}, map[ast.Expression]struct{}{}))
 }
 
 func (s *IndexTestSuite) TestCheckDeriveIdentifierPolicyBindings() {
@@ -222,10 +224,10 @@ func (s *IndexTestSuite) TestCheckDeriveIdentifierPolicyBindings() {
 	}
 	d := &Derive{Name: "d", FQN: ast.CreateFQN(nsFQN, "d"), Namespace: &Namespace{FQN: nsFQN}, Policy: pol}
 
-	s.NoError(checkDeriveIdentifier(d, "param", map[string]struct{}{"param": {}}))
-	s.Error(checkDeriveIdentifier(d, "user", map[string]struct{}{}))
-	s.Error(checkDeriveIdentifier(d, "gate", map[string]struct{}{}))
-	s.Error(checkDeriveIdentifier(d, "helper", map[string]struct{}{}))
+	s.NoError(checkDeriveIdentifier(d, "param", map[string]deriveBinding{"param": deriveParam}))
+	s.Error(checkDeriveIdentifier(d, "user", map[string]deriveBinding{}))
+	s.Error(checkDeriveIdentifier(d, "gate", map[string]deriveBinding{}))
+	s.Error(checkDeriveIdentifier(d, "helper", map[string]deriveBinding{}))
 }
 
 func (s *IndexTestSuite) TestCheckDeriveCallDefineFQNVisibilityAndFilterCallback() {
@@ -255,7 +257,7 @@ func (s *IndexTestSuite) TestCheckDeriveCallDefineFQNVisibilityAndFilterCallback
 		DefineFQN: map[string]*Derive{secret.FQN.String(): secret},
 	}
 	call := caller.Lambda.Body.Yield.(*ast.CallExpression)
-	s.Error(checkDeriveCall(idx, caller, call, map[string]struct{}{}, map[ast.Expression]struct{}{}))
+	s.Error(checkDeriveCall(idx, caller, call, map[string]deriveBinding{}, map[ast.Expression]struct{}{}))
 
 	isOne := &Derive{
 		Name: "isOne", FQN: ast.CreateFQN(nsBeta, "isOne"), Namespace: &Namespace{FQN: nsBeta},
@@ -274,7 +276,7 @@ func (s *IndexTestSuite) TestCheckDeriveCallDefineFQNVisibilityAndFilterCallback
 		},
 		false, nil, r,
 	)
-	s.NoError(checkDeriveCall(idx, caller, filterCall, map[string]struct{}{}, map[ast.Expression]struct{}{}))
+	s.NoError(checkDeriveCall(idx, caller, filterCall, map[string]deriveBinding{}, map[ast.Expression]struct{}{}))
 }
 
 func (s *IndexTestSuite) TestForEachDeriveExprChildPropagatesChildError() {
@@ -303,7 +305,7 @@ func (s *IndexTestSuite) TestWalkDeriveExprSeenComplexExpressionTree() {
 		"+",
 		r,
 	)
-	scope := map[string]struct{}{}
+	scope := map[string]deriveBinding{}
 	s.NoError(walkDeriveExprSeen(idx, d, expr, scope, map[ast.Expression]struct{}{}))
 
 	rich := ast.NewCallExpression(
@@ -414,7 +416,7 @@ func (s *IndexTestSuite) TestWalkDeriveExprSeenBlockExpression() {
 		ast.NewIntegerLiteral(1, r),
 		r,
 	)
-	s.NoError(walkDeriveExprSeen(idx, d, block, map[string]struct{}{}, map[ast.Expression]struct{}{}))
+	s.NoError(walkDeriveExprSeen(idx, d, block, map[string]deriveBinding{}, map[ast.Expression]struct{}{}))
 }
 
 func (s *IndexTestSuite) TestCheckDeriveCallUnknownSlashDeriveNotInIndex() {
@@ -422,7 +424,7 @@ func (s *IndexTestSuite) TestCheckDeriveCallUnknownSlashDeriveNotInIndex() {
 	r := deriveCovRng(14)
 	d := &Derive{Name: "d", FQN: ast.NewFQN([]string{"com", "ex", "d"}, r), Namespace: &Namespace{FQN: ast.NewFQN([]string{"com", "ex"}, r)}}
 	call := ast.NewCallExpression(slashCallee(r, "com", "ex", "missing"), nil, false, nil, r)
-	s.Error(checkDeriveCall(idx, d, call, map[string]struct{}{}, map[ast.Expression]struct{}{}))
+	s.Error(checkDeriveCall(idx, d, call, map[string]deriveBinding{}, map[ast.Expression]struct{}{}))
 }
 
 func (s *IndexTestSuite) TestWalkDeriveExprDFSChildWalkErrors() {

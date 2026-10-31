@@ -64,9 +64,8 @@ policy auth {
 		"4 @sentrie/uuid.v7 is nondeterministic: its result can differ between executions",
 		`6 local module "./helper" runs pack code, which can read Date.now() and Math.random() directly`,
 		"7 " + nowMsg, // policy let
-		// A lambda parameter named now does not shadow the builtin for calls:
-		// the runtime's getTarget never resolves a call through a local.
-		"12 " + nowMsg,
+		// Line 12 is absent: the lambda parameter named now shadows the
+		// builtin, and the runtime calls the parameter (#161).
 		"13 " + nowMsg, // import ... with t as now()
 		"14 " + nowMsg, // rule when
 		"15 " + nowMsg, // attachment
@@ -75,7 +74,7 @@ policy auth {
 	// Without a module lookup, builtin calls and local modules are still reported.
 	warnings, err = idx.NondeterminismWarnings(s.T().Context(), nil)
 	s.Require().NoError(err)
-	s.Len(warnings, 7)
+	s.Len(warnings, 6)
 }
 
 func (s *IndexTestSuite) TestNondeterminismWarningsReportLocalModuleSources() {

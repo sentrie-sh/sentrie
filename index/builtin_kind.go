@@ -45,8 +45,12 @@ func newRuleKindCheckCtx(idx *Index, policy *Policy) *kindCheckCtx {
 	for name, let := range policy.Lets {
 		scope[name] = bindingFromLet(idx, policy, let)
 	}
+	// A fact or let shadows a derive of the same name, as in the runtime's
+	// getTarget and evalIdent, so derives only fill names not yet bound.
 	for name, d := range policy.Derives {
-		scope[name] = bindingInfo{kindKnown: true, kind: box.ValueCallable, derive: d}
+		if _, exists := scope[name]; !exists {
+			scope[name] = bindingInfo{kindKnown: true, kind: box.ValueCallable, derive: d}
+		}
 	}
 	if policy.Namespace != nil {
 		for name, d := range policy.Namespace.Derives {
@@ -74,8 +78,11 @@ func newDeriveKindCheckCtx(idx *Index, d *Derive) *kindCheckCtx {
 		}
 	}
 	if d.DefineShort != nil {
+		// A parameter shadows a derive of the same name (runtime getTarget).
 		for name, derive := range d.DefineShort {
-			scope[name] = bindingInfo{kindKnown: true, kind: box.ValueCallable, derive: derive}
+			if _, exists := scope[name]; !exists {
+				scope[name] = bindingInfo{kindKnown: true, kind: box.ValueCallable, derive: derive}
+			}
 		}
 	}
 	var policy *Policy
@@ -167,17 +174,37 @@ func (k *kindCheckCtx) isShadowed(name string) bool {
 	return ok
 }
 
+// localCallee reports whether an identifier callee resolves to a value
+// binding rather than a derive or builtin, mirroring calleeIsBinding in the
+// runtime's getTarget: a fact, let or parameter in scope, or outside a derive
+// body a rule of the policy. isRule is set for a rule. A scope entry that is a
+// derive is not a value binding.
+func (k *kindCheckCtx) localCallee(name string) (info bindingInfo, isRule bool, ok bool) {
+	if info, ok := k.scope[name]; ok && info.derive == nil {
+		return info, false, true
+	}
+	if k.derive == nil && k.policy != nil {
+		if _, ok := k.policy.Rules[name]; ok {
+			return bindingInfo{}, true, true
+		}
+	}
+	return bindingInfo{}, false, false
+}
+
+// isBuiltinCall reports the builtin an identifier callee dispatches to. The
+// precedence matches the runtime's getTarget: a value binding (localCallee),
+// then a visible derive, then a builtin. So a let or parameter named like a
+// builtin shadows it in a call as it does in a reference (#161).
 func (k *kindCheckCtx) isBuiltinCall(c *ast.CallExpression) (*builtins.Decl, bool) {
 	id, ok := c.Callee.(*ast.Identifier)
 	if !ok {
 		return nil, false
 	}
 	name := id.Value
-	// Precedence: local binding > derive > builtin (matches runtime getTarget).
-	if k.isShadowed(name) {
+	if _, _, ok := k.localCallee(name); ok {
 		return nil, false
 	}
-	if k.lookupDerive(name) != nil {
+	if k.isShadowed(name) || k.lookupDerive(name) != nil {
 		return nil, false
 	}
 	decl, ok := builtins.Table[name]
