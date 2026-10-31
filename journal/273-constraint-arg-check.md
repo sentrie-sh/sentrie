@@ -31,3 +31,17 @@
 - New nodes `index.constraint_args` and `runtime.typeref_constraints`. `constraints` loses the `LAYERED_ON index` edge and the "not checked statically" and "`NumArgs` not enforced" gotchas, and records `CheckArgs`, `ForTypeRef` and the unwritable `in` constraint. `index`, `index.validate` and every `runtime.typeref_*` node now say where arguments are checked.
 - The `constraints` gotchas about unknown names and empty tables are #113's and were left as they are, though the parser already rejects unknown names.
 - _Model: claude-opus-5-5_
+
+### 20:35 - Test and CI pass
+- Added `TestCheckArgsCoversEveryConstraint` (constraints): walks all eight tables, requires every constraint to be classified (so a new constraint without `Arg` metadata or a class fails), and checks a valid list, a wrong-kind argument, the wrong count, and that `Checker` reports the same failure as `CheckArgs` for a null value.
+- Added runtime tests (`runtime/typeref_constraint_args_test.go`): `is` and `is not` against broken arguments for document, list, number, string and null values (including a nullable type), a broken field nested two shapes deep reached through a derive parameter, and a validated pack of valid arguments (fractional, equal range bounds, list sets, nullable null, list item type) that still evaluates as before.
+- Bite checks (mutating the branch, restored from HEAD): `CheckArgs` returning nil fails the table and runtime tests; binding after the kind check in the string, number and trinary validators fails the document/list and nested-shape tests; dropping the bind on the nullable null path fails the nullable cases; dropping `Arg` from `starts_with` fails the table test.
+- Ruled out: negative constraint arguments. The parser accepts only literals (`parseConstraintLiteral`), so `range(-5, -1)` is a parse error today (not introduced here); the negative case is covered at the `CheckArgs` level with a box value only. A wrong argument count cannot reach the index check from source, because the parser's generated tables reject it first (`sentrie validate` reports a parsing error), so the count path is covered only on `CheckArgs`.
+- _Model: claude-sonnet-5-5_
+
+### 20:44 - Cache compiled regexp patterns
+- Review found a `regexp` constraint compiled three times per value (`bindConstraints`' `CheckArgs`, the `define` wrapper's `CheckArgs`, then the match), against once on main, and per element inside a list element type.
+- Fixed with a package-level `sync.Map` of compiled patterns keyed by pattern string, used by `regexpArg` and the regexp checker body. Patterns are source literals, so the cache is bounded by the pack; a pattern that fails to compile is not cached. A pattern is now compiled once per process, below main's once per value.
+- Did not add a way to skip the wrapper's second `CheckArgs` for bound constraints: with the cache it is a few map lookups, and skipping it would need a second, unchecked entry point on `ConstraintDefinition`.
+- Test: `TestRegexpPatternIsCompiledOnce` (same `*regexp.Regexp` before and after checking values, through `export_test.go`), and an invalid pattern errors every time.
+- _Model: claude-opus-5-5_
