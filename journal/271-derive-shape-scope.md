@@ -16,3 +16,12 @@
 - Not changed: parameter constraint arguments are evaluated in the caller's context (`callerEC`) before the detached child exists, and the index does not walk constraint arguments for purity. Pre-existing; noted in the derive_invoke node.
 - Tests: `TestDeriveTypeChecksUseDeriveScope` (five sites, caller with and without its own `Foo`, plus a value that is only the caller's `Foo` must fail) and `TestPolicyLambdaThroughDeriveUsesPolicyScope`. Reverting each site alone fails exactly its subtest.
 - _Model: claude-opus-5-5_
+
+### 20:20 - Regression tests for derive shape scope
+- Added to `runtime/derive_shape_scope_test.go`: nested shapes (a shape field typed by another shape) and list/record element types naming derive-namespace shapes, in parameter types and a cast to `list[Inner]`; derive in t/d calling derive in t/f called from t/e (three different `Foo`, each derive checks its own); a memoized call (`!60`) of a cast-to-`Foo` derive from two policies (one with its own `Foo`, one without) over two rounds; a derive reaching another through the pipeline operator inside the derive namespace; and a shape missing from the derive's namespace but declared in the caller (parameter, cast, typed let, return type) must error naming the shape, not fall back to the caller's.
+- Namespace-level derives were already covered by the implementer's five-site test (its library derives are namespace-level), so no separate namespace-level test.
+- Bite check: restored `callable.go`, `derive_invoke.go`, `typeref.go`, `eval_cast.go`, `eval_ident.go`, `eval_is_type.go` from main together and ran the new tests: all fail except the policy-lambda test (main already keeps a policy lambda in its policy), then restored them from HEAD.
+- Ruled out: a dict-element check (`dict[Inner]` accepts any dict value today, `validateAgainstDictTypeRef` only runs constraints, so it cannot discriminate scope; pre-existing, not part of #271). A cross-namespace pipeline (`x |> t/d/f()`) is not parseable: the pipeline target must be a plain identifier or module call. A policy-level derive cannot be told apart from its caller's scope.
+- Lazy lets: an unused `let c = v as Nope` is never evaluated, so the missing-shape test yields the binding.
+- End to end: built `sentrie exec` on a two-namespace pack; this branch returns the derive-scoped result, a build of main errors with the caller's `Foo`.
+- _Model: claude-sonnet-5-5_
