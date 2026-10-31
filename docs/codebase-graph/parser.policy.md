@@ -34,7 +34,7 @@ Parses `policy <ident> { … }` and - importantly - owns the **second statement 
   - **Exceptions:** Returns `nil` if the keyword, name, `{`, or `}` is missing, if a body statement records an error, or if a body statement returns `nil`.
 
 - **Signature:** `parsePolicyStatement(ctx: context.Context, p: *Parser) -> ast.Statement`
-  - **Behavior:** The policy-scope dispatcher. Registered heads: comments, `title`, `description`, `version`, `tag`, `rule`, `fact`, `export`, `let`, `use`, `shape`, `derive`.
+  - **Behavior:** The policy-scope dispatcher. Registered heads: comments, `title`, `description`, `version`, `tag`, `rule`, `contribute`, `fact`, `export`, `let`, `use`, `shape`, `derive`.
   - **Side Effects:** None directly; the delegate consumes tokens.
   - **Exceptions:** Records `unexpected token '<kind>'` and returns `nil` for an unregistered head - **without advancing**, so any caller must break on `p.err`.
 

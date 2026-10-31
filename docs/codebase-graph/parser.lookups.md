@@ -42,7 +42,7 @@ tags: dispatch-table, registration, pratt-parser, language-surface
 - **Signature:** `statementParser` - `func(ctx, *Parser) ast.Statement`
   - **Behavior:** Parses a declaration. **Two separate tables use this type:**
     - `statementHandlers` (top level): `namespace`, comments, `policy`, `shape`, `derive`, `export`.
-    - `policyStatementHandlers` (inside `policy { }`): comments, `title`, `description`, `version`, `tag`, `rule`, `fact`, `export`, `let`, `use`, `shape`, `derive`.
+    - `policyStatementHandlers` (inside `policy { }`): comments, `title`, `description`, `version`, `tag`, `rule`, `contribute`, `fact`, `export`, `let`, `use`, `shape`, `derive`.
   - **Side Effects:** Consumes tokens; may record errors.
   - **Exceptions:** Returns `nil` on failure.
 

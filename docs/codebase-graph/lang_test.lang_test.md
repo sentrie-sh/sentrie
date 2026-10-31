@@ -29,7 +29,7 @@ Walks every `.sentrie` fixture in `lang_test/` and asserts the full front half o
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless; each subtest builds a fresh index.
-- **Performance/Scale Notes:** Forty-four fixtures run in parallel subtests; cost is dominated by parse and validation, not I/O.
+- **Performance/Scale Notes:** The fixtures run in parallel subtests; cost is dominated by parse and validation, not I/O.
 - **Dependencies Risk:**
   - **Fixtures must be whole programs.** Policies need at least one exported rule for [[index.policy]] ingest to succeed; parse-only snippets fail index with `does not export any rules`.
   - **Corpus rot is visible again.** Before this harness, [[index.builtin_check]]'s repo walk used `continue` on parse and index errors, so broken fixtures reported green. Any fixture edit that breaks parse or validation fails CI immediately.

@@ -19,6 +19,7 @@ The top-level driver: it owns the index, the JS registry, the loaded modules, an
 | `runtime.executor` | `CALLS` | [[runtime.exec_ctx]] | Creates the per-run context and injects facts, lets, and module bindings. |
 | `runtime.executor` | `CALLS` | [[runtime.eval]] | Evaluates fact defaults, the `when` gate, the body, the `default` clause, and attachments. |
 | `runtime.executor` | `CALLS` | [[runtime.decision]] | Wraps the final value via `DecisionOf`. |
+| `runtime.executor` | `CALLS` | [[runtime.contribute]] | Validates rule values against a declared type and combines contributions. |
 | `runtime.executor` | `CALLS` | [[runtime.modules]] | Loads one `jsModule` per module path and builds a per-`use` `ModuleBinding` over it. |
 | `runtime.executor` | `CALLS` | [[runtime.js]] | `NewRegistry`, `RegisterGoBuiltin`, `PrepareUse`, `NewAliasRuntime`, `SetupStdLib`, `Require`. |
 | `runtime.executor` | `READS_FROM` | [[capabilities]] | `WithCapabilities` keeps the grant for builtin dispatch and installs it on the JS registry. |
@@ -82,9 +83,9 @@ The top-level driver: it owns the index, the JS registry, the loaded modules, an
   - **Exceptions:** the context error; `xerr.ErrRuleNotFound`; recursion errors; type-validation failures; attachment evaluation errors.
 
 - **Signature:** `evaluateRuleOutcome(ctx, ec, e, p, r) -> (*Decision, *trace.Node, error)`
-  - **Behavior:** The rule semantics in one place: `when` defaults to `True` when absent; if the gate is **not true** the rule yields the `default` expression (or `Unknown` when there is none); otherwise it yields the body. Note the gate uses `IsTrue()`, so both `False` **and** `Unknown` take the default branch.
+  - **Behavior:** The rule semantics in one place. `evaluateRuleBase` applies the rule's own clauses: `when` defaults to `True` when absent; if the gate is **not true** the rule yields the `default` expression (or `Unknown` when there is none); otherwise it yields the body. Note the gate uses `IsTrue()`, so both `False` **and** `Unknown` take the default branch. A body or default value is checked against the rule's declared type, if any. When the rule has contributions, `applyContributions` ([[runtime.contribute]]) then combines them with that outcome in declaration order.
   - **Side Effects:** Trace nodes.
-  - **Exceptions:** Propagated from the gate, default, or body.
+  - **Exceptions:** Propagated from the gate, default, body, or a contribution; declared-type mismatches.
 
 - **Signature:** `(*executorImpl).bindUses(ctx, ec, p) -> error` / `getModuleBinding(ctx, use, ms) -> (*ModuleBinding, error)` / `getModule(ctx, ms) -> (*jsModule, error)` / `loadJSInstance(ctx, ms) -> (*JSInstance, error)`
   - **Behavior:** Resolves each `use` to a module spec relative to the policy file's directory and binds it under the policy's alias. `getModule` returns the module keyed by **module path alone**, loading it once per executor lifetime into a plain map (`modules`): the first caller loads (its probe VM), concurrent first callers wait on that load (singleflight), and a failed load is not cached. A waiter whose own context is still live retries when the load failed only on the loader's context; `loadJSInstance` builds a fresh VM, pins the execution-start time before any module code runs, and loads the module through the cached `goja.Program`. It runs once per call (see [[runtime.modules]]). `getModuleBinding` then checks this `use`'s named exports against the module and returns a per-`use` `ModuleBinding` holding the alias and the requested names. The export projection is applied per binding at call time, so two `use`s of one module never see each other's restriction ([#102](https://github.com/sentrie-sh/sentrie/issues/102)).

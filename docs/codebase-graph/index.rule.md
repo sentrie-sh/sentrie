@@ -16,6 +16,7 @@ tags: rule-model, evaluation-unit, dependency-graph
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `index.rule` | `DEPENDS_ON` | [[ast]] | Holds `ast.Expression` references for `Default`, `When`, and `Body` without copying or evaluating them; builds the FQN with `ast.CreateFQN`. |
+| `index.rule` | `READS_FROM` | [[index.contribute]] | `Contributions` holds the rule's `contribute` records in declaration order. |
 | `index.rule` | `DEPENDS_ON` | [[tokens]] | `Span()` exposes the declaration range for diagnostics. |
 | [[index.policy]] | `CALLS` | [[index.rule]] | `AddRule` calls `createRule` during policy ingestion. |
 | [[index.validate]] | `READS_FROM` | [[index.rule]] | Uses rules as DAG vertices and walks all three expression slots for identifier-cycle analysis. |
@@ -25,8 +26,8 @@ tags: rule-model, evaluation-unit, dependency-graph
 
 ## 3. Interface Contracts & Public Surface
 
-- **Signature:** `Rule` struct - `{ Node *ast.RuleStatement, Policy *Policy, Name string, FQN ast.FQN, Default, When, Body ast.Expression }`
-  - **Behavior:** Note the AST field is called `Node`, unlike `Shape`, `Policy`, and `Derive`, which all call theirs `Statement`. `Default` and `When` are nil when the clauses are absent - nil is the encoding for "no fallback" and "no guard". `Body` may be a block, a plain expression, or an `ast.ImportClause` when the rule delegates to another policy's decision.
+- **Signature:** `Rule` struct - `{ Node *ast.RuleStatement, Policy *Policy, Name string, FQN ast.FQN, Default, When, Body ast.Expression, Contributions []*Contribution }`
+  - **Behavior:** Note the AST field is called `Node`, unlike `Shape`, `Policy`, and `Derive`, which all call theirs `Statement`. `Default` and `When` are nil when the clauses are absent - nil is the encoding for "no fallback" and "no guard". `Body` may be a block, a plain expression, or an `ast.ImportClause` when the rule delegates to another policy's decision. The declared type, when present, is read from `Node.Type`. `Contributions` is empty unless `contribute` statements target the rule (#160); [[index.policy]] appends them after the rule is created.
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 
@@ -51,5 +52,5 @@ tags: rule-model, evaluation-unit, dependency-graph
 - **Dependencies Risk:**
   - **An `ImportClause` body is a cross-policy edge.** When `Body` is an import clause the rule's real dependency lives in another policy, discovered only by `detectRuleCycle`, which resolves the target through [[index.resolve]]. A miss there surfaces as a validation error, not an ingestion error.
   - **Rule cycles are detected on two different graphs.** `detectReferenceCycle` builds a per-policy graph over **bare identifiers** (catching `a = b`, `b = a` inside one policy), while `detectRuleCycle` builds a global graph over **import edges** only. A cycle that alternates between the two mechanisms is not guaranteed to be caught by either.
-  - **Nothing type-checks the slots.** No constraint requires `When` to be trinary or `Default` to match `Body`'s type; that is a runtime concern.
+  - **Nothing statically type-checks the slots.** No constraint requires `When` to be trinary or `Default` to match `Body`'s type. A declared rule type is checked at runtime against the body or default value.
   - **`createRule`'s error return is vestigial**, so callers that carefully handle it are guarding against a case that cannot occur.

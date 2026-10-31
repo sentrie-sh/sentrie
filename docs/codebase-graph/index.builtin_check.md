@@ -9,7 +9,7 @@ tags: static-analysis, arity-checking, type-checking, diagnostics
 # Node: index.checkBuiltinCalls (Static Builtin Call Validation)
 
 ## 1. Architectural Role & Intent
-Walks every expression a policy holds (fact defaults, policy lets, rule `default`/`when`/body slots, `import decision ... with` expressions, export attachments) and every derive body, looking for calls to native builtins, and validates each against its declared signature: argument count against the required/optional/variadic shape, argument value kinds against the allowed set, and callback arity for higher-order builtins. It moves a whole class of errors - `length()` with no argument, `filter(xs, 3)` - from evaluation time to index time, with a source span attached. The walk is `forEachBuiltinCall` (`index/builtin_calls.go`), shared with the nondeterminism warnings and the capabilities check in [[index]], so a new expression site is covered by all three at once (#218). The runtime makes the same checks from the same signature when the call is evaluated.
+Walks every expression a policy holds (fact defaults, policy lets, rule `default`/`when`/body slots, rule contribution guards and bodies, `import decision ... with` expressions, export attachments) and every derive body, looking for calls to native builtins, and validates each against its declared signature: argument count against the required/optional/variadic shape, argument value kinds against the allowed set, and callback arity for higher-order builtins. It moves a whole class of errors - `length()` with no argument, `filter(xs, 3)` - from evaluation time to index time, with a source span attached. The walk is `forEachBuiltinCall` (`index/builtin_calls.go`), shared with the nondeterminism warnings and the capabilities check in [[index]], so a new expression site is covered by all three at once (#218). The runtime makes the same checks from the same signature when the call is evaluated.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -20,7 +20,7 @@ Walks every expression a policy holds (fact defaults, policy lets, rule `default
 | `index.builtin_check` | `DEPENDS_ON` | [[xerr]] | Emits `ErrBuiltinCallArity`, `ErrBuiltinArgKind`, `ErrBuiltinCallableArity`, each carrying a span. |
 | `index.builtin_check` | `CALLS` | [[index.builtin_kind]] | Uses `kindCheckCtx` for scope construction, `isBuiltinCall`, `resolveKind`, and `resolveCallableArity`. |
 | `index.builtin_check` | `CALLS` | [[index.derive_expr_walk]] | `forEachDeriveExprChild` is the default traversal branch. |
-| `index.builtin_check` | `READS_FROM` | [[index.rule]] | Walks `Default`, `When`, and `Body` of every rule, including the `with` expressions when the body is an `ast.ImportClause`. |
+| `index.builtin_check` | `READS_FROM` | [[index.rule]] | Walks `Default`, `When`, and `Body` of every rule, including the `with` expressions when the body is an `ast.ImportClause`, and the `When` and `Body` of each of its contributions. |
 | `index.builtin_check` | `READS_FROM` | [[index.policy]] | Walks every fact default, policy `let` value and export attachment value. |
 | `index.builtin_check` | `READS_FROM` | [[index.derive]] | Walks every derive's lambda body with a derive-flavoured scope. |
 | [[index.validate]] | `CALLS` | [[index.builtin_check]] | Runs as the final check in the validation pipeline. |

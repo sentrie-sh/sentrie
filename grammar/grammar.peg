@@ -25,6 +25,7 @@ PolicyStatement = Comment
                 / UseStmt
                 / VarDecl
                 / RuleDecl
+                / ContributeDecl
                 / ExportRule
                 / DeriveDecl
 
@@ -36,7 +37,9 @@ DeriveDecl = "derive" IDENT "=" LambdaExpr
 ExportDerive = "export" "derive" IDENT
 
 VarDecl = "let" IDENT (":" TypeRef)? "=" Expr
-RuleDecl = "rule" IDENT "=" ("default" Expr)? ("when" Expr)? (BlockExpr / RuleImportClause)
+RuleDecl = "rule" IDENT (":" TypeRef)? "=" ("default" Expr)? ("when" Expr)? (BlockExpr / RuleImportClause)
+/* Adds to a rule declared earlier in the same policy with a list[T], boolean or trinary type. A list rule appends each contribution's value; a boolean rule ORs it in. Contributions combine in declaration order; one whose guard does not hold or whose body yields undefined is skipped. */
+ContributeDecl = "contribute" IDENT ("when" Expr)? BlockExpr
 
 /* Imports and Exports */
 ExportRule = "export" "decision" "of" IDENT AttachClause*

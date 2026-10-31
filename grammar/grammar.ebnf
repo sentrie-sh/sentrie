@@ -26,6 +26,7 @@ policyStatement     ::= comment
                         | useStmt
                         | varDecl
                         | ruleDecl
+                        | contributeDecl
                         | exportRule
                         | deriveDecl
 
@@ -36,7 +37,9 @@ deriveDecl          ::= 'derive' IDENT '=' lambdaExpr
 exportDerive        ::= 'export' 'derive' IDENT
 
 varDecl             ::= 'let' IDENT '=' expr
-ruleDecl            ::= 'rule' IDENT '=' ('default' expr)? ('when' expr)? (blockExpr | ruleImportClause)
+ruleDecl            ::= 'rule' IDENT (':' typeRef)? '=' ('default' expr)? ('when' expr)? (blockExpr | ruleImportClause)
+/* Adds to a rule declared earlier in the same policy with a list[T], boolean or trinary type. A list rule appends each contribution's value; a boolean rule ORs it in. Contributions combine in declaration order; one whose guard does not hold or whose body yields undefined is skipped. */
+contributeDecl      ::= 'contribute' IDENT ('when' expr)? blockExpr
 
 /* Imports and Exports */
 exportRule          ::= 'export' 'decision' 'of' IDENT ( attachClause )*
