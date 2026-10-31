@@ -15,6 +15,7 @@ The top-level driver: it owns the index, the JS registry, the loaded modules, an
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
+| `runtime.executor` | `CALLS` | [[runtime.pack_data]] | `NewExecutor` validates typed pack data declarations once. |
 | `runtime.executor` | `DEPENDS_ON` | [[index]] | `ResolvePolicy`, `VerifyRuleExported`, `Policy.Facts/Lets/Uses/Rules/RuleExports`. |
 | `runtime.executor` | `CALLS` | [[runtime.exec_ctx]] | Creates the per-run context and injects facts, lets, and module bindings. |
 | `runtime.executor` | `CALLS` | [[runtime.eval]] | Evaluates fact defaults, the `when` gate, the body, the `default` clause, and attachments. |
@@ -31,9 +32,9 @@ The top-level driver: it owns the index, the JS registry, the loaded modules, an
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `NewExecutor(idx *index.Index, opts ...NewExecutorOption) -> (Executor, error)`
-  - **Behavior:** Constructs the executor, registers fourteen Go builtin modules (`uuid`, `crypto`, `time`, `encoding`, `collection`, `jwt`, `regex`, `net`, `hash`, `url`, `string`, `json`, `semver`, `math`) and the TypeScript `js` shim, creates the memoization cache, and applies options.
-  - **Side Effects:** Creates a memoization cache of 10,000 entries; `perch` allocates entries lazily, so construction costs a few kilobytes. The module map starts empty.
-  - **Exceptions:** Returns `error` in its signature but **never returns a non-nil error**. It **panics** when `idx.Pack` is nil.
+  - **Behavior:** Constructs the executor, registers fourteen Go builtin modules (`uuid`, `crypto`, `time`, `encoding`, `collection`, `jwt`, `regex`, `net`, `hash`, `url`, `string`, `json`, `semver`, `math`) and the TypeScript `js` shim, creates the memoization cache, applies options, then validates every typed `data <name>: T` declaration against its loaded pack data once ([[runtime.pack_data]]).
+  - **Side Effects:** Creates a memoization cache of 10,000 entries; `perch` allocates entries lazily, so construction costs a few kilobytes. The module map starts empty. Evaluates constraint arguments of typed data declarations.
+  - **Exceptions:** Returns a non-nil error only when pack data does not match its declared type (`pack data "<name>" in policy <fqn> does not match its declared type`). It **panics** when `idx.Pack` is nil.
 
 - **Signature:** `WithEvalTimeout(d time.Duration) -> NewExecutorOption` / `DefaultEvalTimeout = 10s`
   - **Behavior:** Sets the deadline `ExecRule` and `ExecPolicy` derive from their caller's context ([#142](https://github.com/sentrie-sh/sentrie/issues/142)). When it passes, the running module call is interrupted (`js.InterruptOnDone`), the evaluator stops at its next rule, derive or lambda entry ([#225](https://github.com/sentrie-sh/sentrie/issues/225)), and the evaluation fails with an error wrapping `context.DeadlineExceeded`, prefixed `evaluation exceeded its <d> deadline` when this deadline (not the caller's) ended it. A nested `ExecRule` (cross-policy import) inherits the earlier deadline. `d <= 0` disables it. `exec` and `serve` set it from `--eval-timeout`.
@@ -101,4 +102,4 @@ The top-level driver: it owns the index, the JS registry, the loaded modules, an
   - **`defer done()` inside the attachment loop** accumulates trace closures until `execRule` returns rather than closing each span promptly; the same pattern appears in `evaluateRuleOutcome`.
   - **The `when` gate treats `Unknown` as "not true".** A guard that evaluates to `Unknown` silently takes the default branch rather than propagating uncertainty into the body.
   - **What the deadline does and does not bound.** It stops JavaScript wherever module code runs: module loads, export-key capture, the bind-time export check (which also clears any interrupt left on the probe), the export lookup, the call and its return conversion (`runGuardedJS` and `recoverUncaughtJS` in `runtime/modules.go`) and `js.MaxCallStackSize` (10,000 frames) bounds JS recursion. Sentrie's own Go-side evaluation checks the context at rule entry (`execRule`), derive entry ([[runtime.derive_invoke]]) and lambda application ([[runtime.callable]]), so collection operators stop within one element of the deadline even with no module calls ([#225](https://github.com/sentrie-sh/sentrie/issues/225)). Work between two checks, such as one `in` over a large list, is not interrupted. **Memory is not bounded per evaluation**: goja has no heap cap, so operators should set `GOMEMLIMIT` and a container memory limit (README "Evaluation Limits").
-  - **`NewExecutor`'s error return is vestigial**, so a caller's error handling gives false assurance while the real failure mode is a nil-pack panic.
+  - **`NewExecutor`'s error return covers pack data only.** It fails when typed pack data does not match its declaration; the nil-pack panic is still not an error return.

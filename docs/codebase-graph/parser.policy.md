@@ -20,6 +20,7 @@ Parses `policy <ident> { … }` and - importantly - owns the **second statement 
 | `parser.policy` | `CALLS` | [[ast]] | Emits `ast.NewPolicyStatement` wrapping the collected body statements. |
 | `parser.policy` | `CALLS` | [[parser.rule]] | Via the handler table, for each `rule` in the body. |
 | `parser.policy` | `CALLS` | [[parser.fact]] | Via the handler table, for each `fact`. |
+| `parser.policy` | `CALLS` | [[parser.data]] | Directly, for a statement headed by the identifier `data`. |
 | `parser.policy` | `CALLS` | [[parser.let]] | Via the handler table, for each `let`. |
 | `parser.policy` | `CALLS` | [[parser.use]] | Via the handler table, for each `use`. |
 | `parser.policy` | `CALLS` | [[parser.export_rule]] | Via the handler table, for `export decision of …`. |
@@ -34,7 +35,7 @@ Parses `policy <ident> { … }` and - importantly - owns the **second statement 
   - **Exceptions:** Returns `nil` if the keyword, name, `{`, or `}` is missing, if a body statement records an error, or if a body statement returns `nil`.
 
 - **Signature:** `parsePolicyStatement(ctx: context.Context, p: *Parser) -> ast.Statement`
-  - **Behavior:** The policy-scope dispatcher. Registered heads: comments, `title`, `description`, `version`, `tag`, `rule`, `fact`, `export`, `let`, `use`, `shape`, `derive`.
+  - **Behavior:** The policy-scope dispatcher. Before the table, an `Ident` head whose value is `data` goes to [[parser.data]] (a contextual keyword, not a lexer keyword). Registered heads: comments, `title`, `description`, `version`, `tag`, `rule`, `fact`, `export`, `let`, `use`, `shape`, `derive`.
   - **Side Effects:** None directly; the delegate consumes tokens.
   - **Exceptions:** Records `unexpected token '<kind>'` and returns `nil` for an unregistered head - **without advancing**, so any caller must break on `p.err`.
 

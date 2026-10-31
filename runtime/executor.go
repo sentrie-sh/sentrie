@@ -152,6 +152,14 @@ func NewExecutor(idx *index.Index, opts ...NewExecutorOption) (Executor, error) 
 		opt(exec)
 	}
 
+	// Static pack data is validated against its declared types once, here,
+	// so a pack whose data does not match fails before serving a request.
+	// The check is CPU-only over data already in memory; NewExecutor has no
+	// caller context to bound it with.
+	if err := exec.validatePackData(context.Background()); err != nil {
+		return nil, err
+	}
+
 	return exec, nil
 }
 

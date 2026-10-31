@@ -20,6 +20,7 @@ The gate every policy pack must pass before execution. `Validate` first settles 
 | `index.validate` | `DEPENDS_ON` | [[xerr]] | Emits `ErrInfiniteRecursion` and `ErrIndex`-wrapped cycle messages. |
 | `index.validate` | `CALLS` | [[index.is_resolve]] | Runs before every check, so none of them reads a shape name on the right of `is` as a value reference. |
 | `index.validate` | `CALLS` | [[index.import_withs]] | Third check, right after `detectRuleCycle` has resolved every imported policy. |
+| `index.validate` | `CALLS` | [[index.pack_data]] | Fourth check: every `data` declaration names a loaded `[data]` entry. |
 | `index.validate` | `CALLS` | [[index.derive_cycle]] | Fifth check in the pipeline. |
 | `index.validate` | `CALLS` | [[index.derive_purity]] | Sixth check. |
 | `index.validate` | `CALLS` | [[index.builtin_check]] | Seventh check. |

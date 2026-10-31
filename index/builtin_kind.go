@@ -42,6 +42,9 @@ func newRuleKindCheckCtx(idx *Index, policy *Policy) *kindCheckCtx {
 	for alias, fact := range policy.Facts {
 		scope[alias] = bindingFromFact(idx, policy, fact)
 	}
+	for alias, data := range policy.Data {
+		scope[alias] = bindingFromData(idx, policy, data)
+	}
 	for name, let := range policy.Lets {
 		scope[name] = bindingFromLet(idx, policy, let)
 	}
@@ -89,6 +92,27 @@ func bindingFromFact(idx *Index, policy *Policy, fact *ast.FactStatement) bindin
 	info := bindingInfo{typeRef: fact.Type}
 	if fact.Type != nil {
 		if k, ok := typeRefKind(idx, policy, fact.Type); ok {
+			info.kindKnown = true
+			info.kind = k
+		}
+	}
+	return info
+}
+
+// bindingFromData binds a `data` declaration. The loaded value is the value
+// every evaluation reads, so its kind is known exactly; without a loaded value
+// (an index built without a pack) the declared type is used, if any.
+func bindingFromData(idx *Index, policy *Policy, data *ast.DataStatement) bindingInfo {
+	info := bindingInfo{typeRef: data.Type}
+	if idx != nil && idx.Pack != nil {
+		if v, ok := idx.Pack.DataValues[data.Name]; ok {
+			info.kindKnown = true
+			info.kind = v.Kind()
+			return info
+		}
+	}
+	if data.Type != nil {
+		if k, ok := typeRefKind(idx, policy, data.Type); ok {
 			info.kindKnown = true
 			info.kind = k
 		}

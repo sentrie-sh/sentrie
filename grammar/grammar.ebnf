@@ -12,6 +12,8 @@ FQN                 ::= IDENT ('/' IDENT)*
 /* Declarations */
 policyDecl          ::= 'policy' IDENT '{' ( policyStatement )* '}'
 factDecl            ::= 'fact' IDENT ('?'?) ':' typeRef ('as' IDENT)? ('default' expr)?
+/* 'data' is contextual, not a reserved keyword: it starts a declaration only at the head of a policy statement. The IDENT names an entry of the pack manifest's [data] table. */
+dataDecl            ::= 'data' IDENT (':' typeRef)? ('as' IDENT)?
 
 
 useStmt             ::= 'use' '{' IDENT ( ',' IDENT )* '}' 'from' execSource ('as' IDENT)?
@@ -23,6 +25,7 @@ modulePathSegment   ::= IDENT | KEYWORD
 policyStatement     ::= comment
                         | shapeDecl
                         | factDecl
+                        | dataDecl
                         | useStmt
                         | varDecl
                         | ruleDecl

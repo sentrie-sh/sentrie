@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package pack
 
@@ -22,6 +9,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/sentrie-sh/sentrie/ast"
+	"github.com/sentrie-sh/sentrie/box"
 )
 
 type Pack struct {
@@ -45,7 +33,16 @@ type PackFile struct {
 	Permissions   *Permissions     `toml:"permissions,omitempty" json:"permissions"`
 	Engine        *Engine          `toml:"engine,omitempty" json:"engine"`
 	Metadata      map[string]any   `toml:"metadata,omitempty" json:"metadata"`
-	Location      string           `toml:"-" json:"-"`
+	// Data maps each static data name to a JSON file, relative to the pack
+	// root (the `[data]` table). A policy reads an entry through a
+	// `data <name>` declaration.
+	Data     map[string]string `toml:"data,omitempty" json:"data"`
+	Location string            `toml:"-" json:"-"`
+	// DataValues holds each Data entry decoded and boxed, keyed by name. Like
+	// Location it is not a manifest field: the loader fills it once at pack
+	// load. The values are shared by every evaluation and must never be
+	// mutated.
+	DataValues map[string]box.Value `toml:"-" json:"-"`
 }
 
 type SentrieSchema struct {
