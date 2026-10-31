@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package parser
 
@@ -76,6 +63,12 @@ func parseThePolicyStatement(ctx context.Context, p *Parser) ast.Statement {
 }
 
 func parsePolicyStatement(ctx context.Context, p *Parser) ast.Statement {
+	// `data` is a contextual keyword: it starts a declaration only at the head
+	// of a policy statement, where a bare identifier is otherwise never valid,
+	// so `data` stays usable as a fact, let, field or parameter name.
+	if p.head().IsOfKind(tokens.Ident) && p.head().Value == dataKeyword {
+		return parseDataStatement(ctx, p)
+	}
 	if handler, ok := p.policyStatementHandlers[p.head().Kind]; ok {
 		return handler(ctx, p)
 	}
