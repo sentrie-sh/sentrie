@@ -10,21 +10,15 @@ import (
 	"slices"
 
 	"github.com/sentrie-sh/sentrie/box"
-	"github.com/sentrie-sh/sentrie/index"
 )
 
 var NumberContraintCheckers map[string]ConstraintDefinition = map[string]ConstraintDefinition{
-	"min": {
+	"min": define(ConstraintDefinition{
 		Name:    "min",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
-			if len(args) != 1 {
-				return invalidArgf("min constraint requires 1 argument")
-			}
-			arg, ok := args[0].NumberValue()
-			if !ok {
-				return invalidArgf("expected number, got %s", args[0].Kind())
-			}
+		Arg:     numberArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
+			arg, _ := args[0].NumberValue()
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -34,18 +28,13 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"max": {
+	}),
+	"max": define(ConstraintDefinition{
 		Name:    "max",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
-			if len(args) != 1 {
-				return invalidArgf("max constraint requires 1 argument")
-			}
-			arg, ok := args[0].NumberValue()
-			if !ok {
-				return invalidArgf("expected number, got %s", args[0].Kind())
-			}
+		Arg:     numberArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
+			arg, _ := args[0].NumberValue()
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -55,18 +44,13 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"eq": {
+	}),
+	"eq": define(ConstraintDefinition{
 		Name:    "eq",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
-			if len(args) != 1 {
-				return invalidArgf("eq constraint requires 1 argument")
-			}
-			arg, ok := args[0].NumberValue()
-			if !ok {
-				return invalidArgf("expected number, got %s", args[0].Kind())
-			}
+		Arg:     numberArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
+			arg, _ := args[0].NumberValue()
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -76,18 +60,13 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"neq": {
+	}),
+	"neq": define(ConstraintDefinition{
 		Name:    "neq",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
-			if len(args) != 1 {
-				return invalidArgf("neq constraint requires 1 argument")
-			}
-			arg, ok := args[0].NumberValue()
-			if !ok {
-				return invalidArgf("expected number, got %s", args[0].Kind())
-			}
+		Arg:     numberArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
+			arg, _ := args[0].NumberValue()
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -97,18 +76,13 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"gt": {
+	}),
+	"gt": define(ConstraintDefinition{
 		Name:    "gt",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
-			if len(args) != 1 {
-				return invalidArgf("gt constraint requires 1 argument")
-			}
-			arg, ok := args[0].NumberValue()
-			if !ok {
-				return invalidArgf("expected number, got %s", args[0].Kind())
-			}
+		Arg:     numberArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
+			arg, _ := args[0].NumberValue()
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -118,18 +92,13 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"lt": {
+	}),
+	"lt": define(ConstraintDefinition{
 		Name:    "lt",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
-			if len(args) != 1 {
-				return invalidArgf("lt constraint requires 1 argument")
-			}
-			arg, ok := args[0].NumberValue()
-			if !ok {
-				return invalidArgf("expected number, got %s", args[0].Kind())
-			}
+		Arg:     numberArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
+			arg, _ := args[0].NumberValue()
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -139,14 +108,12 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"in": {
+	}),
+	"in": define(ConstraintDefinition{
 		Name:    "in",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
-			if len(args) != 1 {
-				return invalidArgf("in constraint requires 1 argument")
-			}
+		Arg:     numberSetArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -161,14 +128,12 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"not_in": {
+	}),
+	"not_in": define(ConstraintDefinition{
 		Name:    "not_in",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
-			if len(args) != 1 {
-				return invalidArgf("not_in constraint requires 1 argument")
-			}
+		Arg:     numberSetArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -183,39 +148,36 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"range": {
+	}),
+	"range": define(ConstraintDefinition{
 		Name:    "range",
 		NumArgs: 2,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
-			if len(args) != 2 {
-				return invalidArgf("range constraint requires 2 arguments")
+		Arg:     numberArg,
+		Args: func(args []box.Value) error {
+			min, _ := args[0].NumberValue()
+			max, _ := args[1].NumberValue()
+			if min > max {
+				return invalidArgf("range minimum %v is greater than maximum %v", min, max)
 			}
+			return nil
+		},
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
-			min, ok0 := args[0].NumberValue()
-			max, ok1 := args[1].NumberValue()
-			if !ok0 {
-				return invalidArgf("expected number, got %s", args[0].Kind())
-			}
-			if !ok1 {
-				return invalidArgf("expected number, got %s", args[1].Kind())
-			}
-			if min > max {
-				return invalidArgf("range minimum %v is greater than maximum %v", min, max)
-			}
+			min, _ := args[0].NumberValue()
+			max, _ := args[1].NumberValue()
 			if valNum < min || valNum > max {
 				return fmt.Errorf("value %v is not in range [%v, %v]", val, min, max)
 			}
 			return nil
 		},
-	},
-	"even": {
+	}),
+	"even": define(ConstraintDefinition{
 		Name:    "even",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -225,11 +187,11 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"odd": {
+	}),
+	"odd": define(ConstraintDefinition{
 		Name:    "odd",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -239,25 +201,17 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"multiple_of": {
+	}),
+	"multiple_of": define(ConstraintDefinition{
 		Name:    "multiple_of",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
-			if len(args) != 1 {
-				return invalidArgf("multiple_of constraint requires 1 argument")
-			}
+		Arg:     divisorArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
-			divisor, ok := args[0].NumberValue()
-			if !ok {
-				return invalidArgf("expected number, got %s", args[0].Kind())
-			}
-			if divisor == 0 {
-				return invalidArgf("divisor cannot be zero")
-			}
+			divisor, _ := args[0].NumberValue()
 			// Use epsilon for floating point comparison
 			epsilon := 1e-10
 			remainder := math.Mod(valNum, divisor)
@@ -266,11 +220,11 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"positive": {
+	}),
+	"positive": define(ConstraintDefinition{
 		Name:    "positive",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -280,11 +234,11 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"negative": {
+	}),
+	"negative": define(ConstraintDefinition{
 		Name:    "negative",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -294,11 +248,11 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"non_negative": {
+	}),
+	"non_negative": define(ConstraintDefinition{
 		Name:    "non_negative",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -308,11 +262,11 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"non_positive": {
+	}),
+	"non_positive": define(ConstraintDefinition{
 		Name:    "non_positive",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -322,11 +276,11 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"finite": {
+	}),
+	"finite": define(ConstraintDefinition{
 		Name:    "finite",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -336,11 +290,11 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"infinite": {
+	}),
+	"infinite": define(ConstraintDefinition{
 		Name:    "infinite",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -350,11 +304,11 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"nan": {
+	}),
+	"nan": define(ConstraintDefinition{
 		Name:    "nan",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			valNum, ok := val.NumberValue()
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
@@ -364,7 +318,7 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
+	}),
 }
 
 func numberConstraintSet(arg box.Value) ([]float64, error) {

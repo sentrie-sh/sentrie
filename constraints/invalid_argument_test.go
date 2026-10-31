@@ -21,15 +21,15 @@ func (s *ConstraintsTestSuite) TestInvalidArgumentIsDistinguishable() {
 	tri := constraints.TrinaryConstraintCheckers
 
 	invalid := map[string]error{
-		"regexp invalid pattern": str["regexp"].Checker(ctx, nil, box.String("ab"), []box.Value{box.String("[")}),
-		"minlength wrong kind":   str["minlength"].Checker(ctx, nil, box.String("ab"), []box.Value{box.String("q")}),
-		"minlength arity":        str["minlength"].Checker(ctx, nil, box.String("ab"), nil),
-		"one_of wrong kind":      str["one_of"].Checker(ctx, nil, box.String("ab"), []box.Value{box.Number(1)}),
-		"in wrong set item":      num["in"].Checker(ctx, nil, box.Number(1), []box.Value{box.List([]box.Value{box.String("x")})}),
-		"multiple_of zero":       num["multiple_of"].Checker(ctx, nil, box.Number(4), []box.Value{box.Number(0)}),
-		"range wrong kind":       num["range"].Checker(ctx, nil, box.Number(4), []box.Value{box.Number(0), box.String("x")}),
-		"range min above max":    num["range"].Checker(ctx, nil, box.Number(4), []box.Value{box.Number(5), box.Number(1)}),
-		"trinary eq wrong kind":  tri["eq"].Checker(ctx, nil, box.Trinary(trinary.True), []box.Value{box.Number(1)}),
+		"regexp invalid pattern": str["regexp"].Checker(ctx, box.String("ab"), []box.Value{box.String("[")}),
+		"minlength wrong kind":   str["minlength"].Checker(ctx, box.String("ab"), []box.Value{box.String("q")}),
+		"minlength arity":        str["minlength"].Checker(ctx, box.String("ab"), nil),
+		"one_of wrong kind":      str["one_of"].Checker(ctx, box.String("ab"), []box.Value{box.Number(1)}),
+		"in wrong set item":      num["in"].Checker(ctx, box.Number(1), []box.Value{box.List([]box.Value{box.String("x")})}),
+		"multiple_of zero":       num["multiple_of"].Checker(ctx, box.Number(4), []box.Value{box.Number(0)}),
+		"range wrong kind":       num["range"].Checker(ctx, box.Number(4), []box.Value{box.Number(0), box.String("x")}),
+		"range min above max":    num["range"].Checker(ctx, box.Number(4), []box.Value{box.Number(5), box.Number(1)}),
+		"trinary eq wrong kind":  tri["eq"].Checker(ctx, box.Trinary(trinary.True), []box.Value{box.Number(1)}),
 	}
 	for name, err := range invalid {
 		s.Run(name, func() {
@@ -40,10 +40,10 @@ func (s *ConstraintsTestSuite) TestInvalidArgumentIsDistinguishable() {
 	}
 
 	mismatch := map[string]error{
-		"regexp no match":     str["regexp"].Checker(ctx, nil, box.String("ab"), []box.Value{box.String("^z")}),
-		"minlength too short": str["minlength"].Checker(ctx, nil, box.String("a"), []box.Value{box.Number(2)}),
-		"min below":           num["min"].Checker(ctx, nil, box.Number(1), []box.Value{box.Number(2)}),
-		"value wrong kind":    str["minlength"].Checker(ctx, nil, box.Number(1), []box.Value{box.Number(2)}),
+		"regexp no match":     str["regexp"].Checker(ctx, box.String("ab"), []box.Value{box.String("^z")}),
+		"minlength too short": str["minlength"].Checker(ctx, box.String("a"), []box.Value{box.Number(2)}),
+		"min below":           num["min"].Checker(ctx, box.Number(1), []box.Value{box.Number(2)}),
+		"value wrong kind":    str["minlength"].Checker(ctx, box.Number(1), []box.Value{box.Number(2)}),
 	}
 	for name, err := range mismatch {
 		s.Run(name, func() {
