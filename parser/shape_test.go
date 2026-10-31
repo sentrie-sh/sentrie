@@ -8,7 +8,7 @@ import (
 )
 
 func (s *ParserTestSuite) TestParseShapeFieldNullabilityMatrix() {
-	parser := NewParserFromString("shape Person { name:string age?:number middle_name:string? nickname?:string? }", "test.sentra")
+	parser := NewParserFromString("shape Person { name:string age?:number middle_name:string? nickname?:string? }", "test.sentrie")
 	stmt := parseShapeStatement(s.T().Context(), parser)
 	s.Require().NoError(parser.err)
 	s.Require().NotNil(stmt)
@@ -41,7 +41,7 @@ func (s *ParserTestSuite) TestParseShapeFieldRejectsLegacyBangSyntax() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		stmt := parseShapeStatement(s.T().Context(), parser)
 		s.Require().Nil(stmt)
 		s.Require().Error(parser.err)
@@ -50,7 +50,7 @@ func (s *ParserTestSuite) TestParseShapeFieldRejectsLegacyBangSyntax() {
 }
 
 func (s *ParserTestSuite) TestParseNullableTypeRefWithConstraint() {
-	parser := NewParserFromString("shape Person { middle_name: string? @minlength(1) }", "test.sentra")
+	parser := NewParserFromString("shape Person { middle_name: string? @minlength(1) }", "test.sentrie")
 	stmt := parseShapeStatement(s.T().Context(), parser)
 	s.Require().NoError(parser.err)
 	s.Require().NotNil(stmt)
@@ -63,7 +63,7 @@ func (s *ParserTestSuite) TestParseNullableTypeRefWithConstraint() {
 }
 
 func (s *ParserTestSuite) TestParseTypeRefCollectionKindsAndErrors() {
-	parser := NewParserFromString("shape T { names:list[string]? metadata:dict[number] tuple:record[string, number] }", "test.sentra")
+	parser := NewParserFromString("shape T { names:list[string]? metadata:dict[number] tuple:record[string, number] }", "test.sentrie")
 	stmt := parseShapeStatement(s.T().Context(), parser)
 	s.Require().NoError(parser.err)
 	s.Require().NotNil(stmt)
@@ -83,14 +83,14 @@ func (s *ParserTestSuite) TestParseTypeRefCollectionKindsAndErrors() {
 	s.True(ok)
 	s.Len(recordRef.Fields, 2)
 
-	badParser := NewParserFromString("shape T { names:list[string }", "test.sentra")
+	badParser := NewParserFromString("shape T { names:list[string }", "test.sentrie")
 	badStmt := parseShapeStatement(s.T().Context(), badParser)
 	s.Require().Nil(badStmt)
 	s.Require().Error(badParser.err)
 }
 
 func (s *ParserTestSuite) TestParseComplexShapeWithClauseAndInvalidWith() {
-	parser := NewParserFromString("shape Child with app/Base { id:string -- trailing\n name:string }", "test.sentra")
+	parser := NewParserFromString("shape Child with app/Base { id:string -- trailing\n name:string }", "test.sentrie")
 	stmt := parseShapeStatement(s.T().Context(), parser)
 	s.Require().NoError(parser.err)
 	s.Require().NotNil(stmt)
@@ -102,14 +102,14 @@ func (s *ParserTestSuite) TestParseComplexShapeWithClauseAndInvalidWith() {
 	s.Equal("app/Base", shapeStmt.Complex.With.String())
 	s.Len(shapeStmt.Complex.Fields, 2)
 
-	invalid := NewParserFromString("shape Child with { name:string }", "test.sentra")
+	invalid := NewParserFromString("shape Child with { name:string }", "test.sentrie")
 	invalidStmt := parseShapeStatement(s.T().Context(), invalid)
 	s.Nil(invalidStmt)
 	s.Error(invalid.err)
 }
 
 func (s *ParserTestSuite) TestParseTypeRefRejectsInvalidStartToken() {
-	parser := NewParserFromString("shape Person { name: ? }", "test.sentra")
+	parser := NewParserFromString("shape Person { name: ? }", "test.sentrie")
 	stmt := parseShapeStatement(s.T().Context(), parser)
 	s.Nil(stmt)
 	s.Error(parser.err)
@@ -117,12 +117,12 @@ func (s *ParserTestSuite) TestParseTypeRefRejectsInvalidStartToken() {
 }
 
 func (s *ParserTestSuite) TestParseTypeRefAdditionalCollectionBranches() {
-	dictMissingBracket := NewParserFromString("shape T { meta:dict[string }", "test.sentra")
+	dictMissingBracket := NewParserFromString("shape T { meta:dict[string }", "test.sentrie")
 	stmt := parseShapeStatement(s.T().Context(), dictMissingBracket)
 	s.Nil(stmt)
 	s.Error(dictMissingBracket.err)
 
-	recordTrailingComma := NewParserFromString("shape T { tuple:record[string, number,] }", "test.sentra")
+	recordTrailingComma := NewParserFromString("shape T { tuple:record[string, number,] }", "test.sentrie")
 	stmt = parseShapeStatement(s.T().Context(), recordTrailingComma)
 	s.Require().NotNil(stmt)
 	s.Require().NoError(recordTrailingComma.err)
@@ -135,7 +135,7 @@ func (s *ParserTestSuite) TestParseTypeRefAdditionalCollectionBranches() {
 }
 
 func (s *ParserTestSuite) TestParseTypeRefConstraintValidationFailureBubblesAsParserError() {
-	parser := NewParserFromString("shape T { name:string @minlength() }", "test.sentra")
+	parser := NewParserFromString("shape T { name:string @minlength() }", "test.sentrie")
 	stmt := parseShapeStatement(s.T().Context(), parser)
 	s.Nil(stmt)
 	s.Error(parser.err)
@@ -143,7 +143,7 @@ func (s *ParserTestSuite) TestParseTypeRefConstraintValidationFailureBubblesAsPa
 }
 
 func (s *ParserTestSuite) TestParseTypeRefMalformedRecordDoesNotLoop() {
-	parser := NewParserFromString("shape T { tuple:record[string, number }", "test.sentra")
+	parser := NewParserFromString("shape T { tuple:record[string, number }", "test.sentrie")
 	stmt := parseShapeStatement(s.T().Context(), parser)
 	s.Nil(stmt)
 	s.Error(parser.err)

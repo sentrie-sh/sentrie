@@ -12,7 +12,7 @@ import (
 )
 
 func rng() tokens.Range {
-	return tokens.Range{File: "t.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 2, Offset: 1}}
+	return tokens.Range{File: "t.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 2, Offset: 1}}
 }
 
 func TestNewTernaryElvisString(t *testing.T) {

@@ -1,6 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
 
 package parser
 
@@ -10,7 +9,7 @@ import (
 )
 
 func (s *ParserTestSuite) TestParseGroupedVsLambda_ParsesLambda() {
-	p := NewParserFromString("(x, idx) => { yield x + idx }", "test.sentra")
+	p := NewParserFromString("(x, idx) => { yield x + idx }", "test.sentrie")
 	expr := p.parseExpression(s.T().Context(), LOWEST)
 	s.Require().NotNil(expr)
 	s.Require().NoError(p.err)
@@ -22,7 +21,7 @@ func (s *ParserTestSuite) TestParseGroupedVsLambda_ParsesLambda() {
 }
 
 func (s *ParserTestSuite) TestParseGroupedVsLambda_ParsesGroupedExpression() {
-	p := NewParserFromString("(1 + 2)", "test.sentra")
+	p := NewParserFromString("(1 + 2)", "test.sentrie")
 	expr := p.parseExpression(s.T().Context(), LOWEST)
 	s.Require().NotNil(expr)
 	s.Require().NoError(p.err)
@@ -31,7 +30,7 @@ func (s *ParserTestSuite) TestParseGroupedVsLambda_ParsesGroupedExpression() {
 }
 
 func (s *ParserTestSuite) TestParseGroupedVsLambda_DuplicateParamsError() {
-	p := NewParserFromString("(x, x) => { yield x }", "test.sentra")
+	p := NewParserFromString("(x, x) => { yield x }", "test.sentrie")
 	expr := p.parseExpression(s.T().Context(), LOWEST)
 	s.Nil(expr)
 	s.Error(p.err)
@@ -39,7 +38,7 @@ func (s *ParserTestSuite) TestParseGroupedVsLambda_DuplicateParamsError() {
 
 func (s *ParserTestSuite) TestTryReadLambdaSignature_FailurePushback() {
 	// Missing fat arrow: this must fail and push all read tokens back.
-	p := NewParserFromString("(x, y)", "test.sentra")
+	p := NewParserFromString("(x, y)", "test.sentrie")
 	// p.head() is "(" after constructor advances.
 	lparen := p.head()
 	s.Equal(tokens.PunctLeftParentheses, lparen.Kind)

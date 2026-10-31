@@ -12,7 +12,7 @@ import (
 )
 
 func elvisTestRange() tokens.Range {
-	return tokens.Range{File: "elvis_test.sentra", From: tokens.Pos{}, To: tokens.Pos{}}
+	return tokens.Range{File: "elvis_test.sentrie", From: tokens.Pos{}, To: tokens.Pos{}}
 }
 
 func (s *RuntimeTestSuite) TestEvalElvisFiveCases() {

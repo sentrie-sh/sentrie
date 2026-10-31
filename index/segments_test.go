@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package index
 
@@ -28,8 +15,8 @@ import (
 func (suite *IndexTestSuite) setupSegmentsIndexFixture() {
 	// Create namespace: com/example
 	nsStmt := ast.NewNamespaceStatement(
-		ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
-		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		ast.NewFQN([]string{"com", "example"}, tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
+		tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	_, err := suite.idx.ensureNamespace(suite.T().Context(), nsStmt)
 	suite.Require().NoError(err)
@@ -40,22 +27,22 @@ func (suite *IndexTestSuite) setupSegmentsIndexFixture() {
 		[]ast.Statement{
 			ast.NewFactStatement(
 				"user",
-				ast.NewStringTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}}),
+				ast.NewStringTypeRef(tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}}),
 				"user",
 				nil,
 				true, // optional
-				tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}},
+				tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}},
 			),
-			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}}), nil, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}}),
-			ast.NewRuleStatement("deny", nil, ast.NewTrinaryLiteral(trinary.False, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 15, Offset: 15}, To: tokens.Pos{Line: 5, Column: 15, Offset: 15}}), nil, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}}),
-			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 6, Column: 0, Offset: 0}, To: tokens.Pos{Line: 6, Column: 0, Offset: 0}}),
-			ast.NewRuleExportStatement("deny", []*ast.AttachmentClause{}, tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 7, Column: 0, Offset: 0}, To: tokens.Pos{Line: 7, Column: 0, Offset: 0}}),
+			ast.NewRuleStatement("allow", nil, ast.NewTrinaryLiteral(trinary.True, tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}}), nil, tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}}),
+			ast.NewRuleStatement("deny", nil, ast.NewTrinaryLiteral(trinary.False, tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 5, Column: 15, Offset: 15}, To: tokens.Pos{Line: 5, Column: 15, Offset: 15}}), nil, tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}}),
+			ast.NewRuleExportStatement("allow", []*ast.AttachmentClause{}, tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 6, Column: 0, Offset: 0}, To: tokens.Pos{Line: 6, Column: 0, Offset: 0}}),
+			ast.NewRuleExportStatement("deny", []*ast.AttachmentClause{}, tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 7, Column: 0, Offset: 0}, To: tokens.Pos{Line: 7, Column: 0, Offset: 0}}),
 		},
-		tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
+		tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
 	)
 
 	program := &ast.Program{
-		Reference: "test.sentra",
+		Reference: "test.sentrie",
 		Statements: []ast.Statement{
 			nsStmt,
 			policyStmt,
@@ -67,8 +54,8 @@ func (suite *IndexTestSuite) setupSegmentsIndexFixture() {
 
 	// Create nested namespace: com/example/sub
 	subNsStmt := ast.NewNamespaceStatement(
-		ast.NewFQN([]string{"com", "example", "sub"}, tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
-		tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		ast.NewFQN([]string{"com", "example", "sub"}, tokens.Range{File: "sub.sentrie", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
+		tokens.Range{File: "sub.sentrie", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	_, err = suite.idx.ensureNamespace(suite.T().Context(), subNsStmt)
 	suite.Require().NoError(err)
@@ -77,15 +64,15 @@ func (suite *IndexTestSuite) setupSegmentsIndexFixture() {
 	subPolicyStmt := ast.NewPolicyStatement(
 		"admin",
 		[]ast.Statement{
-			ast.NewFactStatement("role", ast.NewStringTypeRef(tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}}), "role", nil, true, tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}}),
-			ast.NewRuleStatement("check", nil, ast.NewTrinaryLiteral(trinary.True, tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}}), nil, tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}}),
-			ast.NewRuleExportStatement("check", []*ast.AttachmentClause{}, tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}}),
+			ast.NewFactStatement("role", ast.NewStringTypeRef(tokens.Range{File: "sub.sentrie", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}}), "role", nil, true, tokens.Range{File: "sub.sentrie", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}}),
+			ast.NewRuleStatement("check", nil, ast.NewTrinaryLiteral(trinary.True, tokens.Range{File: "sub.sentrie", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}}), nil, tokens.Range{File: "sub.sentrie", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}}),
+			ast.NewRuleExportStatement("check", []*ast.AttachmentClause{}, tokens.Range{File: "sub.sentrie", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}}),
 		},
-		tokens.Range{File: "sub.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
+		tokens.Range{File: "sub.sentrie", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
 	)
 
 	subProgram := &ast.Program{
-		Reference: "sub.sentra",
+		Reference: "sub.sentrie",
 		Statements: []ast.Statement{
 			subNsStmt,
 			subPolicyStmt,
@@ -262,8 +249,8 @@ func (suite *IndexTestSuite) TestResolveSegmentsWithLongPath() {
 func (suite *IndexTestSuite) TestResolveSegmentsWithSingleCharacterSegments() {
 	// Create a namespace with single character segments
 	singleCharNsStmt := ast.NewNamespaceStatement(
-		ast.NewFQN([]string{"a", "b"}, tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
-		tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
+		ast.NewFQN([]string{"a", "b"}, tokens.Range{File: "single.sentrie", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}}),
+		tokens.Range{File: "single.sentrie", From: tokens.Pos{Line: 1, Column: 0, Offset: 0}, To: tokens.Pos{Line: 1, Column: 0, Offset: 0}},
 	)
 	_, err := suite.idx.ensureNamespace(suite.T().Context(), singleCharNsStmt)
 	suite.Require().NoError(err)
@@ -272,15 +259,15 @@ func (suite *IndexTestSuite) TestResolveSegmentsWithSingleCharacterSegments() {
 	singleCharPolicyStmt := ast.NewPolicyStatement(
 		"c",
 		[]ast.Statement{
-			ast.NewFactStatement("d", ast.NewStringTypeRef(tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}}), "d", nil, true, tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}}),
-			ast.NewRuleStatement("e", nil, ast.NewTrinaryLiteral(trinary.True, tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}}), nil, tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}}),
-			ast.NewRuleExportStatement("e", []*ast.AttachmentClause{}, tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}}),
+			ast.NewFactStatement("d", ast.NewStringTypeRef(tokens.Range{File: "single.sentrie", From: tokens.Pos{Line: 3, Column: 10, Offset: 10}, To: tokens.Pos{Line: 3, Column: 10, Offset: 10}}), "d", nil, true, tokens.Range{File: "single.sentrie", From: tokens.Pos{Line: 3, Column: 0, Offset: 0}, To: tokens.Pos{Line: 3, Column: 0, Offset: 0}}),
+			ast.NewRuleStatement("e", nil, ast.NewTrinaryLiteral(trinary.True, tokens.Range{File: "single.sentrie", From: tokens.Pos{Line: 4, Column: 15, Offset: 15}, To: tokens.Pos{Line: 4, Column: 15, Offset: 15}}), nil, tokens.Range{File: "single.sentrie", From: tokens.Pos{Line: 4, Column: 0, Offset: 0}, To: tokens.Pos{Line: 4, Column: 0, Offset: 0}}),
+			ast.NewRuleExportStatement("e", []*ast.AttachmentClause{}, tokens.Range{File: "single.sentrie", From: tokens.Pos{Line: 5, Column: 0, Offset: 0}, To: tokens.Pos{Line: 5, Column: 0, Offset: 0}}),
 		},
-		tokens.Range{File: "single.sentra", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
+		tokens.Range{File: "single.sentrie", From: tokens.Pos{Line: 2, Column: 0, Offset: 0}, To: tokens.Pos{Line: 2, Column: 0, Offset: 0}},
 	)
 
 	singleCharProgram := &ast.Program{
-		Reference: "single.sentra",
+		Reference: "single.sentrie",
 		Statements: []ast.Statement{
 			singleCharNsStmt,
 			singleCharPolicyStmt,

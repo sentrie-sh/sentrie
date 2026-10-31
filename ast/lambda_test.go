@@ -12,7 +12,7 @@ import (
 
 func TestLambdaExpressionStringAndKind(t *testing.T) {
 	r := tokens.Range{
-		File: "test.sentra",
+		File: "test.sentrie",
 		From: tokens.Pos{Line: 1, Column: 1, Offset: 0},
 		To:   tokens.Pos{Line: 1, Column: 30, Offset: 29},
 	}
@@ -29,7 +29,7 @@ func TestLambdaExpressionStringAndKind(t *testing.T) {
 
 func TestLambdaExpressionFullStringOptionalParamsAndReturn(t *testing.T) {
 	r := tokens.Range{
-		File: "test.sentra",
+		File: "test.sentrie",
 		From: tokens.Pos{Line: 1, Column: 1, Offset: 0},
 		To:   tokens.Pos{Line: 1, Column: 30, Offset: 29},
 	}
@@ -48,7 +48,7 @@ func TestLambdaExpressionFullStringOptionalParamsAndReturn(t *testing.T) {
 
 func TestRequiredLambdaArity(t *testing.T) {
 	t.Parallel()
-	r := tokens.Range{File: "test.sentra"}
+	r := tokens.Range{File: "test.sentrie"}
 	body := NewBlockExpression(nil, NewIntegerLiteral(0, r), r)
 	lam := NewLambdaExpressionFull([]string{"a", "b", "c"}, nil, []bool{false, true, false}, nil, body, r)
 	if got := RequiredLambdaArity(lam); got != 2 {

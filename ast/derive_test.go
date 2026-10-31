@@ -11,7 +11,7 @@ import (
 )
 
 func TestDeriveStatementString(t *testing.T) {
-	rng := tokens.Range{File: "t.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 2, Column: 1, Offset: 10}}
+	rng := tokens.Range{File: "t.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 2, Column: 1, Offset: 10}}
 	lam := NewLambdaExpression([]string{"x"}, NewBlockExpression(nil, NewIntegerLiteral(1, rng), rng), rng)
 	ds := NewDeriveStatement("d", lam, rng)
 	require.Contains(t, ds.String(), "derive d")

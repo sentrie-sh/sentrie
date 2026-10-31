@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package parser
 
@@ -40,7 +27,7 @@ policy test {
     let x = 42; -- Inline comment
 }
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
@@ -74,7 +61,7 @@ policy test {
     let x = 42; -- Inline comment
 }
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
@@ -110,7 +97,7 @@ policy test {
     rule test = true; -- Line comment
 }
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
@@ -140,7 +127,7 @@ policy   test   {
    let   x   =   42   ;   
 }   
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
@@ -171,7 +158,7 @@ policy test { -- Trailing comment
     rule test = true; -- Trailing comment
 } -- Trailing comment
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
@@ -206,7 +193,7 @@ policy test {
     rule test = true;
 }
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
@@ -236,7 +223,7 @@ func (s *ParserTestSuite) TestParseWithNestedComments() {
 -- More outer comment
 namespace com/example;
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
@@ -261,7 +248,7 @@ policy test {
     --
 }
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
@@ -290,7 +277,7 @@ func (s *ParserTestSuite) TestParseWithOnlyComments() {
 -- This is a comment
 -- This is another comment
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err) // just having comments is valid
 	s.NotNil(program)
@@ -304,7 +291,7 @@ func (s *ParserTestSuite) TestParseWithMalformedComments() {
 /* Unclosed comment
 namespace com/example;
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.Error(err)
 	s.Nil(program)
@@ -320,7 +307,7 @@ policy test {
     let y = "-- This is not a comment --";
 }
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
@@ -352,7 +339,7 @@ policy test {
     fact user:string default "john"; -- Comment after expression
 }
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
@@ -384,7 +371,7 @@ policy test {
     fact user:string default (x > 0 ? "yes" : "no"); -- Ternary
 }
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
@@ -415,7 +402,7 @@ policy test {
     let y = ["a", "b", "c"]; -- String list comment
 }
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
@@ -446,7 +433,7 @@ policy test {
     let y = {"a": 1, "b": 2}; -- Multi-entry map comment
 }
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
@@ -477,7 +464,7 @@ policy test {
     let y = otherFunction(a, b, c); -- Multi-arg call comment
 }
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
@@ -508,7 +495,7 @@ policy test {
     let y = obj.field; -- Field access comment
 }
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
@@ -540,7 +527,7 @@ shape User {
     age: int -- Another field comment
 }
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
@@ -571,7 +558,7 @@ shape User {
 }
 export shape User
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err)
 	s.NotNil(program)
