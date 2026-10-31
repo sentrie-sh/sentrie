@@ -88,6 +88,123 @@ func (suite *IndexTestSuite) TestValidate_ReferenceCycleThroughImportWith() {
 	})
 }
 
+// TestValidate_ReferenceCycleAcrossMixedKinds pins cycles that span more than
+// two nodes, change expression kind at every hop, or bury the reference several
+// kinds deep.
+func (suite *IndexTestSuite) TestValidate_ReferenceCycleAcrossMixedKinds() {
+	cases := []struct {
+		name  string
+		body  string
+		names []string
+	}{
+		{
+			name:  "three rules, index access then map key then transform",
+			body:  "rule a = { yield b[0]\n  }\n  rule b = { yield { [c]: 1 }\n  }\n  rule c = { yield transform a with \".\"\n  }",
+			names: []string{"a", "b", "c"},
+		},
+		{
+			name:  "rule and lets, cast then index then comment",
+			body:  "rule a = { yield x as number\n  }\n  let x = [1][y]\n  let y = a -- note",
+			names: []string{"a", "x", "y"},
+		},
+		{
+			name:  "cast inside index access inside a map key",
+			body:  "rule a = { yield { [[1][b as number]]: 1 }\n  }\n  rule b = { yield a }",
+			names: []string{"a", "b"},
+		},
+		{
+			name:  "default clause",
+			body:  "rule a = default b[0] { yield 1 }\n  rule b = { yield a }",
+			names: []string{"a", "b"},
+		},
+		{
+			name:  "left of is defined",
+			body:  "rule a = { yield b is defined }\n  rule b = { yield a }",
+			names: []string{"a", "b"},
+		},
+		{
+			name:  "left of is empty",
+			body:  "rule a = { yield b is empty }\n  rule b = { yield a }",
+			names: []string{"a", "b"},
+		},
+		{
+			name:  "left of an is type check",
+			body:  "rule a = { yield b is number }\n  rule b = { yield a }",
+			names: []string{"a", "b"},
+		},
+		{
+			name:  "value on the right of is",
+			body:  "rule a = { yield 1 is b }\n  rule b = { yield a }",
+			names: []string{"a", "b"},
+		},
+		{
+			name:  "lambda body",
+			body:  "rule a = { yield any([1], (n) => { yield b }) }\n  rule b = { yield a }",
+			names: []string{"a", "b"},
+		},
+		{
+			name:  "lambda body behind a field access and a ternary",
+			body:  "rule a = { yield true ? any([1], (n) => { yield b }) : false }\n  rule b = { yield [a].first }",
+			names: []string{"a", "b"},
+		},
+		{
+			name:  "when clause",
+			body:  "rule a = when b[0] { yield 1 }\n  rule b = { yield a }",
+			names: []string{"a", "b"},
+		},
+	}
+	for _, tc := range cases {
+		suite.Run(tc.name, func() {
+			err := suite.walkSource(tc.body)
+			suite.Require().Error(err)
+			suite.Contains(err.Error(), "infinite recursion")
+			for _, n := range tc.names {
+				suite.Contains(err.Error(), n)
+			}
+		})
+	}
+}
+
+// TestValidate_AcyclicPackUsingEveryKindStillValidates guards against false
+// positives: a reference walk that reads a shape operand, a field name, a cast
+// target or a lambda body as a reference to a rule would report a cycle here.
+func (suite *IndexTestSuite) TestValidate_AcyclicPackUsingEveryKindStillValidates() {
+	src := `namespace com/ex
+shape Shp { id: string }
+policy q {
+  fact f?: number as f default 0
+  rule ok = f
+  export decision of ok
+}
+policy pol {
+  let rec = { "b": 1, "a": 2 }
+  let lst = [1, 2]
+  -- the fields b and a are names, not references to the rules b and a
+  rule a = { yield rec.b + rec.a }
+  rule b = { yield a }
+  rule shape_operand = { yield { "id": "x" } is Shp }
+  rule list_shape_operand = { yield [{ "id": "x" }] is list[Shp] }
+  rule value_operand = { yield 1 is b }
+  rule index_kinds = { yield lst[0] as number }
+  rule map_kinds = { yield { [a]: transform "x" with "." } }
+  rule comments = { yield b -- note
+  }
+  rule lambda_kinds = { yield any(lst, (n) => { yield n > b }) }
+  rule imported = import decision ok from com/ex/q with f as b
+  rule defined_empty = { yield (b is defined) and (lst is empty) }
+  rule ternary_kinds = { yield b ? a : lst[1] }
+  rule elvis = { yield b ?: a }
+  export decision of b
+}
+`
+	ctx := suite.T().Context()
+	idx := CreateIndex()
+	prog, err := parser.NewParserFromString(src, "acyclic.sentrie").ParseProgram(ctx)
+	suite.Require().NoError(err)
+	suite.Require().NoError(idx.AddProgram(ctx, prog))
+	suite.NoError(idx.Validate(ctx))
+}
+
 // TestForEachExprChildCoversEveryASTNode fails when the ast package gains an
 // expression kind (or a block statement kind) that forEachExprChild has no case
 // for, so the reference cycle check cannot silently skip a new kind.
