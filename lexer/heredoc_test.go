@@ -122,3 +122,84 @@ func TestLexerHereDocUnterminated(t *testing.T) {
 		require.Equal(t, tokens.Pos{Line: 1, Column: 5, Offset: 4}, last.Range.From, "%q", input)
 	}
 }
+
+// TestLexerHereDocCRLFBodyLines checks how a CRLF body line becomes a value
+// line: an empty CRLF line stays an empty line, a '\r' that is not at the end
+// of a line stays, and LF and CRLF lines can mix in one heredoc (#270).
+func TestLexerHereDocCRLFBodyLines(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"empty CRLF line", "<<<T\r\na\r\n\r\nb\r\nT\r\n", "a\n\nb\n"},
+		{"empty CRLF line before the terminator", "<<<T\r\na\r\n\r\nT\r\n", "a\n\n"},
+		{"only an empty CRLF line", "<<<T\r\n\r\nT\r\n", "\n"},
+		{"no body", "<<<T\r\nT\r\n", ""},
+		{"lone CR inside a line", "<<<T\na\rb\nT\n", "a\rb\n"},
+		{"lone CR inside a CRLF line", "<<<T\r\na\rb\r\nT\r\n", "a\rb\n"},
+		{"two CRs at a line end drop only one", "<<<T\r\na\r\r\nT\r\n", "a\r\n"},
+		{"mixed endings, CRLF first", "<<<T\r\na\r\nb\nc\r\nT\n", "a\nb\nc\n"},
+		{"mixed endings, LF first", "<<<T\na\nb\r\nc\nT\r\n", "a\nb\nc\n"},
+		{"CRLF body, LF terminator", "<<<T\r\na\r\nT\nx", "a\n"},
+		{"LF body, CRLF terminator", "<<<T\na\nT\r\nx", "a\n"},
+		{"padded tag line, CRLF", "<<<T \t\r\na\r\nT\r\n", "a\n"},
+	}
+	for _, tc := range cases {
+		toks := lexAll(t, tc.input)
+		require.NotEmpty(t, toks, "%s: %q", tc.name, tc.input)
+		require.Equal(t, tokens.String, toks[0].Kind, "%s: %q: %s", tc.name, tc.input, toks[0].Value)
+		require.Equal(t, tc.want, toks[0].Value, "%s: %q", tc.name, tc.input)
+	}
+}
+
+// TestLexerHereDocLinesThatOnlyContainTheTag checks that a line ends a
+// heredoc only when it is the tag and nothing else but trailing whitespace: a
+// line with other text before or after the tag, or with the tag repeated, is
+// body (#270).
+func TestLexerHereDocLinesThatOnlyContainTheTag(t *testing.T) {
+	for _, eol := range []string{"\n", "\r\n"} {
+		body := []string{"T x", "TT", "xT", "T.", "T\rx", "T;", "t"}
+		input := "<<<T" + eol + strings.Join(body, eol) + eol + "T" + eol + "y"
+		toks := lexAll(t, input)
+		require.Len(t, toks, 2, "%q", input)
+		require.Equal(t, tokens.String, toks[0].Kind, "%q: %s", input, toks[0].Value)
+		require.Equal(t, "T x\nTT\nxT\nT.\nT\rx\nT;\nt\n", toks[0].Value, "%q", input)
+		require.Equal(t, tokens.Ident, toks[1].Kind, "%q", input)
+		require.Equal(t, "y", toks[1].Value, "%q", input)
+	}
+}
+
+// TestLexerTwoHereDocsInACRLFFile checks that the second heredoc starts and
+// ends where it is written when the first one is in a CRLF file, so the first
+// leaves nothing behind (#270).
+func TestLexerTwoHereDocsInACRLFFile(t *testing.T) {
+	lines := []string{"a = <<<ONE", "1", "ONE  ", "b = <<<TWO", "", "2", "TWO", "c"}
+	input := strings.Join(lines, "\r\n") + "\r\n"
+	toks := lexAll(t, input)
+	require.Len(t, toks, 7, "%q", input)
+
+	one, two := toks[2], toks[5]
+	require.Equal(t, tokens.String, one.Kind, "%s", one.Value)
+	require.Equal(t, "1\n", one.Value)
+	require.Equal(t, "<<<ONE\r\n1\r\nONE", input[one.Range.From.Offset:one.Range.To.Offset])
+	require.Equal(t, 3, one.Range.To.Line)
+	require.Equal(t, 4, one.Range.To.Column)
+
+	require.Equal(t, tokens.Ident, toks[3].Kind)
+	require.Equal(t, 4, toks[3].Range.From.Line)
+	require.Equal(t, 1, toks[3].Range.From.Column)
+
+	require.Equal(t, tokens.String, two.Kind, "%s", two.Value)
+	require.Equal(t, "\n2\n", two.Value)
+	require.Equal(t, 4, two.Range.From.Line)
+	require.Equal(t, 5, two.Range.From.Column)
+	require.Equal(t, "<<<TWO\r\n\r\n2\r\nTWO", input[two.Range.From.Offset:two.Range.To.Offset])
+	require.Equal(t, 7, two.Range.To.Line)
+	require.Equal(t, 4, two.Range.To.Column)
+
+	c := toks[6]
+	require.Equal(t, tokens.Ident, c.Kind)
+	require.Equal(t, 8, c.Range.From.Line)
+	require.Equal(t, 1, c.Range.From.Column)
+}
