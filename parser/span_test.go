@@ -139,7 +139,8 @@ type spanCase struct {
 // endings, and checks every statement's span through the real statement
 // dispatchers. Statements sit at the start of a line, indented, after a
 // multi-byte string and next to another statement on the same line, and some
-// span several lines (#236). Offsets are checked by slicing the source: the
+// span several lines (#236). A heredoc whose terminator has trailing
+// whitespace ends just past its tag, in a CRLF file too (#270). Offsets are checked by slicing the source: the
 // span must cover exactly the statement's text.
 func (s *ParserTestSuite) TestProgramStatementSpans() {
 	lines := []string{
@@ -163,8 +164,11 @@ func (s *ParserTestSuite) TestProgramStatementSpans() {
 		/* 18 */ "  ]",
 		/* 19 */ "  use { x } from @sentrie/time as t",
 		/* 20 */ "  rule r = default false true",
-		/* 21 */ "  export decision of r",
-		/* 22 */ "}",
+		/* 21 */ "  let h = <<<EOT",
+		/* 22 */ "hello",
+		/* 23 */ "EOT \t",
+		/* 24 */ "  export decision of r",
+		/* 25 */ "}",
 	}
 	const file = "t.sentrie"
 	want := []spanCase{
@@ -173,8 +177,9 @@ func (s *ParserTestSuite) TestProgramStatementSpans() {
 		{"export shape Person", 7, 1, 7, 20, "t.sentrie:7:1-20"},
 		{"policy p {\n" + `  title "café"` + "\n" + `  description "d"` + "\n" + `  version "1.0"` + "\n" +
 			`  tag "é" = "ü"; fact f: string` + "\n  let x = 1\n  let y = [\n    1,\n    2\n  ]\n" +
-			"  use { x } from @sentrie/time as t\n  rule r = default false true\n  export decision of r\n}",
-			9, 1, 22, 2, "t.sentrie:9:1-22:2"},
+			"  use { x } from @sentrie/time as t\n  rule r = default false true\n" +
+			"  let h = <<<EOT\nhello\nEOT \t\n  export decision of r\n}",
+			9, 1, 25, 2, "t.sentrie:9:1-25:2"},
 	}
 	inPolicy := []spanCase{
 		{`title "café"`, 10, 3, 10, 15, "t.sentrie:10:3-15"},
@@ -186,7 +191,8 @@ func (s *ParserTestSuite) TestProgramStatementSpans() {
 		{"let y = [\n    1,\n    2\n  ]", 15, 3, 18, 4, "t.sentrie:15:3-18:4"},
 		{"use { x } from @sentrie/time as t", 19, 3, 19, 36, ""},
 		{"rule r = default false true", 20, 3, 20, 30, ""},
-		{"export decision of r", 21, 3, 21, 23, "t.sentrie:21:3-23"},
+		{"let h = <<<EOT\nhello\nEOT", 21, 3, 23, 4, "t.sentrie:21:3-23:4"},
+		{"export decision of r", 24, 3, 24, 23, "t.sentrie:24:3-23"},
 	}
 
 	for _, eol := range []string{"\n", "\r\n"} {
