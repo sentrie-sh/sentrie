@@ -25,14 +25,14 @@ func validateDerivePure(idx *Index, d *Derive) error {
 	if lam == nil || lam.Body == nil {
 		return nil
 	}
-	scope := make(map[string]struct{}, len(lam.Params))
+	scope := make(map[string]deriveBinding, len(lam.Params))
 	for _, p := range lam.Params {
-		scope[p] = struct{}{}
+		scope[p] = deriveParam
 	}
 	return walkDeriveBlock(idx, d, lam.Body, scope)
 }
 
-func walkDeriveBlock(idx *Index, d *Derive, b *ast.BlockExpression, scope map[string]struct{}) error {
+func walkDeriveBlock(idx *Index, d *Derive, b *ast.BlockExpression, scope map[string]deriveBinding) error {
 	if b == nil {
 		return nil
 	}
@@ -45,7 +45,10 @@ func walkDeriveBlock(idx *Index, d *Derive, b *ast.BlockExpression, scope map[st
 			return err
 		}
 		scope = cloneScope(scope)
-		scope[vd.Name] = struct{}{}
+		scope[vd.Name] = deriveLet
+		if _, ok := vd.Value.(*ast.LambdaExpression); ok {
+			scope[vd.Name] = deriveLambdaLet
+		}
 	}
 	if err := yieldHasNoLambda(b.Yield); err != nil {
 		return err
@@ -53,10 +56,27 @@ func walkDeriveBlock(idx *Index, d *Derive, b *ast.BlockExpression, scope map[st
 	return walkDeriveExpr(idx, d, b.Yield, scope)
 }
 
-func cloneScope(scope map[string]struct{}) map[string]struct{} {
-	out := make(map[string]struct{}, len(scope)+1)
-	for k := range scope {
-		out[k] = struct{}{}
+// deriveBinding is how a name in a derive body's lexical scope was bound. It
+// decides whether a call through the name is pure (checkDeriveCall).
+type deriveBinding int
+
+const (
+	// deriveParam is a parameter of the derive or of a lambda in its body. Its
+	// value comes from a caller and may be a lambda defined outside any
+	// derive, which captures facts and modules.
+	deriveParam deriveBinding = iota
+	// deriveLet is a let whose initializer is not a lambda literal.
+	deriveLet
+	// deriveLambdaLet is a let bound directly to a lambda literal. Evaluating
+	// it inside the derive body yields a lambda that captures the detached
+	// derive context, and this walk checks its body, so calling it is pure.
+	deriveLambdaLet
+)
+
+func cloneScope(scope map[string]deriveBinding) map[string]deriveBinding {
+	out := make(map[string]deriveBinding, len(scope)+1)
+	for k, v := range scope {
+		out[k] = v
 	}
 	return out
 }
@@ -166,11 +186,11 @@ func scanLambdasOutsideCalls(e ast.Expression, underCall bool) error {
 	}
 }
 
-func walkDeriveExpr(idx *Index, d *Derive, e ast.Expression, scope map[string]struct{}) error {
+func walkDeriveExpr(idx *Index, d *Derive, e ast.Expression, scope map[string]deriveBinding) error {
 	return walkDeriveExprSeen(idx, d, e, scope, make(map[ast.Expression]struct{}))
 }
 
-func walkDeriveExprSeen(idx *Index, d *Derive, e ast.Expression, scope map[string]struct{}, seen map[ast.Expression]struct{}) error {
+func walkDeriveExprSeen(idx *Index, d *Derive, e ast.Expression, scope map[string]deriveBinding, seen map[ast.Expression]struct{}) error {
 	if e == nil {
 		return nil
 	}
@@ -186,7 +206,7 @@ func walkDeriveExprSeen(idx *Index, d *Derive, e ast.Expression, scope map[strin
 	case *ast.LambdaExpression:
 		inner := cloneScope(scope)
 		for _, p := range n.Params {
-			inner[p] = struct{}{}
+			inner[p] = deriveParam
 		}
 		return walkDeriveBlock(idx, d, n.Body, inner)
 	case *ast.BlockExpression:
@@ -204,7 +224,7 @@ func walkDeriveExprSeen(idx *Index, d *Derive, e ast.Expression, scope map[strin
 	}
 }
 
-func checkDeriveIdentifier(d *Derive, name string, scope map[string]struct{}) error {
+func checkDeriveIdentifier(d *Derive, name string, scope map[string]deriveBinding) error {
 	if _, ok := scope[name]; ok {
 		return nil
 	}
@@ -226,7 +246,7 @@ func checkDeriveIdentifier(d *Derive, name string, scope map[string]struct{}) er
 	return fmt.Errorf("identifier %q is not available in this derive (params, lets, pure builtins, and visible derives only)", name)
 }
 
-func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[string]struct{}, seen map[ast.Expression]struct{}) error {
+func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[string]deriveBinding, seen map[ast.Expression]struct{}) error {
 	if _, ok := c.Callee.(*ast.FieldAccessExpression); ok {
 		return fmt.Errorf("TypeScript module calls are not permitted inside a derive")
 	}
@@ -260,10 +280,28 @@ func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[str
 	}
 	if id, ok := c.Callee.(*ast.Identifier); ok {
 		name := id.Value
-		// The runtime (getTarget) resolves a call by name to a DefineShort
-		// derive, then to a builtin, and never to a local binding. So a
-		// parameter or let named like a builtin does not shadow it for calls:
-		// refuse the builtin here exactly as the runtime guard would.
+		// The runtime (getTarget) resolves a call by name to a local binding
+		// first, then a DefineShort derive, then a builtin (#161). A call
+		// through a local binding is pure only when the callee is a lambda
+		// defined in this derive body: the runtime refuses a lambda defined
+		// outside any derive (bindingCallTarget). This check cannot see what
+		// a parameter holds, so it accepts only a let bound directly to a
+		// lambda literal, which never yields an outside lambda.
+		if binding, ok := scope[name]; ok {
+			switch binding {
+			case deriveLambdaLet:
+				for _, a := range c.Arguments {
+					if err := walkDeriveExprSeen(idx, d, a, scope, seen); err != nil {
+						return err
+					}
+				}
+				return nil
+			case deriveParam:
+				return fmt.Errorf("calling parameter %q is not permitted inside a derive - its value may be a lambda defined outside the derive, which could read facts or call modules", name)
+			default:
+				return fmt.Errorf("calling %q is not permitted inside a derive - only a let bound directly to a lambda can be called", name)
+			}
+		}
 		if d.DefineShort == nil || d.DefineShort[name] == nil {
 			if decl, ok := builtins.Table[name]; ok && !decl.PermittedInDerive() {
 				if decl.Nondeterministic {
@@ -271,14 +309,6 @@ func checkDeriveCall(idx *Index, d *Derive, c *ast.CallExpression, scope map[str
 				}
 				return fmt.Errorf("builtin %q is not permitted inside a derive", name)
 			}
-		}
-		if _, ok := scope[name]; ok {
-			for _, a := range c.Arguments {
-				if err := walkDeriveExprSeen(idx, d, a, scope, seen); err != nil {
-					return err
-				}
-			}
-			return nil
 		}
 		if d.DefineShort != nil && d.DefineShort[name] != nil {
 			for _, a := range c.Arguments {

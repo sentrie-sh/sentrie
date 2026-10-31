@@ -35,7 +35,7 @@ The static gate that makes `derive` genuinely pure. It walks every derive body w
   - **Exceptions:** Propagated from the walk.
 
 - **Signature:** `walkDeriveBlock(idx, d, b, scope) -> error`
-  - **Behavior:** A derive body may contain **only `let` declarations before `yield`**. Each let's initializer is checked against the scope *before* the binding is added, so a let cannot reference itself. The scope is cloned per binding, giving proper sequential shadowing.
+  - **Behavior:** A derive body may contain **only `let` declarations before `yield`**. Each let's initializer is checked against the scope *before* the binding is added, so a let cannot reference itself. The scope is cloned per binding, giving proper sequential shadowing. The scope maps each name to a `deriveBinding` (parameter, let, or let bound to a lambda literal), which `checkDeriveCall` reads.
   - **Side Effects:** None; scopes are copied.
   - **Exceptions:** `derive body may only contain let declarations before yield (got %T)`.
 
@@ -55,9 +55,9 @@ The static gate that makes `derive` genuinely pure. It walks every derive body w
   - **Exceptions:** One of the four messages above.
 
 - **Signature:** `checkDeriveCall(idx, d, c, scope, seen) -> error`
-  - **Behavior:** Rejects field-access callees outright (that is the TypeScript module call form). Resolves slash-qualified callees of **three or more segments** through the snapshots then the global registry, enforcing visibility. Otherwise accepts in-scope callables, visible short-name derives, and derive-safe builtins (`Decl.PermittedInDerive`). A builtin marked `Nondeterministic` (such as `now`) is refused with its own message, mirroring the runtime guard in [[runtime.eval_call]]. Because the runtime never resolves a call through a local binding, a builtin that is not `PermittedInDerive` is refused even when a parameter or `let` of the same name is in scope (unless a `DefineShort` derive has the name). Everything else fails.
+  - **Behavior:** Rejects field-access callees outright (that is the TypeScript module call form). Resolves slash-qualified callees of **three or more segments** through the snapshots then the global registry, enforcing visibility. An identifier callee in lexical scope is resolved first, as at runtime (#161): the call is accepted only when the name is a let bound directly to a lambda literal (`deriveLambdaLet`), and a call through a parameter (of the derive or of a lambda in its body) or any other let is refused, because its value may be a lambda defined outside the derive. Otherwise accepts visible short-name derives and derive-safe builtins (`Decl.PermittedInDerive`). A builtin marked `Nondeterministic` (such as `now`) is refused with its own message, mirroring the runtime guard in [[runtime.eval_call]]. Everything else fails.
   - **Side Effects:** None.
-  - **Exceptions:** `TypeScript module calls are not permitted inside a derive`; `unknown derive %q`; visibility errors; `builtin %q is nondeterministic and is not permitted inside a derive`; `call is not permitted inside a derive (only visible derives and pure builtins)`.
+  - **Exceptions:** `TypeScript module calls are not permitted inside a derive`; `calling parameter %q is not permitted inside a derive`; `calling %q is not permitted inside a derive - only a let bound directly to a lambda can be called`; `unknown derive %q`; visibility errors; `builtin %q is nondeterministic and is not permitted inside a derive`; `call is not permitted inside a derive (only visible derives and pure builtins)`.
 
 - **Signature:** `isAllowedDeriveCallbackArg(builtin string, argIdx int) -> bool`
   - **Behavior:** A hardcoded allowlist letting a single-parameter derive be passed as a callback in argument position 1 of `filter`, `collect`, `any`, `all`, `first`, and `distinct`.

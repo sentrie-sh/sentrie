@@ -31,7 +31,7 @@ A best-effort static type inferencer: given an expression and a lexical scope, i
   - **Exceptions:** N/A.
 
 - **Signature:** `newRuleKindCheckCtx(idx, policy) -> *kindCheckCtx` / `newDeriveKindCheckCtx(idx, d) -> *kindCheckCtx`
-  - **Behavior:** The rule variant binds facts **by alias**, lets, policy derives, and then namespace derives **only where the name is not already taken** - encoding policy-over-namespace shadowing. The derive variant binds typed lambda params and the derive's visibility snapshot.
+  - **Behavior:** The rule variant binds facts **by alias** and lets, then policy derives and then namespace derives **only where the name is not already taken** - so a fact or let shadows a derive of the same name, and a policy derive a namespace one, as at runtime. The derive variant binds typed lambda params, then the derive's `DefineShort` snapshot where a parameter does not already hold the name.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -40,8 +40,13 @@ A best-effort static type inferencer: given an expression and a lexical scope, i
   - **Side Effects:** `bindLet` mutates the receiver's scope, which is why callers clone first.
   - **Exceptions:** None.
 
+- **Signature:** `(*kindCheckCtx).localCallee(name) -> (bindingInfo, isRule bool, ok bool)`
+  - **Behavior:** Whether an identifier callee resolves to a value binding: a fact, let or parameter in scope (a scope entry that is a derive does not count), or outside a derive body a rule of the policy. Mirrors `calleeIsBinding` in [[runtime.eval_call]].
+  - **Side Effects:** None.
+  - **Exceptions:** None.
+
 - **Signature:** `(*kindCheckCtx).isBuiltinCall(c) -> (*builtins.Decl, bool)`
-  - **Behavior:** Only identifier callees qualify. Applies the precedence **local binding > derive > builtin**, matching the runtime's `getTarget`, so a shadowed builtin name is correctly not treated as a builtin.
+  - **Behavior:** Only identifier callees qualify. Applies the precedence **value binding > derive > builtin**, matching the runtime's `getTarget` ([#161](https://github.com/sentrie-sh/sentrie/issues/161)), so a let, parameter, fact or rule named like a builtin is not treated as that builtin. It is the single resolver behind `forEachBuiltinCall`, so builtin arity checks, nondeterminism warnings and capability checks all follow it.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -83,4 +88,4 @@ A best-effort static type inferencer: given an expression and a lexical scope, i
   - **`typeRefKind`'s switch must list every `ast.TypeRef` implementation**, as its comment states. A new type ref silently infers "unknown" instead of failing, so the gap is invisible until someone notices a missed diagnostic.
   - **Read-only shape access is a hard requirement.** These helpers run **before** commit, when shapes are not yet hydrated, so field lookups can miss inherited fields. Making them trigger hydration would reorder the lifecycle and corrupt the topological guarantee in [[index.commit]].
   - **Integer and float collapse to one kind.** The distinction preserved by the parser is erased here, matching `box`'s single numeric kind - so no arity or kind check can distinguish them.
-  - **Precedence duplication with the runtime.** `isBuiltinCall` re-implements the runtime's name-resolution order; drift between the two produces checks applied to the wrong callee.
+  - **Precedence duplication with the runtime.** `localCallee` and `isBuiltinCall` re-implement the runtime's name-resolution order (`calleeIsBinding` and `getTarget`); drift between the two produces checks applied to the wrong callee.

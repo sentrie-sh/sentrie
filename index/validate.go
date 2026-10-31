@@ -69,6 +69,9 @@ func (idx *Index) validate(ctx context.Context) error {
 	if err := idx.validateDerivePurity(); err != nil {
 		return err
 	}
+	if err := idx.checkCallTargets(ctx); err != nil {
+		return err
+	}
 	if err := idx.checkBuiltinCalls(ctx); err != nil {
 		return err
 	}
@@ -165,7 +168,11 @@ func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Polic
 				addNodes(g, []ast.Node{n.Condition, n.ThenBranch, n.ElseBranch}, referedBy, policy)
 			}
 		case *ast.LambdaExpression:
-			addNodes(g, []ast.Node{n.Body}, referedBy, policy)
+			// A lambda body is not evaluated when the let or rule holding the
+			// lambda is, so its references are not edges: a let lambda may
+			// call itself or another let lambda (#161). The runtime's
+			// reference stack and call depth limits stop a recursion that
+			// does not end.
 		case *ast.BlockExpression:
 			for _, stmt := range n.Statements {
 				addNodes(g, []ast.Node{stmt}, referedBy, policy)

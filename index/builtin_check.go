@@ -23,16 +23,6 @@ import (
 func (idx *Index) checkBuiltinCalls(ctx context.Context) error {
 	var errs []error
 	err := idx.forEachBuiltinCall(ctx, func(k *kindCheckCtx, decl *builtins.Decl, call *ast.CallExpression) {
-		// The shared walk reports every call the runtime sends to a builtin,
-		// local bindings included (see runtimeBuiltinCallee), which the
-		// nondeterminism and capabilities checks need. The arity and kind
-		// check keeps its existing rule that a local binding shadows a
-		// builtin of the same name (isBuiltinCall), so a shadowed call is
-		// left to the runtime as before. #161 tracks calling let-bound
-		// lambdas; when it lands, both rules change together.
-		if _, ok := k.isBuiltinCall(call); !ok {
-			return
-		}
 		errs = append(errs, k.checkBuiltinCall(decl, call)...)
 	})
 	if err != nil {

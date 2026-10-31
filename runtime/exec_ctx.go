@@ -5,9 +5,11 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/sentrie-sh/sentrie/ast"
@@ -37,6 +39,18 @@ type ExecutionContext struct {
 
 	refStack []string // reference stack for cycle detection
 
+	// callDepth counts the lambda and derive invocations enclosing this
+	// context (see MaxCallDepth). Child contexts inherit it; an invocation
+	// sets its child's depth to the call site's plus one. It is written only
+	// before the context is shared, so it needs no lock.
+	callDepth int
+
+	// evalDepth counts the eval frames active in this evaluation (see
+	// MaxEvalDepth). One counter is shared by every context of a root
+	// evaluation, imported decisions included; a lambda invocation uses its
+	// call site's counter.
+	evalDepth *evalDepthCounter
+
 	facts map[string]injectedFact        // injected via WITH
 	lets  map[string]*ast.VarDeclaration // policy-scoped lets
 
@@ -65,6 +79,7 @@ func NewExecutionContext(policy *index.Policy, executor Executor) *ExecutionCont
 		parent:    nil,
 		createdAt: time.Now(),
 		policy:    policy,
+		evalDepth: &evalDepthCounter{},
 		refStack:  make([]string, 0), // reference stack
 		facts:     make(map[string]injectedFact),
 		locals:    make(map[string]box.Value),
@@ -87,6 +102,8 @@ func (ec *ExecutionContext) DetachedChildContext() *ExecutionContext {
 		executor:  ec.executor,
 		createdAt: ec.createdAt,
 		refStack:  slices.Clone(ec.refStack),
+		callDepth: ec.callDepth,
+		evalDepth: ec.evalDepth,
 		locals:    make(map[string]box.Value),
 	}
 }
@@ -104,6 +121,8 @@ func (ec *ExecutionContext) AttachedChildContext() *ExecutionContext {
 		parent:     ec,
 		createdAt:  ec.createdAt,
 		refStack:   slices.Clone(ec.refStack),            // inherit the call stack from the parent
+		callDepth:  ec.callDepth,                         // inherit the invocation depth from the parent
+		evalDepth:  ec.evalDepth,                         // share the evaluation's frame counter
 		policy:     ec.policy,                            // inherit the policy from the parent
 		modules:    ec.modules,                           // inherit the module bindings from the parent
 		executor:   ec.executor,                          // inherit the executor from the parent
@@ -275,4 +294,74 @@ func (ec *ExecutionContext) GetRefStack() []string {
 	ec.rwmu.RLock()
 	defer ec.rwmu.RUnlock()
 	return slices.Clone(ec.refStack)
+}
+
+// MaxCallDepth bounds nested lambda and derive invocations in one evaluation.
+// A let-bound lambda can call itself (#161), directly or by being passed to
+// itself, and neither form can be ruled out statically, so unbounded recursion
+// is stopped here with an ordinary error instead of a fatal Go stack overflow
+// that would take a server down. MaxCallDepth alone does not bound the Go
+// stack, because one level costs stack in proportion to how deeply the
+// recursive call is nested in the body; MaxEvalDepth bounds that.
+const MaxCallDepth = 1000
+
+// MaxEvalDepth bounds the eval frames active at once in one evaluation, which
+// is what Go stack use is proportional to. A runaway recursion stopped at
+// this limit used under 128 MB of Go stack (64 MB was not enough), with and
+// without -race, whether its body was trivial or nested 2000 terms deep:
+// eight times below Go's default 1 GB maximum stack. A trivial
+// self-recursive lambda uses about a dozen frames per level, so MaxCallDepth
+// trips first for it. A non-recursive expression hits the limit only when
+// nested about 25,000 levels deep.
+const MaxEvalDepth = 50000
+
+// ErrEvalDepthExceeded is wrapped by the error eval returns when an
+// evaluation would exceed MaxEvalDepth. Like ErrCallDepthExceeded it is
+// passed through evalCall unwrapped.
+var ErrEvalDepthExceeded = errors.New("evaluation depth exceeded")
+
+// evalDepthCounter is one evaluation's count of active eval frames. An
+// evaluation runs on one goroutine; the counter is atomic only so that a
+// callable that escaped into another evaluation cannot race on it.
+type evalDepthCounter struct {
+	n atomic.Int64
+}
+
+func (c *evalDepthCounter) enter() error {
+	if c.n.Add(1) > MaxEvalDepth {
+		c.n.Add(-1)
+		return fmt.Errorf("%w (limit %d nested evaluations)", ErrEvalDepthExceeded, MaxEvalDepth)
+	}
+	return nil
+}
+
+func (c *evalDepthCounter) leave() { c.n.Add(-1) }
+
+// inheritDepth carries a calling evaluation's depth budget into ec, a fresh
+// root context for an imported decision, so a recursion through imports is
+// bounded by the same limits.
+func (ec *ExecutionContext) inheritDepth(caller *ExecutionContext) {
+	if caller == nil {
+		return
+	}
+	ec.callDepth = caller.callDepth
+	if caller.evalDepth != nil {
+		ec.evalDepth = caller.evalDepth
+	}
+}
+
+// ErrCallDepthExceeded is wrapped by the error an invocation returns when it
+// would exceed MaxCallDepth. evalCall passes it through without adding a
+// "failed to call function" layer per level.
+var ErrCallDepthExceeded = errors.New("call depth exceeded")
+
+// enterCall returns the depth of an invocation made from the context site,
+// or an error when it would exceed MaxCallDepth. kind names the callee in the
+// message ("lambda" or "derive").
+func enterCall(site *ExecutionContext, kind string) (int, error) {
+	depth := site.callDepth + 1
+	if depth > MaxCallDepth {
+		return 0, fmt.Errorf("%s %w (limit %d)", kind, ErrCallDepthExceeded, MaxCallDepth)
+	}
+	return depth, nil
 }

@@ -53,7 +53,7 @@ func (s *IndexTestSuite) TestCheckCapabilitiesReportsEveryDenialWithSpan() {
 	s.True(errors.Is(err, xerr.ErrIndex))
 
 	lines := strings.Split(err.Error(), "\n")
-	s.Require().Len(lines, 6, err.Error())
+	s.Require().Len(lines, 5, err.Error())
 	s.Contains(lines[0], `caps.sentrie:3:`)
 	s.Contains(lines[0], `builtin "now": not granted by the capabilities file`)
 	s.Contains(lines[1], `caps.sentrie:4:`)
@@ -62,13 +62,11 @@ func (s *IndexTestSuite) TestCheckCapabilitiesReportsEveryDenialWithSpan() {
 	s.Contains(lines[2], `local module "./helper"`)
 	s.Contains(lines[3], `caps.sentrie:7:`)
 	s.Contains(lines[3], `local module "@local/lib/other"`)
-	// count(1) in rule shadowed is denied even though a let named count is in
-	// scope: the runtime's getTarget never resolves a call to a local binding
-	// (#161), so it would call the builtin. The walk matches that (#200).
-	s.Contains(lines[4], `caps.sentrie:10:`)
+	// count(1) in rule shadowed calls the let named count, not the builtin:
+	// the runtime's getTarget resolves a call through a local binding first
+	// (#161), so only rule ok's count([1]) needs the grant.
+	s.Contains(lines[4], `caps.sentrie:12:`)
 	s.Contains(lines[4], `builtin "count"`)
-	s.Contains(lines[5], `caps.sentrie:12:`)
-	s.Contains(lines[5], `builtin "count"`)
 }
 
 func (s *IndexTestSuite) TestCheckCapabilitiesAllowsGrantedUses() {

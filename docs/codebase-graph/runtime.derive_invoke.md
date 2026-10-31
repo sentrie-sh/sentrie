@@ -31,9 +31,9 @@ The runtime half of derive purity. It pads and type-validates arguments, then ev
   - **Exceptions:** `too many arguments: want at most %d, got %d`; `not enough arguments: want at least %d, got %d`; `%s argument %q: …` on type failure.
 
 - **Signature:** `invokeDerive(ctx, callerEC, exec, callerPolicy, d *index.Derive, args) -> (box.Value, error)`
-  - **Behavior:** Returns `ctx.Err()` first if the context has ended, which bounds derive chains and derive callbacks in collection builtins ([#225](https://github.com/sentrie-sh/sentrie/issues/225)). Then validates arguments, creates a detached child, marks it with `evalDerive = d`, pushes the derive's FQN onto the cloned reference stack, force-binds parameters as locals, evaluates the body, rejects a callable result, then validates the declared return type.
+  - **Behavior:** Returns `ctx.Err()` first if the context has ended, which bounds derive chains and derive callbacks in collection builtins ([#225](https://github.com/sentrie-sh/sentrie/issues/225)). Then takes a call depth from the caller (`enterCall`, see [[runtime.exec_ctx]]), validates arguments, creates a detached child at that depth, marks it with `evalDerive = d`, pushes the derive's FQN onto the cloned reference stack, force-binds parameters as locals, evaluates the body, rejects a callable result, then validates the declared return type.
   - **Side Effects:** Body evaluation under purity restrictions; reference-stack mutation on the child only.
-  - **Exceptions:** the context error; argument errors; `xerr.ErrInfiniteRecursion` via `PushRefStack`; `derive cannot yield a callable value`; `derive return: …`.
+  - **Exceptions:** the context error; `derive call depth exceeded (limit 1000)`; argument errors; `xerr.ErrInfiniteRecursion` via `PushRefStack`; `derive cannot yield a callable value`; `derive return: …`.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless per call; every invocation gets a fresh detached context.

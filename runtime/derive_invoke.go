@@ -58,14 +58,19 @@ func invokeDerive(ctx context.Context, callerEC *ExecutionContext, exec *executo
 	if err := ctx.Err(); err != nil {
 		return box.Undefined(), err
 	}
+	depth, err := enterCall(callerEC, "derive")
+	if err != nil {
+		return box.Undefined(), err
+	}
 	lam := d.Lambda
-	args, err := padAndValidateDeriveArgs(ctx, callerEC, exec, callerPolicy, lam, args)
+	args, err = padAndValidateDeriveArgs(ctx, callerEC, exec, callerPolicy, lam, args)
 	if err != nil {
 		return box.Undefined(), err
 	}
 
 	child := callerEC.DetachedChildContext()
 	defer child.Dispose()
+	child.callDepth = depth
 
 	child.evalDerive = d
 

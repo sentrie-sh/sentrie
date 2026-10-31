@@ -540,10 +540,10 @@ policy pol {
 	require.NoError(s.T(), idx.Validate(ctx))
 }
 
-// The runtime never resolves a call through a local binding, so a parameter
-// named now does not shadow the builtin for calls: now() still dispatches to
-// the builtin and the runtime guard refuses it. The static check matches.
-func (s *IndexTestSuite) TestDerivePurityRejectsNondeterministicCallThroughShadowingParam() {
+// A parameter named now shadows the builtin in a call as in a reference
+// (#161), so now() calls the parameter. Calling a parameter inside a derive is
+// refused: it may hold a lambda defined outside the derive.
+func (s *IndexTestSuite) TestDerivePurityRejectsCallThroughParamShadowingBuiltin() {
 	ctx := s.T().Context()
 	idx := CreateIndex()
 	src := `namespace com/ex
@@ -559,5 +559,5 @@ policy pol {
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
 	require.Error(s.T(), err)
-	require.Contains(s.T(), err.Error(), `builtin "now" is nondeterministic and is not permitted inside a derive`)
+	require.Contains(s.T(), err.Error(), `calling parameter "now" is not permitted inside a derive`)
 }

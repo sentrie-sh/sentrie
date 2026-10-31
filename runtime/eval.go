@@ -16,6 +16,14 @@ import (
 
 // eval walks an ast.Expression and returns (value, decision node, error).
 func eval(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, e ast.Expression) (box.Value, *trace.Node, error) {
+	// Every recursive evaluation passes through here, so counting the nesting
+	// bounds the Go stack whatever shape a recursive lambda body has (#161).
+	if ec != nil && ec.evalDepth != nil {
+		if err := ec.evalDepth.enter(); err != nil {
+			return box.Undefined(), nil, err
+		}
+		defer ec.evalDepth.leave()
+	}
 	switch t := e.(type) {
 
 	case *ast.PrecedingCommentExpression:

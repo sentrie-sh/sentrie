@@ -36,7 +36,7 @@ The central dispatch of the tree-walking evaluator. Every expression in Sentrie 
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `eval(ctx, ec *ExecutionContext, exec *executorImpl, p *index.Policy, e ast.Expression) -> (box.Value, *trace.Node, error)`
-  - **Behavior:** Unwraps comment wrappers transparently; evaluates the six literal forms inline; delegates everything else. On error it returns `box.Undefined()` with the error recorded on the trace node, so callers get a consistent envelope regardless of failure point.
+  - **Behavior:** First counts the frame against the evaluation's `MaxEvalDepth` budget ([[runtime.exec_ctx]]), returning `ErrEvalDepthExceeded` past it, which bounds the Go stack for any recursion (#161). Unwraps comment wrappers transparently; evaluates the six literal forms inline; delegates everything else. On error it returns `box.Undefined()` with the error recorded on the trace node, so callers get a consistent envelope regardless of failure point.
   - **Side Effects:** Trace tree construction; anything the delegated evaluators do, including JS execution.
   - **Exceptions:** `map key is not a string` for non-string map keys; `pipeline placeholder '#' must be used inside a pipeline call target`; `unsupported expression node: %T`.
 
