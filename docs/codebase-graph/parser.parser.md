@@ -61,7 +61,7 @@ tags: parser-state, token-window, error-accumulation, dispatch-tables
   - **Exceptions:** N/A.
 
 - **Signature:** `(*Parser).registerPrefix(kind, fn)` / `registerInfix(kind, fn)` / `noPrefixParseFnError(t)`
-  - **Behavior:** Table registration used only during construction, plus the canonical "unparseable token in expression position" diagnostic.
+  - **Behavior:** Table registration used only during construction, plus the canonical "unparseable token in expression position" diagnostic. When the token is a lexer `Error` token, `noPrefixParseFnError` reports the token's message as is (for example `invalid number literal "1e": ...`) instead of wrapping it in `no prefix parse function found for ...`.
   - **Side Effects:** Mutate the handler maps / `p.err`.
   - **Exceptions:** N/A.
 
