@@ -91,6 +91,7 @@ var (
 	kindDict      = []box.ValueKind{box.ValueDict}
 	kindNumber    = []box.ValueKind{box.ValueNumber}
 	kindBool      = []box.ValueKind{box.ValueBool}
+	kindString    = []box.ValueKind{box.ValueString}
 	kindCallable  = []box.ValueKind{box.ValueCallable}
 	kindCountable = []box.ValueKind{box.ValueList, box.ValueDict, box.ValueString}
 )
@@ -108,10 +109,18 @@ var Table = map[string]*Decl{
 	"first":          declFirst,
 	"flatten":        declFlatten,
 	"flatten_deep":   declFlattenDeep,
+	"glob_match":     declGlobMatch,
 	"merge":          declMerge,
 	"normalise_list": declNormaliseList,
 	"now":            declNow,
 	"now_ms":         declNowMs,
+	"object_filter":  declObjectFilter,
+	"object_get":     declObjectGet,
+	"object_keys":    declObjectKeys,
+	"object_remove":  declObjectRemove,
+	"object_union":   declObjectUnion,
+	"parse_duration": declParseDuration,
+	"parse_quantity": declParseQuantity,
 	"reduce":         declReduce,
 }
 

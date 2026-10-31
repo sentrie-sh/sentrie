@@ -27,10 +27,18 @@ func TestTableWellFormed(t *testing.T) {
 		"first":          nil,
 		"flatten":        kindList,
 		"flatten_deep":   kindList,
+		"glob_match":     kindBool,
 		"merge":          kindDict,
 		"normalise_list": kindList,
 		"now":            kindNumber,
 		"now_ms":         kindNumber,
+		"object_filter":  kindDict,
+		"object_get":     nil,
+		"object_keys":    kindList,
+		"object_remove":  kindDict,
+		"object_union":   kindDict,
+		"parse_duration": kindNumber,
+		"parse_quantity": kindNumber,
 		"reduce":         nil,
 	}
 
