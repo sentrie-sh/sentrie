@@ -81,6 +81,9 @@ func (idx *Index) validate(ctx context.Context) error {
 	if err := idx.validateDerivePurity(); err != nil {
 		return err
 	}
+	if err := idx.checkCallTargets(ctx); err != nil {
+		return err
+	}
 	if err := idx.checkBuiltinCalls(ctx); err != nil {
 		return err
 	}
@@ -146,8 +149,9 @@ func (idx *Index) detectReferenceCycle(ctx context.Context) error {
 
 // addNodes adds to g an edge from referedBy to every rule or let that the given
 // nodes reference. Identifiers add edges; a rule or let declared inside a body
-// adds its own node and is walked with itself as the referrer. Every other node
-// is descended into through forEachExprChild, so no expression kind is skipped.
+// adds its own node and is walked with itself as the referrer. A lambda body is
+// not walked (#161). Every other node is descended into through
+// forEachExprChild, so no other expression kind is skipped.
 // It fails when the walker meets a node kind it does not know.
 func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Policy) error {
 	for _, node := range nodes {
@@ -170,6 +174,12 @@ func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Polic
 			if err := addNodes(g, []ast.Node{n.Value}, String(n.Name), policy); err != nil {
 				return err
 			}
+		case *ast.LambdaExpression:
+			// A lambda body is not evaluated when the let or rule holding the
+			// lambda is, so its references are not edges: a let lambda may
+			// call itself or another let lambda (#161). The runtime's
+			// reference stack and call depth limits stop a recursion that
+			// does not end.
 		default:
 			err := forEachExprChild(node, func(child ast.Node) error {
 				return addNodes(g, []ast.Node{child}, referedBy, policy)

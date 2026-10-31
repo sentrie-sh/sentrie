@@ -1,5 +1,10 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
 namespace callindex
 policy funcs {
+	-- A let-bound lambda is callable like a derive or builtin (#161).
+	let toUpper = (s: string, a?: string, b?: string) => { yield s }
 	let upper = toUpper("hello")
 	let first = ["a", "b", "c"][0]
 	let last  = ["x", "y", "z"][-1]
