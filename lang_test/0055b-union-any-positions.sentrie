@@ -1,0 +1,25 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+namespace unions/positions
+shape Tagged { label: string  value: string@minlength(1) | number@min(0) | trinary }
+shape Bag { items: list[string | number]  table: dict[number | string]  any_field: any }
+shape Rows record[string | number, list[any]]
+shape Nums list[number]
+
+derive widen = (v: Nums | string?, w?: any): list[string | number] | any => { yield v }
+
+policy union_positions {
+  fact tagged?: Tagged | list[Tagged]?
+  fact bag?: Bag
+  fact flexible?: list[any] | dict[any] | any
+  fact bounded: string@minlength(3)@maxlength(8) | number@min(1)@max(9)
+  let c1 = 1 as string | number
+  let c2: list[string | number?] = [1, "a", null]
+  let c3 = c2 is list[string | number?] | any
+  let c4 = widen([1])
+  let c5 = [[1], "a"] is list[list[number] | string]
+  let c6 = { "k": 1 } is dict[any] and not ({ "k": 1 } is not dict[number | string])
+  rule _corpus = { yield true }
+  export decision of _corpus
+}
