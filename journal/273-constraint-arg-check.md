@@ -11,3 +11,10 @@
 - `ConstraintDefinition` gains `Arg` (checks each argument: number, string, boolean, regexp that compiles, non-zero divisor, number or number list) and `Args` (rules across arguments: range minimum <= maximum), and `CheckArgs` checks the count against `NumArgs` then those. Every table entry is built with `define`, whose `Checker` runs `CheckArgs` first, so the static check, the runtime and a direct checker call share one argument check and cannot disagree. Checker bodies no longer re-check their arguments.
 - Messages are unchanged, with one new one: a constraint that takes no arguments and is given some says `<name> constraint takes no arguments` (unreachable from source today, since the parser's generated tables already reject the count).
 - _Model: claude-opus-5-5_
+
+### 14:52 - Runtime checks arguments before the value's kind
+- The eight typeref validators repeated one evaluate, look up, check loop after the kind check. It is now `bindConstraints` (evaluate the arguments, look up the definition, `CheckArgs`) called first in each validator, and `checkConstraints` after the kind check. `validateValueAgainstTypeRef` also binds before a nullable type's null short-circuit, so `null is not string?@regexp("[")` errors.
+- Table selection moved to `constraints.ForTypeRef`, shared with the index check to come.
+- An unknown constraint name is now reported at the same point (before the kind check). The parser already rejects unknown names through `ast`'s generated tables, so this is unreachable from source.
+- A broken argument inside a list item type is still only reached per item, so an empty list or a non-list does not report it at runtime; the static check covers every position.
+- _Model: claude-opus-5-5_
