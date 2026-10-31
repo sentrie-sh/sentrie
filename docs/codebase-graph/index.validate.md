@@ -16,9 +16,10 @@ The gate every policy pack must pass before execution. `Validate` first settles 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `index.validate` | `DEPENDS_ON` | [[dag]] | Builds three graphs: a per-policy `dag.G[String]` of identifiers, a global `dag.G[*Rule]`, and a global `dag.G[*Shape]`. |
-| `index.validate` | `DEPENDS_ON` | [[ast]] | `addNodes` type-switches over expression forms to harvest identifier references; for an `IsExpression` it follows `Right` only when the index resolved it to a value. |
+| `index.validate` | `DEPENDS_ON` | [[ast]] | `addNodes` harvests identifier references; for an `IsExpression` it follows `Right` only when the index resolved it to a value. |
 | `index.validate` | `DEPENDS_ON` | [[xerr]] | Emits `ErrInfiniteRecursion` and `ErrIndex`-wrapped cycle messages. |
 | `index.validate` | `CALLS` | [[index.is_resolve]] | Runs before every check, so none of them reads a shape name on the right of `is` as a value reference. |
+| `index.validate` | `CALLS` | [[index.expr_walk]] | `addNodes` descends into every expression kind through `forEachExprChild`, so a cycle cannot hide behind a kind the harvester forgot. |
 | `index.validate` | `CALLS` | [[index.import_withs]] | Third check, right after `detectRuleCycle` has resolved every imported policy. |
 | `index.validate` | `CALLS` | [[index.derive_cycle]] | Fifth check in the pipeline. |
 | `index.validate` | `CALLS` | [[index.derive_purity]] | Sixth check. |
@@ -42,14 +43,14 @@ The gate every policy pack must pass before execution. `Validate` first settles 
   - **Exceptions:** Same.
 
 - **Signature:** `(*Index).detectReferenceCycle(ctx) -> error`
-  - **Behavior:** Per policy, builds a graph whose nodes are **bare identifier names** - rules and lets - and adds an edge for every identifier appearing in a rule's default, guard, or body, or in a let's initializer. Catches mutual recursion within a single policy.
+  - **Behavior:** Per policy, builds a graph whose nodes are **bare identifier names** - rules and lets - and adds an edge for every identifier appearing anywhere in a rule's default, guard, or body, or in a let's initializer, including inside index access, casts, transforms, comment wrappers, map keys and `import decision` `with` values. Catches mutual recursion within a single policy.
   - **Side Effects:** None.
-  - **Exceptions:** `xerr.ErrInfiniteRecursion` with the cycle path; `validation cancelled` on context cancellation.
+  - **Exceptions:** `xerr.ErrInfiniteRecursion` with the cycle path; `validation cancelled` on context cancellation; an `xerr.ErrIndex` error if the walker meets an AST node kind it does not know.
 
-- **Signature:** `addNodes(g, nodes, referedBy, policy)`
-  - **Behavior:** The recursive harvester behind reference-cycle detection. Its `default` case **ignores** unrecognised nodes silently.
+- **Signature:** `addNodes(g, nodes, referedBy, policy) -> error`
+  - **Behavior:** The recursive harvester behind reference-cycle detection. An identifier adds an edge; a rule or let declared in a body adds its node and is walked with itself as referrer; every other node is descended into through [[index.expr_walk]], which fails closed on an unknown kind. A shape operand of `is` is not a reference.
   - **Side Effects:** Mutates the graph.
-  - **Exceptions:** None; edge-add errors are discarded.
+  - **Exceptions:** The walker's unsupported-node error; edge-add errors are discarded.
 
 - **Signature:** `(*Index).detectRuleCycle(ctx) -> (dag.G[*Rule], error)`
   - **Behavior:** Adds every rule as a node, then adds an edge only where a rule's body is an `ast.ImportClause`, resolving the target policy (defaulting to the current namespace for a single-segment path). Returns the graph for storage on the index.
@@ -74,4 +75,3 @@ The gate every policy pack must pass before execution. `Validate` first settles 
   - **The two shape-edge paths behave differently.** Namespace shapes resolve by parent-FQN plus last segment; policy shapes index `ns.Shapes` by the **whole `WithFQN` string**, which only matches when the reference is written as a bare name. A policy shape composing with a qualified path fails with `shape not found` even when the target exists.
   - **`IsValid` is a misleading name.** It mutates the index on first call and can take a long time; it is not a cheap status probe.
   - **Commit is inside the validation `Once`.** There is no way to validate without committing, and a commit failure is reported as a validation error.
-  - **A large block of commented-out `containsSelfReference` code** remains in the file, superseded by `addNodes`. It is dead and should not be read as an alternative implementation.
