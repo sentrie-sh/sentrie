@@ -1,0 +1,19 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+namespace exponent/literals
+shape Reading { value: number@min(1e-3)@max(1.5E+3) }
+shape Bounded number@min(2.5e-1)@not_in([1e2, 5e-1])
+
+policy exponent_literals {
+  fact x: document
+  let big = 1e5
+  let small = 2.5e-3
+  let signed = -1E+3
+  let sum = 1e1 + 2.5e-1 * 4
+  let items = [1e0, 2e1, 3.5e-1]
+  let table = { "scale": 1e3, "eps": 1e-9 }
+  let field = x.e5
+  rule r = default false { yield big == 100000 and small * 1000 == 2.5 }
+  export decision of r
+}
