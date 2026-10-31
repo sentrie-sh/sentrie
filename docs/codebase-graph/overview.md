@@ -256,6 +256,7 @@ graph TD
 
 - [[api.handle_decision]] - `POST /decision`
 - [[index.builtin_check]] - static builtin call validation
+- [[index.call_check]] - static callee validation
 - [[index.commit]] - index finalisation
 - [[index.derive_cycle]] - derive cycle detection
 - [[index.derive_expr_walk]] - derive expression traversal

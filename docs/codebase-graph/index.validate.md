@@ -22,7 +22,8 @@ The gate every policy pack must pass before execution. `Validate` first settles 
 | `index.validate` | `CALLS` | [[index.import_withs]] | Third check, right after `detectRuleCycle` has resolved every imported policy. |
 | `index.validate` | `CALLS` | [[index.derive_cycle]] | Fifth check in the pipeline. |
 | `index.validate` | `CALLS` | [[index.derive_purity]] | Sixth check. |
-| `index.validate` | `CALLS` | [[index.builtin_check]] | Seventh check. |
+| `index.validate` | `CALLS` | [[index.call_check]] | Seventh check: unknown callees, calls to non-callable values, let-lambda arity. |
+| `index.validate` | `CALLS` | [[index.builtin_check]] | Eighth check. |
 | `index.validate` | `CALLS` | [[index.commit]] | Runs immediately after a successful validation, inside the same `Once`. |
 | `index.validate` | `CALLS` | [[index.resolve]] | Resolves imported policies and base shapes while building edges. |
 | `index.validate` | `MUTATES` | [[index.index]] | Writes `ruleDag`, `shapeDag`, `validated`, and `validationError`. |
@@ -42,12 +43,12 @@ The gate every policy pack must pass before execution. `Validate` first settles 
   - **Exceptions:** Same.
 
 - **Signature:** `(*Index).detectReferenceCycle(ctx) -> error`
-  - **Behavior:** Per policy, builds a graph whose nodes are **bare identifier names** - rules and lets - and adds an edge for every identifier appearing in a rule's default, guard, or body, or in a let's initializer. Catches mutual recursion within a single policy.
+  - **Behavior:** Per policy, builds a graph whose nodes are **bare identifier names** - rules and lets - and adds an edge for every identifier appearing in a rule's default, guard, or body, or in a let's initializer, but not inside a lambda body, which is not evaluated when its let or rule is. Catches mutual recursion between values within a single policy; recursion between let lambdas is allowed (#161) and bounded at runtime by the reference stack and the call and eval depth limits ([[runtime.exec_ctx]]). The graph ignores scope, so a block let still shares a node with a rule or let of the same name.
   - **Side Effects:** None.
   - **Exceptions:** `xerr.ErrInfiniteRecursion` with the cycle path; `validation cancelled` on context cancellation.
 
 - **Signature:** `addNodes(g, nodes, referedBy, policy)`
-  - **Behavior:** The recursive harvester behind reference-cycle detection. Its `default` case **ignores** unrecognised nodes silently.
+  - **Behavior:** The recursive harvester behind reference-cycle detection. It does not descend into a `LambdaExpression`. Its `default` case **ignores** unrecognised nodes silently.
   - **Side Effects:** Mutates the graph.
   - **Exceptions:** None; edge-add errors are discarded.
 
