@@ -575,12 +575,26 @@ func isContextError(err error) bool {
 }
 
 // evaluateRuleOutcome drives rule evaluation and returns (value, node, error).
+// The rule's own guard, body and default come first; its contributions, if
+// any, are then combined in declaration order (see applyContributions).
 func evaluateRuleOutcome(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *index.Policy, r *index.Rule) (*Decision, *trace.Node, error) {
 	ctx, rn, done := trace.New(ctx, r.Node, "rule", map[string]any{
 		"name": r.Name,
 	})
 	defer done()
 
+	d, err := evaluateRuleBase(ctx, ec, e, p, r, rn)
+	if err != nil || len(r.Contributions) == 0 {
+		return d, rn, err
+	}
+	d, err = applyContributions(ctx, ec, e, p, r, d, rn)
+	return d, rn, err
+}
+
+// evaluateRuleBase evaluates the rule's guard, body and default, attaching
+// their trace nodes to rn. A value the rule's body or default produces is
+// checked against the rule's declared type, when it has one.
+func evaluateRuleBase(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *index.Policy, r *index.Rule, rn *trace.Node) (*Decision, error) {
 	// `when` gate: (`when` is `true` by default)
 	whenVal := trinary.True
 
@@ -593,7 +607,7 @@ func evaluateRuleOutcome(ctx context.Context, ec *ExecutionContext, e *executorI
 		wn.Attach(condNode)
 		if err != nil {
 			wn.SetErr(err)
-			return nil, rn, err
+			return nil, err
 		}
 		whenVal = box.TrinaryFrom(cond)
 		rn.Attach(wn)
@@ -614,8 +628,14 @@ func evaluateRuleOutcome(ctx context.Context, ec *ExecutionContext, e *executorI
 
 			theDefault = DecisionOf(val)
 			rn.Attach(dn)
+			if err == nil {
+				if verr := validateRuleValue(ctx, ec, e, p, r, val, r.Default.Span()); verr != nil {
+					dn.SetErr(verr)
+					return nil, verr
+				}
+			}
 		}
-		return theDefault, rn, nil
+		return theDefault, nil
 	}
 
 	ctx, rb, done := trace.New(ctx, r.Body, "rule-body", map[string]any{})
@@ -624,7 +644,13 @@ func evaluateRuleOutcome(ctx context.Context, ec *ExecutionContext, e *executorI
 	val, bodyNode, err := eval(ctx, ec, e, p, r.Body)
 	rb.Attach(bodyNode).SetResult(val).SetErr(err)
 	rn.Attach(rb)
+	if err == nil {
+		if verr := validateRuleValue(ctx, ec, e, p, r, val, r.Body.Span()); verr != nil {
+			rb.SetErr(verr)
+			return nil, verr
+		}
+	}
 
 	// Coerce to a *Decision using tristate.From(val)
-	return DecisionOf(val), rn, err
+	return DecisionOf(val), err
 }
