@@ -15,3 +15,11 @@
 - Tests in a new `lexer/heredoc_test.go` rather than appending to `lexer/lexer_test.go`, which open PR #258 appends to. Two CRLF and padded-terminator cases added to `TestLexerTokenPositions`, and a padded heredoc added to the LF and CRLF program in `TestProgramStatementSpans`. All new cases fail on the old lexer.
 - `lexer/coverage_errors_test.go` takes the new three-value return; its legacy header rewritten to SPDX on touch.
 - _Model: claude-opus-5-5_
+
+### 14:58 - Regression tests for the CRLF heredoc contract
+- Added to `lexer/heredoc_test.go`: empty CRLF body lines (also directly before the terminator, as the only line, and with no body), a lone `\r` mid-line, two `\r` at a line end (only one dropped), LF/CRLF lines mixed in one heredoc and with mismatched terminator endings, a padded tag line followed by CRLF, lines that contain the tag plus other text and so do not terminate (`T x`, `TT`, `xT`, `T.`, `T\rx`, `T;`, `t`) in LF and CRLF, and two heredocs in one CRLF file with exact token ranges.
+- Added `TestHereDocInACRLFFileEvaluatesLikeLF` to `RuntimeTestSuite` in `runtime/heredoc_crlf_test.go`: the same policy as LF and as CRLF (built with `strings.ReplaceAll` in the test) loads through the real pack loader, the heredoc values are LF-ended, `s == "..."` is true against an LF string literal, and a padded terminator keeps the body's trailing spaces.
+- Ruled out a `lang_test` fixture: the fixtures there only parse, index and validate, and a CRLF `.sentrie` file in the tree is at the mercy of editors and `core.autocrlf` (the repo has no `.gitattributes`), so it could silently turn into an LF fixture. Building the CRLF text in the test cannot.
+- Bite checks: lexer.go and coverage_errors_test.go from main fail the three new lexer tests and the runtime test. Mutations of the branch's lexer also fail them: stripping every `\r` from body lines, ending on a tag prefix, and ending on a tag suffix.
+- Ran the built `sentrie validate` and `sentrie exec` on a CRLF pack: validates, `s == "hello\n\n  world\n"` is true, the second heredoc is `"second\n"`, identical to the LF pack. An unterminated CRLF heredoc reports the `<<<EOT` position.
+- _Model: claude-sonnet-5-5_
