@@ -57,7 +57,7 @@ func parseFloatLiteral(ctx context.Context, p *Parser) ast.Expression {
 	token := p.advance()
 	value, err := strconv.ParseFloat(token.Value, 64)
 	if err != nil {
-		p.errorf("invalid float literal %q at %s: %w", token.Value, token.Range.From, err)
+		p.errorAtf(token.Range, "invalid float literal %q: %w", token.Value, err)
 		return nil
 	}
 	return ast.NewFloatLiteral(value, token.Range)
