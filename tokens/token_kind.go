@@ -71,6 +71,8 @@ const (
 	KeywordRecord   Kind = "record"
 	KeywordDocument Kind = "document"
 
+	KeywordContribute Kind = "contribute"
+
 	// Operators
 	TokenAssign    Kind = "Assign"
 	TokenEq        Kind = "Equals"
@@ -168,6 +170,8 @@ var keywords = map[string]Kind{
 	"dict":     KeywordDict,
 	"record":   KeywordRecord,
 	"document": KeywordDocument,
+
+	"contribute": KeywordContribute,
 }
 
 func (k Kind) String() string {
