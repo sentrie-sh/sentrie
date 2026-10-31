@@ -14,8 +14,8 @@ import (
 // 'is [not] defined' | 'is [not] empty' | 'is [not] <type>' | 'is [not] <expression>'
 //
 // A right-hand side that starts with a type keyword (string, number, boolean,
-// trinary, document, list, dict, record) is a type and builds an
-// IsExpression. A bare or slash-qualified name builds an IsExpression that
+// trinary, document, list, dict, record), or with `set[`, is a type and
+// builds an IsExpression. A bare or slash-qualified name builds an IsExpression that
 // carries both readings, for the index to resolve against the shapes in scope,
 // unless a `?` or `@constraint` suffix marks it as a type. Any other
 // right-hand side is the legacy equality synonym, an InfixExpression "is".
@@ -44,7 +44,7 @@ func parseIsExpression(ctx context.Context, p *Parser, left ast.Expression, prec
 	} else if p.canExpect(tokens.KeywordEmpty) {
 		expr = ast.NewIsEmptyExpression(left, rnge)
 		p.advance()
-	} else if p.canExpectAnyOf(isTypeKeywords...) {
+	} else if p.canExpectAnyOf(isTypeKeywords...) || p.atSetTypeRef() {
 		typ := parseBaseTypeRef(ctx, p)
 		if typ == nil {
 			return nil

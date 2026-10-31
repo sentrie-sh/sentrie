@@ -99,3 +99,47 @@ func (s *ParserTestSuite) TestParseTypeRefDirectCollectionErrorBranches() {
 	s.Nil(recordRef)
 	s.Error(recordOnly.err)
 }
+
+// TestParseSetTypeRef covers `set[T]` (#162): `set` is a type only before `[`,
+// so a bare `set` stays a shape name and `set(...)` stays a call.
+func (s *ParserTestSuite) TestParseSetTypeRef() {
+	p := NewParserFromString("set[string]?@not_empty()", "test.sentrie")
+	ref := parseTypeRef(s.T().Context(), p)
+	s.Require().NoError(p.err)
+	s.Require().NotNil(ref)
+	nullable, ok := ref.(*ast.NullableTypeRef)
+	s.Require().True(ok)
+	set, ok := nullable.Inner.(*ast.SetTypeRef)
+	s.Require().True(ok)
+	s.Equal("set[string]", set.String())
+	s.IsType(&ast.StringTypeRef{}, set.ElemType)
+	s.Len(nullable.GetConstraints(), 1)
+
+	nested := NewParserFromString("set[list[number]]", "test.sentrie")
+	ref = parseTypeRef(s.T().Context(), nested)
+	s.Require().NoError(nested.err)
+	s.Equal("set[list[number]]", ref.String())
+
+	bare := NewParserFromString("set", "test.sentrie")
+	ref = parseTypeRef(s.T().Context(), bare)
+	s.Require().NoError(bare.err)
+	s.IsType(&ast.ShapeTypeRef{}, ref)
+
+	unclosed := NewParserFromString("set[string", "test.sentrie")
+	s.Nil(parseTypeRef(s.T().Context(), unclosed))
+	s.Error(unclosed.err)
+
+	badConstraint := NewParserFromString("set[string]@minlength(1)", "test.sentrie")
+	s.Nil(parseTypeRef(s.T().Context(), badConstraint))
+	s.Error(badConstraint.err)
+
+	is, ok := s.parseIsExpr("x is set[number]").(*ast.IsExpression)
+	s.Require().True(ok)
+	s.Nil(is.Right)
+	s.IsType(&ast.SetTypeRef{}, is.Type)
+
+	call := NewParserFromString(`set(["a"])`, "test.sentrie")
+	expr := call.parseExpression(s.T().Context(), LOWEST)
+	s.Require().NoError(call.err)
+	s.IsType(&ast.CallExpression{}, expr)
+}
