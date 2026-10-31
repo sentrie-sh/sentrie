@@ -114,18 +114,12 @@ func (s *RuntimeTestSuite) TestEvalIsTypeCheckErrorsPropagate() {
 shape Box { inner: Hidden }
 
 policy pol {
-  rule bad_arg_kind = { yield "ab" is string@minlength("q") }
-  rule bad_regexp = { yield "ab" is not string@regexp("[") }
   rule hidden_field_shape = { yield { "inner": {} } is Box }
-  export decision of bad_arg_kind
-  export decision of bad_regexp
   export decision of hidden_field_shape
 }
 `
 	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "errs.sentrie", src: src})
 	cases := map[string]string{
-		"bad_arg_kind":       "expected number, got string",
-		"bad_regexp":         "invalid regexp pattern",
 		"hidden_field_shape": "Hidden",
 	}
 	for rule, msg := range cases {
@@ -421,26 +415,23 @@ policy pol {
 }
 
 // TestEvalIsTypeDenyRuleDoesNotFailOpen checks `deny = x is not T` where x is
-// empty, undefined, null or of the wrong kind (deny is true), and where the check itself
-// is broken (an error, never a quiet true or false).
+// empty, undefined, null or of the wrong kind (deny is true). A check broken by
+// its constraint arguments is rejected by validation
+// (TestValidateRejectsBrokenConstraintArguments) and is an error at runtime
+// (TestEvalIsTypeBrokenConstraintArgumentErrorsForEveryValue).
 func (s *RuntimeTestSuite) TestEvalIsTypeDenyRuleDoesNotFailOpen() {
 	ctx := s.T().Context()
 	src := `namespace com/app
 shape Allowed { role: string@one_of("admin", "ops") }
-shape BrokenField { name: string@regexp("[") }
 
 policy pol {
   fact x: document
   rule deny = { yield x is not Allowed }
   rule deny_nullable = { yield x.s is not string? }
   rule deny_str = { yield x.s is not string@minlength(2) }
-  rule deny_broken_field = { yield x is not BrokenField }
-  rule deny_broken_arg = { yield x.s is not string@minlength("q") }
   export decision of deny
   export decision of deny_nullable
   export decision of deny_str
-  export decision of deny_broken_field
-  export decision of deny_broken_arg
 }
 `
 	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "deny.sentrie", src: src})
@@ -486,15 +477,6 @@ policy pol {
 		got, err := run("deny_str", map[string]any{"x": map[string]any{"s": "a"}})
 		s.Require().NoError(err)
 		s.Equal(trinary.True, got)
-	})
-	s.Run("a broken regexp inside a field's type errors for a conforming document", func() {
-		_, err := run("deny_broken_field", map[string]any{"x": map[string]any{"name": "a"}})
-		s.Require().Error(err)
-		s.Contains(err.Error(), "invalid regexp pattern")
-	})
-	s.Run("a broken constraint argument errors even when the value is too short", func() {
-		_, err := run("deny_broken_arg", map[string]any{"x": map[string]any{"s": "a"}})
-		s.Require().Error(err)
 	})
 }
 
