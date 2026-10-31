@@ -11,11 +11,14 @@ import (
 
 func (idx *Index) Commit(ctx context.Context) error {
 	idx.commitOnce.Do(func() {
-		idx.commitError = idx.commit(ctx)
-		if idx.commitError != nil {
-			idx.commitError = fmt.Errorf("commit error: %w", idx.commitError)
+		err := idx.commit(ctx)
+		if err != nil {
+			err = fmt.Errorf("commit error: %w", err)
 		}
+		idx.stateMu.Lock()
+		idx.commitError = err
 		idx.committed = 1
+		idx.stateMu.Unlock()
 	})
 	return idx.commitError
 }
