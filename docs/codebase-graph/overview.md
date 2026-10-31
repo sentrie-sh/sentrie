@@ -260,6 +260,7 @@ graph TD
 - [[index.derive_cycle]] - derive cycle detection
 - [[index.derive_expr_walk]] - derive expression traversal
 - [[index.derive_purity]] - derive purity enforcement
+- [[index.expr_walk]] - general child walker for reference analysis
 - [[index.import_withs]] - unknown `with` fact check for imports
 - [[index.is_resolve]] - `is` shape-or-value resolution
 - [[index.resolve]] - symbol resolution

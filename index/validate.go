@@ -104,12 +104,16 @@ func (idx *Index) detectReferenceCycle(ctx context.Context) error {
 					return fmt.Errorf("validation cancelled: %w", xerr.ErrIndex)
 				}
 				g.AddNode(String(rule.Name))
-				addNodes(g, []ast.Node{rule.Default, rule.When, rule.Body}, String(rule.Name), policy)
+				if err := addNodes(g, []ast.Node{rule.Default, rule.When, rule.Body}, String(rule.Name), policy); err != nil {
+					return fmt.Errorf("%s: %w", err, xerr.ErrIndex)
+				}
 			}
 
 			for _, let := range policy.Lets {
 				g.AddNode(String(let.Name))
-				addNodes(g, []ast.Node{let.Value}, String(let.Name), policy)
+				if err := addNodes(g, []ast.Node{let.Value}, String(let.Name), policy); err != nil {
+					return fmt.Errorf("%s: %w", err, xerr.ErrIndex)
+				}
 			}
 
 			cycles := g.DetectFirstCycle()
@@ -125,7 +129,12 @@ func (idx *Index) detectReferenceCycle(ctx context.Context) error {
 	return nil
 }
 
-func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Policy) {
+// addNodes adds to g an edge from referedBy to every rule or let that the given
+// nodes reference. Identifiers add edges; a rule or let declared inside a body
+// adds its own node and is walked with itself as the referrer. Every other node
+// is descended into through forEachExprChild, so no expression kind is skipped.
+// It fails when the walker meets a node kind it does not know.
+func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Policy) error {
 	for _, node := range nodes {
 		if node == nil {
 			continue
@@ -137,118 +146,26 @@ func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Polic
 		case *ast.RuleStatement:
 			g.AddNode(String(n.RuleName))
 			_ = g.AddEdge(String(referedBy.String()), String(n.RuleName))
-			addNodes(g, []ast.Node{n.Body}, String(n.RuleName), policy)
+			if err := addNodes(g, []ast.Node{n.Default, n.When, n.Body}, String(n.RuleName), policy); err != nil {
+				return err
+			}
 		case *ast.VarDeclaration:
 			g.AddNode(String(n.Name))
 			_ = g.AddEdge(String(referedBy.String()), String(n.Name))
-			addNodes(g, []ast.Node{n.Value}, String(n.Name), policy)
-		case *ast.CallExpression:
-			addNodes(g, []ast.Node{n.Callee}, referedBy, policy)
-			for _, arg := range n.Arguments {
-				addNodes(g, []ast.Node{arg}, referedBy, policy)
+			if err := addNodes(g, []ast.Node{n.Value}, String(n.Name), policy); err != nil {
+				return err
 			}
-		case *ast.InfixExpression:
-			addNodes(g, []ast.Node{n.Left, n.Right}, referedBy, policy)
-		case *ast.IsExpression:
-			// A shape operand is not a reference to a rule or let.
-			nodes := []ast.Node{n.Left}
-			if n.Right != nil {
-				nodes = append(nodes, n.Right)
-			}
-			addNodes(g, nodes, referedBy, policy)
-		case *ast.UnaryExpression:
-			addNodes(g, []ast.Node{n.Right}, referedBy, policy)
-		case *ast.TernaryExpression:
-			if n.Elvis {
-				addNodes(g, []ast.Node{n.Condition, n.ElseBranch}, referedBy, policy)
-			} else {
-				addNodes(g, []ast.Node{n.Condition, n.ThenBranch, n.ElseBranch}, referedBy, policy)
-			}
-		case *ast.LambdaExpression:
-			addNodes(g, []ast.Node{n.Body}, referedBy, policy)
-		case *ast.BlockExpression:
-			for _, stmt := range n.Statements {
-				addNodes(g, []ast.Node{stmt}, referedBy, policy)
-			}
-			// Also check the yield expression
-			addNodes(g, []ast.Node{n.Yield}, referedBy, policy)
-		case *ast.ListLiteral:
-			for _, elem := range n.Values {
-				addNodes(g, []ast.Node{elem}, referedBy, policy)
-			}
-		case *ast.MapLiteral:
-			for _, entry := range n.Entries {
-				addNodes(g, []ast.Node{entry.Value}, referedBy, policy)
-			}
-		case *ast.FieldAccessExpression:
-			addNodes(g, []ast.Node{n.Left}, referedBy, policy)
-		case *ast.IsDefinedExpression:
-			addNodes(g, []ast.Node{n.Left}, referedBy, policy)
-		case *ast.IsEmptyExpression:
-			addNodes(g, []ast.Node{n.Left}, referedBy, policy)
-		case *ast.ImportClause:
-			// Import clauses don't contain self-references
 		default:
-			// For any other node types, we don't need to check them
+			err := forEachExprChild(node, func(child ast.Node) error {
+				return addNodes(g, []ast.Node{child}, referedBy, policy)
+			})
+			if err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
-
-// containsSelfReference recursively checks if an AST node contains a self-reference
-// func containsSelfReference(node ast.Node, ident string) bool {
-// 	switch n := node.(type) {
-// 	case *ast.Identifier:
-// 		return n.Value == ident
-// 	case *ast.CallExpression:
-// 		if containsSelfReference(n.Callee, ident) {
-// 			return true
-// 		}
-// 		for _, arg := range n.Arguments {
-// 			if containsSelfReference(arg, ident) {
-// 				return true
-// 			}
-// 		}
-// 	case *ast.InfixExpression:
-// 		return containsSelfReference(n.Left, ident) || containsSelfReference(n.Right, ident)
-// 	case *ast.UnaryExpression:
-// 		return containsSelfReference(n.Right, ident)
-// 	case *ast.TernaryExpression:
-// 		return containsSelfReference(n.Condition, ident) ||
-// 			containsSelfReference(n.ThenBranch, ident) ||
-// 			containsSelfReference(n.ElseBranch, ident)
-// 	case *ast.BlockExpression:
-// 		for _, stmt := range n.Statements {
-// 			if containsSelfReference(stmt, ident) {
-// 				return true
-// 			}
-// 		}
-// 		// Also check the yield expression
-// 		if n.Yield != nil && containsSelfReference(n.Yield, ident) {
-// 			return true
-// 		}
-// 	case *ast.ListLiteral:
-// 		for _, elem := range n.Values {
-// 			if containsSelfReference(elem, ident) {
-// 				return true
-// 			}
-// 		}
-// 	case *ast.MapLiteral:
-// 		for _, entry := range n.Entries {
-// 			if containsSelfReference(entry.Value, ident) {
-// 				return true
-// 			}
-// 		}
-// 	case *ast.FieldAccessExpression:
-// 		return containsSelfReference(n.Left, ident)
-// 	case *ast.ImportClause:
-// 		// Import clauses don't contain self-references
-// 		return false
-// 	default:
-// 		// For any other node types, we don't need to check them
-// 		return false
-// 	}
-// 	return false
-// }
 
 func (idx *Index) detectRuleCycle(ctx context.Context) (dag.G[*Rule], error) {
 	ruleDag := dag.New[*Rule]()
