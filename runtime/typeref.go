@@ -50,6 +50,8 @@ func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec
 		return validateAgainstNumberTypeRef(ctx, ec, exec, p, v, t, valueRange)
 	case *ast.ListTypeRef:
 		return validateAgainstListTypeRef(ctx, ec, exec, p, v, t, valueRange)
+	case *ast.SetTypeRef:
+		return validateAgainstSetTypeRef(ctx, ec, exec, p, v, t, valueRange)
 	case *ast.DictTypeRef:
 		return validateAgainstDictTypeRef(ctx, ec, exec, p, v, t, valueRange)
 	case *ast.ShapeTypeRef:
