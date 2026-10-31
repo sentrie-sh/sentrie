@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -20,12 +7,29 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 )
+
+// compareStrings orders two string operands by byte order (strings.Compare),
+// which is not locale-aware: "B" < "a" and "Z" < "a". ok is false unless both
+// operands are strings, so the relational operators fall through to the
+// numeric path and a mixed string/number pair keeps its operand error.
+func compareStrings(l, r box.Value) (c int, ok bool) {
+	ls, ok := l.StringValue()
+	if !ok {
+		return 0, false
+	}
+	rs, ok := r.StringValue()
+	if !ok {
+		return 0, false
+	}
+	return strings.Compare(ls, rs), true
+}
 
 func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, in *ast.InfixExpression) (box.Value, *trace.Node, error) {
 	ctx, node, done := trace.New(ctx, in, "infix", map[string]any{
@@ -108,6 +112,10 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		out := box.Bool(!box.EqualValues(l, r))
 		return out, node.SetResult(out), nil
 	case "<":
+		if c, ok := compareStrings(l, r); ok {
+			out := box.Bool(c < 0)
+			return out, node.SetResult(out), nil
+		}
 		ln, rn, err := box.MustNumbers(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
@@ -115,6 +123,10 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		out := box.Bool(ln < rn)
 		return out, node.SetResult(out), nil
 	case "<=":
+		if c, ok := compareStrings(l, r); ok {
+			out := box.Bool(c <= 0)
+			return out, node.SetResult(out), nil
+		}
 		ln, rn, err := box.MustNumbers(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
@@ -122,6 +134,10 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		out := box.Bool(ln <= rn)
 		return out, node.SetResult(out), nil
 	case ">":
+		if c, ok := compareStrings(l, r); ok {
+			out := box.Bool(c > 0)
+			return out, node.SetResult(out), nil
+		}
 		ln, rn, err := box.MustNumbers(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
@@ -129,6 +145,10 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		out := box.Bool(ln > rn)
 		return out, node.SetResult(out), nil
 	case ">=":
+		if c, ok := compareStrings(l, r); ok {
+			out := box.Bool(c >= 0)
+			return out, node.SetResult(out), nil
+		}
 		ln, rn, err := box.MustNumbers(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err

@@ -15,7 +15,7 @@ Implements every binary operator in one switch: arithmetic, comparison, three-va
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.eval_infix` | `DEPENDS_ON` | [[box]] | `MustNumbers`, `EqualValues`, `ContainsValue`, `MatchesValue`, `TrinaryFrom`, and the constructors. |
+| `runtime.eval_infix` | `DEPENDS_ON` | [[box]] | `MustNumbers`, `StringValue`, `EqualValues`, `ContainsValue`, `MatchesValue`, `TrinaryFrom`, and the constructors. |
 | `runtime.eval_infix` | `DEPENDS_ON` | [[trinary]] | `And`, `Or`, `Not` implement Kleene logic; `xor` is composed from them. |
 | `runtime.eval_infix` | `CALLS` | [[runtime.eval]] | Evaluates left then right operand. |
 | [[runtime.eval]] | `CALLS` | [[runtime.eval_infix]] | All `ast.InfixExpression` nodes dispatch here. |
@@ -33,9 +33,9 @@ Implements every binary operator in one switch: arithmetic, comparison, three-va
   - **Exceptions:** `divide by zero`; coercion failure.
 
 - **Signature:** Comparison - `==`, `is`, `!=`, `<`, `<=`, `>`, `>=`
-  - **Behavior:** `==` and the infix `is` are **the same operation**, both delegating to `box.EqualValues`. Only an `is` whose right-hand side is neither type syntax nor a bare or qualified name reaches here as an infix; `x is T` and `x is Name` are `ast.IsExpression` and go to [[runtime.eval_is_type]], whose `evalIsEquality` repeats this equality when the index resolved the name to a value; the two must stay in step. The four relational operators require numbers, so strings and dates cannot be ordered.
+  - **Behavior:** `==` and the infix `is` are **the same operation**, both delegating to `box.EqualValues`. Only an `is` whose right-hand side is neither type syntax nor a bare or qualified name reaches here as an infix; `x is T` and `x is Name` are `ast.IsExpression` and go to [[runtime.eval_is_type]], whose `evalIsEquality` repeats this equality when the index resolved the name to a value; the two must stay in step. The four relational operators order two numbers numerically and two strings by byte order (`compareStrings`, Go's `strings.Compare`), which is not locale-aware: `"Z" < "a"` and `"10" < "9"`. The string branch is tried first and only when both operands are strings; any other pair, including a string and a number, falls through to `box.MustNumbers` and keeps its operand error. Dates have no kind of their own, so ISO-8601 strings order chronologically and other formats do not.
   - **Side Effects:** None.
-  - **Exceptions:** Coercion failure on the relational forms.
+  - **Exceptions:** Coercion failure on the relational forms when the operands are not both strings.
 
 - **Signature:** Logic - `and`, `or`, `xor`
   - **Behavior:** Coerces both sides with `box.TrinaryFrom` and applies Kleene operators. `xor` is derived as `(l or r) and not (l and r)`. Results re-box with `box.Trinary`, so a known result is a `ValueBool`, the same kind comparisons produce.
