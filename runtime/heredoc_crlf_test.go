@@ -20,9 +20,7 @@ hello
 
 EOT
   let t = <<<TWO
-second  
-TWO  
-  rule value = { yield s }
+` + "second  \n" + "TWO  \n" + `  rule value = { yield s }
   rule equals_lf_string = { yield s == "hello\n  world\n\n" }
   rule has_no_cr = { yield not (s contains "\r") }
   rule second_value = { yield t }

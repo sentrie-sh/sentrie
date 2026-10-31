@@ -140,8 +140,9 @@ type spanCase struct {
 // dispatchers. Statements sit at the start of a line, indented, after a
 // multi-byte string and next to another statement on the same line, and some
 // span several lines (#236). A heredoc whose terminator has trailing
-// whitespace ends just past its tag, in a CRLF file too (#270). Offsets are checked by slicing the source: the
-// span must cover exactly the statement's text.
+// whitespace ends just past its tag, in a CRLF file too (#270). Offsets are
+// checked by slicing the source: the span must cover exactly the statement's
+// text.
 func (s *ParserTestSuite) TestProgramStatementSpans() {
 	lines := []string{
 		/*  1 */ "namespace com/example",
