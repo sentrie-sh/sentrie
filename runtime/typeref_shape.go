@@ -16,49 +16,9 @@ import (
 )
 
 func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef *ast.ShapeTypeRef, pos tokens.Range) error {
-	var shape *index.Shape
-
-	shapeFqn := typeRef.Ref.String()
-
-	// look for the shape in the policy - this will override any shape that may have been defined in the namespace
-	shape, ok := p.Shapes[shapeFqn]
-
-	// couldn't find the shape in the policy - check if it's in the namespace of the policy
-	if !ok {
-		s, o := p.Namespace.Shapes[shapeFqn]
-		if o {
-			shape = s
-		}
-		ok = o
-	}
-
-	// we couldn't find the shape in the policy - go global.
-	// lookup the index with the shape
-	if !ok && len(typeRef.Ref.Parts) > 2 {
-		ns := typeRef.Ref.Parent()
-		name := typeRef.Ref.LastSegment()
-
-		// get the namespace
-		namespace, err := exec.Index().ResolveNamespace(ns.String())
-		if err != nil {
-			return err
-		}
-		if namespace == nil {
-			return xerr.ErrNamespaceNotFound(ns.String())
-		}
-		if err := namespace.VerifyShapeExported(name); err != nil {
-			return err
-		}
-
-		shape, err = exec.Index().ResolveShape(ns.String(), name)
-		if err != nil {
-			return err
-		}
-	}
-
-	// if we still don't have a shape, return an error
-	if shape == nil {
-		return xerr.ErrShapeNotFound(fmt.Sprintf("shape '%s' not found at %s", shapeFqn, typeRef.Span()))
+	shape, err := resolveShapeTypeRef(exec, p, typeRef)
+	if err != nil {
+		return err
 	}
 
 	// a simple shape is an alias to another typeref
@@ -112,4 +72,44 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 	}
 
 	return nil
+}
+
+// resolveShapeTypeRef finds the shape typeRef names: in the policy, which
+// overrides the namespace, then in the policy's namespace, then for a name of
+// three or more segments as an exported shape of the namespace it names.
+func resolveShapeTypeRef(exec Executor, p *index.Policy, typeRef *ast.ShapeTypeRef) (*index.Shape, error) {
+	shapeFqn := typeRef.Ref.String()
+
+	if shape, ok := p.Shapes[shapeFqn]; ok {
+		return shape, nil
+	}
+	if shape, ok := p.Namespace.Shapes[shapeFqn]; ok {
+		return shape, nil
+	}
+
+	if len(typeRef.Ref.Parts) > 2 {
+		ns := typeRef.Ref.Parent()
+		name := typeRef.Ref.LastSegment()
+
+		namespace, err := exec.Index().ResolveNamespace(ns.String())
+		if err != nil {
+			return nil, err
+		}
+		if namespace == nil {
+			return nil, xerr.ErrNamespaceNotFound(ns.String())
+		}
+		if err := namespace.VerifyShapeExported(name); err != nil {
+			return nil, err
+		}
+
+		shape, err := exec.Index().ResolveShape(ns.String(), name)
+		if err != nil {
+			return nil, err
+		}
+		if shape != nil {
+			return shape, nil
+		}
+	}
+
+	return nil, xerr.ErrShapeNotFound(fmt.Sprintf("shape '%s' not found at %s", shapeFqn, typeRef.Span()))
 }
