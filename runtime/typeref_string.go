@@ -8,34 +8,19 @@ import (
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
-	"github.com/sentrie-sh/sentrie/constraints"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
 func validateAgainstStringTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef *ast.StringTypeRef, valueRange tokens.Range) error {
+	bound, err := bindConstraints(ctx, ec, exec, p, typeRef)
+	if err != nil {
+		return err
+	}
+
 	if _, ok := v.StringValue(); !ok {
 		return errMismatch("value %v is not a string", v)
 	}
 
-	for _, constraint := range typeRef.GetConstraints() {
-		args := make([]box.Value, len(constraint.Args))
-		for i, argExpr := range constraint.Args {
-			csArg, _, err := eval(ctx, ec, exec.(*executorImpl), p, argExpr)
-			if err != nil {
-				return errCheckFailed(err)
-			}
-			args[i] = csArg
-		}
-		checker, ok := constraints.StringContraintCheckers[constraint.Name]
-		if !ok {
-			return ErrUnknownConstraint(constraint)
-		}
-
-		if err := checker.Checker(ctx, v, args); err != nil {
-			return ErrConstraintFailed(valueRange, constraint, err)
-		}
-	}
-
-	return nil
+	return checkConstraints(ctx, v, bound, valueRange)
 }

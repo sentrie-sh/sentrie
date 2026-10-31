@@ -161,6 +161,71 @@ policy pol {
 	s.Contains(err.Error(), "Missing")
 }
 
+// TestEvalIsTypeBrokenConstraintArgumentErrorsForEveryValue is the #273
+// reproduction on the runtime path, for an index that was never validated: a
+// broken constraint argument is an error whatever the value's kind, so
+// `x is not T` never reads it as a mismatch and returns true.
+func (s *RuntimeTestSuite) TestEvalIsTypeBrokenConstraintArgumentErrorsForEveryValue() {
+	ctx := s.T().Context()
+	src := `namespace com/app
+policy pol {
+  rule num_value = { yield 1 is not string@regexp("[") }
+  rule str_value = { yield "a" is not string@regexp("[") }
+  rule null_value = { yield null is not string@regexp("[") }
+  rule null_nullable = { yield null is not string?@regexp("[") }
+  rule list_item = { yield ["a"] is not list[number@multiple_of(0)] }
+  rule trinary_number = { yield 1 is not trinary@eq(1) }
+  rule range_string = { yield "a" is not number@range(5, 1) }
+  rule valid = { yield 1 is not string@regexp("^a") }
+  export decision of num_value
+}
+`
+	idx := s.mustBuildDeriveIndex(ctx, deriveTestProgram{name: "broken_arg.sentrie", src: src})
+	rawExec, err := NewExecutor(idx)
+	s.Require().NoError(err)
+	exec, ok := rawExec.(*executorImpl)
+	s.Require().True(ok)
+	pol, err := idx.ResolvePolicy("com/app", "pol")
+	s.Require().NoError(err)
+
+	cases := map[string]string{
+		"num_value":      "invalid regexp pattern",
+		"str_value":      "invalid regexp pattern",
+		"null_value":     "invalid regexp pattern",
+		"null_nullable":  "invalid regexp pattern",
+		"trinary_number": "eq constraint expects a boolean argument",
+		"range_string":   "range minimum 5 is greater than maximum 1",
+	}
+	for rule, msg := range cases {
+		s.Run(rule, func() {
+			ec := NewExecutionContext(pol, exec)
+			defer ec.Dispose()
+			_, _, err := eval(ctx, ec, exec, pol, pol.Rules[rule].Body)
+			s.Require().Error(err)
+			s.Contains(err.Error(), msg)
+			s.False(isTypeMismatch(err), err.Error())
+		})
+	}
+
+	s.Run("a list item type is checked per item, so a mismatched item reports it", func() {
+		ec := NewExecutionContext(pol, exec)
+		defer ec.Dispose()
+		_, _, err := eval(ctx, ec, exec, pol, pol.Rules["list_item"].Body)
+		s.Require().Error(err)
+		s.Contains(err.Error(), "divisor cannot be zero")
+	})
+
+	s.Run("a valid argument still reads a wrong kind as a mismatch", func() {
+		ec := NewExecutionContext(pol, exec)
+		defer ec.Dispose()
+		got, _, err := eval(ctx, ec, exec, pol, pol.Rules["valid"].Body)
+		s.Require().NoError(err)
+		tv, ok := got.TrinaryValue()
+		s.Require().True(ok)
+		s.Equal(trinary.True, tv)
+	})
+}
+
 // TestEvalIsTypeInDeriveUsesDeriveScope checks that a derive body resolves
 // shapes in its own namespace, as the index did, whoever calls it.
 func (s *RuntimeTestSuite) TestEvalIsTypeInDeriveUsesDeriveScope() {
