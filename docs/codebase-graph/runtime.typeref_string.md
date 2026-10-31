@@ -16,7 +16,6 @@ Validates a value against a `string` type, then applies each attached constraint
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `runtime.typeref_string` | `CALLS` | [[runtime.typeref_constraints]] | `bindConstraints` before the kind check, `checkConstraints` after it. |
-| `runtime.typeref_string` | `CALLS` | [[runtime.eval]] | Evaluates each constraint argument expression. |
 | `runtime.typeref_string` | `CALLS` | [[runtime.err_typedef]] | `errMismatch` for the kind check. |
 | [[runtime.typeref]] | `CALLS` | [[runtime.typeref_string]] | Dispatched for `*ast.StringTypeRef`. |
 

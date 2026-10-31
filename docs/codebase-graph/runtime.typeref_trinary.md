@@ -17,7 +17,6 @@ Validates a value against the `trinary` type. Unlike the other scalar validators
 | :--- | :--- | :--- | :--- |
 | `runtime.typeref_trinary` | `DEPENDS_ON` | [[box]] | `TrinaryValue` reads a bool or unknown; `Trinary` re-boxes it for the constraint checkers. |
 | `runtime.typeref_trinary` | `CALLS` | [[runtime.typeref_constraints]] | `bindConstraints` before the kind check, `checkConstraints` after it. |
-| `runtime.typeref_trinary` | `CALLS` | [[runtime.eval]] | Evaluates constraint argument expressions. |
 | `runtime.typeref_trinary` | `CALLS` | [[runtime.err_typedef]] | Constraint error constructors. |
 | [[runtime.typeref]] | `CALLS` | [[runtime.typeref_trinary]] | Dispatched for `*ast.TrinaryTypeRef`. |
 

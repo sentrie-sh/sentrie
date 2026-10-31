@@ -17,7 +17,6 @@ Validates a value against a `record` type - Sentrie's fixed-arity positional tup
 | :--- | :--- | :--- | :--- |
 | `runtime.typeref_record` | `CALLS` | [[runtime.typeref]] | Recurses per position against the corresponding field type. |
 | `runtime.typeref_record` | `CALLS` | [[runtime.typeref_constraints]] | `bindConstraints` before the kind check, `checkConstraints` after it. |
-| `runtime.typeref_record` | `CALLS` | [[runtime.eval]] | Evaluates constraint argument expressions. |
 | [[runtime.typeref]] | `CALLS` | [[runtime.typeref_record]] | Dispatched for `*ast.RecordTypeRef`. |
 
 ## 3. Interface Contracts & Public Surface
