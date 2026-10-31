@@ -9,7 +9,7 @@ tags: type-system, constraints, parse-time-validation, code-generation
 # Node: ast.TypeRef (Type Reference Family)
 
 ## 1. Architectural Role & Intent
-`TypeRef` is the sealed interface for every type annotation writable in Sentrie - `string`, `number`, `trinary`, `list[T]`, `dict[T]`, `record[…]`, `document`, a named `shape`, and the `T?` nullable wrapper - plus the constraint suffixes those types accept. Its distinguishing responsibility is that it is the **only AST family that validates itself at parse time**: each concrete type ref carries a generated table of which named constraints it permits and how many arguments each takes, so `string.between(1, 5)` on a `number` is rejected while the parser is still running rather than at evaluation.
+`TypeRef` is the sealed interface for every type annotation writable in Sentrie - `string`, `number`, `trinary`, `list[T]`, `dict[T]`, `record[…]`, `document`, a named `shape`, the top type `any`, a union `T1 | T2`, and the `T?` nullable wrapper - plus the constraint suffixes those types accept. Its distinguishing responsibility is that it is the **only AST family that validates itself at parse time**: each concrete type ref carries a generated table of which named constraints it permits and how many arguments each takes, so `string.between(1, 5)` on a `number` is rejected while the parser is still running rather than at evaluation.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -60,6 +60,19 @@ tags: type-system, constraints, parse-time-validation, code-generation
   - **Behavior:** The `T?` wrapper. It **delegates** `GetConstraints`/`AddConstraint` to its inner type - its own permitted table is empty - so constraints attach to the underlying type and the wrapper only adjusts its own span. `UnwrapNullableTypeRef` is the idempotent accessor consumers should use before type-switching.
   - **Side Effects:** `AddConstraint` mutates the **inner** ref and then the wrapper's span.
   - **Exceptions:** Propagates the inner type's errors unchanged.
+
+- **Signature:** `NewAnyTypeRef(span)` + `AnyTypeName`
+  - **Behavior:** The top type `any`: accepts every defined value, scalars and null included. Empty constraint table, so any constraint is rejected. `AnyTypeName` (`"any"`) is the name the parser maps to it; it is not a lexer keyword.
+  - **Side Effects:** None.
+  - **Exceptions:** None.
+- **Signature:** `NewUnionTypeRef(members, span)` + `UnionTypeRef.Members`
+  - **Behavior:** `T1 | T2 | …`: a value validates if it matches any member. The union owns no constraints (empty table); each member carries its own `?` and constraint suffixes. `String()` joins the members' renderings with ` | `.
+  - **Side Effects:** None.
+  - **Exceptions:** `AddConstraint` always fails with `xerr.NotFoundError{}`; the parser never calls it on a union.
+- **Signature:** `AcceptsNull(t) -> bool`
+  - **Behavior:** True for a `T?`, `any`, or a union with such a member. Callers that gate null before validating (fact injection in [[runtime.executor]]) use it instead of `IsNullableTypeRef`. It does not resolve shape aliases.
+  - **Side Effects:** None.
+  - **Exceptions:** None.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Mutable during parsing only (constraint accumulation and span extension), read-only thereafter. Not safe for concurrent construction; safe to read concurrently once the parse completes.

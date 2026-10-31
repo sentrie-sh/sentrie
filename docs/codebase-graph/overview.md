@@ -316,6 +316,7 @@ graph TD
 - [[runtime.typeref_shape]] - shape validation
 - [[runtime.typeref_string]] - string validation
 - [[runtime.typeref_trinary]] - trinary validation
+- [[runtime.typeref_union]] - union and `any` validation
 
 ### Module / File
 

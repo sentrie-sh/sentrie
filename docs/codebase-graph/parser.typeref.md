@@ -9,7 +9,7 @@ tags: type-syntax, constraints, nullable, recursive-descent
 # Node: parser.typeref (Type Reference and Constraint Syntax)
 
 ## 1. Architectural Role & Intent
-`parser/typeref.go` parses every type annotation in the language: the scalar keywords, the parameterised aggregates `list[T]`/`dict[T]`/`record[T, U]`, named shape references, the `?` nullable suffix, and the `@name(args)` constraint suffixes. It is the syntactic counterpart of [[ast.typeref]] and the point where **parse-time constraint validation** happens - an unknown or wrongly-arity'd constraint is rejected here, before any evaluation, by delegating to the AST's generated permission tables.
+`parser/typeref.go` parses every type annotation in the language: the scalar keywords, the parameterised aggregates `list[T]`/`dict[T]`/`record[T, U]`, named shape references, the top type `any`, unions `T1 | T2`, the `?` nullable suffix, and the `@name(args)` constraint suffixes. It is the syntactic counterpart of [[ast.typeref]] and the point where **parse-time constraint validation** happens - an unknown or wrongly-arity'd constraint is rejected here, before any evaluation, by delegating to the AST's generated permission tables.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -29,14 +29,16 @@ tags: type-syntax, constraints, nullable, recursive-descent
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `parseTypeRef(ctx, p) -> ast.TypeRef`
+  - **Behavior:** `parseTypeRefMember` (`parseBaseTypeRef` then `parseTypeRefSuffixes`), then `parseUnionTail`, which collects further `| member`s into an `ast.UnionTypeRef`. `|` binds looser than each member's `?` and constraints and than brackets: `string | number?` is `string | (number?)`, `string | number@min(1)` constrains only the number, `list[string | number]` is a list of a union. There is no grouping syntax.
+- **Signature:** `parseBaseTypeRef(ctx, p) -> ast.TypeRef`
   - **Behavior:** Validates that the head is an `Ident` or one of the primitive/aggregate keywords, then dispatches:
     - `string` / `number` / `document` → the corresponding scalar ref.
     - `boolean` **or** `trinary` → both map to `TrinaryTypeRef`; `boolean` is a pure alias with no distinct node.
-    - `Ident` → an FQN parsed into a `ShapeTypeRef`.
+    - `Ident` → an FQN; `namedTypeRef` makes a bare `any` an `AnyTypeRef` and anything else a `ShapeTypeRef`. `any` is not a lexer keyword, so it stays an identifier (the quantifier builtin) in expressions.
     - `list` / `dict` → constructed with a nil child, then a required `[ T ]` fills it in recursively.
     - `record` → constructed empty, then `[ T, U, … ]` fills a positional field list.
 
-    Afterwards `parseTypeRefSuffixes` lets an optional `?` wrap the ref in `NullableTypeRef`, and a loop consumes `@constraint(...)` suffixes, each validated through `AddConstraint`. `parseTypeRef` is `parseBaseTypeRef` (the head and its brackets) followed by `parseTypeRefSuffixes` with `ternaryAware` off.
+    It parses no suffixes; see `parseTypeRefSuffixes`.
   - **Side Effects:** Consumes tokens; mutates the constructed ref (children, span, constraints).
   - **Exceptions:** `expected one of %v, got %s` for an invalid head; `cannot add constraint %s: %s at %s` wrapping the arity/unknown-name errors from [[ast.typeref]]; `nil` on a missing bracket or failed child type.
 
@@ -45,6 +47,14 @@ tags: type-syntax, constraints, nullable, recursive-descent
   - **Side Effects:** Consumes tokens.
   - **Exceptions:** As for the constraint loop above.
 
+- **Signature:** `parseUnionTail(ctx, p, first ast.TypeRef, ternaryAware bool) -> ast.TypeRef`
+  - **Behavior:** Returns `first` unless a `|` follows; otherwise parses each further member with its suffixes (ternary-aware on the right of `is`) and returns a `UnionTypeRef` spanning all members.
+  - **Side Effects:** Consumes tokens.
+  - **Exceptions:** `nil` when a member fails to parse (`string |` with nothing after it).
+- **Signature:** `parseBarePipeInExpression(ctx, p, left, precedence) -> nil`
+  - **Behavior:** Infix handler for a `|` after an expression (registered at `PIPELINE` precedence, so it never fires on the right of `is`, which parses at `EQUALITY`): records `unexpected '|': only '|>' is supported in an expression` and consumes the token.
+  - **Side Effects:** Consumes the `|`.
+  - **Exceptions:** Always records the error.
 - **Signature:** `parseTypeRefConstraint(ctx, p, _ ast.TypeRef) -> *ast.TypeRefConstraint`
   - **Behavior:** Parses `@name(lit, lit, …)`. Arguments go through [[parser.literal]], so only compile-time constants are accepted. The span covers `@` through the closing paren.
   - **Side Effects:** Consumes tokens; emits two debug logs.
