@@ -33,8 +33,13 @@ This node exposes no callable surface. Its "interface" is the set of productions
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 
-- **Signature:** `ruleDecl ::= 'rule' IDENT '=' ('default' expr)? ('when' expr)? (blockExpr | ruleImportClause)`
-  - **Behavior:** The core policy unit: an optional default outcome, an optional applicability guard, and either an inline block body or a cross-namespace decision import.
+- **Signature:** `ruleDecl ::= 'rule' IDENT (':' typeRef)? '=' ('default' expr)? ('when' expr)? (blockExpr | ruleImportClause)`
+  - **Behavior:** The core policy unit: an optional declared type, an optional default outcome, an optional applicability guard, and either an inline block body or a cross-namespace decision import.
+  - **Side Effects:** N/A.
+  - **Exceptions:** N/A.
+
+- **Signature:** `contributeDecl ::= 'contribute' IDENT ('when' expr)? blockExpr`
+  - **Behavior:** An incremental addition to a rule declared earlier in the same policy with a `list[T]`, `boolean` or `trinary` type (#160). A list rule appends each contribution's value and a boolean rule ORs it in, in declaration order; a contribution whose guard does not hold or whose body yields undefined is skipped.
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 

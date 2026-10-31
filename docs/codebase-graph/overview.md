@@ -240,11 +240,13 @@ graph TD
 - [[index.policy]] - policy semantic model
 - [[index.program]] - per-file inventory
 - [[index.rule]] - rule semantic model
+- [[index.contribute]] - rule contribution records and static checks
 - [[index.shape]] - shape composition and hydration
 - [[parser.parser]] - parser state and driver
 - [[parser.program]] - top-level program assembly
 - [[runtime.builtin_call]] - the builtin `Env` adapter
 - [[runtime.callable]] - lambda and derive callable interface
+- [[runtime.contribute]] - rule contributions and declared rule types
 - [[runtime.decision]] - the decision output contract
 - [[runtime.exec_ctx]] - per-execution scope chain
 - [[runtime.executor]] - top-level execution driver
@@ -285,6 +287,7 @@ graph TD
 - [[parser.parse]] - parse entry point
 - [[parser.policy]] - policy block parsing
 - [[parser.rule]] - rule declaration parsing
+- [[parser.contribute]] - rule contribution parsing
 - [[parser.shape]] - shape declaration parsing
 - [[parser.statement]] - statement dispatch
 - [[parser.ternary]] - ternary and Elvis parsing
