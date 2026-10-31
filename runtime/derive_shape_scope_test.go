@@ -121,14 +121,15 @@ policy p {
 	}
 }
 
-// deriveShapeScopeRun builds the programs and runs each rule of t/e's policy
-// p, returning the decision state or the error per rule.
+// deriveShapeScopeRun is the outcome of one rule: its decision, or its error.
 type deriveShapeScopeRun struct {
 	state trinary.Value
 	value box.Value
 	err   error
 }
 
+// runDeriveShapeScopeRules builds the programs and runs each rule of t/e's
+// policy p, returning the outcome per rule.
 func (s *RuntimeTestSuite) runDeriveShapeScopeRules(programs []deriveTestProgram, rules ...string) map[string]deriveShapeScopeRun {
 	ctx := s.T().Context()
 	_, exec := s.mustBuildDeriveExecutor(ctx, programs...)
