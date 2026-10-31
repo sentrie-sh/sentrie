@@ -16,15 +16,14 @@ Validates a value against the `trinary` type. Unlike the other scalar validators
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `runtime.typeref_trinary` | `DEPENDS_ON` | [[box]] | `TrinaryValue` reads a bool or unknown; `Trinary` re-boxes it for the constraint checkers. |
-| `runtime.typeref_trinary` | `DEPENDS_ON` | [[constraints]] | `constraints.TrinaryConstraintCheckers`. |
-| `runtime.typeref_trinary` | `CALLS` | [[runtime.eval]] | Evaluates constraint argument expressions. |
+| `runtime.typeref_trinary` | `CALLS` | [[runtime.typeref_constraints]] | `bindConstraints` before the kind check, `checkConstraints` after it. |
 | `runtime.typeref_trinary` | `CALLS` | [[runtime.err_typedef]] | Constraint error constructors. |
 | [[runtime.typeref]] | `CALLS` | [[runtime.typeref_trinary]] | Dispatched for `*ast.TrinaryTypeRef`. |
 
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `validateAgainstTrinaryTypeRef(ctx, ec, exec Executor, p *index.Policy, v box.Value, typeRef *ast.TrinaryTypeRef, valueRange tokens.Range) -> error`
-  - **Behavior:** Reads the value with `box.Value.TrinaryValue`, which accepts a `ValueBool` (`True`/`False`) or a `ValueTrinary` (`Unknown`), falling back to `DecisionState` for a `box.DecisionEnvelope`, then runs constraints against the **re-boxed** value, which `box.Trinary` turns back into a bool for a known truth value.
+  - **Behavior:** Binds its constraints first ([[runtime.typeref_constraints]]: arguments evaluated and checked against the definition, so a broken argument errors for any value, #273), then reads the value with `box.Value.TrinaryValue`, which accepts a `ValueBool` (`True`/`False`) or a `ValueTrinary` (`Unknown`), falling back to `DecisionState` for a `box.DecisionEnvelope`, then runs constraints against the **re-boxed** value, which `box.Trinary` turns back into a bool for a known truth value.
   - **Side Effects:** Constraint argument evaluation.
   - **Exceptions:** `value '%v' is not a bool at %s - expected bool`; `ErrUnknownConstraint`; `ErrConstraintFailed`.
 

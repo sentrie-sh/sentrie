@@ -13,186 +13,146 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sentrie-sh/sentrie/box"
-	"github.com/sentrie-sh/sentrie/index"
 )
 
 var StringContraintCheckers map[string]ConstraintDefinition = map[string]ConstraintDefinition{
-	"length": {
+	"length": define(ConstraintDefinition{
 		Name:    "length",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Arg:     numberArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
-			if len(args) != 1 {
-				return invalidArgf("length constraint requires 1 argument")
-			}
-			expectedLen, okn := args[0].NumberValue()
-			if !okn {
-				return invalidArgf("expected number, got %s", args[0].Kind())
-			}
+			expectedLen, _ := args[0].NumberValue()
 			if len(s) != int(expectedLen) {
 				return fmt.Errorf("string length %d is not equal to %g", len(s), expectedLen)
 			}
 			return nil
 		},
-	},
-	"minlength": {
+	}),
+	"minlength": define(ConstraintDefinition{
 		Name:    "minlength",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Arg:     numberArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
-			if len(args) != 1 {
-				return invalidArgf("minlength constraint requires 1 argument")
-			}
-			expectedLen, okn := args[0].NumberValue()
-			if !okn {
-				return invalidArgf("expected number, got %s", args[0].Kind())
-			}
+			expectedLen, _ := args[0].NumberValue()
 			if len(s) < int(expectedLen) {
 				return fmt.Errorf("string length %d is not greater than or equal to %g", len(s), expectedLen)
 			}
 			return nil
 		},
-	},
-	"maxlength": {
+	}),
+	"maxlength": define(ConstraintDefinition{
 		Name:    "maxlength",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Arg:     numberArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
-			if len(args) != 1 {
-				return invalidArgf("maxlength constraint requires 1 argument")
-			}
-			expectedLen, okn := args[0].NumberValue()
-			if !okn {
-				return invalidArgf("expected number, got %s", args[0].Kind())
-			}
+			expectedLen, _ := args[0].NumberValue()
 			if len(s) > int(expectedLen) {
 				return fmt.Errorf("string length %d is not less than or equal to %g", len(s), expectedLen)
 			}
 			return nil
 		},
-	},
-	"regexp": {
+	}),
+	"regexp": define(ConstraintDefinition{
 		Name:    "regexp",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Arg:     regexpArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
-			if len(args) != 1 {
-				return invalidArgf("regexp constraint requires 1 argument")
-			}
-			pattern, okp := args[0].StringValue()
-			if !okp {
-				return invalidArgf("expected string, got %s", args[0].Kind())
-			}
-			matched, err := regexp.MatchString(pattern, s)
+			pattern, _ := args[0].StringValue()
+			// CheckArgs has compiled and cached the pattern.
+			re, err := compilePattern(pattern)
 			if err != nil {
 				return invalidArgf("invalid regexp pattern: %v", err)
 			}
-			if !matched {
+			if !re.MatchString(s) {
 				return fmt.Errorf("string %q does not match pattern %q", s, pattern)
 			}
 			return nil
 		},
-	},
-	"starts_with": {
+	}),
+	"starts_with": define(ConstraintDefinition{
 		Name:    "starts_with",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Arg:     stringArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
-			if len(args) != 1 {
-				return invalidArgf("starts_with constraint requires 1 argument")
-			}
-			prefix, okp := args[0].StringValue()
-			if !okp {
-				return invalidArgf("expected string, got %s", args[0].Kind())
-			}
+			prefix, _ := args[0].StringValue()
 			if !strings.HasPrefix(s, prefix) {
 				return fmt.Errorf("string %q does not start with %q", s, prefix)
 			}
 			return nil
 		},
-	},
-	"ends_with": {
+	}),
+	"ends_with": define(ConstraintDefinition{
 		Name:    "ends_with",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Arg:     stringArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
-			if len(args) != 1 {
-				return invalidArgf("ends_with constraint requires 1 argument")
-			}
-			suffix, okp := args[0].StringValue()
-			if !okp {
-				return invalidArgf("expected string, got %s", args[0].Kind())
-			}
+			suffix, _ := args[0].StringValue()
 			if !strings.HasSuffix(s, suffix) {
 				return fmt.Errorf("string %q does not end with %q", s, suffix)
 			}
 			return nil
 		},
-	},
-	"has_substring": {
+	}),
+	"has_substring": define(ConstraintDefinition{
 		Name:    "has_substring",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Arg:     stringArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
-			if len(args) != 1 {
-				return invalidArgf("has_substring constraint requires 1 argument")
-			}
-			substring, okp := args[0].StringValue()
-			if !okp {
-				return invalidArgf("expected string, got %s", args[0].Kind())
-			}
+			substring, _ := args[0].StringValue()
 			if !strings.Contains(s, substring) {
 				return fmt.Errorf("string %q does not contain %q", s, substring)
 			}
 			return nil
 		},
-	},
-	"not_has_substring": {
+	}),
+	"not_has_substring": define(ConstraintDefinition{
 		Name:    "not_has_substring",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Arg:     stringArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
-			if len(args) != 1 {
-				return invalidArgf("not_has_substring constraint requires 1 argument")
-			}
-			substring, okp := args[0].StringValue()
-			if !okp {
-				return invalidArgf("expected string, got %s", args[0].Kind())
-			}
+			substring, _ := args[0].StringValue()
 			if strings.Contains(s, substring) {
 				return fmt.Errorf("string %q contains %q", s, substring)
 			}
 			return nil
 		},
-	},
-	"email": {
+	}),
+	"email": define(ConstraintDefinition{
 		Name:    "email",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
@@ -203,11 +163,11 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"url": {
+	}),
+	"url": define(ConstraintDefinition{
 		Name:    "url",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
@@ -218,11 +178,11 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"uuid": {
+	}),
+	"uuid": define(ConstraintDefinition{
 		Name:    "uuid",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
@@ -233,11 +193,11 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"alphanumeric": {
+	}),
+	"alphanumeric": define(ConstraintDefinition{
 		Name:    "alphanumeric",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
@@ -249,11 +209,11 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"alpha": {
+	}),
+	"alpha": define(ConstraintDefinition{
 		Name:    "alpha",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
@@ -265,11 +225,11 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"numeric": {
+	}),
+	"numeric": define(ConstraintDefinition{
 		Name:    "numeric",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
@@ -281,11 +241,11 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"lowercase": {
+	}),
+	"lowercase": define(ConstraintDefinition{
 		Name:    "lowercase",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
@@ -295,11 +255,11 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"uppercase": {
+	}),
+	"uppercase": define(ConstraintDefinition{
 		Name:    "uppercase",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
@@ -309,11 +269,11 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"trimmed": {
+	}),
+	"trimmed": define(ConstraintDefinition{
 		Name:    "trimmed",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
@@ -323,11 +283,11 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"not_empty": {
+	}),
+	"not_empty": define(ConstraintDefinition{
 		Name:    "not_empty",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
@@ -337,46 +297,36 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			return nil
 		},
-	},
-	"one_of": {
+	}),
+	"one_of": define(ConstraintDefinition{
 		Name:    "one_of",
 		NumArgs: -1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Arg:     stringArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
-			if len(args) < 1 {
-				return invalidArgf("one_of constraint requires at least 1 argument")
-			}
 			for _, arg := range args {
-				argString, oka := arg.StringValue()
-				if !oka {
-					return invalidArgf("expected string, got %s", arg.Kind())
-				}
+				argString, _ := arg.StringValue()
 				if s == argString {
 					return nil
 				}
 			}
 			return fmt.Errorf("string %q is not one of the allowed values", s)
 		},
-	},
-	"not_one_of": {
+	}),
+	"not_one_of": define(ConstraintDefinition{
 		Name:    "not_one_of",
 		NumArgs: -1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Arg:     stringArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
-			if len(args) < 1 {
-				return invalidArgf("not_one_of constraint requires at least 1 argument")
-			}
 			for _, arg := range args {
-				argString, oka := arg.StringValue()
-				if !oka {
-					return invalidArgf("expected string, got %s", arg.Kind())
-				}
+				argString, _ := arg.StringValue()
 				if s == argString {
 					return fmt.Errorf("string %q is one of the allowed values", s)
 				}
@@ -384,5 +334,5 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 
 			return nil
 		},
-	},
+	}),
 }

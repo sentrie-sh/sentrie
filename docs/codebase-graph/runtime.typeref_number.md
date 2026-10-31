@@ -15,15 +15,14 @@ Validates a value against a `number` type and applies the numeric constraint tab
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.typeref_number` | `DEPENDS_ON` | [[constraints]] | `constraints.NumberContraintCheckers`. |
-| `runtime.typeref_number` | `CALLS` | [[runtime.eval]] | Evaluates constraint argument expressions. |
+| `runtime.typeref_number` | `CALLS` | [[runtime.typeref_constraints]] | `bindConstraints` before the kind check, `checkConstraints` after it. |
 | `runtime.typeref_number` | `CALLS` | [[runtime.err_typedef]] | Constraint error constructors. |
 | [[runtime.typeref]] | `CALLS` | [[runtime.typeref_number]] | Dispatched for `*ast.NumberTypeRef`. |
 
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `validateAgainstNumberTypeRef(ctx, ec, exec Executor, p *index.Policy, v box.Value, typeRef *ast.NumberTypeRef, pos tokens.Range) -> error`
-  - **Behavior:** Requires `v.NumberValue()` to succeed, then runs each constraint in order.
+  - **Behavior:** Binds its constraints first ([[runtime.typeref_constraints]]: arguments evaluated and checked against the definition, so a broken argument errors for any value, #273), then requires `v.NumberValue()` to succeed, then runs each constraint in order.
   - **Side Effects:** Constraint argument evaluation.
   - **Exceptions:** `value %v is not a number`; `ErrUnknownConstraint`; `ErrConstraintFailed`.
 

@@ -15,15 +15,14 @@ Validates a value against the `document` type - the schemaless container intende
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.typeref_document` | `DEPENDS_ON` | [[constraints]] | `constraints.DocumentContraintCheckers` - the table that gives `document` whatever teeth it has. |
-| `runtime.typeref_document` | `CALLS` | [[runtime.eval]] | Evaluates constraint argument expressions. |
+| `runtime.typeref_document` | `CALLS` | [[runtime.typeref_constraints]] | `bindConstraints` before the kind check, `checkConstraints` after it. |
 | `runtime.typeref_document` | `CALLS` | [[runtime.err_typedef]] | Constraint error constructors. |
 | [[runtime.typeref]] | `CALLS` | [[runtime.typeref_document]] | Dispatched for `*ast.DocumentTypeRef`. |
 
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `validateAgainstDocumentTypeRef(ctx, ec, exec Executor, p *index.Policy, v box.Value, typeRef *ast.DocumentTypeRef, pos tokens.Range) -> error`
-  - **Behavior:** Requires `v.DictValue()` - the source comment states plainly that it "just validate[s] that it's a map" - then runs document constraints.
+  - **Behavior:** Binds its constraints first ([[runtime.typeref_constraints]]: arguments evaluated and checked against the definition, so a broken argument errors for any value, #273), then requires `v.DictValue()` - the source comment states plainly that it "just validate[s] that it's a map" - then runs document constraints.
   - **Side Effects:** Constraint argument evaluation.
   - **Exceptions:** `value %v is not a document at %s - expected document`; `ErrUnknownConstraint`; `ErrConstraintFailed`.
 

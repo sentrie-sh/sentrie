@@ -23,6 +23,7 @@ The gate every policy pack must pass before execution. `Validate` first settles 
 | `index.validate` | `CALLS` | [[index.derive_cycle]] | Fifth check in the pipeline. |
 | `index.validate` | `CALLS` | [[index.derive_purity]] | Sixth check. |
 | `index.validate` | `CALLS` | [[index.builtin_check]] | Seventh check. |
+| `index.validate` | `CALLS` | [[index.constraint_args]] | Eighth and last check: every constraint's literal arguments against its definition. |
 | `index.validate` | `CALLS` | [[index.commit]] | Runs immediately after a successful validation, inside the same `Once`. |
 | `index.validate` | `CALLS` | [[index.resolve]] | Resolves imported policies and base shapes while building edges. |
 | `index.validate` | `MUTATES` | [[index.index]] | Writes `ruleDag`, `shapeDag`, `validated`, and `validationError`. |
@@ -68,7 +69,7 @@ The gate every policy pack must pass before execution. `Validate` first settles 
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** **Exactly-once and sticky.** A failed validation is cached permanently; the index cannot be repaired and re-validated. Build a fresh one.
-- **Performance/Scale Notes:** Eight full traversals of the policy set (the `is` resolution pass, then seven checks), with a fresh graph allocated per policy in `detectReferenceCycle`. Context cancellation is checked at every nesting level, so a long validation aborts promptly. Every cycle detector reports only the **first** cycle found.
+- **Performance/Scale Notes:** Nine full traversals of the policy set (the `is` resolution pass, then eight checks), with a fresh graph allocated per policy in `detectReferenceCycle`. Context cancellation is checked at every nesting level, so a long validation aborts promptly. Every cycle detector reports only the **first** cycle found.
 - **Dependencies Risk:**
   - **Reference-cycle detection works on unqualified names.** A rule and a fact in different policies sharing a name are distinct graph nodes only because the graph is rebuilt per policy - but within one policy, a let and a rule with related names can produce edges that do not correspond to real references, and edge-add errors are discarded rather than surfaced.
   - **The two shape-edge paths behave differently.** Namespace shapes resolve by parent-FQN plus last segment; policy shapes index `ns.Shapes` by the **whole `WithFQN` string**, which only matches when the reference is written as a bare name. A policy shape composing with a qualified path fails with `shape not found` even when the target exists.
