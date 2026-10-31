@@ -58,17 +58,22 @@ func invokeDerive(ctx context.Context, callerEC *ExecutionContext, exec *executo
 	if err := ctx.Err(); err != nil {
 		return box.Undefined(), err
 	}
+	depth, err := enterCall(callerEC, "derive")
+	if err != nil {
+		return box.Undefined(), err
+	}
 	lam := d.Lambda
 	// Parameter and return types resolve shapes in the derive's own scope,
 	// as `is` does (#150), not in the calling policy (see typeCheckScope).
 	scope := d.ShapeScope()
-	args, err := padAndValidateDeriveArgs(ctx, callerEC, exec, scope, lam, args)
+	args, err = padAndValidateDeriveArgs(ctx, callerEC, exec, scope, lam, args)
 	if err != nil {
 		return box.Undefined(), err
 	}
 
 	child := callerEC.DetachedChildContext()
 	defer child.Dispose()
+	child.callDepth = depth
 
 	child.evalDerive = d
 

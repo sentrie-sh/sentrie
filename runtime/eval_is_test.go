@@ -158,15 +158,16 @@ func (s *RuntimeTestSuite) TestEvalIsDefinedAndIsEmptyTable() {
 func (s *RuntimeTestSuite) TestEvalIsInsideDeriveBody() {
 	ctx := s.T().Context()
 	T, F := trinary.True, trinary.False
-	derives := `derive blank = (v?: string): trinary => { yield v is empty }
+	// Not named blank: the policy's fact blank would shadow it in a call (#161).
+	derives := `derive isBlank = (v?: string): trinary => { yield v is empty }
 derive present = (v?: string): trinary => { yield v is defined }
 derive missingKey = (m: dict[number]): trinary => { yield m["k"] is not defined }
 derive nonEmpty = (xs: list[number]): trinary => { yield xs is not empty }
 `
 	cases := []isCase{
-		{"is empty on an empty argument", `blank("")`, T},
-		{"is empty on an omitted optional parameter", `blank()`, T},
-		{"is empty on a non-empty argument", `blank("a")`, F},
+		{"is empty on an empty argument", `isBlank("")`, T},
+		{"is empty on an omitted optional parameter", `isBlank()`, T},
+		{"is empty on a non-empty argument", `isBlank("a")`, F},
 		{"is defined on an omitted optional parameter", `present()`, F},
 		{"is defined on an empty argument", `present("")`, T},
 		{"is not defined on a missing key", `missingKey({"a": 1})`, T},

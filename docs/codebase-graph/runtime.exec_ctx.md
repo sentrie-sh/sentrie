@@ -26,7 +26,7 @@ The per-execution scope chain: facts, policy lets, evaluated locals, module bind
 
 ## 3. Interface Contracts & Public Surface
 
-- **Signature:** `ExecutionContext` - `{ rwmu, policy, createdAt, parent, refStack, facts, lets, locals, modules, executor, evalDerive }`
+- **Signature:** `ExecutionContext` - `{ rwmu, policy, createdAt, parent, refStack, callDepth, evalDepth, facts, lets, locals, modules, executor, evalDerive }`
   - **Behavior:** `facts` is populated only on the root; `lets` hold unevaluated declarations; `locals` hold evaluated values. `evalDerive` marks derive-body evaluation and is read by identifier resolution to block facts, rules, module calls, and impure builtins.
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
@@ -75,6 +75,16 @@ The per-execution scope chain: facts, policy lets, evaluated locals, module bind
   - **Behavior:** Runtime cycle detection by FQN. Push fails if the ID is already on the stack.
   - **Side Effects:** Mutates `refStack`.
   - **Exceptions:** `'%s' references itself: xerr.ErrInfiniteRecursion(...)`.
+
+- **Signature:** `MaxCallDepth` (const, 1000) / `ErrCallDepthExceeded` / `enterCall(site *ExecutionContext, kind string) -> (int, error)`
+  - **Behavior:** Bounds nested lambda and derive invocations per evaluation. Both child constructors copy `callDepth`; `enterCall` returns the call site's depth plus one, which the invoker writes onto the new child before it is shared, or fails past the limit. Unbounded recursion through a let lambda (#161), by name or by self-application, ends with an ordinary error instead of a fatal Go stack overflow. A 990-level recursion fits in 8 MB of Go stack, so the limit sits far below Go's 1 GB default.
+  - **Side Effects:** None.
+  - **Exceptions:** `lambda call depth exceeded (limit 1000)` / `derive call depth exceeded (limit 1000)`, wrapping `ErrCallDepthExceeded`.
+
+- **Signature:** `MaxEvalDepth` (const, 50000) / `ErrEvalDepthExceeded` / `evalDepthCounter` / `(*ExecutionContext).inheritDepth(caller)`
+  - **Behavior:** `MaxCallDepth` alone does not bound the Go stack, because a level costs stack in proportion to how deeply the recursive call sits in the body. Every [[runtime.eval]] frame enters and leaves one `evalDepthCounter`, shared by all contexts of a root evaluation (a lambda invocation uses its call site's counter), and fails past 50000 active frames. A runaway recursion stopped there used under 128 MB of Go stack with and without -race, for trivial bodies and for bodies nested 2000 terms deep. `inheritDepth` gives an imported decision's fresh root context the importer's call depth and counter.
+  - **Side Effects:** Atomic add and subtract per eval frame (about 2% on the lambda-heavy collection benchmark).
+  - **Exceptions:** `evaluation depth exceeded (limit 50000 nested evaluations)`, wrapping `ErrEvalDepthExceeded`.
 
 - **Signature:** `(*ExecutionContext).CreatedAt() -> time.Time` / `Dispose()`
   - **Behavior:** `CreatedAt` recurses to the root. `Dispose` is a **no-op** despite its doc comment describing arena release.

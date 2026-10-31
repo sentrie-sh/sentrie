@@ -50,16 +50,24 @@ func (c *lambdaCallable) Invoke(ctx context.Context, site *CallSite, args []box.
 	if err := ctx.Err(); err != nil {
 		return box.Undefined(), err
 	}
+	depth, err := enterCall(site.EC, "lambda")
+	if err != nil {
+		return box.Undefined(), err
+	}
 	// The lambda's types resolve where it was written: in the enclosing
 	// derive's scope for a lambda in a derive body, else in the policy.
 	scope := typeCheckScope(c.capture, site.Policy)
-	args, err := padAndValidateCallableArgs(ctx, site.EC, site.Exec, scope, c.lambda, args, "lambda")
+	args, err = padAndValidateCallableArgs(ctx, site.EC, site.Exec, scope, c.lambda, args, "lambda")
 	if err != nil {
 		return box.Undefined(), err
 	}
 
 	child := c.capture.AttachedChildContext()
 	defer child.Dispose()
+	// The depth follows the call chain, not the capture: the body runs one
+	// level below the call site, wherever the lambda was defined.
+	child.callDepth = depth
+	child.evalDepth = site.EC.evalDepth
 	for i, name := range c.lambda.Params {
 		child.SetLocal(name, args[i], true)
 	}
