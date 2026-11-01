@@ -5,3 +5,11 @@
 - Picked up with #279 to #285 in one batch (follow-ups from #269 to #273); one pickup push and a draft PR per branch before implementation.
 - Plan: drop a raw `\r` immediately followed by a raw `\n` inside a string literal, as heredocs do since #270; an escaped `\r` is unchanged.
 - _Model: claude-opus-5-5_
+
+### 12:57 - Drop the CR of a CRLF line break inside a string literal
+- `readString` wrote every raw rune, so `let s = "a<CRLF>b"` was "a\r\nb" in a CRLF file and "a\nb" in an LF file; `s == "a\nb"` was false for CRLF.
+- Fix: new helper `atCRLFBreak` (current is `\r` and the next rune is `\n`); `readString` skips writing that `\r`, both for a plain rune and for the default escape branch (backslash then a raw line break), so `\<CR><LF>` equals `\<LF>`. An escaped `\r` takes its own `case 'r'` and is unchanged; a lone `\r` is unchanged.
+- The token span is unchanged: it still covers the dropped bytes, since it is source provenance.
+- Tests: `TestLexerStringLiteralLineBreaks` (values, escapes, span) and `TestStringLiteralInACRLFFileEvaluatesLikeLF` (pack with LF and CRLF files, same results). The runtime test failed for CRLF without the fix. Namespace `string/...` is rejected (keyword), so the test uses `text/crlf`.
+- Updated the lexer graph node (new gotcha).
+- _Model: claude-sonnet-5-5_
