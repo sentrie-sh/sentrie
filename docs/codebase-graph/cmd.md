@@ -20,8 +20,8 @@ Defines the five user-facing commands and wires the loading pipeline behind each
 | `cmd` | `CALLS` | [[index]] | `CreateIndex`, `SetPack`, `AddProgram`, `Validate`, and `NondeterminismWarnings` in `validate`. |
 | `cmd` | `CALLS` | [[format]] | `fmt` runs `format.Source` on each `.sentrie` file it finds. |
 | `cmd` | `READS_FROM` | [[runtime.js.registry]] | `validate` passes `js.IsNondeterministicExport` to the index's warning pass. |
-| `cmd` | `CALLS` | [[capabilities]] | `exec`, `serve` and `validate` load `--capabilities`, run `index.CheckCapabilities`, and pass `runtime.WithCapabilities` to the executor. |
-| `cmd` | `CALLS` | [[runtime.executor]] | `NewExecutor`, then `ExecPolicy` / `ExecRule`. |
+| `cmd` | `CALLS` | [[capabilities]] | `exec`, `serve`, `validate` and `bench` load `--capabilities`, run `index.CheckCapabilities`, and pass `runtime.WithCapabilities` to the executor. |
+| `cmd` | `CALLS` | [[runtime.executor]] | `NewExecutor`, then `ExecPolicy` / `ExecRule`; `bench` calls them in a timed loop. |
 | `cmd` | `CALLS` | [[api.http]] | `serve` constructs and drives the HTTP API. |
 | `cmd` | `LAYERED_ON` | [[pack]] | `init` constructs and TOML-encodes a new pack manifest. |
 | [[main]] | `CALLS` | `cmd` | `Setup` builds the CLI; `Execute` runs it. |
@@ -55,6 +55,11 @@ Defines the five user-facing commands and wires the loading pipeline behind each
   - **`--eval-timeout`:** a Go duration string (cling has no duration input), parsed by `parseEvalTimeout`; `0` disables the deadline and negative values are rejected. `serve` passes it to both the executor and `api.WithRequestTimeout`; the API then hands each request its own deadline, which replaces the executor's, so there is one deadline per request.
   - **Exceptions:** File read errors; JSON decode errors; evaluation errors.
 
+- **Signature:** `sentrie bench <target> [--pack-location .] [--facts '{}'] [--fact-file path] [--benchtime 1s|Nx] [--count 1] [--eval-timeout 10s] [--capabilities path]` ([#174](https://github.com/sentrie-sh/sentrie/issues/174))
+  - **Behavior:** Loads, indexes, validates and builds the executor once (`loadBenchIndex`, `newGrantedExecutor`), resolves `target` as `exec` resolves its rule (a rule, or a whole policy when the rule segment is empty), runs one untimed evaluation (warm-up, and the check that the target exists and evaluates), then prints `goos:` and `goarch:` lines and one Go benchmark line per `--count` run: `BenchmarkExec/<target>[-GOMAXPROCS] N X ns/op Y B/op Z allocs/op`, so `benchstat` accepts it. `--benchtime` means what it does for `go test`: a positive duration grows the iteration count until a run lasts that long (the last run is reported), `Nx` runs exactly N evaluations. `--count` and `--benchtime` take the double-dash form like every other flag here. `bench` has its own loop (`runBench`, `runN`) rather than `testing.Benchmark`, so it touches no global test flags; B/op and allocs/op are `runtime.MemStats` `TotalAlloc` and `Mallocs` deltas over the timed run, divided by N.
+  - **Side Effects:** Full evaluations; writes to stdout; closes the executor on return.
+  - **Exceptions:** Unknown target; a target that fails to evaluate (for example a required fact missing); invalid `--benchtime`, `--count`, `--facts` or `--eval-timeout`; pack, fact-file and capabilities errors. The exit status is non-zero. A failure in the warm-up evaluation prints no result line; a failure in a later `--count` run stops after the lines already printed.
+
 - **Signature:** `sentrie validate <rule> [--pack-location .] [--facts '{}']`
   - **Behavior:** Runs the pipeline, constructs an executor and closes it, returning any error. Success means the pack parses, indexes, validates, and can be loaded. It then prints one `warning: <span>: <message>` line to stderr per use of a nondeterministic builtin or builtin-module export (`index.NondeterminismWarnings` with `js.IsNondeterministicExport`); warnings never fail validation.
   - **Side Effects:** None beyond reading files.
@@ -71,6 +76,7 @@ Defines the five user-facing commands and wires the loading pipeline behind each
   - **Exceptions:** Invalid name; directory missing or not a directory; directory not empty; write or encode errors.
 
 ## 4. Operational Context & Gotchas
+- **`bench` measures a warm, long-lived executor.** The executor's call-memoization cache and module loads persist across the timed iterations, as they do in `serve`, so a memoized call is paid once and then served from the cache. B/op and allocs/op are process-wide, so any concurrent goroutine (`ExecPolicy` runs one per exported rule) is included.
 - **Statefulness:** Each command builds a fresh index and executor; nothing is shared between invocations.
 - **Performance/Scale Notes:** The whole pack is parsed and indexed on every command, including `validate`. Startup cost scales with pack size, and `serve` pays it once before binding - so a large pack delays readiness but never serves a partially-indexed state.
 - **Dependencies Risk:**

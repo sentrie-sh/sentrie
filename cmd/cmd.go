@@ -27,6 +27,7 @@ func Setup(ctx context.Context, version string) *cling.CLI {
 	addExecCmd(cli)
 	addValidateCmd(cli)
 	addFmtCmd(cli)
+	addBenchCmd(cli)
 
 	return cli
 }
