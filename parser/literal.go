@@ -17,7 +17,7 @@ func parseConstraintLiteral(ctx context.Context, p *Parser) ast.Expression {
 	case tokens.String:
 		return parseStringLiteral(ctx, p)
 	case tokens.Int:
-		return parseIntegerLiteral(ctx, p)
+		return parseIntegerValueLiteral(ctx, p)
 	case tokens.Float:
 		return parseFloatLiteral(ctx, p)
 	case tokens.KeywordTrue, tokens.KeywordFalse, tokens.KeywordUnknown:
