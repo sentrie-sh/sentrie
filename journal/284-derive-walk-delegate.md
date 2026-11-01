@@ -29,3 +29,7 @@
 - Note, not a bug: `forEachExprChild`'s nil skip compares the interface to nil, so a typed nil pointer (a `LambdaExpression` with a nil `*BlockExpression` body) is still yielded; the parser never builds one.
 - `make test`, `GOTOOLCHAIN=go1.25.0 make lint`, gofmt, `make docs-graph` and `go test -race ./index` pass.
 - _Model: claude-sonnet-5-5_
+
+### 13:15 - Paused at the plan limit
+- Implementation and the test and CI pass are done and committed; the reviewer has not run yet. The batch paused at 93% of the 5-hour window to stay off paid usage, and resumes after the window resets with the opus reviewer for this branch.
+- _Model: claude-opus-5-5_
