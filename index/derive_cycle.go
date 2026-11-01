@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Derive cycle detection shares expression walking with derive purity validation;
-// see derive_expr_walk.go - new expression kinds must update forEachDeriveExprChild.
+// see derive_expr_walk.go - a new expression kind needs a case in forEachExprChild
+// (expr_walk.go), which forEachDeriveExprChild delegates to.
 package index
 
 import (

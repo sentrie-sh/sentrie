@@ -11,9 +11,10 @@ import (
 
 // forEachExprChild yields every direct child node of n that can hold a
 // reference to a rule or let, for every expression kind and for the statements
-// that appear inside a block (let, rule, comment). Unlike
-// forEachDeriveExprChild it is not derive-specific: it descends into import
-// clauses and their `with` values, and it never rejects a statement.
+// that appear inside a block (let, rule, comment). It is not
+// derive-specific: it descends into import clauses and their `with` values, and
+// it never rejects a statement. forEachDeriveExprChild (derive_expr_walk.go)
+// delegates to it and adds only the derive restrictions.
 //
 // It is the single place that knows the shape of the AST for reference
 // analysis. A node kind it has no case for is an error, never a silent skip, so
