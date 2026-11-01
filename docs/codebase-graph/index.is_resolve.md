@@ -16,10 +16,12 @@ Settles what a bare or slash-qualified name means on the right of `x is Name`. T
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `index.is_resolve` | `CALLS` | [[index.builtin_check]] | `forEachScopedExpr` supplies every expression site with its `kindCheckCtx` scope. |
+| `index.is_resolve` | `CALLS` | [[index.typeref_walk]] | `forEachNestedTypeRef` expands an `is` type into the shape refs nested in it. |
 | `index.is_resolve` | `MUTATES` | [[ast]] | Clears `IsExpression.Right` (type reading) or `IsExpression.Type` (value reading). |
 | `index.is_resolve` | `READS_FROM` | [[index.shape]] | Policy and namespace shapes; exported shapes of the namespace a qualified name points at. |
 | `index.is_resolve` | `DEPENDS_ON` | [[xerr]] | Errors wrap `xerr.ErrIndex`; `ErrShapeNotFound` and `ErrNotExported` for qualified names. |
 | [[index.validate]] | `CALLS` | [[index.is_resolve]] | First step of `validate`. |
+| [[index.shape_refs]] | `CALLS` | [[index.is_resolve]] | `LookupShape` and `joinSiteErrors` for every other type position. |
 | [[runtime.eval_is_type]] | `CALLS` | [[index.is_resolve]] | `LookupShape` for nodes an unvalidated index left ambiguous. |
 
 ## 3. Interface Contracts & Public Surface

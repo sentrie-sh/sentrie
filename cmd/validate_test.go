@@ -107,3 +107,25 @@ func (s *CmdTestSuite) TestValidateCmdRejectsUnknownImportWithFact() {
 	s.Contains(err.Error(), `import binds unknown fact "usr"`)
 	s.Contains(err.Error(), "policy t/q accepts fact aliases: user")
 }
+
+const missingShapePolicy = `namespace t/a
+
+policy p {
+  fact x: document as x
+  let v: Missing = x
+  rule ok = { yield (x as Nope) == x }
+  export decision of ok
+}
+`
+
+// TestValidateCmdRejectsMissingShapeNames is the reproduction from #282:
+// validate used to exit 0, and the unused typed let was never reported.
+func (s *CmdTestSuite) TestValidateCmdRejectsMissingShapeNames() {
+	dir := s.writeTestPack(missingShapePolicy)
+	err := runValidateCLI(s.T().Context(), []string{"t/a/p/ok", "--pack-location", dir})
+	s.Require().Error(err)
+	s.Contains(err.Error(), "shape 'Missing' not found at ")
+	s.Contains(err.Error(), "policy.sentrie:5:10-17: index error")
+	s.Contains(err.Error(), "shape 'Nope' not found at ")
+	s.Contains(err.Error(), "policy.sentrie:6:27-31: index error")
+}
