@@ -25,3 +25,8 @@
 - Tests: qualified shape shadowed by a local one (namespace derive and rule let, fails before), field chain accept/reject on a namespace derive's shape parameter (passes on main too, a guard). The field-chain case surprisingly already rejected on main; not investigated further.
 - Graph: `index.builtin_kind` notes the delegation.
 - _Model: claude-sonnet-5-5_
+
+### 13:15 - Re-review approved; correct the field chain claim
+- Re-review (opus) approved the `LookupShape` fix: requiring the export can only make a kind unknown and skip a check, never add a rejection, and an unexported same-namespace or policy-local FQN reference already fails at runtime.
+- Correction to the 13:13 entry: `TestBuiltinCheckNamespaceDeriveShapeFieldChain` does not pass on main. Its reject case fails with main's `index/builtin_kind.go` (nil policy and `LastSegment` lookup never find `U`); it passes only with 822c29f, which is what was run. It bites against main and hides no gap.
+- _Model: claude-opus-5-5_
