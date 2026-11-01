@@ -24,3 +24,10 @@
 - Ruled out: parser-level duplicates per position (the runtime test already parses each one), and a test for `@in` on `string` beyond the existing unknown-name case.
 - Bumped the fixture count in the `lang_test` graph node (45 to 46 fixtures; it said forty-four).
 - _Model: claude-sonnet-5-5_
+
+### 13:13 - Share the name-or-keyword helper (review)
+- Review: `advanceConstraintName` was a copy of `advanceModulePathSegment`. Both are now one helper, `advanceNameOrKeyword(p, expected)` in `parser/parser.go` next to `advanceExpected`, whose doc comment names the two positions where a keyword is a name.
+- Took the error-text suggestion: the helper takes the expectation text. Module paths pass `tokens.Ident.String()`, so their errors are unchanged (`expected Ident, got <kind>`); constraints pass `constraint name after '@'`, so `number @ = 1` now reports `expected constraint name after '@', got Assign` instead of `expected Ident, got Assign`.
+- Graph: `parser.parser` gains the helper; `parser.typeref` and `parser.use` name it.
+- Parser, cmd and lang_test tests, lint and docs-graph pass.
+- _Model: claude-opus-5-5_
