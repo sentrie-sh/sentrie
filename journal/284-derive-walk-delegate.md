@@ -19,3 +19,13 @@
 - Tests: moved the samples and expected identifiers of `TestForEachExprChildCoversEveryASTNode` into `astWalkSamples` / `astWalkExpected`, and added `TestForEachDeriveExprChildCoversEveryASTNode`, which runs every expression kind through the derive walker and compares with the same expectations, plus the derive overrides. Mutating the let override makes it fail.
 - Updated the `index.expr_walk` and `index.derive_expr_walk` graph nodes, and the sentences in `index.builtin_check` and `index.derive_purity` that described the old switch. `go test ./...` and `GOTOOLCHAIN=go1.25.0 make lint` pass.
 - _Model: claude-sonnet-5-5_
+
+### 13:12 - End-to-end tests for the derive walker
+- Added `index/derive_walk_e2e_test.go`. This is a refactor, so the tests pin observable derive behaviour rather than the walker's shape (the existing `TestForEachDeriveExprChildCoversEveryASTNode` already pins the per-kind children, the clause rejections and the unsupported-statement errors, so none of that is duplicated).
+- Covered: purity rejection (impure builtin, TS module call, fact reference) with the same messages when the probe is nested in each expression kind; a pure probe passes in the same wrappers; cycle detection through the same wrappers, a lambda body (yield and `let`), a body `let` and a pipeline; an acyclic chain passes; the derive walker yields no nil child.
+- Ruled out: purity spans (purity errors carry no span, only `derive <fqn>: <message>`); a `let` value test through purity (`walkDeriveBlock` handles lets itself, so it does not exercise the walker); a fact inside an `is` value side (refused earlier by the `is` resolution with a different message); line comments in derive blocks (known pre-existing bug, out of scope).
+- Proved they bite: the end-to-end tests pass on the old walker (behaviour unchanged, as intended). Mutations in HEAD that fail them: drop the `let` value yield, the index key, the map value, the transform argument, the call arguments, the nil skip, and the clause rejection.
+- Pipeline cycle test only bites if the callee is dropped (a pipeline desugars to a call whose arguments do not matter for cycle detection).
+- Note, not a bug: `forEachExprChild`'s nil skip compares the interface to nil, so a typed nil pointer (a `LambdaExpression` with a nil `*BlockExpression` body) is still yielded; the parser never builds one.
+- `make test`, `GOTOOLCHAIN=go1.25.0 make lint`, gofmt, `make docs-graph` and `go test -race ./index` pass.
+- _Model: claude-sonnet-5-5_
