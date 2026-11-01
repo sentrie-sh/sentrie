@@ -107,7 +107,9 @@ func (s *RuntimeTestSuite) TestEvalIsNameResolutionErrors() {
 }
 
 // TestEvalIsTypeCheckErrorsPropagate checks that a failure to make the check
-// is an error, never a false that `is not` would turn into true.
+// is an error, never a false that `is not` would turn into true. Validation
+// rejects the missing field shape (#282), so the index is left unvalidated to
+// reach the runtime path.
 func (s *RuntimeTestSuite) TestEvalIsTypeCheckErrorsPropagate() {
 	ctx := s.T().Context()
 	src := `namespace com/app
@@ -118,7 +120,12 @@ policy pol {
   export decision of hidden_field_shape
 }
 `
-	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "errs.sentrie", src: src})
+	idx := s.mustBuildDeriveIndex(ctx, deriveTestProgram{name: "errs.sentrie", src: src})
+	s.Require().ErrorContains(idx.Validate(ctx), "shape 'Hidden' not found")
+	rawExec, err := NewExecutor(idx)
+	s.Require().NoError(err)
+	exec, ok := rawExec.(*executorImpl)
+	s.Require().True(ok)
 	cases := map[string]string{
 		"hidden_field_shape": "Hidden",
 	}
