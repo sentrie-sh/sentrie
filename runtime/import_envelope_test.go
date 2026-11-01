@@ -311,7 +311,7 @@ policy rd {
   export decision of via
 }
 policy rb {
-  fact flag: dict[bool]
+  fact flag: dict[boolean]
   rule via = { yield flag or false }
   export decision of via
 }

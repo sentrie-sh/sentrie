@@ -4,15 +4,15 @@
 namespace rules2
 
 policy auth {
-  fact user?: any
-  fact resource?: any
+  fact user?: document
+  fact resource?: document
   rule isAllowed = { yield true }
   export decision of isAllowed
 }
 
 policy input {
-  fact user?: any
-  fact resource?: any
+  fact user?: document
+  fact resource?: document
   rule isValid = { yield true }
   export decision of isValid
 }
