@@ -23,7 +23,7 @@ import (
 //	undefined                 -> undefined (nested too)
 //	null                      -> null
 //	boolean, string           -> bool, string
-//	number                    -> number (int64 when integral, else float64)
+//	number                    -> number (int64, an exact integer, when integral; else float64)
 //	Array                     -> list, element by element
 //	plain object              -> dict of its own enumerable string keys
 //	Map with string keys      -> dict
