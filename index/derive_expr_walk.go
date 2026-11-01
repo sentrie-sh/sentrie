@@ -38,7 +38,8 @@ func walkDeriveExprDFS(root ast.Expression, visit func(ast.Expression) error) er
 //   - The errors name the derive walk, not the reference walk.
 //
 // A new expression kind needs a case in forEachExprChild only;
-// TestForEachExprChildCoversEveryASTNode checks both walkers against it.
+// TestForEachExprChildCoversEveryASTNode and
+// TestForEachDeriveExprChildCoversEveryASTNode check this.
 func forEachDeriveExprChild(e ast.Expression, yield func(ast.Expression) error) error {
 	switch e.(type) {
 	case *ast.ImportClause, *ast.WithClause, *ast.AttachmentClause:

@@ -33,3 +33,8 @@
 ### 13:15 - Paused at the plan limit
 - Implementation and the test and CI pass are done and committed; the reviewer has not run yet. The batch paused at 93% of the 5-hour window to stay off paid usage, and resumes after the window resets with the opus reviewer for this branch.
 - _Model: claude-opus-5-5_
+
+### 17:36 - Review approved; fix two comments
+- Review (opus) approved: no fail-open path (the clauses are rejected explicitly instead of by the old default, purity keeps its own rejecting switches), the typed-nil lambda body is unreachable from parsed source and behaves as before, and nil children are the only real change.
+- Applied its two comment fixes: `derive_expr_walk.go` now names both coverage tests, and `builtin_calls.go` says the derive walker rejects import clauses rather than having no case for them.
+- _Model: claude-opus-5-5_
