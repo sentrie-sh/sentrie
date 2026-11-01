@@ -15,7 +15,7 @@ FactDecl = "fact" IDENT ("?")? ":" TypeRef ("as" IDENT)? ("default" Expr)?
 
 UseStmt = "use" "{" IDENT ("," IDENT)* "}" "from" ExecSource ("as" IDENT)?
 ExecSource = STRING / ("@" ModulePathSegment ("/" ModulePathSegment)*)
-/* A module path segment may be a keyword (e.g. @sentrie/string). This is the only position where a keyword is accepted as a name; the default alias is the last segment, so a keyword last segment needs an explicit "as" IDENT. */
+/* A module path segment may be a keyword (e.g. @sentrie/string). The other position where a keyword is accepted as a name is a constraint name (ConstraintName). The default alias is the last segment, so a keyword last segment needs an explicit "as" IDENT. */
 ModulePathSegment = IDENT / KEYWORD
 /* A STRING source is a file path relative to the policy and must not start with "@": a quoted "@scope/name" is rejected with a hint to drop the quotes. */
 
@@ -138,7 +138,9 @@ ComplexShape = ("with" TypeName)? "{" ShapeElement+ "}"
 ShapeElement = IDENT ("?")? ":" TypeRef
 TypeRef = (PrimitiveType / TypeName / ListType / DictType / RecordType) ("?")? TypeRefConstraint*
 
-TypeRefConstraint = "@" IDENT "(" CommaSeparatedExpr? ")"
+TypeRefConstraint = "@" ConstraintName "(" CommaSeparatedExpr? ")"
+/* A constraint name may be a keyword (e.g. @in). Right after "@" a keyword has no other meaning; a name that is not a constraint of the type is rejected as an unknown constraint. */
+ConstraintName = IDENT / KEYWORD
 PrimitiveType = "int" / "float" / "string" / "bool" / "document"
 ListType = "list" "[" TypeRef "]"
 DictType = "dict" "[" TypeRef "]"
