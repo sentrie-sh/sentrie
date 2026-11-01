@@ -81,8 +81,12 @@ func execCmd(ctx context.Context, args []string) error {
 			return err
 		}
 		decoder := json.NewDecoder(bytes.NewReader(content))
+		decoder.UseNumber() // keep integers beyond 2^53 exact (#166)
 		if err := decoder.Decode(&factFileMap); err != nil {
 			return err
+		}
+		if err := box.CheckJSONNumbers(factFileMap); err != nil {
+			return fmt.Errorf("fact file: %w", err)
 		}
 	}
 
@@ -125,8 +129,12 @@ func execCmd(ctx context.Context, args []string) error {
 
 	var factFlagMap map[string]any
 	decoder := json.NewDecoder(bytes.NewReader([]byte(input.Facts)))
+	decoder.UseNumber()
 	if err := decoder.Decode(&factFlagMap); err != nil {
 		return err
+	}
+	if err := box.CheckJSONNumbers(factFlagMap); err != nil {
+		return fmt.Errorf("facts: %w", err)
 	}
 
 	facts := make(map[string]any)
@@ -156,11 +164,9 @@ func execCmd(ctx context.Context, args []string) error {
 	}
 
 	if input.Output == "json" {
-		formatOutputJSON(outputs)
-	} else {
-		formatOutputTable(outputs)
+		return formatOutputJSON(outputs)
 	}
-
+	formatOutputTable(outputs)
 	return nil
 }
 
@@ -186,10 +192,16 @@ func sortOutputs(outputs []*runtime.ExecutorOutput) ExecutorOutputMap {
 	return m
 }
 
-func formatOutputJSON(m []*runtime.ExecutorOutput) {
+// formatOutputJSON writes the decisions as indented JSON. Encoding can fail,
+// for example on a non-finite number produced by arithmetic, and that failure
+// is returned rather than leaving stdout empty with a zero exit status.
+func formatOutputJSON(m []*runtime.ExecutorOutput) error {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
-	_ = enc.Encode(m)
+	if err := enc.Encode(m); err != nil {
+		return fmt.Errorf("encoding output: %w", err)
+	}
+	return nil
 }
 
 // formatOutputTable formats the decision output in the specified format

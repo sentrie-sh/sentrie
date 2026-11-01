@@ -49,7 +49,7 @@ Defines the four user-facing commands and wires the loading pipeline behind each
   - **Exceptions:** Any pipeline error; bind failures; an `--eval-max-timeout` that is unparseable, zero or negative, or below a non-zero `--eval-timeout` (checked after the pack loads, before the executor is built).
 
 - **Signature:** `sentrie exec <rule> [--pack-location .] [--facts '{}'] [--fact-file path] [--output table|json] [--eval-timeout 10s]`
-  - **Behavior:** Same pipeline, then resolves the rule path and evaluates. Facts merge from two sources with the **`--facts` flag overriding the fact file**. An empty rule segment evaluates the whole policy.
+  - **Behavior:** Same pipeline, then resolves the rule path and evaluates. Facts merge from two sources with the **`--facts` flag overriding the fact file**. Both are decoded with `json.Decoder.UseNumber`, so an integral number that fits int64 stays exact, and checked with `box.CheckJSONNumbers`, so a number float64 cannot hold is an error ([#166](https://github.com/sentrie-sh/sentrie/issues/166)). With `--output json` an encoding failure (a non-finite result) is returned as an error instead of an empty stdout and exit 0. An empty rule segment evaluates the whole policy.
   - **Side Effects:** Full evaluation; writes to stdout; closes the executor on return.
   - **`--eval-timeout`:** a Go duration string (cling has no duration input), parsed by `parseEvalTimeout`; `0` disables the deadline and negative values are rejected. `serve` passes it to both the executor and `api.WithRequestTimeout`; the API then hands each request its own deadline, which replaces the executor's, so there is one deadline per request.
   - **Exceptions:** File read errors; JSON decode errors; evaluation errors.
