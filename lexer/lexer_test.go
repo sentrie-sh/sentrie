@@ -201,3 +201,66 @@ func TestLexerTokenPositions(t *testing.T) {
 		}
 	}
 }
+
+// TestLexerCommentSpanIgnoresCRLF checks that a comment token covers the same
+// line and columns whether its line ends in LF or CRLF, so the \r of a CRLF
+// line break is not part of the span (#279). Offsets differ by the extra \r
+// bytes, so the span length is compared instead.
+func TestLexerCommentSpanIgnoresCRLF(t *testing.T) {
+	type span struct {
+		kind                                tokens.Kind
+		value                               string
+		fromLine, fromCol, toLine, toCol, n int
+	}
+	lex := func(input string) []span {
+		l := NewLexer(strings.NewReader(input), "t.sentrie")
+		var out []span
+		for {
+			tok := l.NextToken()
+			if tok.Kind == tokens.EOF {
+				return out
+			}
+			r := tok.Range
+			out = append(out, span{tok.Kind, tok.Value, r.From.Line, r.From.Column, r.To.Line, r.To.Column, r.To.Offset - r.From.Offset})
+		}
+	}
+	testCases := []struct {
+		name  string
+		input string
+		kind  tokens.Kind
+	}{
+		{"line comment", "-- note\nx\n", tokens.LineComment},
+		{"indented line comment", "  -- note  \nx\n", tokens.LineComment},
+		{"trailing comment", "x -- note\ny\n", tokens.TrailingComment},
+		{"empty comment", "x --\ny\n", tokens.TrailingComment},
+		{"comment between lines", "a\n-- note\nb\n", tokens.LineComment},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			lf := lex(tc.input)
+			crlf := lex(strings.ReplaceAll(tc.input, "\n", "\r\n"))
+			if len(lf) != len(crlf) {
+				t.Fatalf("token count differs: LF %+v, CRLF %+v", lf, crlf)
+			}
+			seen := false
+			for i := range lf {
+				if lf[i] != crlf[i] {
+					t.Fatalf("token %d differs: LF %+v, CRLF %+v", i, lf[i], crlf[i])
+				}
+				if lf[i].kind == tc.kind {
+					seen = true
+				}
+			}
+			if !seen {
+				t.Fatalf("no %s token in %+v", tc.kind, lf)
+			}
+		})
+	}
+
+	// A \r that is not followed by \n is not a line break and stays in the
+	// comment, in the middle of the text.
+	got := lex("-- a\rb\n")
+	if len(got) != 1 || got[0].value != "a\rb" {
+		t.Fatalf("lone \\r inside a comment: got %+v", got)
+	}
+}
