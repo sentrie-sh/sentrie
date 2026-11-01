@@ -433,8 +433,8 @@ func (l *Lexer) readComment() (tokens.Kind, string) {
 
 // atCRLFBreak reports whether the current rune is the raw \r of a CRLF line
 // break: a \r immediately followed by a raw \n. A string literal drops it so
-// a line break inside the literal is \n whatever the file's line endings, as
-// in a heredoc. An escaped \r and a lone \r are not line breaks.
+// a line break inside the literal is \n whatever the file's line endings
+// (a heredoc will match once #270 lands). An escaped \r and a lone \r are not line breaks.
 func (l *Lexer) atCRLFBreak() bool {
 	return l.current == '\r' && l.peekAhead() == '\n'
 }

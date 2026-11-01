@@ -318,8 +318,8 @@ func TestLexerStringLiteralCRLFPositions(t *testing.T) {
 	})
 
 	t.Run("CR at the end of the file inside an unterminated string", func(t *testing.T) {
-		// A \r with nothing after it is not a line break; it is kept, and the
-		// string is still reported as unterminated.
+		// A string cut off by the end of the file after a \r is still reported
+		// as unterminated.
 		for _, input := range []string{"\"a\r", "\"a\r\n\r"} {
 			got := lex(input)
 			last := got[len(got)-1]
