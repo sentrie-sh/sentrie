@@ -46,9 +46,9 @@ tags: type-syntax, constraints, nullable, recursive-descent
   - **Exceptions:** As for the constraint loop above.
 
 - **Signature:** `parseTypeRefConstraint(ctx, p, _ ast.TypeRef) -> *ast.TypeRefConstraint`
-  - **Behavior:** Parses `@name(lit, lit, …)`. Arguments go through [[parser.literal]], so only compile-time constants are accepted. The span covers `@` through the closing paren.
+  - **Behavior:** Parses `@name(lit, lit, …)`. The name is read by `advanceConstraintName`: an `Ident` or any keyword token, so `@in(...)` parses although `in` lexes as `KeywordIn` (#285). Arguments go through [[parser.literal]], so only compile-time constants are accepted. The span covers `@` through the closing paren; the name has no span of its own.
   - **Side Effects:** Consumes tokens; emits two debug logs.
-  - **Exceptions:** Returns `nil` on a missing `@`, name, parenthesis, or a non-literal argument.
+  - **Exceptions:** Returns `nil` on a missing `@`, name (`expected Ident, got <kind>` for a token that is neither an identifier nor a keyword), parenthesis, or a non-literal argument.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless functions; the returned ref is mutated during its own construction.
@@ -59,4 +59,5 @@ tags: type-syntax, constraints, nullable, recursive-descent
   - **`boolean` and `trinary` are indistinguishable after parsing.** A policy written with `boolean` produces a `TrinaryTypeRef`, so diagnostics and any type-name rendering will say "trinary".
   - **Commas are optional in `record[…]`.** The loop consumes a comma only if present, so `record[string number]` parses as two fields.
   - **Unterminated brackets rely on the head check, not EOF.** A missing `]` in a record loops until `advanceExpected` fails, reporting at end-of-input.
+  - **Any keyword is accepted as a constraint name.** The parser does not keep its own list of keyword constraint names; `AddConstraint` rejects a keyword that is not a constraint of the type (`@policy(1)`) with the same `cannot add constraint policy: not found` as an unknown identifier. `in` is the only constraint name that is also a keyword today.
   - **Constraint rejection depends on generated tables.** An "unknown constraint" error most often means [[ast]]'s generated file is stale relative to [[constraints]] - see the generation hazard documented there.
