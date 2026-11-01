@@ -27,3 +27,10 @@
 ### 13:15 - Paused at the plan limit
 - Implementation and the test and CI pass are done and committed; the reviewer has not run yet. The batch paused at 93% of the 5-hour window to stay off paid usage, and resumes after the window resets with the opus reviewer for this branch.
 - _Model: claude-opus-5-5_
+
+### 17:40 - Review: describe the behaviour change for users
+- Review (opus) found the code correct and race-free, with `with` fields resolved in their declaring shape. Its findings were all about the PR description.
+- The PR description now says that packs which ran before can fail at `exec`: a namespace shape whose field names a policy-only shape, and a policy shape no longer shadowing the namespace shape a namespace shape's field names. It also says #292 (#282) adds the matching `validate` check, which already resolves shape field and alias types in the shape's own scope.
+- Reworded the constraint-argument note: no result can change, since constraint arguments are literals and no checker reads the policy.
+- Declined for now: a shared `(*Shape).ScopeOr` helper for the two "shape scope, else fallback" sites; a small tidy-up that can follow.
+- _Model: claude-opus-5-5_
