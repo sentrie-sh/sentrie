@@ -791,3 +791,44 @@ policy cart {
 	)
 	s.Require().NoError(err)
 }
+
+// TestBuiltinCheckShapeFieldChainAndWithFieldKindUseDeclaringScope checks that
+// a field of a field, and a field a shape takes in through `with`, take their
+// kind from the shape that declares them: the caller's Tags is a string, the
+// catalog's a list, so filter must accept both accesses (#281).
+func (s *IndexTestSuite) TestBuiltinCheckShapeFieldChainAndWithFieldKindUseDeclaringScope() {
+	err := s.validateSources(
+		[2]string{"catalog.sentrie", `namespace com/example/catalog
+shape Tags list[string]
+shape Item {
+  tags: Tags
+}
+shape Order {
+  item: Item
+}
+shape Base {
+  tags: Tags
+}
+export shape Order
+export shape Base
+`},
+		[2]string{"shop.sentrie", `namespace com/example/shop
+shape Tags string
+shape Item {
+  tags: string
+}
+shape Line with com/example/catalog/Base {
+  sku: string
+}
+policy cart {
+  fact order: com/example/catalog/Order as order
+  fact line: Line as line
+  rule viaChain = { yield filter(order.item.tags, (x) => { yield x }) }
+  rule viaWith = { yield filter(line.tags, (x) => { yield x }) }
+  export decision of viaChain
+  export decision of viaWith
+}
+`},
+	)
+	s.Require().NoError(err)
+}
