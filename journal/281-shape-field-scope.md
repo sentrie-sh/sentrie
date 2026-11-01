@@ -23,3 +23,7 @@
 - Each new runtime test fails with index/shape.go, index/builtin_kind.go and runtime/typeref_shape.go reverted to the base branch; the composed-field test also fails with `DeclaredIn` ignored; the index chain test fails when the hop scope is not carried. The static `with` assertion is a guard: it passes either way because the static lookup recurses into the parent with the parent's own scope.
 - Ruled out as not this branch's bug, so no test kept: (1) a `with` chain two deep (C with B with A) drops A's fields at runtime, because `TopoSort` returns dependents first so C is hydrated before B; it is the same on the base branch and in one namespace. (2) a dict's element type (`dict[Price]`) is not enforced at runtime (`validateAgainstDictTypeRef` only runs constraints), so nothing about its scope can be observed.
 - _Model: claude-sonnet-5-5_
+
+### 13:15 - Paused at the plan limit
+- Implementation and the test and CI pass are done and committed; the reviewer has not run yet. The batch paused at 93% of the 5-hour window to stay off paid usage, and resumes after the window resets with the opus reviewer for this branch.
+- _Model: claude-opus-5-5_
