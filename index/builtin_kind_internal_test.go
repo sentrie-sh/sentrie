@@ -74,7 +74,7 @@ func TestLookupShapeFieldTypeReadOnlyMissingWithParent(t *testing.T) {
 		Fields: map[string]*ast.ShapeField{},
 	}, rng))
 	require.NoError(t, err)
-	_, ok := lookupShapeFieldTypeReadOnly(idx, nil, child, "items")
+	_, _, ok := lookupShapeFieldTypeReadOnly(idx, nil, child, "items")
 	require.False(t, ok)
 }
 
@@ -137,7 +137,7 @@ func TestLookupShapeFieldTypeReadOnlyWithChain(t *testing.T) {
 	require.NoError(t, err)
 
 	policy := &Policy{Namespace: ns}
-	ref, ok := lookupShapeFieldTypeReadOnly(idx, policy, child, "items")
+	ref, _, ok := lookupShapeFieldTypeReadOnly(idx, policy, child, "items")
 	require.True(t, ok)
 	_, ok = ref.(*ast.ListTypeRef)
 	require.True(t, ok)
@@ -202,7 +202,7 @@ func TestFieldTypeRefHopDocumentReturnsUnknown(t *testing.T) {
 	t.Parallel()
 	idx := CreateIndex()
 	rng := testBuiltinKindRange()
-	_, ok := fieldTypeRefHop(idx, nil, ast.NewDocumentTypeRef(rng), "x")
+	_, _, ok := fieldTypeRefHop(idx, nil, ast.NewDocumentTypeRef(rng), "x")
 	require.False(t, ok)
 }
 
@@ -332,7 +332,7 @@ func TestResolveShapeReadOnlyFailurePaths(t *testing.T) {
 
 func TestLookupShapeFieldTypeReadOnlyNilShape(t *testing.T) {
 	t.Parallel()
-	_, ok := lookupShapeFieldTypeReadOnly(CreateIndex(), nil, nil, "x")
+	_, _, ok := lookupShapeFieldTypeReadOnly(CreateIndex(), nil, nil, "x")
 	require.False(t, ok)
 }
 
@@ -340,9 +340,9 @@ func TestFieldTypeRefHopMissingShape(t *testing.T) {
 	t.Parallel()
 	idx := CreateIndex()
 	rng := testBuiltinKindRange()
-	_, ok := fieldTypeRefHop(idx, nil, ast.NewShapeTypeRef(ast.NewFQN([]string{"com", "ex", "Missing"}, rng).Ptr(), rng), "x")
+	_, _, ok := fieldTypeRefHop(idx, nil, ast.NewShapeTypeRef(ast.NewFQN([]string{"com", "ex", "Missing"}, rng).Ptr(), rng), "x")
 	require.False(t, ok)
-	_, ok = fieldTypeRefHop(idx, nil, nil, "x")
+	_, _, ok = fieldTypeRefHop(idx, nil, nil, "x")
 	require.False(t, ok)
 }
 
