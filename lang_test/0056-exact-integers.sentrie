@@ -1,0 +1,36 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+namespace exactints/fixture
+shape Id number@min(9007199254740993)@max(9223372036854775807)
+derive ident = (x: number): number => { yield x }
+
+policy ids {
+  fact id: Id
+  fact other: number
+
+  let beyond_float64 = 9007199254740993
+  let int64_max = 9223372036854775807
+  let beyond_int64 = 18446744073709551616
+  let int64_min = -9223372036854775807 - 1
+
+  rule same = { yield id == other }
+  rule ordered = { yield id > other and beyond_float64 > 9007199254740992.0 }
+  rule sum = { yield beyond_float64 + 1 }
+  rule mixed = { yield beyond_float64 + 0.5 }
+  rule halves = { yield 7 / 2 }
+  rule remainder = { yield beyond_float64 % 10 }
+  rule listed = { yield [id] contains other or id in [other, beyond_float64] }
+  rule unique = { yield distinct([id, other, 2, 2.0]) }
+  rule memoized = { yield ident(id)!60 == id }
+
+  export decision of same
+  export decision of ordered
+  export decision of sum
+  export decision of mixed
+  export decision of halves
+  export decision of remainder
+  export decision of listed
+  export decision of unique
+  export decision of memoized
+}
