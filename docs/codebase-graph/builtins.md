@@ -26,7 +26,7 @@ The single registry of Sentrie's native functions and the declarative machinery 
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `Env` interface - `Call(ctx, fn box.Value, args []box.Value) (box.Value, error)`, `CallableArity(fn box.Value) (int, error)`, `ExecutionStart() time.Time`
-  - **Behavior:** The complete capability set. `Call` lets higher-order builtins invoke lambdas and derives; `ExecutionStart` supplies the pinned clock so `now()` is stable within an execution.
+  - **Behavior:** The complete capability set. `Call` lets higher-order builtins invoke lambdas and derives; `ExecutionStart` supplies the pinned clock so `now()` is stable within an execution; `now()` and `now_ms()` return exact integers ([#166](https://github.com/sentrie-sh/sentrie/issues/166)).
   - **Side Effects:** `Call` runs arbitrary policy code.
   - **Exceptions:** Propagated from the callee.
 

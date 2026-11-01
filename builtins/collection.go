@@ -383,6 +383,11 @@ func scalarFingerprint(v box.Value) (string, error) {
 		b, _ := v.BoolValue()
 		return fmt.Sprintf("bool:%v", b), nil
 	case box.ValueNumber:
+		// An integral number keys by its exact integer, so an int and an equal
+		// float collide (they are ==) and integers above 2^53 stay distinct.
+		if i, ok := v.IntegralValue(); ok {
+			return fmt.Sprintf("num:%d", i), nil
+		}
 		n, _ := v.NumberValue()
 		return fmt.Sprintf("num:%.17g", n), nil
 	case box.ValueString:

@@ -246,7 +246,7 @@ type Env interface {
 |--------|-----|
 | `Call` | Invoke predicate/transform/reducer callables (HOFs) |
 | `CallableArity` | Usually only needed inside `Precheck`; HOFs call once per invocation |
-| `ExecutionStart` | `now()` - `box.Number(float64(env.ExecutionStart().Unix()))`; `now_ms()` uses `UnixMilli()` |
+| `ExecutionStart` | `now()` - `box.Int(env.ExecutionStart().Unix())`, an exact integer; `now_ms()` uses `UnixMilli()` |
 
 At runtime, `Env` is `*runtime.CallSite`. In tests, use `noopEnv()` or a custom fake
 (see [`test_helpers_test.go`](test_helpers_test.go)).
