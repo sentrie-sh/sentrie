@@ -12,3 +12,9 @@
 - Tests: namespace derive with a string-alias shape param reports the filter error at the argument span (fails without the fix), a list-alias shape param still validates, and a policy-level derive is unchanged (reject and accept).
 - Graph: `index.builtin_kind` documents the derive ctx's shape scope.
 - _Model: claude-sonnet-5-5_
+
+### 13:09 - Regression tests for the namespace derive shape scope
+- Added tests for: a typed `let` naming a namespace shape inside a namespace derive body, a cast `t as Name` to a namespace shape, a shape alias chain (alias of an alias) on a parameter, a namespace derive in `com/lib` called from `com/app` where `com/app` has a same-named shape of another kind (the derive's namespace decides, not the caller's), a namespace derive that names a policy-local shape (stays unresolved, so no leak of the calling policy's shapes), and a policy shape shadowing a namespace shape in a policy derive.
+- Proved the bite by restoring `index/builtin_kind.go` from main: the typed let, cast, alias chain, param reject and caller-namespace tests fail. The policy shadowing test fails against a mutant that always uses a namespace-only scope; the policy-local-shape test is a guard against a leaking scope and passes on main by design.
+- Ruled out: a shape-typed return type (the kind check never reads a derive's return type, call results of derives are unknown) and a pure lookalike-accept test (passes on main and on any plausible mutant).
+- _Model: claude-sonnet-5-5_
