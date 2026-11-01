@@ -39,7 +39,7 @@ import (
 // detection, derive purity, builtin checks), since a shape name is not a
 // reference to a value. Errors are reported in source order.
 func (idx *Index) resolveIsExpressions(ctx context.Context) error {
-	var errs []isSiteError
+	var errs []siteError
 	err := idx.forEachScopedExpr(ctx, func(k *kindCheckCtx, e ast.Expression) {
 		is, ok := e.(*ast.IsExpression)
 		if !ok {
@@ -58,7 +58,20 @@ func (idx *Index) resolveIsExpressions(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	slices.SortStableFunc(errs, func(a, b isSiteError) int {
+	return joinSiteErrors(errs)
+}
+
+// siteError is a resolution error with the span it is reported at, kept so
+// the errors can be sorted into source order.
+type siteError struct {
+	at  tokens.Range
+	err error
+}
+
+// joinSiteErrors joins errs in source order (file, line, column), so the
+// report does not depend on map iteration.
+func joinSiteErrors(errs []siteError) error {
+	slices.SortStableFunc(errs, func(a, b siteError) int {
 		return cmp.Or(
 			cmp.Compare(a.at.File, b.at.File),
 			cmp.Compare(a.at.From.Line, b.at.From.Line),
@@ -72,14 +85,7 @@ func (idx *Index) resolveIsExpressions(ctx context.Context) error {
 	return errors.Join(joined...)
 }
 
-// isSiteError is a resolution error with the span it is reported at, kept so
-// the errors can be sorted into source order.
-type isSiteError struct {
-	at  tokens.Range
-	err error
-}
-
-func (k *kindCheckCtx) resolveIs(is *ast.IsExpression) *isSiteError {
+func (k *kindCheckCtx) resolveIs(is *ast.IsExpression) *siteError {
 	shapeRef, ok := is.Type.(*ast.ShapeTypeRef)
 	if !ok || shapeRef.Ref == nil {
 		// The parser only leaves a shape reference ambiguous.
@@ -113,37 +119,27 @@ func (k *kindCheckCtx) resolveIs(is *ast.IsExpression) *isSiteError {
 
 // checkIsTypeShapes reports every shape reference in t that is not visible
 // from the site.
-func (k *kindCheckCtx) checkIsTypeShapes(t ast.TypeRef) []isSiteError {
-	switch tr := t.(type) {
-	case *ast.ShapeTypeRef:
-		if tr.Ref == nil {
-			return nil
+func (k *kindCheckCtx) checkIsTypeShapes(t ast.TypeRef) []siteError {
+	var errs []siteError
+	forEachNestedTypeRef(t, func(n ast.TypeRef) {
+		tr, ok := n.(*ast.ShapeTypeRef)
+		if !ok || tr.Ref == nil {
+			return
 		}
 		shape, err := k.idx.LookupShape(k.policy, k.shapeNamespace(), tr.Ref)
 		if err != nil {
-			return []isSiteError{*isResolveError(tr.Span(), tr.Ref.String(), err.Error())}
+			errs = append(errs, *isResolveError(tr.Span(), tr.Ref.String(), err.Error()))
+			return
 		}
 		if shape == nil {
-			return []isSiteError{*isResolveError(tr.Span(), tr.Ref.String(), fmt.Sprintf("shape %q is not visible here", tr.Ref.String()))}
+			errs = append(errs, *isResolveError(tr.Span(), tr.Ref.String(), fmt.Sprintf("shape %q is not visible here", tr.Ref.String())))
 		}
-	case *ast.NullableTypeRef:
-		return k.checkIsTypeShapes(tr.Inner)
-	case *ast.ListTypeRef:
-		return k.checkIsTypeShapes(tr.ElemType)
-	case *ast.DictTypeRef:
-		return k.checkIsTypeShapes(tr.ValueType)
-	case *ast.RecordTypeRef:
-		var errs []isSiteError
-		for _, f := range tr.Fields {
-			errs = append(errs, k.checkIsTypeShapes(f)...)
-		}
-		return errs
-	}
-	return nil
+	})
+	return errs
 }
 
-func isResolveError(at tokens.Range, name, msg string) *isSiteError {
-	return &isSiteError{at: at, err: fmt.Errorf("%s: `is %s`: %s: %w", at.String(), name, msg, xerr.ErrIndex)}
+func isResolveError(at tokens.Range, name, msg string) *siteError {
+	return &siteError{at: at, err: fmt.Errorf("%s: `is %s`: %s: %w", at.String(), name, msg, xerr.ErrIndex)}
 }
 
 // shapeNamespace is the namespace whose shapes are visible at the site: the
