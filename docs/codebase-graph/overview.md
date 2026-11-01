@@ -265,6 +265,8 @@ graph TD
 - [[index.is_resolve]] - `is` shape-or-value resolution
 - [[index.resolve]] - symbol resolution
 - [[index.segments]] - path segment resolution
+- [[index.shape_refs]] - static shape name check
+- [[index.typeref_walk]] - type ref position walk
 - [[index.validate]] - whole-index validation
 - [[lang_test.lang_test]] - language acceptance corpus harness
 - [[parser.call]] - call expression parsing

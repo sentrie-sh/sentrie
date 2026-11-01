@@ -48,6 +48,10 @@ func (idx *Index) validate(ctx context.Context) error {
 	if err := idx.resolveIsExpressions(ctx); err != nil {
 		return err
 	}
+	// Then every other shape name in a type, before any check reads a type.
+	if err := idx.checkShapeRefs(ctx); err != nil {
+		return err
+	}
 	// Check for self-references in rules and shapes
 	if err := idx.detectReferenceCycle(ctx); err != nil {
 		return err

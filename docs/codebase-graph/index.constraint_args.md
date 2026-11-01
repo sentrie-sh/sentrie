@@ -16,17 +16,14 @@ Rejects, at index time, a type constraint whose own arguments are broken: an inv
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `index.constraint_args` | `DEPENDS_ON` | [[constraints]] | `ForTypeRef` selects the table for a type ref; `ConstraintDefinition.CheckArgs` checks the folded arguments. |
-| `index.constraint_args` | `READS_FROM` | [[index.policy]] | Facts and policy lets carry type refs. |
-| `index.constraint_args` | `READS_FROM` | [[index.shape]] | Each `ShapeStatement`'s alias type and field types, once per statement. |
-| `index.constraint_args` | `READS_FROM` | [[index.derive]] | A derive lambda's parameter and return types. |
-| `index.constraint_args` | `CALLS` | [[index.builtin_check]] | `forEachScopedExpr` (`builtin_calls.go`) visits every expression: block lets, lambda types, casts and `is` types. |
+| `index.constraint_args` | `CALLS` | [[index.typeref_walk]] | `forEachTypeRef` visits every type ref position and the types nested in it; the scope it passes is ignored here. |
 | `index.constraint_args` | `DEPENDS_ON` | [[xerr]] | Emits `ConstraintArgError` (wraps `ErrIndex` and the argument failure). |
 | [[index.validate]] | `CALLS` | [[index.constraint_args]] | Runs last, after `checkBuiltinCalls`. |
 
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `(*Index).checkConstraintArgs(ctx) -> error`
-  - **Behavior:** Visits every type ref position (facts, policy lets, shape aliases and fields, derive and lambda parameter and return types, block lets, casts, `x is T`), unwraps a nullable, and recurses into list element, dict value and record field types. For each constraint whose name is in the table and whose arguments are all literals, folds the arguments to `box` values as the runtime evaluates them and runs `CheckArgs`. Collects every failure, sorted by message, and returns them joined.
+  - **Behavior:** Visits every type ref position through [[index.typeref_walk]] (facts, policy lets, shape aliases and fields, derive and lambda parameter and return types, block lets, casts, `x is T`, and the list element, dict value and record field types nested in them, a nullable unwrapped). For each constraint whose name is in the table and whose arguments are all literals, folds the arguments to `box` values as the runtime evaluates them and runs `CheckArgs`. Collects every failure, sorted by message, and returns them joined.
   - **Side Effects:** None.
   - **Exceptions:** Joined `xerr.ConstraintArgError`, each at the constraint's span with the message `invalid argument to constraint '<name>': <argument failure>`; it matches `xerr.ErrIndex` and `constraints.ErrInvalidArgument` under `errors.Is`. `validation cancelled` on context cancellation.
 
@@ -36,4 +33,4 @@ Rejects, at index time, a type constraint whose own arguments are broken: an inv
 - **Dependencies Risk:**
   - **Unknown names are skipped, not reported.** The parser already rejects an unknown name or a wrong count through [[ast]]'s generated tables; whether the runtime implements a name is #113.
   - **Only literal arguments are checked.** The parser accepts only literals (`parseConstraintLiteral` in [[parser.literal]]), so a non-literal cannot reach here today; if one ever does, it is skipped rather than guessed at.
-  - **A new type ref kind needs a case in two places.** `constraints.ForTypeRef` for its table, and the recursion here for any child type refs.
+  - **A new type ref kind needs a case in two places.** `constraints.ForTypeRef` for its table, and `forEachNestedTypeRef` in [[index.typeref_walk]] for any child type refs.
