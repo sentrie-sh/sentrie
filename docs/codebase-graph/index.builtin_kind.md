@@ -51,7 +51,7 @@ A best-effort static type inferencer: given an expression and a lexical scope, i
   - **Exceptions:** None; unknown is a return value, not an error.
 
 - **Signature:** `resolveShapeReadOnly` / `lookupShapeFieldTypeReadOnly` / `fieldTypeRefHop`
-  - **Behavior:** Shape lookup and field traversal that **never mutate** - the `ReadOnly` suffix marks that these must not trigger hydration, since kind checking runs before [[index.commit]].
+  - **Behavior:** Shape lookup and field traversal that **never mutate** - the `ReadOnly` suffix marks that these must not trigger hydration, since kind checking runs before [[index.commit]]. `lookupShapeFieldTypeReadOnly` and `fieldTypeRefHop` return the field's type **with the scope it resolves in** (the declaring shape's `ShapeScope`, [[index.shape]]), and `resolveFieldAccessChain` and `lookupShapeKind`'s alias recursion use that scope, not the policy the access is written in, matching the runtime ([#281](https://github.com/sentrie-sh/sentrie/issues/281)). A `with` parent is looked up in the child shape's scope.
   - **Side Effects:** None by contract.
   - **Exceptions:** None.
 
@@ -83,4 +83,5 @@ A best-effort static type inferencer: given an expression and a lexical scope, i
   - **`typeRefKind`'s switch must list every `ast.TypeRef` implementation**, as its comment states. A new type ref silently infers "unknown" instead of failing, so the gap is invisible until someone notices a missed diagnostic.
   - **Read-only shape access is a hard requirement.** These helpers run **before** commit, when shapes are not yet hydrated, so field lookups can miss inherited fields. Making them trigger hydration would reorder the lifecycle and corrupt the topological guarantee in [[index.commit]].
   - **Integer and float collapse to one kind.** The distinction preserved by the parser is erased here, matching `box`'s single numeric kind - so no arity or kind check can distinguish them.
+  - **`resolveShapeReadOnly` matches local shapes by last segment.** A qualified reference such as `com/example/catalog/Price` first matches a `Price` in the site's own policy or namespace, and its cross-namespace branch returns the shape without checking that it is exported. [[index.is_resolve]] `LookupShape` and the runtime key on the reference as written, so the kind check can type a qualified field or alias against a different shape than the one the runtime validates. Not filed yet.
   - **Precedence duplication with the runtime.** `isBuiltinCall` re-implements the runtime's name-resolution order; drift between the two produces checks applied to the wrong callee.
