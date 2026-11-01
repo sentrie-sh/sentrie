@@ -13,3 +13,9 @@
 - Tests: `TestLexerStringLiteralLineBreaks` (values, escapes, span) and `TestStringLiteralInACRLFFileEvaluatesLikeLF` (pack with LF and CRLF files, same results). The runtime test failed for CRLF without the fix. Namespace `string/...` is rejected (keyword), so the test uses `text/crlf`.
 - Updated the lexer graph node (new gotcha).
 - _Model: claude-sonnet-5-5_
+
+### 13:08 - Test gaps around CRLF string literals
+- Added `TestLexerStringLiteralCRLFPositions`: tokens after a three-line string literal have the same kind, value, line and column in CRLF as in LF (the string's own span is two bytes longer, one per dropped \r), an unterminated multi-line string reports the same error position text as LF, \r\r\n drops only the last \r, and a \r at end of file inside an unterminated string is kept and still reported as unterminated.
+- Ran the new tests with `lexer/lexer.go` from main: the positions and \r\r\n subtests fail without the fix; the unterminated-string and end-of-file subtests are guards that also hold on main.
+- Ruled out: more runtime tests, since the existing end to end test already covers LF vs CRLF evaluation and the rest is lexer-level.
+- _Model: claude-sonnet-5-5_
