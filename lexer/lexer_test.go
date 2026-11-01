@@ -237,3 +237,95 @@ func TestLexerStringLiteralLineBreaks(t *testing.T) {
 		t.Fatalf("CRLF string span: got %+v", tok.Range)
 	}
 }
+
+// TestLexerStringLiteralCRLFPositions checks that the tokens after a string
+// literal that spans lines sit on the same line and column in a CRLF file as in
+// the LF file, and that an unterminated multi-line string reports the same
+// error position (#280).
+func TestLexerStringLiteralCRLFPositions(t *testing.T) {
+	type tok struct {
+		kind                                tokens.Kind
+		value                               string
+		fromLine, fromCol, toLine, toCol, n int
+	}
+	lex := func(input string) []tok {
+		l := NewLexer(strings.NewReader(input), "t.sentrie")
+		var out []tok
+		for {
+			tk := l.NextToken()
+			if tk.Kind == tokens.EOF {
+				return out
+			}
+			r := tk.Range
+			out = append(out, tok{tk.Kind, tk.Value, r.From.Line, r.From.Column, r.To.Line, r.To.Column, r.To.Offset - r.From.Offset})
+			if tk.Kind == tokens.Error {
+				return out
+			}
+		}
+	}
+
+	t.Run("tokens after a multi-line string", func(t *testing.T) {
+		lf := lex("let s = \"a\nb\nc\" + x\ny\n")
+		crlf := lex("let s = \"a\r\nb\r\nc\" + x\r\ny\r\n")
+		if len(lf) != len(crlf) || len(lf) < 7 {
+			t.Fatalf("token count: LF %+v, CRLF %+v", lf, crlf)
+		}
+		for i := range lf {
+			a, b := lf[i], crlf[i]
+			// The string's own span covers the dropped \r bytes, so only its
+			// length differs from LF; every other token matches outright.
+			if a.kind == tokens.String {
+				if b.n != a.n+2 {
+					t.Fatalf("string span length: LF %d, CRLF %d", a.n, b.n)
+				}
+				a.n, b.n = 0, 0
+			}
+			if a != b {
+				t.Fatalf("token %d differs: LF %+v, CRLF %+v", i, lf[i], crlf[i])
+			}
+		}
+		// The identifier after the string is on line 3, column 6 in both.
+		var x *tok
+		for i := range crlf {
+			if crlf[i].value == "x" {
+				x = &crlf[i]
+			}
+		}
+		if x == nil || x.fromLine != 3 || x.fromCol != 6 {
+			t.Fatalf("x after the string: got %+v", x)
+		}
+	})
+
+	t.Run("unterminated multi-line string", func(t *testing.T) {
+		for _, input := range []string{"x = \"a\nb", "x = \"a\nb\nc"} {
+			lf := lex(input)
+			crlf := lex(strings.ReplaceAll(input, "\n", "\r\n"))
+			lastLF, lastCRLF := lf[len(lf)-1], crlf[len(crlf)-1]
+			if lastLF.kind != tokens.Error || lastCRLF.kind != tokens.Error {
+				t.Fatalf("input %q: want an error token, got LF %+v, CRLF %+v", input, lastLF, lastCRLF)
+			}
+			if !strings.Contains(lastCRLF.value, "unterminated string literal") || lastLF.value != lastCRLF.value {
+				t.Fatalf("input %q: error differs: LF %q, CRLF %q", input, lastLF.value, lastCRLF.value)
+			}
+		}
+	})
+
+	t.Run("CR CR LF drops only the last CR", func(t *testing.T) {
+		tok := NewLexer(strings.NewReader("\"a\r\r\nb\""), "t.sentrie").NextToken()
+		if tok.Kind != tokens.String || tok.Value != "a\r\nb" {
+			t.Fatalf("got %s %q, want String %q", tok.Kind, tok.Value, "a\r\nb")
+		}
+	})
+
+	t.Run("CR at the end of the file inside an unterminated string", func(t *testing.T) {
+		// A \r with nothing after it is not a line break; it is kept, and the
+		// string is still reported as unterminated.
+		for _, input := range []string{"\"a\r", "\"a\r\n\r"} {
+			got := lex(input)
+			last := got[len(got)-1]
+			if last.kind != tokens.Error || !strings.Contains(last.value, "unterminated string literal") {
+				t.Fatalf("input %q: got %+v", input, got)
+			}
+		}
+	})
+}
