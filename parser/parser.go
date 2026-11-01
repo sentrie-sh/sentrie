@@ -82,6 +82,23 @@ func (p *Parser) advanceExpected(kind tokens.Kind) (tokens.Instance, bool) {
 	return p.advance(), true
 }
 
+// advanceNameOrKeyword consumes an identifier or a keyword token as a name.
+// Keywords are names in exactly two positions, where they cannot be read as
+// anything else: a segment of an `@scope/name` module path (`@sentrie/string`)
+// and a constraint name after `@` (`@in`). Everywhere else a keyword keeps its
+// keyword meaning. On any other token it reports `expected <expected>, got
+// <kind>`, so each position names what it wanted.
+func advanceNameOrKeyword(p *Parser, expected string) (tokens.Instance, bool) {
+	if kind, isKeyword := tokens.IsKeyword(p.head().Value); isKeyword && p.head().IsOfKind(kind) {
+		return p.advance(), true
+	}
+	if !p.head().IsOfKind(tokens.Ident) {
+		p.errorf("expected %s, got %s at %s", expected, p.current.Kind, p.current.Range)
+		return tokens.Err(p.current.Range, fmt.Sprintf("expected %s, got %s", expected, p.current.Kind)), false
+	}
+	return p.advance(), true
+}
+
 func (p *Parser) expect(kind tokens.Kind) bool {
 	if p.current.Kind != kind {
 		p.errorf("expected '%s', got %s at %s", kind, p.current.Kind, p.current.Range)

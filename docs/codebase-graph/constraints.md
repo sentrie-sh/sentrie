@@ -50,7 +50,7 @@ The registry of predicates that refine a type beyond its kind - `string@email`, 
   - **Exceptions:** Kind errors, argument-count errors, violation errors.
 
 - **Signature:** `NumberContraintCheckers` - 19 constraints
-  - **Behavior:** Bounds (`min`, `max`, `gt`, `lt`, `range`), equality (`eq`, `neq`), membership (`in`, `not_in`), parity and divisibility (`even`, `odd`, `multiple_of`), sign (`positive`, `negative`, `non_negative`, `non_positive`), and float classification (`finite`, `infinite`, `nan`).
+  - **Behavior:** Bounds (`min`, `max`, `gt`, `lt`, `range`), equality (`eq`, `neq`), membership (`in`, `not_in`; `in` is a keyword, and [[parser.typeref]] accepts a keyword as a constraint name so `@in` can be written, #285), parity and divisibility (`even`, `odd`, `multiple_of`), sign (`positive`, `negative`, `non_negative`, `non_positive`), and float classification (`finite`, `infinite`, `nan`).
   - **Side Effects:** None.
   - **Exceptions:** As above.
 
