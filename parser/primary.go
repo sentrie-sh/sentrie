@@ -5,6 +5,7 @@ package parser
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -46,6 +47,21 @@ func parseIntegerLiteral(ctx context.Context, p *Parser) ast.Expression {
 		return nil
 	}
 	return ast.NewIntegerLiteral(value, token.Range)
+}
+
+// parseIntegerValueLiteral parses an integer token where a value is expected.
+// An integer outside the int64 range becomes a float literal, the same rule
+// JSON facts follow (#166). Places that need a real integer, such as a
+// memoization TTL, call parseIntegerLiteral, which rejects it.
+func parseIntegerValueLiteral(ctx context.Context, p *Parser) ast.Expression {
+	token := p.head()
+	if _, err := strconv.ParseInt(token.Value, 10, 64); errors.Is(err, strconv.ErrRange) {
+		if f, ferr := strconv.ParseFloat(token.Value, 64); ferr == nil {
+			p.advance()
+			return ast.NewFloatLiteral(f, token.Range)
+		}
+	}
+	return parseIntegerLiteral(ctx, p)
 }
 
 func parseStringLiteral(ctx context.Context, p *Parser) ast.Expression {
