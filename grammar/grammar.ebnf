@@ -16,7 +16,7 @@ factDecl            ::= 'fact' IDENT ('?'?) ':' typeRef ('as' IDENT)? ('default'
 
 useStmt             ::= 'use' '{' IDENT ( ',' IDENT )* '}' 'from' execSource ('as' IDENT)?
 execSource          ::= STRING | ('@' modulePathSegment ( '/' modulePathSegment )*)
-/* A module path segment may be a keyword (e.g. @sentrie/string). This is the only position where a keyword is accepted as a name; the default alias is the last segment, so a keyword last segment needs an explicit 'as IDENT'. */
+/* A module path segment may be a keyword (e.g. @sentrie/string). The other position where a keyword is accepted as a name is a constraint name (constraintName). The default alias is the last segment, so a keyword last segment needs an explicit 'as IDENT'. */
 modulePathSegment   ::= IDENT | KEYWORD
 /* A STRING source is a file path relative to the policy and must not start with '@': a quoted "@scope/name" is rejected with a hint to drop the quotes. */
 
@@ -142,7 +142,9 @@ typeRef             ::= (primitiveType
                           | listType
                           | dictType) ('?')? typeRefConstraint*
 
-typeRefConstraint ::= '@' IDENT '(' commaSeparatedExpr? ')'
+typeRefConstraint ::= '@' constraintName '(' commaSeparatedExpr? ')'
+/* A constraint name may be a keyword (e.g. @in). Right after '@' a keyword has no other meaning; a name that is not a constraint of the type is rejected as an unknown constraint. */
+constraintName      ::= IDENT | KEYWORD
 primitiveType       ::= 'int' | 'float' | 'string' | 'bool' | 'document'
 listType            ::= 'list' '[' typeRef ']'
 dictType            ::= 'dict' '[' typeRef ']'
