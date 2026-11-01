@@ -761,3 +761,33 @@ policy p {
 	s.Require().Error(err)
 	s.Contains(err.Error(), "filter: first argument must be a list")
 }
+
+// TestBuiltinCheckShapeFieldAndAliasKindUseShapeScope checks that a field
+// access on, or an alias of, a shape from another namespace takes its kind
+// from the shape's own namespace: the caller's Tags is a string, but the
+// catalog's is a list, so filter accepts both (#281).
+func (s *IndexTestSuite) TestBuiltinCheckShapeFieldAndAliasKindUseShapeScope() {
+	err := s.validateSources(
+		[2]string{"catalog.sentrie", `namespace com/example/catalog
+shape Tags list[string]
+shape TagList Tags
+shape Item {
+  tags: Tags
+}
+export shape Item
+export shape TagList
+`},
+		[2]string{"shop.sentrie", `namespace com/example/shop
+shape Tags string
+policy cart {
+  fact line: com/example/catalog/Item as line
+  fact tags: com/example/catalog/TagList as tags
+  rule viaField = { yield filter(line.tags, (x) => { yield x }) }
+  rule viaAlias = { yield filter(tags, (x) => { yield x }) }
+  export decision of viaField
+  export decision of viaAlias
+}
+`},
+	)
+	s.Require().NoError(err)
+}

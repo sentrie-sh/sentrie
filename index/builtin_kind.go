@@ -230,7 +230,7 @@ func lookupShapeKind(idx *Index, policy *Policy, tr *ast.ShapeTypeRef) (box.Valu
 		return 0, false
 	}
 	if shape.AliasOf != nil {
-		return typeRefKind(idx, policy, shape.AliasOf)
+		return typeRefKind(idx, shapeScopeOr(shape, policy), shape.AliasOf)
 	}
 	if shape.Model != nil && (len(shape.Model.Fields) > 0 || shape.Model.WithFQN != nil) {
 		return box.ValueDict, true
@@ -252,39 +252,54 @@ func resolveShapeReadOnly(idx *Index, policy *Policy, ref *ast.FQN) *Shape {
 	return shape
 }
 
-func lookupShapeFieldTypeReadOnly(idx *Index, policy *Policy, shape *Shape, fieldName string) (ast.TypeRef, bool) {
-	if shape == nil {
-		return nil, false
+// shapeScopeOr is the scope the shape's own alias and field types resolve in
+// (Shape.ShapeScope), or fallback for a hand-built shape that has none.
+func shapeScopeOr(shape *Shape, fallback *Policy) *Policy {
+	if scope := shape.ShapeScope(); scope != nil {
+		return scope
 	}
+	return fallback
+}
+
+// lookupShapeFieldTypeReadOnly returns the field's type and the scope that
+// type resolves in: the shape that declares the field, not the policy the
+// access is written in (#281). A `with` parent resolves in the child's scope.
+func lookupShapeFieldTypeReadOnly(idx *Index, policy *Policy, shape *Shape, fieldName string) (ast.TypeRef, *Policy, bool) {
+	if shape == nil {
+		return nil, nil, false
+	}
+	scope := shapeScopeOr(shape, policy)
 	if shape.Model != nil {
 		if f, ok := shape.Model.Fields[fieldName]; ok {
-			return f.TypeRef, true
+			return f.TypeRef, f.TypeScope(scope), true
 		}
 		if shape.Model.WithFQN != nil {
-			parent := resolveShapeReadOnly(idx, policy, shape.Model.WithFQN)
+			parent := resolveShapeReadOnly(idx, scope, shape.Model.WithFQN)
 			if parent != nil {
-				return lookupShapeFieldTypeReadOnly(idx, policy, parent, fieldName)
+				return lookupShapeFieldTypeReadOnly(idx, scope, parent, fieldName)
 			}
 		}
 	}
-	return nil, false
+	return nil, nil, false
 }
 
-func fieldTypeRefHop(idx *Index, policy *Policy, ref ast.TypeRef, field string) (ast.TypeRef, bool) {
+// fieldTypeRefHop returns the type of field on a value of type ref, with the
+// scope that type resolves in, when ref names a shape visible from policy.
+func fieldTypeRefHop(idx *Index, policy *Policy, ref ast.TypeRef, field string) (ast.TypeRef, *Policy, bool) {
 	if ref == nil {
-		return nil, false
+		return nil, nil, false
 	}
 	switch tr := ref.(type) {
 	case *ast.DocumentTypeRef:
-		return nil, false
+		return nil, nil, false
 	case *ast.ShapeTypeRef:
 		shape := resolveShapeReadOnly(idx, policy, tr.Ref)
 		if shape == nil {
-			return nil, false
+			return nil, nil, false
 		}
 		return lookupShapeFieldTypeReadOnly(idx, policy, shape, field)
 	default:
-		return nil, false
+		return nil, nil, false
 	}
 }
 
@@ -390,15 +405,16 @@ func (k *kindCheckCtx) resolveFieldAccessChain(e *ast.FieldAccessExpression) (bo
 		return 0, false
 	}
 
-	currentRef := rootTypeRef
+	// Each hop's type resolves in the scope of the shape that declares it.
+	currentRef, currentScope := rootTypeRef, k.policy
 	for _, field := range fields {
-		nextRef, ok := fieldTypeRefHop(k.idx, k.policy, currentRef, field)
+		nextRef, nextScope, ok := fieldTypeRefHop(k.idx, currentScope, currentRef, field)
 		if !ok {
 			return 0, false
 		}
-		currentRef = nextRef
+		currentRef, currentScope = nextRef, nextScope
 	}
-	return typeRefKind(k.idx, k.policy, currentRef)
+	return typeRefKind(k.idx, currentScope, currentRef)
 }
 
 func (k *kindCheckCtx) resolveFieldChainRootTypeRef(root ast.Expression) (ast.TypeRef, bool) {
