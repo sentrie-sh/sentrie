@@ -19,3 +19,8 @@
 - Ran the new tests with `lexer/lexer.go` from main: the positions and \r\r\n subtests fail without the fix; the unterminated-string and end-of-file subtests are guards that also hold on main.
 - Ruled out: more runtime tests, since the existing end to end test already covers LF vs CRLF evaluation and the rest is lexer-level.
 - _Model: claude-sonnet-5-5_
+
+### 13:13 - Reword the heredoc claims after review
+- Review pointed out #270 is not merged, so "as heredocs do" and "since #270" were false on main. Reworded the `atCRLFBreak` doc comment, the graph bullet and the PR description to say a CRLF heredoc matches only once #270 lands.
+- Trimmed the unterminated-string subtest comment to what it checks, and added the trial-merge conflicts (270 on the graph node, 279 on the lexer test file) to the Review notes.
+- _Model: claude-sonnet-5-5_
