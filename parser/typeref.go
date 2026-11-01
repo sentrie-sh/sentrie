@@ -149,7 +149,10 @@ func parseTypeRefConstraint(ctx context.Context, p *Parser, _ ast.TypeRef) *ast.
 
 	rnge := atToken.Range
 
-	name, found := advanceConstraintName(p)
+	// The name may be a keyword (`@in`): right after `@` a keyword has no other
+	// meaning. Whether it is a constraint of the type is AddConstraint's check,
+	// which reports an unknown keyword and an unknown identifier the same way.
+	name, found := advanceNameOrKeyword(p, "constraint name after '@'")
 	if !found {
 		return nil
 	}
@@ -181,16 +184,4 @@ func parseTypeRefConstraint(ctx context.Context, p *Parser, _ ast.TypeRef) *ast.
 	rnge.To = rightParentheses.Range.To
 
 	return ast.NewTypeRefConstraint(name.Value, args, rnge)
-}
-
-// advanceConstraintName consumes the name after `@` in a constraint. The name
-// is an identifier or a keyword, so a constraint can be named after a keyword
-// (`@in`). Right after `@` a keyword has no other meaning, so this cannot be
-// ambiguous; whether the name is a constraint of the type is checked by
-// AddConstraint, which reports an unknown name the same way for both.
-func advanceConstraintName(p *Parser) (tokens.Instance, bool) {
-	if kind, isKeyword := tokens.IsKeyword(p.head().Value); isKeyword && p.head().IsOfKind(kind) {
-		return p.advance(), true
-	}
-	return p.advanceExpected(tokens.Ident)
 }

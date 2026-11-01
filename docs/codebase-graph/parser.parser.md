@@ -50,6 +50,11 @@ tags: parser-state, token-window, error-accumulation, dispatch-tables
   - **Side Effects:** Consumes a token on success; appends to `p.err` on failure.
   - **Exceptions:** Never returns an error - the boolean is the only failure signal, and **ignoring it silently continues parsing from an unexpected token**.
 
+- **Signature:** `advanceNameOrKeyword(p, expected string) -> (tokens.Instance, bool)`
+  - **Behavior:** Consumes an `Ident` or any keyword token as a name. Used in the two positions where a keyword is a name: `@scope/name` module path segments ([[parser.use]]) and constraint names after `@` ([[parser.typeref]], #285). On any other token reports `expected <expected>, got <kind> at <range>`; module paths pass `Ident`, constraints pass `constraint name after '@'`.
+  - **Side Effects:** Consumes a token on success; appends to `p.err` on failure.
+  - **Exceptions:** As `advanceExpected`.
+
 - **Signature:** `(*Parser).canExpect(kind) -> bool` / `canExpectAnyOf(kinds ...) -> bool` / `hasTokens() -> bool`
   - **Behavior:** Non-consuming predicates over `current`. `hasTokens()` is simply `!atEof` and is the top-level loop condition.
   - **Side Effects:** None.

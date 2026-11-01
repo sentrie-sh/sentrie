@@ -158,12 +158,13 @@ func (s *ParserTestSuite) TestParseTypeRefKeywordConstraintNameWithoutArgs() {
 		s.Contains(p.err.Error(), "expected 'LeftParen'", input)
 	}
 
-	// `@` followed by a non-name token is still a name error.
+	// `@` followed by a token that is neither a name nor a keyword names what
+	// was expected.
 	for _, input := range []string{"number @ = 1", "number @)"} {
 		p := NewParserFromString(input, "test.sentra")
 		ref := parseTypeRef(s.T().Context(), p)
 		s.Nil(ref, input)
 		s.Require().Error(p.err, input)
-		s.Contains(p.err.Error(), "expected Ident", input)
+		s.Contains(p.err.Error(), "expected constraint name after '@', got", input)
 	}
 }
