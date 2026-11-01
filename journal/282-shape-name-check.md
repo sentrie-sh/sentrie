@@ -22,3 +22,9 @@
 - The base branch's constraint argument tests (all positions) still pass on the shared walk.
 - Ruled out: the `site.isType` guard in `checkShapeRefs` and the shape dedupe in `forEachTypeRef` are not observable. An `is` type with a missing shape makes resolveIsExpressions return before checkShapeRefs runs, so removing the guard changes nothing; shapes are keyed by name, so no statement is visited twice. A source with both a bad `is` type and a bad cast reports only the `is` error until it is fixed (stage order), which the cast-beside-known-is test avoids.
 - _Model: claude-sonnet-5-5_
+
+### 13:15 - Address review: merge order and scope notes
+- Review (opus) found the code correct once #276 (#271) and #291 (#281) land, but merging this PR first would reject packs that run today: a namespace derive whose signature, or a namespace shape whose field, names a shape only the calling policy declares (the runtime still uses the caller's scope for both on this base).
+- Tied the graph notes on that disagreement (`index.shape_refs`, `index.typeref_walk`, `runtime.typeref_shape`) to #281, with the instruction to delete them when it lands, instead of stating them as lasting facts.
+- PR description: Review notes now say to merge after #276 and #291 and name both cases; the bite count in Testing notes now matches the 13:10 entry (27 subtests).
+- _Model: claude-opus-5-5_

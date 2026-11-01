@@ -41,4 +41,4 @@ The one walk over every type ref position the index holds, shared by the checks 
 - **Performance/Scale Notes:** One pass over the policy set plus one expression walk per caller.
 - **Dependencies Risk:**
   - **A new type ref position or kind needs a case here.** A position the walk misses is silently unchecked by every caller; a new composite type ref kind needs a case in `forEachNestedTypeRef` for its children.
-  - **Shape field scope is the shape's, not the caller's.** The runtime's `validateAgainstShapeTypeRef` ([[runtime.typeref_shape]]) validates a field type in the evaluating policy's scope, so the two can disagree for a namespace shape whose field names a shape only some policy declares.
+  - **Shape field scope is the shape's, not the caller's.** Until #281 (PR #291) lands, the runtime's `validateAgainstShapeTypeRef` ([[runtime.typeref_shape]]) validates a field type in the evaluating policy's scope, so the two can disagree for a namespace shape whose field names a shape only some policy declares. #281 makes the runtime use the shape's scope too; delete this note when it lands.
