@@ -4,12 +4,14 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
 
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/runtime"
 	"github.com/sentrie-sh/sentrie/xerr"
 )
@@ -87,8 +89,14 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 
 	// Parse request body
 	var req DecisionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	dec := json.NewDecoder(r.Body)
+	dec.UseNumber() // keep integers beyond 2^53 exact (#166)
+	if err := dec.Decode(&req); err != nil {
 		api.writeErrorResponse(w, r, http.StatusBadRequest, "Invalid JSON", "The request body could not be parsed as valid JSON")
+		return
+	}
+	if err := box.CheckJSONNumbers(req.Facts); err != nil {
+		api.writeErrorResponse(w, r, http.StatusBadRequest, "Invalid JSON", "The request body contains a number outside the supported range")
 		return
 	}
 
@@ -121,10 +129,17 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 		Decisions: outputs,
 	}
 
+	// Encode before writing the status: a value JSON cannot represent (a
+	// non-finite number from arithmetic) is a 500, not a 200 with no body.
+	var body bytes.Buffer
+	if err := json.NewEncoder(&body).Encode(response); err != nil {
+		api.logger.ErrorContext(ctx, "Error encoding response", "error", err)
+		api.writeErrorResponse(w, r, http.StatusInternalServerError, "Encoding Error", "The decision could not be encoded as JSON")
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		api.logger.ErrorContext(ctx, "Error encoding response", "error", err)
+	if _, err := w.Write(body.Bytes()); err != nil {
+		api.logger.ErrorContext(ctx, "Error writing response", "error", err)
 	}
 }

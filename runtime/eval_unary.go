@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -47,20 +34,20 @@ func evalUnary(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		out := box.Trinary(box.TrinaryFrom(v).Not())
 		return out, node.SetResult(out), nil
 	case "+":
-		num, ok := v.NumberValue()
-		if !ok {
+		if v.Kind() != box.ValueNumber {
 			err := fmt.Errorf("unary + requires number")
 			return box.Value{}, node.SetErr(err), err
 		}
-		out := box.Number(num)
-		return out, node.SetResult(out), nil
+		return v, node.SetResult(v), nil
 	case "-":
-		num, ok := v.NumberValue()
-		if !ok {
+		if v.Kind() != box.ValueNumber {
 			err := fmt.Errorf("unary - requires number")
 			return box.Value{}, node.SetErr(err), err
 		}
-		out := box.Number(-num)
+		out, err := box.Negate(v)
+		if err != nil {
+			return box.Value{}, node.SetErr(err), err
+		}
 		return out, node.SetResult(out), nil
 	default:
 		err := fmt.Errorf("unsupported unary op: %s", u.Operator)

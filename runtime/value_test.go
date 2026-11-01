@@ -101,13 +101,13 @@ func (s *RuntimeTestSuite) TestValueContainers() {
 	xs, ok := list.ListValue()
 	s.Require().True(ok)
 	s.Require().Len(xs, 2)
-	s.Require().Equal(1.0, xs[0].Any())
+	s.Require().Equal(int64(1), xs[0].Any())
 	s.Require().Equal("x", xs[1].Any())
 
 	m := Dict(map[string]Value{"a": box.Number(1), "b": box.Bool(true)})
 	mv, ok := m.DictValue()
 	s.Require().True(ok)
-	s.Require().Equal(1.0, mv["a"].Any())
+	s.Require().Equal(int64(1), mv["a"].Any())
 	s.Require().Equal(true, mv["b"].Any())
 
 	obj := box.Object(struct{ Name string }{Name: "demo"})
@@ -122,7 +122,7 @@ func (s *RuntimeTestSuite) TestValueAnyUndefinedAndNull() {
 	s.Require().Equal(false, Trinary(trinary.False).Any())
 	s.Require().Equal(trinary.Unknown, Trinary(trinary.Unknown).Any())
 	s.Require().Equal(false, box.Bool(false).Any())
-	s.Require().Equal(3.0, box.Number(3).Any())
+	s.Require().Equal(int64(3), box.Number(3).Any())
 	s.Require().Equal("s", box.String("s").Any())
 }
 
@@ -245,7 +245,7 @@ func (s *RuntimeTestSuite) TestBoundaryAnyRoundTripNestedContainers() {
 }
 
 func (s *RuntimeTestSuite) TestToBoundaryAnyPassthroughScalars() {
-	s.Require().Equal(1.0, ToBoundaryAny(box.Number(1)))
+	s.Require().Equal(int64(1), ToBoundaryAny(box.Number(1)))
 	s.Require().Equal("x", ToBoundaryAny(box.String("x")))
 	s.Require().Equal(true, ToBoundaryAny(box.Bool(true)))
 }

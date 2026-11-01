@@ -140,7 +140,7 @@ func (s *RuntimeTestSuite) TestEvalIdentDeriveCallableResolution() {
 		ec.SetLocal("isOne", box.Number(42), true)
 		val, _, err := evalIdent(ctx, ec, exec, p, ast.NewIdentifier("isOne", stubRange()))
 		s.Require().NoError(err)
-		s.Equal(42.0, val.Any())
+		s.Equal(int64(42), val.Any())
 		s.False(val.IsCallable())
 	})
 
@@ -160,7 +160,7 @@ func (s *RuntimeTestSuite) TestEvalIdentDeriveCallableResolution() {
 		)))
 		val, _, err := evalIdent(ctx, ec, exec, p, ast.NewIdentifier("isOne", stubRange()))
 		s.Require().NoError(err)
-		s.Equal(7.0, val.Any())
+		s.Equal(int64(7), val.Any())
 		s.False(val.IsCallable())
 	})
 
@@ -295,7 +295,7 @@ func (s *RuntimeTestSuite) TestEvalIdentDeriveCallableInvokeViaHOF() {
 	list, ok := out.ListValue()
 	s.Require().True(ok)
 	s.Len(list, 1)
-	s.Equal(1.0, list[0].Any())
+	s.Equal(int64(1), list[0].Any())
 }
 
 func (s *RuntimeTestSuite) TestExecRuleDeriveIdentifierCallbacksExhaustive() {

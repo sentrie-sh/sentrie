@@ -197,16 +197,30 @@ func (m ModuleBinding) lookupExport(instance *JSInstance, name string) (goja.Val
 	return v, v != nil
 }
 
+// maxSafeJSInteger is Number.MAX_SAFE_INTEGER, 2^53-1.
+const maxSafeJSInteger = 1<<53 - 1
+
 // normalizeBoundaryForJS maps a value produced by box.TryToBoundaryAny to the Go
 // value goja should convert for a JavaScript argument. Booleans cross as real
 // JavaScript booleans and trinary.Unknown crosses as undefined, so JavaScript
 // never sees a wrapped trinary object whose truthiness disagrees with Sentrie.
+//
+// An exact integer (#166) crosses as a JavaScript number when it is a safe
+// integer. One beyond Number.MAX_SAFE_INTEGER (2^53-1) in magnitude, 2^53
+// included, is an error: goja would round it to the nearest double, and two
+// different IDs could then compare equal in JS. This
+// mirrors the return side, which rejects values it cannot convert losslessly.
 func normalizeBoundaryForJS(v any) (any, error) {
 	if box.IsBoundaryUndefined(v) {
 		return goja.Undefined(), nil
 	}
 	switch t := v.(type) {
 	case nil, bool, float64, string:
+		return t, nil
+	case int64:
+		if t > maxSafeJSInteger || t < -maxSafeJSInteger {
+			return nil, fmt.Errorf("integer %d is outside the JavaScript safe integer range and cannot cross into JavaScript without losing precision", t)
+		}
 		return t, nil
 	case trinary.Value:
 		switch t {

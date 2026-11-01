@@ -15,7 +15,7 @@ Implements every binary operator in one switch: arithmetic, comparison, three-va
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.eval_infix` | `DEPENDS_ON` | [[box]] | `MustNumbers`, `EqualValues`, `ContainsValue`, `MatchesValue`, `TrinaryFrom`, and the constructors. |
+| `runtime.eval_infix` | `DEPENDS_ON` | [[box]] | `Add`, `Sub`, `Mul`, `Div`, `Mod`, `CompareNumbers`, `EqualValues`, `ContainsValue`, `MatchesValue`, `TrinaryFrom`, and the constructors. |
 | `runtime.eval_infix` | `DEPENDS_ON` | [[trinary]] | `And`, `Or`, `Not` implement Kleene logic; `xor` is composed from them. |
 | `runtime.eval_infix` | `CALLS` | [[runtime.eval]] | Evaluates left then right operand. |
 | [[runtime.eval]] | `CALLS` | [[runtime.eval_infix]] | All `ast.InfixExpression` nodes dispatch here. |
@@ -25,15 +25,15 @@ Implements every binary operator in one switch: arithmetic, comparison, three-va
 - **Signature:** `evalInfix(ctx, ec, exec, p, in *ast.InfixExpression) -> (box.Value, *trace.Node, error)`
   - **Behavior:** Evaluates both operands, returns `Undefined` if **either** is undefined, then dispatches on the operator string.
   - **Side Effects:** Whatever the operands do.
-  - **Exceptions:** `divide by zero`; numeric coercion failures from `box.MustNumbers`; regex errors; `unsupported infix op: %s`.
+  - **Exceptions:** `divide by zero`; operand and overflow errors from the `box` arithmetic helpers (`ErrIntegerOverflow`); regex errors; `unsupported infix op: %s`.
 
 - **Signature:** Arithmetic - `+`, `-`, `*`, `/`, `%`
-  - **Behavior:** `+` is overloaded: if **either** side is a string it concatenates, rendering the other side via `String()`. The rest require numbers. `/` and `%` reject a zero divisor; `%` uses `math.Mod`, so it is float modulo, not integer remainder.
+  - **Behavior:** `+` is overloaded: if **either** side is a string it concatenates, rendering the other side via `String()`. The rest require numbers and delegate to `box.Add`/`Sub`/`Mul`/`Div`/`Mod`: two exact integers stay exact and overflow is an error; a float operand makes the result a float. `/` and `%` reject a zero divisor; `/` of two integers is an integer only when exact (`7 / 2` is `3.5`).
   - **Side Effects:** None.
-  - **Exceptions:** `divide by zero`; coercion failure.
+  - **Exceptions:** `divide by zero`; operand not a number; integer overflow.
 
 - **Signature:** Comparison - `==`, `is`, `!=`, `<`, `<=`, `>`, `>=`
-  - **Behavior:** `==` and the infix `is` are **the same operation**, both delegating to `box.EqualValues`. Only an `is` whose right-hand side is neither type syntax nor a bare or qualified name reaches here as an infix; `x is T` and `x is Name` are `ast.IsExpression` and go to [[runtime.eval_is_type]], whose `evalIsEquality` repeats this equality when the index resolved the name to a value; the two must stay in step. The four relational operators require numbers, so strings and dates cannot be ordered.
+  - **Behavior:** `==` and the infix `is` are **the same operation**, both delegating to `box.EqualValues`. Only an `is` whose right-hand side is neither type syntax nor a bare or qualified name reaches here as an infix; `x is T` and `x is Name` are `ast.IsExpression` and go to [[runtime.eval_is_type]], whose `evalIsEquality` repeats this equality when the index resolved the name to a value; the two must stay in step. The four relational operators require numbers and use `box.CompareNumbers`, which orders integers above 2^53 exactly and makes every comparison with NaN false; strings and dates cannot be ordered.
   - **Side Effects:** None.
   - **Exceptions:** Coercion failure on the relational forms.
 
@@ -55,5 +55,5 @@ Implements every binary operator in one switch: arithmetic, comparison, three-va
   - **No short-circuit evaluation** means `a is defined and a.field > 0` still evaluates the right side. Guard patterns that look safe are not.
   - **`+` silently stringifies.** `1 + "a"` produces `"1a"` rather than a type error, because the string branch is checked before the numeric one. Combined with the lack of static type checking on operators, arithmetic typos degrade into concatenation.
   - **`is` is equality only when its right-hand side is a value.** With a type or a shape name on the right it is a conformance check ([[runtime.eval_is_type]]) that returns `false`, not `Undefined`, for an undefined left operand; with a value it keeps the equality semantics here, including undefined propagation.
-  - **`%` is floating-point modulo.** Since integers and floats collapse to one numeric kind in [[box]], `%` on values that look like integers still goes through `math.Mod`.
+  - **`%` depends on the representation.** Two exact integers use Go's integer remainder; any float operand uses `math.Mod`. Both truncate, so the sign follows the dividend either way.
   - **The `default` branch is unreachable in practice** but is the only guard against [[parser.lookups]] registering an operator this switch does not implement - a mismatch would surface at request time.

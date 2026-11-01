@@ -149,7 +149,7 @@ func (s *BoxTestSuite) TestToBoundaryAnyCallableDoesNotPanic() {
 		s.True(ok)
 		items, ok := m["items"].([]any)
 		s.True(ok)
-		s.Equal(1.0, items[0])
+		s.Equal(int64(1), items[0])
 		s.Equal("<callable>", items[1])
 	})
 }

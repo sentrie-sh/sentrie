@@ -15,7 +15,7 @@ Implements the four prefix operators: logical negation (`!` and `not`, which are
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.eval_unary` | `DEPENDS_ON` | [[box]] | `TrinaryFrom`, `NumberValue`, `Trinary`, `Number`. |
+| `runtime.eval_unary` | `DEPENDS_ON` | [[box]] | `TrinaryFrom`, `Kind`, `Trinary`, `Negate`. |
 | `runtime.eval_unary` | `DEPENDS_ON` | [[trinary]] | `Not()` implements Kleene negation. |
 | `runtime.eval_unary` | `CALLS` | [[runtime.eval]] | Evaluates the operand. |
 | [[runtime.eval]] | `CALLS` | [[runtime.eval_unary]] | `ast.UnaryExpression` nodes dispatch here. |
@@ -26,7 +26,7 @@ Implements the four prefix operators: logical negation (`!` and `not`, which are
 - **Signature:** `evalUnary(ctx, ec, exec, p, u *ast.UnaryExpression) -> (box.Value, *trace.Node, error)`
   - **Behavior:** Evaluates the operand; an undefined operand short-circuits to `Undefined` before the operator switch, matching [[runtime.eval_infix]].
   - **Side Effects:** Operand evaluation.
-  - **Exceptions:** `unary + requires number`; `unary - requires number`; `unsupported unary op: %s`.
+  - **Exceptions:** `unary + requires number`; `unary - requires number`; integer overflow from `box.Negate` (negating `MinInt64`); `unsupported unary op: %s`.
 
 - **Signature:** `!` and `not`
   - **Behavior:** Identical: coerce with `box.TrinaryFrom`, apply Kleene `Not`, re-box with `box.Trinary`, so a known result is a `ValueBool` that equals a comparison's result. `not Unknown` is `Unknown`.
@@ -34,7 +34,7 @@ Implements the four prefix operators: logical negation (`!` and `not`, which are
   - **Exceptions:** None - coercion is total.
 
 - **Signature:** `+` and `-`
-  - **Behavior:** Require a number; `+` is an identity that still enforces the type, `-` negates.
+  - **Behavior:** Require a number; `+` is an identity that still enforces the type and keeps the representation, `-` negates through `box.Negate` (exact for integers).
   - **Side Effects:** None.
   - **Exceptions:** Type errors as above.
 

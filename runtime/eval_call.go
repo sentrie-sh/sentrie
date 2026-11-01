@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -138,6 +139,39 @@ func splitAliasFn(s string) (string, string) {
 	return parts[0], parts[1]
 }
 
+// canonicalHashNumbers rewrites an integral float64 inside the int64 range as
+// int64, through lists and maps, so equal numbers hash alike: 5 and 5.0 are ==
+// (#166) and must share a memoization key. Containers are copied, not edited,
+// because a host document's []any or map passes through TryToBoundaryAny as is.
+func canonicalHashNumbers(x any) any {
+	switch t := x.(type) {
+	case float64:
+		// -0 keeps its own key: a module can tell it from 0 (1 / -0 is
+		// -Infinity in JS), so the two calls are not interchangeable.
+		if t == 0 && math.Signbit(t) {
+			return t
+		}
+		if i, ok := box.Float(t).IntegralValue(); ok {
+			return i
+		}
+		return t
+	case []any:
+		out := make([]any, len(t))
+		for i, item := range t {
+			out[i] = canonicalHashNumbers(item)
+		}
+		return out
+	case map[string]any:
+		out := make(map[string]any, len(t))
+		for k, item := range t {
+			out[k] = canonicalHashNumbers(item)
+		}
+		return out
+	default:
+		return x
+	}
+}
+
 // calculateHashKey hashes memoization arguments and prefixes the AST call-site pointer.
 // The pointer is stable for the lifetime of the loaded index; the executor holds the index
 // and the memoization cache, so keys do not outlive their call sites.
@@ -149,7 +183,7 @@ func calculateHashKey(node *ast.CallExpression, args []box.Value) (string, error
 		if err != nil {
 			return "", err
 		}
-		hashArgs = append(hashArgs, h)
+		hashArgs = append(hashArgs, canonicalHashNumbers(h))
 	}
 	arghash, err := hashstructure.Hash(hashArgs, hashstructure.FormatV2, nil)
 	if err != nil {

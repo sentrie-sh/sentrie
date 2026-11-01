@@ -28,7 +28,7 @@ func (s *ParserTestSuite) TestParseExpressionList() {
 		s.Require().Len(args, 1)
 		lit, ok := args[0].(*ast.IntegerLiteral)
 		s.Require().True(ok)
-		s.Equal(42.0, lit.Value)
+		s.Equal(int64(42), lit.Value)
 		s.Nil(p.err)
 	})
 
@@ -38,10 +38,10 @@ func (s *ParserTestSuite) TestParseExpressionList() {
 		s.Require().Len(args, 2)
 		a0, ok := args[0].(*ast.IntegerLiteral)
 		s.Require().True(ok)
-		s.Equal(1.0, a0.Value)
+		s.Equal(int64(1), a0.Value)
 		a1, ok := args[1].(*ast.IntegerLiteral)
 		s.Require().True(ok)
-		s.Equal(2.0, a1.Value)
+		s.Equal(int64(2), a1.Value)
 		s.Nil(p.err)
 	})
 

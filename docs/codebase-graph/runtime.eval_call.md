@@ -49,7 +49,7 @@ The busiest node in the evaluator. It evaluates arguments, resolves the callee t
   - **Exceptions:** `unknown derive %q`; visibility and not-exported errors.
 
 - **Signature:** `calculateHashKey(node *ast.CallExpression, args []box.Value) -> (string, error)`
-  - **Behavior:** Marshals arguments to boundary values, hashes them, and prefixes the **AST node pointer** so the key is per-call-site. Returns an error when marshalling or hashing fails. For a clock-dependent callee (`isClockDependentCall`: the builtins `now` and `now_ms`, `@sentrie/time.now`, `@sentrie/jwt.decode`/`verify`) `evalCall` appends the execution start to the key, so a memoized answer never crosses executions in the executor-wide cache.
+  - **Behavior:** Marshals arguments to boundary values, rewrites every integral float64 inside the int64 range as int64 (`canonicalHashNumbers`, except `-0`, which a module can tell from `0`) so equal numbers such as `5` and `5.0` share a key ([#166](https://github.com/sentrie-sh/sentrie/issues/166)), hashes them, and prefixes the **AST node pointer** so the key is per-call-site. Returns an error when marshalling or hashing fails. For a clock-dependent callee (`isClockDependentCall`: the builtins `now` and `now_ms`, `@sentrie/time.now`, `@sentrie/jwt.decode`/`verify`) `evalCall` appends the execution start to the key, so a memoized answer never crosses executions in the executor-wide cache.
   - **Side Effects:** None.
   - **Exceptions:** Propagates `box.TryToBoundaryAny` and `hashstructure.Hash` failures.
 

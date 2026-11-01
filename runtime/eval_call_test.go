@@ -374,12 +374,12 @@ func (s *RuntimeTestSuite) TestEvalCallMemoizedBypassesCacheForUnhashableArgumen
 	s.Require().NoError(err)
 	firstList, ok := first.ListValue()
 	s.Require().True(ok)
-	s.Require().Equal(1.0, firstList[0].Any())
+	s.Require().Equal(int64(1), firstList[0].Any())
 
 	second, _, err := evalCall(ctx, ec, exec, p, callTwo)
 	s.Require().NoError(err)
 	secondList, ok := second.ListValue()
 	s.Require().True(ok)
-	s.Require().Equal(2.0, secondList[0].Any())
+	s.Require().Equal(int64(2), secondList[0].Any())
 	s.Require().Equal(2, callCount)
 }

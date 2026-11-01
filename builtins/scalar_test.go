@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package builtins
 
@@ -277,7 +264,7 @@ func TestAsList_NonListInput(t *testing.T) {
 	// Non-list input should be wrapped
 	result, err := invoke(t, "as_list", env, boxArgs(42)...)
 	require.NoError(t, err)
-	require.Equal(t, []any{42.0}, result.Any())
+	require.Equal(t, []any{int64(42)}, result.Any())
 }
 
 func TestAsList_StringInput(t *testing.T) {
@@ -349,7 +336,7 @@ func TestNormaliseList_SingleValue(t *testing.T) {
 	// Single value should become single-element list
 	result, err := invoke(t, "normalise_list", env, boxArgs(42)...)
 	require.NoError(t, err)
-	require.Equal(t, []any{42.0}, result.Any())
+	require.Equal(t, []any{int64(42)}, result.Any())
 }
 
 func TestNormaliseList_FlatList(t *testing.T) {
@@ -369,7 +356,7 @@ func TestNormaliseList_OneLevelNesting(t *testing.T) {
 	input := []any{[]any{1, 2.0}, []any{3.0, 4.0}}
 	result, err := invoke(t, "normalise_list", env, boxArgs(input)...)
 	require.NoError(t, err)
-	require.Equal(t, []any{1.0, 2.0, 3.0, 4.0}, result.Any())
+	require.Equal(t, []any{int64(1), 2.0, 3.0, 4.0}, result.Any())
 }
 
 func TestNormaliseList_MixedOneOrMany(t *testing.T) {
@@ -379,7 +366,7 @@ func TestNormaliseList_MixedOneOrMany(t *testing.T) {
 	input := []any{1.0, []any{2, 3.0}, 4}
 	result, err := invoke(t, "normalise_list", env, boxArgs(input)...)
 	require.NoError(t, err)
-	require.Equal(t, []any{1.0, 2.0, 3.0, 4.0}, result.Any())
+	require.Equal(t, []any{1.0, int64(2), 3.0, int64(4)}, result.Any())
 }
 
 func TestNormaliseList_SingleValueThenFlatten(t *testing.T) {
@@ -388,7 +375,7 @@ func TestNormaliseList_SingleValueThenFlatten(t *testing.T) {
 	// Single value wrapped then flattened should work
 	result, err := invoke(t, "normalise_list", env, boxArgs(42)...)
 	require.NoError(t, err)
-	require.Equal(t, []any{42.0}, result.Any())
+	require.Equal(t, []any{int64(42)}, result.Any())
 }
 
 func TestNormaliseList_ErrorDeeperNesting(t *testing.T) {
@@ -491,7 +478,7 @@ func TestCount_List(t *testing.T) {
 	input := []any{1.0, 2.0, 3.0, 4.0, 5.0}
 	result, err := invoke(t, "count", env, boxArgs(input)...)
 	require.NoError(t, err)
-	require.Equal(t, 5.0, result.Any())
+	require.Equal(t, int64(5), result.Any())
 }
 
 func TestCount_EmptyList(t *testing.T) {
@@ -501,7 +488,7 @@ func TestCount_EmptyList(t *testing.T) {
 	input := []any{}
 	result, err := invoke(t, "count", env, boxArgs(input)...)
 	require.NoError(t, err)
-	require.Equal(t, 0.0, result.Any())
+	require.Equal(t, int64(0), result.Any())
 }
 
 func TestCount_String(t *testing.T) {
@@ -510,7 +497,7 @@ func TestCount_String(t *testing.T) {
 	// Count should return length of string
 	result, err := invoke(t, "count", env, boxArgs("hello")...)
 	require.NoError(t, err)
-	require.Equal(t, 5.0, result.Any())
+	require.Equal(t, int64(5), result.Any())
 }
 
 func TestCount_EmptyString(t *testing.T) {
@@ -519,7 +506,7 @@ func TestCount_EmptyString(t *testing.T) {
 	// Count should return 0 for empty string
 	result, err := invoke(t, "count", env, boxArgs("")...)
 	require.NoError(t, err)
-	require.Equal(t, 0.0, result.Any())
+	require.Equal(t, int64(0), result.Any())
 }
 
 func TestCount_Map(t *testing.T) {
@@ -533,7 +520,7 @@ func TestCount_Map(t *testing.T) {
 	}
 	result, err := invoke(t, "count", env, boxArgs(input)...)
 	require.NoError(t, err)
-	require.Equal(t, 3.0, result.Any())
+	require.Equal(t, int64(3), result.Any())
 }
 
 func TestCount_EmptyMap(t *testing.T) {
@@ -543,7 +530,7 @@ func TestCount_EmptyMap(t *testing.T) {
 	input := map[string]any{}
 	result, err := invoke(t, "count", env, boxArgs(input)...)
 	require.NoError(t, err)
-	require.Equal(t, 0.0, result.Any())
+	require.Equal(t, int64(0), result.Any())
 }
 
 func TestCount_OtherType(t *testing.T) {
@@ -639,10 +626,10 @@ func TestMerge_Simple(t *testing.T) {
 	merged, ok := result.Any().(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, 4, len(merged))
-	require.Equal(t, 1.0, merged["a"])
-	require.Equal(t, 2.0, merged["b"])
-	require.Equal(t, 3.0, merged["c"])
-	require.Equal(t, 4.0, merged["d"])
+	require.Equal(t, int64(1), merged["a"])
+	require.Equal(t, int64(2), merged["b"])
+	require.Equal(t, int64(3), merged["c"])
+	require.Equal(t, int64(4), merged["d"])
 }
 
 func TestMerge_Overwrite(t *testing.T) {
@@ -663,9 +650,9 @@ func TestMerge_Overwrite(t *testing.T) {
 	merged, ok := result.Any().(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, 3, len(merged))
-	require.Equal(t, 1.0, merged["a"])
-	require.Equal(t, 20.0, merged["b"]) // overwritten by map2
-	require.Equal(t, 3.0, merged["c"])
+	require.Equal(t, int64(1), merged["a"])
+	require.Equal(t, int64(20), merged["b"]) // overwritten by map2
+	require.Equal(t, int64(3), merged["c"])
 }
 
 func TestMerge_NestedMaps(t *testing.T) {
@@ -696,9 +683,9 @@ func TestMerge_NestedMaps(t *testing.T) {
 	nested, ok := merged["nested"].(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, 3, len(nested))
-	require.Equal(t, 1.0, nested["a"])  // from map1
-	require.Equal(t, 20.0, nested["b"]) // overwritten by map2
-	require.Equal(t, 3.0, nested["c"])  // from map2
+	require.Equal(t, int64(1), nested["a"])  // from map1
+	require.Equal(t, int64(20), nested["b"]) // overwritten by map2
+	require.Equal(t, int64(3), nested["c"])  // from map2
 }
 
 func TestMerge_DeepNesting(t *testing.T) {
@@ -731,8 +718,8 @@ func TestMerge_DeepNesting(t *testing.T) {
 	level2, ok := level1["level2"].(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, 2, len(level2))
-	require.Equal(t, 1.0, level2["a"])
-	require.Equal(t, 2.0, level2["b"])
+	require.Equal(t, int64(1), level2["a"])
+	require.Equal(t, int64(2), level2["b"])
 }
 
 func TestMerge_NoAliasing(t *testing.T) {
@@ -758,7 +745,7 @@ func TestMerge_NoAliasing(t *testing.T) {
 	// Result should not be affected (no aliasing)
 	nested, ok := merged["nested"].(map[string]any)
 	require.True(t, ok)
-	require.Equal(t, 1.0, nested["a"]) // original value, not 999
+	require.Equal(t, int64(1), nested["a"]) // original value, not 999
 }
 
 func TestMerge_EmptyMaps(t *testing.T) {
@@ -792,8 +779,8 @@ func TestMerge_FirstEmpty(t *testing.T) {
 	merged, ok := result.Any().(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, 2, len(merged))
-	require.Equal(t, 1.0, merged["a"])
-	require.Equal(t, 2.0, merged["b"])
+	require.Equal(t, int64(1), merged["a"])
+	require.Equal(t, int64(2), merged["b"])
 }
 
 func TestMerge_SecondEmpty(t *testing.T) {
@@ -812,8 +799,8 @@ func TestMerge_SecondEmpty(t *testing.T) {
 	merged, ok := result.Any().(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, 2, len(merged))
-	require.Equal(t, 1.0, merged["a"])
-	require.Equal(t, 2.0, merged["b"])
+	require.Equal(t, int64(1), merged["a"])
+	require.Equal(t, int64(2), merged["b"])
 }
 
 func TestMerge_ErrorWrongArgCount(t *testing.T) {

@@ -21,16 +21,15 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			if len(args) != 1 {
 				return invalidArgf("min constraint requires 1 argument")
 			}
-			arg, ok := args[0].NumberValue()
-			if !ok {
+			if args[0].Kind() != box.ValueNumber {
 				return invalidArgf("expected number, got %s", args[0].Kind())
 			}
-			valNum, ok := val.NumberValue()
-			if !ok {
+			c, ordered, err := box.CompareNumbers(val, args[0])
+			if err != nil {
 				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
-			if valNum < arg {
-				return fmt.Errorf("value %v is not >= %v", val, arg)
+			if ordered && c < 0 {
+				return fmt.Errorf("value %v is not >= %v", val, args[0])
 			}
 			return nil
 		},
@@ -42,16 +41,15 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			if len(args) != 1 {
 				return invalidArgf("max constraint requires 1 argument")
 			}
-			arg, ok := args[0].NumberValue()
-			if !ok {
+			if args[0].Kind() != box.ValueNumber {
 				return invalidArgf("expected number, got %s", args[0].Kind())
 			}
-			valNum, ok := val.NumberValue()
-			if !ok {
+			c, ordered, err := box.CompareNumbers(val, args[0])
+			if err != nil {
 				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
-			if valNum > arg {
-				return fmt.Errorf("value %v is not <= %v", val, arg)
+			if ordered && c > 0 {
+				return fmt.Errorf("value %v is not <= %v", val, args[0])
 			}
 			return nil
 		},
@@ -63,16 +61,15 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			if len(args) != 1 {
 				return invalidArgf("eq constraint requires 1 argument")
 			}
-			arg, ok := args[0].NumberValue()
-			if !ok {
+			if args[0].Kind() != box.ValueNumber {
 				return invalidArgf("expected number, got %s", args[0].Kind())
 			}
-			valNum, ok := val.NumberValue()
-			if !ok {
+			c, ordered, err := box.CompareNumbers(val, args[0])
+			if err != nil {
 				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
-			if valNum != arg {
-				return fmt.Errorf("value %v is not equal to %v", val, arg)
+			if !ordered || c != 0 {
+				return fmt.Errorf("value %v is not equal to %v", val, args[0])
 			}
 			return nil
 		},
@@ -84,16 +81,15 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			if len(args) != 1 {
 				return invalidArgf("neq constraint requires 1 argument")
 			}
-			arg, ok := args[0].NumberValue()
-			if !ok {
+			if args[0].Kind() != box.ValueNumber {
 				return invalidArgf("expected number, got %s", args[0].Kind())
 			}
-			valNum, ok := val.NumberValue()
-			if !ok {
+			c, ordered, err := box.CompareNumbers(val, args[0])
+			if err != nil {
 				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
-			if valNum == arg {
-				return fmt.Errorf("value %v is equal to %v", val, arg)
+			if ordered && c == 0 {
+				return fmt.Errorf("value %v is equal to %v", val, args[0])
 			}
 			return nil
 		},
@@ -105,16 +101,15 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			if len(args) != 1 {
 				return invalidArgf("gt constraint requires 1 argument")
 			}
-			arg, ok := args[0].NumberValue()
-			if !ok {
+			if args[0].Kind() != box.ValueNumber {
 				return invalidArgf("expected number, got %s", args[0].Kind())
 			}
-			valNum, ok := val.NumberValue()
-			if !ok {
+			c, ordered, err := box.CompareNumbers(val, args[0])
+			if err != nil {
 				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
-			if valNum <= arg {
-				return fmt.Errorf("value %v is not > %v", val, arg)
+			if ordered && c <= 0 {
+				return fmt.Errorf("value %v is not > %v", val, args[0])
 			}
 			return nil
 		},
@@ -126,16 +121,15 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			if len(args) != 1 {
 				return invalidArgf("lt constraint requires 1 argument")
 			}
-			arg, ok := args[0].NumberValue()
-			if !ok {
+			if args[0].Kind() != box.ValueNumber {
 				return invalidArgf("expected number, got %s", args[0].Kind())
 			}
-			valNum, ok := val.NumberValue()
-			if !ok {
+			c, ordered, err := box.CompareNumbers(val, args[0])
+			if err != nil {
 				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
-			if valNum >= arg {
-				return fmt.Errorf("value %v is not < %v", val, arg)
+			if ordered && c >= 0 {
+				return fmt.Errorf("value %v is not < %v", val, args[0])
 			}
 			return nil
 		},
@@ -147,8 +141,7 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			if len(args) != 1 {
 				return invalidArgf("in constraint requires 1 argument")
 			}
-			valNum, ok := val.NumberValue()
-			if !ok {
+			if val.Kind() != box.ValueNumber {
 				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
 			set, err := numberConstraintSet(args[0])
@@ -156,7 +149,7 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return err
 			}
 
-			if !slices.Contains(set, valNum) {
+			if !slices.ContainsFunc(set, func(n box.Value) bool { return box.EqualValues(val, n) }) {
 				return fmt.Errorf("value %v is not in the set", val)
 			}
 			return nil
@@ -169,8 +162,7 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			if len(args) != 1 {
 				return invalidArgf("not_in constraint requires 1 argument")
 			}
-			valNum, ok := val.NumberValue()
-			if !ok {
+			if val.Kind() != box.ValueNumber {
 				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
 			set, err := numberConstraintSet(args[0])
@@ -178,7 +170,7 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return err
 			}
 
-			if slices.Contains(set, valNum) {
+			if slices.ContainsFunc(set, func(n box.Value) bool { return box.EqualValues(val, n) }) {
 				return fmt.Errorf("value %v is in the set", val)
 			}
 			return nil
@@ -191,22 +183,22 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			if len(args) != 2 {
 				return invalidArgf("range constraint requires 2 arguments")
 			}
-			valNum, ok := val.NumberValue()
-			if !ok {
+			if val.Kind() != box.ValueNumber {
 				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
-			min, ok0 := args[0].NumberValue()
-			max, ok1 := args[1].NumberValue()
-			if !ok0 {
-				return invalidArgf("expected number, got %s", args[0].Kind())
+			min, max := args[0], args[1]
+			if min.Kind() != box.ValueNumber {
+				return invalidArgf("expected number, got %s", min.Kind())
 			}
-			if !ok1 {
-				return invalidArgf("expected number, got %s", args[1].Kind())
+			if max.Kind() != box.ValueNumber {
+				return invalidArgf("expected number, got %s", max.Kind())
 			}
-			if min > max {
+			if c, ordered, _ := box.CompareNumbers(min, max); ordered && c > 0 {
 				return invalidArgf("range minimum %v is greater than maximum %v", min, max)
 			}
-			if valNum < min || valNum > max {
+			cMin, okMin, _ := box.CompareNumbers(val, min)
+			cMax, okMax, _ := box.CompareNumbers(val, max)
+			if (okMin && cMin < 0) || (okMax && cMax > 0) {
 				return fmt.Errorf("value %v is not in range [%v, %v]", val, min, max)
 			}
 			return nil
@@ -220,7 +212,12 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
-			if math.Mod(valNum, 2) != 0 {
+			rem := math.Mod(valNum, 2)
+			if i, ok := val.IntegralValue(); ok {
+				// Exact: float64 would drop the low bit above 2^53.
+				rem = float64(i % 2)
+			}
+			if rem != 0 {
 				return fmt.Errorf("value %v is not even", val)
 			}
 			return nil
@@ -234,7 +231,12 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			if !ok {
 				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
-			if math.Mod(valNum, 2) == 0 {
+			rem := math.Mod(valNum, 2)
+			if i, ok := val.IntegralValue(); ok {
+				// Exact: float64 would drop the low bit above 2^53.
+				rem = float64(i % 2)
+			}
+			if rem == 0 {
 				return fmt.Errorf("value %v is not odd", val)
 			}
 			return nil
@@ -259,6 +261,16 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return invalidArgf("divisor cannot be zero")
 			}
 			// Use epsilon for floating point comparison
+			if vi, ok := val.IntegralValue(); ok {
+				if di, ok := args[0].IntegralValue(); ok {
+					// Both integral (an exact int or a float with no
+					// fraction): no epsilon, and no rounding above 2^53.
+					if vi%di != 0 {
+						return fmt.Errorf("value %v is not a multiple of %v", val, args[0])
+					}
+					return nil
+				}
+			}
 			epsilon := 1e-10
 			remainder := math.Mod(valNum, divisor)
 			if remainder > epsilon && remainder < divisor-epsilon {
@@ -367,22 +379,18 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 	},
 }
 
-func numberConstraintSet(arg box.Value) ([]float64, error) {
+func numberConstraintSet(arg box.Value) ([]box.Value, error) {
 	if argList, ok := arg.ListValue(); ok {
-		set := make([]float64, 0, len(argList))
 		for _, item := range argList {
-			n, ok := item.NumberValue()
-			if !ok {
+			if item.Kind() != box.ValueNumber {
 				return nil, invalidArgf("expected number, got %s", item.Kind())
 			}
-			set = append(set, n)
 		}
-		return set, nil
+		return argList, nil
 	}
 
-	n, ok := arg.NumberValue()
-	if !ok {
+	if arg.Kind() != box.ValueNumber {
 		return nil, invalidArgf("expected number, got %s", arg.Kind())
 	}
-	return []float64{n}, nil
+	return []box.Value{arg}, nil
 }

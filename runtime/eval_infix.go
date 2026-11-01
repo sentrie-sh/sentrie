@@ -1,25 +1,11 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
 import (
 	"context"
 	"fmt"
-	"math"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
@@ -58,47 +44,34 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 			out := box.String(l.String() + rs)
 			return out, node.SetResult(out), nil
 		}
-		ln, rn, err := box.MustNumbers(l, r)
+		out, err := box.Add(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		out := box.Number(ln + rn)
 		return out, node.SetResult(out), nil
 	case "-":
-		ln, rn, err := box.MustNumbers(l, r)
+		out, err := box.Sub(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		out := box.Number(ln - rn)
 		return out, node.SetResult(out), nil
 	case "*":
-		ln, rn, err := box.MustNumbers(l, r)
+		out, err := box.Mul(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		out := box.Number(ln * rn)
 		return out, node.SetResult(out), nil
 	case "/":
-		ln, rn, err := box.MustNumbers(l, r)
+		out, err := box.Div(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		if rn == 0 {
-			err := fmt.Errorf("divide by zero")
-			return box.Undefined(), node.SetErr(err), err
-		}
-		out := box.Number(ln / rn)
 		return out, node.SetResult(out), nil
 	case "%":
-		ln, rn, err := box.MustNumbers(l, r)
+		out, err := box.Mod(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		if rn == 0 {
-			err := fmt.Errorf("divide by zero")
-			return box.Undefined(), node.SetErr(err), err
-		}
-		out := box.Number(math.Mod(ln, rn))
 		return out, node.SetResult(out), nil
 
 	case "==", "is":
@@ -108,32 +81,32 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		out := box.Bool(!box.EqualValues(l, r))
 		return out, node.SetResult(out), nil
 	case "<":
-		ln, rn, err := box.MustNumbers(l, r)
+		c, ordered, err := box.CompareNumbers(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		out := box.Bool(ln < rn)
+		out := box.Bool(ordered && c < 0)
 		return out, node.SetResult(out), nil
 	case "<=":
-		ln, rn, err := box.MustNumbers(l, r)
+		c, ordered, err := box.CompareNumbers(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		out := box.Bool(ln <= rn)
+		out := box.Bool(ordered && c <= 0)
 		return out, node.SetResult(out), nil
 	case ">":
-		ln, rn, err := box.MustNumbers(l, r)
+		c, ordered, err := box.CompareNumbers(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		out := box.Bool(ln > rn)
+		out := box.Bool(ordered && c > 0)
 		return out, node.SetResult(out), nil
 	case ">=":
-		ln, rn, err := box.MustNumbers(l, r)
+		c, ordered, err := box.CompareNumbers(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		out := box.Bool(ln >= rn)
+		out := box.Bool(ordered && c >= 0)
 		return out, node.SetResult(out), nil
 
 	case "and":
