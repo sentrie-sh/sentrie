@@ -50,7 +50,7 @@ The registry of predicates that refine a type beyond its kind - `string@email`, 
   - **Exceptions:** Kind errors, argument-count errors, violation errors.
 
 - **Signature:** `NumberContraintCheckers` - 19 constraints
-  - **Behavior:** Bounds (`min`, `max`, `gt`, `lt`, `range`), equality (`eq`, `neq`), membership (`in`, `not_in`), parity and divisibility (`even`, `odd`, `multiple_of`), sign (`positive`, `negative`, `non_negative`, `non_positive`), and float classification (`finite`, `infinite`, `nan`).
+  - **Behavior:** Bounds (`min`, `max`, `gt`, `lt`, `range`), equality (`eq`, `neq`), membership (`in`, `not_in`), parity and divisibility (`even`, `odd`, `multiple_of`), sign (`positive`, `negative`, `non_negative`, `non_positive`), and float classification (`finite`, `infinite`, `nan`). Bounds, equality and membership compare through `box.CompareNumbers` / `box.EqualValues`, and `even`, `odd` and `multiple_of` use integer arithmetic when the operands are exact integers, so integers above 2^53 are checked exactly ([#166](https://github.com/sentrie-sh/sentrie/issues/166)); a float operand keeps the float path (`multiple_of` with its `1e-10` epsilon).
   - **Side Effects:** None.
   - **Exceptions:** As above.
 
