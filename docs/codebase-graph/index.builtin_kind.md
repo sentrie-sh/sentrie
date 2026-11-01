@@ -31,7 +31,7 @@ A best-effort static type inferencer: given an expression and a lexical scope, i
   - **Exceptions:** N/A.
 
 - **Signature:** `newRuleKindCheckCtx(idx, policy) -> *kindCheckCtx` / `newDeriveKindCheckCtx(idx, d) -> *kindCheckCtx`
-  - **Behavior:** The rule variant binds facts **by alias**, lets, policy derives, and then namespace derives **only where the name is not already taken** - encoding policy-over-namespace shadowing. The derive variant binds typed lambda params and the derive's visibility snapshot.
+  - **Behavior:** The rule variant binds facts **by alias**, lets, policy derives, and then namespace derives **only where the name is not already taken** - encoding policy-over-namespace shadowing. The derive variant binds typed lambda params and the derive's visibility snapshot, and resolves their shapes (and the body's) in `d.ShapeScope()`: the derive's own policy, or for a namespace-level derive a `Policy` holding only its namespace, so a namespace derive's shape-typed parameter has a known kind ([#283](https://github.com/sentrie-sh/sentrie/issues/283)). The derive ctx's `policy` is therefore never nil; nothing in a derive body reads its rules, facts or lets (`lookupDerive` and `namesValue` check `derive` first).
   - **Side Effects:** None.
   - **Exceptions:** None.
 

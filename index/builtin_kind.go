@@ -60,12 +60,15 @@ func newRuleKindCheckCtx(idx *Index, policy *Policy) *kindCheckCtx {
 
 func newDeriveKindCheckCtx(idx *Index, d *Derive) *kindCheckCtx {
 	scope := make(map[string]bindingInfo)
+	// A namespace-level derive has no policy; its shapes resolve in its
+	// namespace, through a policy that holds only that namespace.
+	policy := d.ShapeScope()
 	if d.Lambda != nil {
 		for i, p := range d.Lambda.Params {
 			info := bindingInfo{}
 			if d.Lambda.ParamTypes != nil && i < len(d.Lambda.ParamTypes) && d.Lambda.ParamTypes[i] != nil {
 				info.typeRef = d.Lambda.ParamTypes[i]
-				if k, ok := typeRefKind(idx, d.Policy, d.Lambda.ParamTypes[i]); ok {
+				if k, ok := typeRefKind(idx, policy, d.Lambda.ParamTypes[i]); ok {
 					info.kindKnown = true
 					info.kind = k
 				}
@@ -77,10 +80,6 @@ func newDeriveKindCheckCtx(idx *Index, d *Derive) *kindCheckCtx {
 		for name, derive := range d.DefineShort {
 			scope[name] = bindingInfo{kindKnown: true, kind: box.ValueCallable, derive: derive}
 		}
-	}
-	var policy *Policy
-	if d.Policy != nil {
-		policy = d.Policy
 	}
 	return &kindCheckCtx{idx: idx, policy: policy, derive: d, scope: scope}
 }

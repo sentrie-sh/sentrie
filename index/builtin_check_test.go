@@ -556,3 +556,61 @@ policy p {
 `, "f.sentrie")
 	s.Require().NoError(err)
 }
+
+// TestBuiltinCheckNamespaceDeriveShapeParamReject checks that a namespace-level
+// derive, which has no policy, still resolves its parameter's shape in its
+// namespace, so a builtin argument of that shape is kind checked.
+func (s *IndexTestSuite) TestBuiltinCheckNamespaceDeriveShapeParamReject() {
+	src := `namespace com/ex
+shape Name string
+derive n = (t: Name): number => { yield count(filter(t, (x) => { yield true })) }
+policy p {
+  rule allow = { yield n("x") > 0 }
+  export decision of allow
+}
+`
+	err := s.parseAndValidate(src, "f.sentrie")
+	s.Require().Error(err)
+	var kind xerr.BuiltinArgKindError
+	s.Require().ErrorAs(err, &kind)
+	s.Contains(kind.Message, "filter: first argument must be a list")
+	s.Equal(3, kind.At.From.Line)
+	s.Equal(`t`, src[kind.At.From.Offset:kind.At.To.Offset])
+}
+
+func (s *IndexTestSuite) TestBuiltinCheckNamespaceDeriveShapeParamAccept() {
+	err := s.parseAndValidate(`namespace com/ex
+shape Names list[string]
+derive n = (t: Names): number => { yield count(filter(t, (x) => { yield true })) }
+policy p {
+  rule allow = { yield n(["x"]) > 0 }
+  export decision of allow
+}
+`, "f.sentrie")
+	s.Require().NoError(err)
+}
+
+// TestBuiltinCheckPolicyDeriveShapeParam checks that a policy-level derive
+// still resolves its parameter's shape, including a policy-local shape.
+func (s *IndexTestSuite) TestBuiltinCheckPolicyDeriveShapeParam() {
+	err := s.parseAndValidate(`namespace com/ex
+policy p {
+  shape Name string
+  derive n = (t: Name): number => { yield count(filter(t, (x) => { yield true })) }
+  rule allow = { yield n("x") > 0 }
+  export decision of allow
+}
+`, "f.sentrie")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "filter: first argument must be a list")
+
+	err = s.parseAndValidate(`namespace com/ex
+policy p {
+  shape Names list[string]
+  derive n = (t: Names): number => { yield count(filter(t, (x) => { yield true })) }
+  rule allow = { yield n(["x"]) > 0 }
+  export decision of allow
+}
+`, "f.sentrie")
+	s.Require().NoError(err)
+}
