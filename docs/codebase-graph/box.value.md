@@ -29,9 +29,14 @@ tags: value-model, tagged-union, type-system, memory-layout
   - **Side Effects:** None.
   - **Exceptions:** None.
 
+- **Signature:** `IsInt() -> bool` / `IntValue() -> (int64, bool)` / `IntegralValue() -> (int64, bool)`
+  - **Behavior:** A number is one kind (`ValueNumber`) with two representations ([#166](https://github.com/sentrie-sh/sentrie/issues/166)): an exact integer (int64 bits in `u64`, a zero-size `exactIntTag` in `ref`) or a float (float64 bits in `u64`, `ref` nil). `IntValue` reports only an exact integer; `IntegralValue` also accepts a float with no fractional part inside the int64 range (used for `distinct` keys so `5` and `5.0` collide).
+  - **Side Effects:** None.
+  - **Exceptions:** None.
+
 - **Signature:** `BoolValue() -> (bool, bool)` / `NumberValue() -> (float64, bool)` / `StringValue() -> (string, bool)` / `TrinaryValue() -> (trinary.Value, bool)` / `ListValue() -> ([]Value, bool)` / `DictValue() -> (map[string]Value, bool)`
   - **Behavior:** Kind-checked typed accessors following the comma-ok idiom; the boolean is `false` when the tag does not match, and the value slot is zero. `TrinaryValue` is the one accessor that spans two kinds: it reports `True`/`False` for a `ValueBool` and `Unknown` for a `ValueTrinary`, since a known truth value is always boxed as a bool ([#135](https://github.com/sentrie-sh/sentrie/issues/135)).
-  - **Side Effects:** None. `ListValue`/`DictValue` return the **live backing container**, not a copy.
+  - **Side Effects:** None. `ListValue`/`DictValue` return the **live backing container**, not a copy. `NumberValue` converts an exact integer to float64, which rounds above 2^53.
   - **Exceptions:** None - never panics on kind mismatch.
 
 - **Signature:** `DocumentRef() -> (any, bool)` / `CallableRef() -> (any, bool)`
@@ -50,17 +55,17 @@ tags: value-model, tagged-union, type-system, memory-layout
   - **Exceptions:** None.
 
 - **Signature:** `Any() -> any`
-  - **Behavior:** Fully unboxes into plain Go types for host consumption; lists and dicts are recursively converted.
+  - **Behavior:** Fully unboxes into plain Go types for host consumption; lists and dicts are recursively converted. An exact integer unboxes as `int64`, a float as `float64`.
   - **Side Effects:** **Deep-copies** list and dict trees into fresh `[]any` / `map[string]any`. Callables degrade to the placeholder string `"<callable>"`. Both `Undefined` and `Null` return Go `nil`, erasing the distinction.
   - **Exceptions:** None.
 
 - **Signature:** `String() -> string`
-  - **Behavior:** Human-readable rendering used in diagnostics and CLI output; non-scalar kinds fall through to `fmt.Sprintf("%v", Any())`.
+  - **Behavior:** Human-readable rendering used in diagnostics and CLI output; an exact integer renders as plain digits; non-scalar kinds fall through to `fmt.Sprintf("%v", Any())`.
   - **Side Effects:** Triggers the deep copy in `Any()` for lists and dicts.
   - **Exceptions:** None.
 
 - **Signature:** `MarshalJSON() -> ([]byte, error)`
-  - **Behavior:** JSON serialization for API and CLI output. `Undefined` is emitted as JSON `null`.
+  - **Behavior:** JSON serialization for API and CLI output. `Undefined` is emitted as JSON `null`. An exact integer is emitted as plain digits, never exponent notation.
   - **Side Effects:** Deep copy via `Any()`.
   - **Exceptions:** Returns an error for callable values ("cannot marshal callable value to JSON"); otherwise propagates `encoding/json` errors.
 
@@ -71,5 +76,5 @@ tags: value-model, tagged-union, type-system, memory-layout
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Value type, copied by assignment; there is no identity or lifecycle. It is safe to share across goroutines **only** for scalar kinds - see aliasing note below.
-- **Performance/Scale Notes:** All numbers are stored as `float64` bit patterns in `u64` via `math.Float64bits`, so there is no integer/float distinction at runtime and large `int64` values lose precision beyond 2^53. Scalar construction and access are allocation-free; `Any()`, `String()`, and `MarshalJSON()` are the allocating paths and should be kept out of evaluation hot loops.
+- **Performance/Scale Notes:** Numbers live in `u64` either as int64 bits (exact integer) or as `math.Float64bits` (float); the `ref` slot tells them apart. Integer literals, integral JSON facts that fit int64 and Go integers are exact; integers beyond int64 fall back to float. Scalar construction and access are allocation-free; `Any()`, `String()`, and `MarshalJSON()` are the allocating paths and should be kept out of evaluation hot loops.
 - **Dependencies Risk:** The dominant hazard is **shared mutable backing storage**: `ListValue()` and `DictValue()` hand back the same slice/map that every copy of the `Value` references, so an in-place write is visible through all copies and across evaluation frames. Treat returned containers as immutable and rebuild via `List`/`Dict` when a modification is needed. Secondarily, `ValueInvalid` (zero value) reaching the evaluator usually indicates a missing constructor call upstream rather than a legitimate undefined fact - check `IsValid()` when diagnosing "invalid" in output.

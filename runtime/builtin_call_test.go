@@ -47,7 +47,7 @@ func TestCallSiteEnvCall(t *testing.T) {
 	})
 	out, err := site.Call(t.Context(), fn, []box.Value{box.Number(1)})
 	require.NoError(t, err)
-	require.Equal(t, 1.0, out.Any())
+	require.Equal(t, int64(1), out.Any())
 
 	_, err = site.Call(t.Context(), box.Number(1), nil)
 	require.Error(t, err)

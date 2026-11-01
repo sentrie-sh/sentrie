@@ -44,7 +44,7 @@ func (s *RuntimeTestSuite) TestExecutionContextBranchCoverage() {
 	child.SetLocal("factA", box.Number(99), false)
 	local, ok := child.GetLocal("factA")
 	s.Require().True(ok)
-	s.Require().Equal(99.0, local.Any())
+	s.Require().Equal(int64(99), local.Any())
 
 	child.SetLocal("forced", box.String("x"), true)
 	forced, ok := child.GetLocal("forced")
@@ -96,7 +96,7 @@ func (s *RuntimeTestSuite) TestEvalQuantifiersAndMapBranches() {
 	filtered, ok := filterResult.ListValue()
 	s.Require().True(ok)
 	s.Require().Len(filtered, 1)
-	s.Require().Equal(2.0, filtered[0].Any())
+	s.Require().Equal(int64(2), filtered[0].Any())
 
 	collectCall := ast.NewCallExpression(ast.NewIdentifier("collect", stubRange()), []ast.Expression{
 		ast.NewListLiteral([]ast.Expression{ast.NewIntegerLiteral(3, stubRange())}, stubRange()),
@@ -106,7 +106,7 @@ func (s *RuntimeTestSuite) TestEvalQuantifiersAndMapBranches() {
 	s.Require().NoError(err)
 	mapped, ok := mapResult.ListValue()
 	s.Require().True(ok)
-	s.Require().Equal(3.0, mapped[0].Any())
+	s.Require().Equal(int64(3), mapped[0].Any())
 }
 
 func (s *RuntimeTestSuite) TestEvalReduceTransformTernaryUnaryBlockCastBranches() {
@@ -140,12 +140,12 @@ func (s *RuntimeTestSuite) TestEvalReduceTransformTernaryUnaryBlockCastBranches(
 	thenExpr := ast.NewTernaryExpression(ast.NewTrinaryLiteral(trinary.True, stubRange()), ast.NewIntegerLiteral(10, stubRange()), ast.NewIntegerLiteral(20, stubRange()), stubRange())
 	thenResult, _, err := evalTernary(ctx, ec, exec, p, thenExpr)
 	s.Require().NoError(err)
-	s.Require().Equal(10.0, thenResult.Any())
+	s.Require().Equal(int64(10), thenResult.Any())
 
 	elseExpr := ast.NewTernaryExpression(ast.NewTrinaryLiteral(trinary.False, stubRange()), ast.NewIntegerLiteral(10, stubRange()), ast.NewIntegerLiteral(20, stubRange()), stubRange())
 	elseResult, _, err := evalTernary(ctx, ec, exec, p, elseExpr)
 	s.Require().NoError(err)
-	s.Require().Equal(20.0, elseResult.Any())
+	s.Require().Equal(int64(20), elseResult.Any())
 
 	unaryNot, _, err := evalUnary(ctx, ec, exec, p, ast.NewUnaryExpression("not", ast.NewTrinaryLiteral(trinary.True, stubRange()), stubRange()))
 	s.Require().NoError(err)

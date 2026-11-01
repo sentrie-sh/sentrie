@@ -111,7 +111,7 @@ func TestGoldenBehavior(t *testing.T) {
 	t.Run("count multibyte bytes", func(t *testing.T) {
 		v, err := invoke(t, "count", env, box.String("café"))
 		require.NoError(t, err)
-		require.Equal(t, 5.0, v.Any())
+		require.Equal(t, int64(5), v.Any())
 	})
 
 	t.Run("count wrong kind undefined", func(t *testing.T) {
@@ -163,10 +163,10 @@ func TestGoldenBehavior(t *testing.T) {
 		fixed := &testEnv{startTime: time.Unix(1_700_000_000, 123_000_000)}
 		v, err := Table["now"].Impl(ctx, fixed)
 		require.NoError(t, err)
-		require.Equal(t, float64(1_700_000_000), v.Any())
+		require.Equal(t, int64(1_700_000_000), v.Any())
 		v, err = Table["now_ms"].Impl(ctx, fixed)
 		require.NoError(t, err)
-		require.Equal(t, float64(1_700_000_000_123), v.Any())
+		require.Equal(t, int64(1_700_000_000_123), v.Any())
 	})
 
 	t.Run("distinct undefined errors", func(t *testing.T) {
