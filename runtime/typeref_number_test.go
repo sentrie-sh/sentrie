@@ -238,3 +238,98 @@ policy pol {
 	_, err = exec.ExecRule(ctx, "com/app", "pol", "from_fact", map[string]any{"n": 3})
 	r.Require().Error(err)
 }
+
+const numberInPositionsSource = `namespace com/app
+
+shape Roll { value: number @in([1, 2, 3]) }
+shape Pick number @in([1, 2])
+
+policy pol {
+  fact xs: list[number @in([1, 2])]
+  fact payload: document
+  fact n: number
+  shape Local { pick: number @in([7, 8]) }
+  rule list_ok = { yield count(xs) > 0 }
+  rule field_conforms = { yield payload is Roll }
+  rule field_malformed = { yield payload is not Roll }
+  rule alias_is = { yield n is Pick }
+  rule alias_is_not = { yield n is not Pick }
+  rule inline_is = { yield n is number @in([1, 2]) }
+  rule inline_is_not = { yield n is not number @in([1, 2]) }
+  rule list_elem_is = { yield [n] is list[number @in([1, 2])] }
+  rule policy_shape = { yield { "pick": 7 } is Local and { "pick": 9 } is not Local }
+  rule derive_ok = { yield pickOne(1) == 1 }
+  rule derive_bad = { yield pickOne(2) == 2 }
+  export decision of list_ok
+  export decision of field_conforms
+  export decision of field_malformed
+  export decision of alias_is
+  export decision of alias_is_not
+  export decision of inline_is
+  export decision of inline_is_not
+  export decision of list_elem_is
+  export decision of policy_shape
+  export decision of derive_ok
+  export decision of derive_bad
+}
+
+derive pickOne = (v: number @in([1])): number => { yield v }
+`
+
+// TestNumberInConstraintInEveryTypePosition checks that `@in` is accepted and
+// enforced wherever a type can carry constraints (#285): a list element, a
+// shape field, a shape alias, a policy-local shape, a derive parameter, a
+// fact, and the right-hand type of `is` and `is not`.
+func (r *RuntimeTestSuite) TestNumberInConstraintInEveryTypePosition() {
+	ctx := r.T().Context()
+	_, exec := r.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "in_positions.sentrie", src: numberInPositionsSource})
+
+	decide := func(rule string, facts map[string]any) trinary.Value {
+		out, err := exec.ExecRule(ctx, "com/app", "pol", rule, facts)
+		r.Require().NoError(err, rule)
+		return out.Decision.State
+	}
+
+	for _, tc := range []struct {
+		n       int
+		inSet   bool
+		payload map[string]any
+		xs      []any
+	}{
+		{n: 1, inSet: true, payload: map[string]any{"value": 2}, xs: []any{1, 2}},
+		{n: 3, inSet: false, payload: map[string]any{"value": 4}, xs: []any{1, 2}},
+	} {
+		facts := map[string]any{"n": tc.n, "payload": tc.payload, "xs": tc.xs}
+		want := trinary.From(tc.inSet)
+		unwant := trinary.From(!tc.inSet)
+		r.Equal(want, decide("field_conforms", facts), "shape field, n=%d", tc.n)
+		r.Equal(unwant, decide("field_malformed", facts), "shape field is not, n=%d", tc.n)
+		r.Equal(want, decide("alias_is", facts), "shape alias, n=%d", tc.n)
+		r.Equal(unwant, decide("alias_is_not", facts), "shape alias is not, n=%d", tc.n)
+		r.Equal(want, decide("inline_is", facts), "inline is, n=%d", tc.n)
+		r.Equal(unwant, decide("inline_is_not", facts), "inline is not, n=%d", tc.n)
+		r.Equal(want, decide("list_elem_is", facts), "list element, n=%d", tc.n)
+		r.Equal(trinary.True, decide("policy_shape", facts), "policy-local shape")
+		r.Equal(trinary.True, decide("derive_ok", facts), "derive parameter in set")
+	}
+
+	// A fact typed list[number @in(...)] rejects an element outside the set.
+	base := map[string]any{"n": 1, "payload": map[string]any{"value": 1}}
+	r.Equal(trinary.True, decide("list_ok", withFact(base, "xs", []any{1, 2})))
+	_, err := exec.ExecRule(ctx, "com/app", "pol", "list_ok", withFact(base, "xs", []any{1, 3}))
+	r.Require().Error(err)
+	r.Contains(err.Error(), "value 3 is not in the set")
+
+	// A derive parameter typed number @in([1]) rejects 2.
+	_, err = exec.ExecRule(ctx, "com/app", "pol", "derive_bad", withFact(base, "xs", []any{1}))
+	r.Require().Error(err)
+	r.Contains(err.Error(), "value 2 is not in the set")
+}
+
+func withFact(base map[string]any, name string, value any) map[string]any {
+	out := map[string]any{name: value}
+	for k, v := range base {
+		out[k] = v
+	}
+	return out
+}
