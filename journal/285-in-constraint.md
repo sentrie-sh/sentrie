@@ -15,3 +15,12 @@
 - Tests: parser suite (`@in`, `@not_in`, two constraints, unknown keyword name, missing arguments) and one runtime test that `number @in([1, 2])` accepts 1 and rejects 3 in a let, a fact and `is`. The parser tests fail on main.
 - Rewrote the legacy header of `runtime/typeref_number_test.go` on touch.
 - _Model: claude-opus-5-5_
+
+### 13:10 - Test `@in` in every type position
+- Added `TestNumberInConstraintInEveryTypePosition` (runtime): `@in` accepted and enforced in a list element type, shape field, shape alias, policy-local shape, derive parameter, fact, and `is` / `is not`, with a value in and out of the set; rejections assert the "is not in the set" message so a different error cannot satisfy them.
+- Added two `cmd` validate tests: a pack using `@in` validates (the #285 reproduction), and `@policy(1)` is an unknown-constraint error, not `expected Ident`.
+- Added fixture `lang_test/0050-in-constraint.sentrie` (fixtures are the house style for language features: parse, index, validate). Its namespace is `constraints/inset` because a namespace segment `in` is still a keyword error; that is outside this issue.
+- Proved the tests bite: with `parser/typeref.go` restored from main, the new runtime, cmd, fixture and parser tests all fail.
+- Ruled out: parser-level duplicates per position (the runtime test already parses each one), and a test for `@in` on `string` beyond the existing unknown-name case.
+- Bumped the fixture count in the `lang_test` graph node (45 to 46 fixtures; it said forty-four).
+- _Model: claude-sonnet-5-5_

@@ -1,0 +1,21 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+namespace constraints/inset
+shape Roll { value: number @in([1, 2, 3]) }
+shape Pick number @in([1, 2])
+
+derive pickOne = (v: number @in([1])): number => { yield v }
+
+policy in_constraint {
+  fact n: number @in([1, 2])
+  fact xs: list[number @in([1, 2])]
+  shape Local { pick: number @in([7, 8]) @min(0) }
+  let a: number @in([1, 2]) = 1
+  let b = n is number @in([1, 2])
+  let c = n is not number @in([1, 2])
+  let d = xs is list[number @in([1, 2])]
+  let e: Pick = 2
+  rule _corpus = { yield pickOne(1) == 1 }
+  export decision of _corpus
+}
