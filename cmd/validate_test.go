@@ -107,3 +107,35 @@ func (s *CmdTestSuite) TestValidateCmdRejectsUnknownImportWithFact() {
 	s.Contains(err.Error(), `import binds unknown fact "usr"`)
 	s.Contains(err.Error(), "policy t/q accepts fact aliases: user")
 }
+
+const inConstraintPolicy = `namespace com/ex
+policy pol {
+  let v: number @in([1, 2]) = 1
+  rule ok = { yield v == 1 }
+  export decision of ok
+}
+`
+
+// TestValidateCmdAcceptsInConstraint is the reproduction from #285: `in` is a
+// keyword, and validate used to fail with "expected Ident, got in".
+func (s *CmdTestSuite) TestValidateCmdAcceptsInConstraint() {
+	dir := s.writeTestPack(inConstraintPolicy)
+	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir}))
+}
+
+// TestValidateCmdReportsUnknownKeywordConstraint checks that a keyword which
+// is not a constraint of the type is an unknown-constraint error, not a token
+// error.
+func (s *CmdTestSuite) TestValidateCmdReportsUnknownKeywordConstraint() {
+	dir := s.writeTestPack(`namespace com/ex
+policy pol {
+  let v: number @policy(1) = 1
+  rule ok = { yield v == 1 }
+  export decision of ok
+}
+`)
+	err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+	s.Require().Error(err)
+	s.Contains(err.Error(), "cannot add constraint policy")
+	s.NotContains(err.Error(), "expected Ident")
+}
