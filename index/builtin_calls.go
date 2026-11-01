@@ -130,8 +130,8 @@ func (k *kindCheckCtx) walkScopedExprs(e ast.Expression, visit scopedExprVisitor
 		// A rule body of the form `import decision r from p with f as <expr>`.
 		// Each with expression is evaluated in the importing rule's context
 		// (runtime ImportDecision), so it is walked in this scope.
-		// forEachDeriveExprChild has no case for import clauses, since a derive
-		// cannot contain one.
+		// forEachDeriveExprChild rejects import clauses, since a derive cannot
+		// contain one.
 		for _, w := range n.Withs {
 			if w != nil {
 				k.walkScopedExprs(w, visit)

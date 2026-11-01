@@ -4,6 +4,7 @@
 package index
 
 import (
+	"fmt"
 	"go/ast"
 	goparser "go/parser"
 	"go/token"
@@ -209,9 +210,104 @@ policy pol {
 // expression kind (or a block statement kind) that forEachExprChild has no case
 // for, so the reference cycle check cannot silently skip a new kind.
 func (suite *IndexTestSuite) TestForEachExprChildCoversEveryASTNode() {
+	samples := astWalkSamples()
+
+	// Every ast type that can sit in an expression position, or in a block as a
+	// statement, must have a sample here.
+	kinds := astNodeKinds(suite)
+	suite.Greater(len(kinds), 20, "the ast package scan found too few node kinds")
+	var missing []string
+	for _, name := range kinds {
+		if _, ok := samples[name]; !ok {
+			missing = append(missing, name)
+		}
+	}
+	suite.Empty(missing, "ast kinds with no forEachExprChild coverage: add a case to forEachExprChild and a sample here")
+
+	expected := astWalkExpected()
+	for name, node := range samples {
+		suite.Run(name, func() {
+			got, err := yieldedIdentifiers(node)
+			suite.Require().NoError(err)
+			suite.Equal(expected[name], got)
+		})
+	}
+
+	suite.Run("unknown node", func() {
+		suite.Error(forEachExprChild(sast.NewDeriveStatement("d", nil, tokens.Range{}), func(sast.Node) error { return nil }))
+	})
+}
+
+// TestForEachDeriveExprChildCoversEveryASTNode pins that the derive walker
+// delegates to forEachExprChild: every expression kind yields the same
+// identifiers through both, so a kind added to forEachExprChild is walked by
+// the derive analyses too, and the only differences are the explicit derive
+// overrides checked below.
+func (suite *IndexTestSuite) TestForEachDeriveExprChildCoversEveryASTNode() {
 	r := tokens.Range{}
 	id := func(n string) *sast.Identifier { return sast.NewIdentifier(n, r) }
-	samples := map[string]sast.Node{
+	samples := astWalkSamples()
+	expected := astWalkExpected()
+
+	// Kinds a derive body cannot contain: import and attachment clauses are
+	// rule-body forms, and statements are not expressions.
+	rejected := map[string]bool{"ImportClause": true, "WithClause": true, "AttachmentClause": true}
+	// The sample block holds a line comment, which derive rejects; the derive
+	// variant holds a let instead, whose value is yielded.
+	samples["BlockExpression"] = sast.NewBlockExpression(
+		[]sast.Statement{sast.NewVarDeclaration("v", nil, id("val"), r)}, id("y"), r)
+	expected["BlockExpression"] = []string{"val", "y"}
+
+	for name, node := range samples {
+		e, isExpr := node.(sast.Expression)
+		if !isExpr {
+			continue
+		}
+		suite.Run(name, func() {
+			var names []string
+			var visit func(sast.Expression) error
+			visit = func(c sast.Expression) error {
+				if i, ok := c.(*sast.Identifier); ok {
+					names = append(names, i.Value)
+				}
+				return forEachDeriveExprChild(c, visit)
+			}
+			err := forEachDeriveExprChild(e, visit)
+			if rejected[name] {
+				suite.Require().Error(err)
+				suite.Contains(err.Error(), "derive walk: unsupported expression")
+				return
+			}
+			suite.Require().NoError(err)
+			sort.Strings(names)
+			suite.Equal(expected[name], names)
+		})
+	}
+
+	suite.Run("block rejects a line comment", func() {
+		blk := sast.NewBlockExpression([]sast.Statement{sast.NewCommentStatement("c", r)}, id("y"), r)
+		err := forEachDeriveExprChild(blk, func(sast.Expression) error { return nil })
+		suite.Require().Error(err)
+		suite.Contains(err.Error(), "derive walk: unsupported statement")
+	})
+	suite.Run("block rejects a rule statement", func() {
+		blk := sast.NewBlockExpression([]sast.Statement{sast.NewRuleStatement("r", nil, nil, id("b"), r)}, id("y"), r)
+		suite.Error(forEachDeriveExprChild(blk, func(sast.Expression) error { return nil }))
+	})
+	suite.Run("yield error is returned unchanged", func() {
+		want := fmt.Errorf("stop")
+		blk := sast.NewBlockExpression([]sast.Statement{sast.NewVarDeclaration("v", nil, id("val"), r)}, id("y"), r)
+		suite.Same(want, forEachDeriveExprChild(blk, func(sast.Expression) error { return want }))
+	})
+}
+
+// astWalkSamples returns one sample node per ast kind a walker must handle,
+// keyed by the kind's name. The identifiers inside a sample are the children
+// the walkers are expected to yield.
+func astWalkSamples() map[string]sast.Node {
+	r := tokens.Range{}
+	id := func(n string) *sast.Identifier { return sast.NewIdentifier(n, r) }
+	return map[string]sast.Node{
 		"Identifier":                 id("x"),
 		"IntegerLiteral":             sast.NewIntegerLiteral(1, r),
 		"FloatLiteral":               sast.NewFloatLiteral(1.5, r),
@@ -243,23 +339,13 @@ func (suite *IndexTestSuite) TestForEachExprChildCoversEveryASTNode() {
 		"RuleStatement":              sast.NewRuleStatement("r", nil, nil, id("b"), r),
 		"CommentStatement":           sast.NewCommentStatement("c", r),
 	}
+}
 
-	// Every ast type that can sit in an expression position, or in a block as a
-	// statement, must have a sample here.
-	kinds := astNodeKinds(suite)
-	suite.Greater(len(kinds), 20, "the ast package scan found too few node kinds")
-	var missing []string
-	for _, name := range kinds {
-		if _, ok := samples[name]; !ok {
-			missing = append(missing, name)
-		}
-	}
-	suite.Empty(missing, "ast kinds with no forEachExprChild coverage: add a case to forEachExprChild and a sample here")
-
-	// The identifier names each sample must yield, directly or through its
-	// descendants. A kind whose case yields nothing (or too little) fails here
-	// even though it returns no error.
-	expected := map[string][]string{
+// astWalkExpected is the identifier names each astWalkSamples sample must
+// yield, directly or through its descendants. A kind whose case yields nothing
+// (or too little) fails against it even though it returns no error.
+func astWalkExpected() map[string][]string {
+	return map[string][]string{
 		"CallExpression":             {"a", "f"},
 		"InfixExpression":            {"l", "r"},
 		"UnaryExpression":            {"u"},
@@ -283,17 +369,6 @@ func (suite *IndexTestSuite) TestForEachExprChildCoversEveryASTNode() {
 		"VarDeclaration":             {"val"},
 		"RuleStatement":              {"b"},
 	}
-	for name, node := range samples {
-		suite.Run(name, func() {
-			got, err := yieldedIdentifiers(node)
-			suite.Require().NoError(err)
-			suite.Equal(expected[name], got)
-		})
-	}
-
-	suite.Run("unknown node", func() {
-		suite.Error(forEachExprChild(sast.NewDeriveStatement("d", nil, r), func(sast.Node) error { return nil }))
-	})
 }
 
 // yieldedIdentifiers returns the sorted names of every identifier reachable from
