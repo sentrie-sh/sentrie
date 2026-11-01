@@ -11,20 +11,8 @@ import (
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
-// MustNumbers returns both operands as float64 numbers, or an error if either is not numeric.
-func MustNumbers(lhs, rhs Value) (float64, float64, error) {
-	l, ok := lhs.NumberValue()
-	if !ok {
-		return 0, 0, fmt.Errorf("left operand is not a number")
-	}
-	r, ok := rhs.NumberValue()
-	if !ok {
-		return 0, 0, fmt.Errorf("right operand is not a number")
-	}
-	return l, r, nil
-}
-
-// EqualValues compares two boxed values for semantic equality (including cross-kind number equality).
+// EqualValues compares two boxed values for semantic equality (numbers compare by value across
+// the exact integer and float representations).
 // A DecisionEnvelope compared with a bool or trinary compares its state, so an imported decision
 // equals true only when its state is true; an unknown state equals neither true nor false.
 func EqualValues(a, b Value) bool {
@@ -35,9 +23,7 @@ func EqualValues(a, b Value) bool {
 		return eq
 	}
 	if a.Kind() != b.Kind() {
-		an, aok := a.NumberValue()
-		bn, bok := b.NumberValue()
-		return aok && bok && an == bn
+		return false
 	}
 
 	switch a.Kind() {
@@ -48,9 +34,10 @@ func EqualValues(a, b Value) bool {
 		bv, _ := b.BoolValue()
 		return av == bv
 	case ValueNumber:
-		av, _ := a.NumberValue()
-		bv, _ := b.NumberValue()
-		return av == bv
+		// Exact across representations: an integer equals a float with the
+		// same value, and integers above 2^53 never merge with a neighbour.
+		c, ordered, _ := CompareNumbers(a, b)
+		return ordered && c == 0
 	case ValueString:
 		av, _ := a.StringValue()
 		bv, _ := b.StringValue()

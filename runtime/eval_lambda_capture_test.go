@@ -50,5 +50,5 @@ func (s *RuntimeTestSuite) TestLambdaCapture_LateBoundLexicalFollowsParentContex
 	lv2, ok := out2.ListValue()
 	s.Require().True(ok)
 	s.Require().Len(lv2, 1)
-	s.Require().Equal(2.0, lv2[0].Any())
+	s.Require().Equal(int64(2), lv2[0].Any())
 }

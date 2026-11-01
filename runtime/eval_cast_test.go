@@ -58,7 +58,7 @@ func (s *RuntimeTestSuite) TestEvalCastNumberConversionSuccess() {
 	)
 	result, node, err := evalCast(ctx, ec, exec, p, castExpr)
 	s.Require().NoError(err)
-	s.Require().Equal(42.0, result.Any())
+	s.Require().Equal(int64(42), result.Any())
 	s.Require().NotNil(node)
 }
 
@@ -178,7 +178,7 @@ func (s *RuntimeTestSuite) TestEvalCastNumberFromBoolValue() {
 	)
 	result, node, err := evalCast(ctx, ec, exec, p, castExpr)
 	s.Require().NoError(err)
-	s.Require().Equal(1.0, result.Any())
+	s.Require().Equal(int64(1), result.Any())
 	s.Require().NotNil(node)
 }
 

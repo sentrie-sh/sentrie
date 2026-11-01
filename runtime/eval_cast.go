@@ -6,7 +6,6 @@ package runtime
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
@@ -49,14 +48,14 @@ func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *ind
 		result = box.String(val.String())
 
 	case *ast.NumberTypeRef:
-		if n, ok := val.NumberValue(); ok {
-			result = box.Number(n)
+		if val.Kind() == box.ValueNumber {
+			result = val
 		} else if s, ok := val.StringValue(); ok {
-			atof, parseErr := strconv.ParseFloat(s, 64)
+			n, parseErr := box.ParseNumber(s)
 			if parseErr != nil {
 				return box.Value{}, node.SetErr(parseErr), parseErr
 			}
-			result = box.Number(atof)
+			result = n
 		} else if b, ok := val.BoolValue(); ok {
 			if b {
 				result = box.Number(1)

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strconv"
 
 	"github.com/sentrie-sh/sentrie/trinary"
 )
@@ -86,15 +87,6 @@ func Bool[T ~bool](x T) Value {
 		return Value{kind: ValueBool, u64: 1}
 	}
 	return Value{kind: ValueBool}
-}
-
-func Number[T ~int | ~int8 | ~int16 | ~int32 | ~int64 |
-	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 |
-	~float32 | ~float64](x T) Value {
-	return Value{
-		kind: ValueNumber,
-		u64:  math.Float64bits(float64(x)),
-	}
 }
 
 func String[T ~string](x T) Value {
@@ -197,9 +189,15 @@ func (v Value) BoolValue() (bool, bool) {
 	return v.u64 != 0, true
 }
 
+// NumberValue returns any number as a float64. An exact integer beyond 2^53
+// rounds to the nearest float64; use IntValue, CompareNumbers and the
+// arithmetic helpers where the exact value matters (#166).
 func (v Value) NumberValue() (float64, bool) {
 	if v.kind != ValueNumber {
 		return 0, false
+	}
+	if v.IsInt() {
+		return float64(int64(v.u64)), true
 	}
 	return math.Float64frombits(v.u64), true
 }
@@ -265,6 +263,9 @@ func TrinaryFrom(b Value) trinary.Value {
 	case ValueBool:
 		return trinary.From(b.u64 != 0)
 	case ValueNumber:
+		if b.IsInt() {
+			return trinary.From(b.u64 != 0)
+		}
 		return trinary.From(math.Float64frombits(b.u64))
 	case ValueString:
 		s, _ := b.ref.(string)
@@ -306,6 +307,9 @@ func (v Value) Any() any {
 	case ValueBool:
 		return v.u64 != 0
 	case ValueNumber:
+		if i, ok := v.IntValue(); ok {
+			return i
+		}
 		return math.Float64frombits(v.u64)
 	case ValueString:
 		s, _ := v.ref.(string)
@@ -349,6 +353,9 @@ func (v Value) String() string {
 		}
 		return "false"
 	case ValueNumber:
+		if i, ok := v.IntValue(); ok {
+			return strconv.FormatInt(i, 10)
+		}
 		n, _ := v.NumberValue()
 		return fmt.Sprintf("%v", n)
 	case ValueString:
@@ -406,6 +413,8 @@ func FromAny(x any) Value {
 		return Number(t)
 	case float64:
 		return Number(t)
+	case json.Number:
+		return fromJSONNumber(t)
 	case string:
 		return String(t)
 	case trinary.Value:
