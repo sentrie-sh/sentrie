@@ -201,3 +201,39 @@ func TestLexerTokenPositions(t *testing.T) {
 		}
 	}
 }
+
+// TestLexerStringLiteralLineBreaks checks that a line break inside a string
+// literal is \n whether the file uses LF or CRLF, while an escaped \r and a
+// lone raw \r are kept (#280).
+func TestLexerStringLiteralLineBreaks(t *testing.T) {
+	testCases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"LF", "\"a\nb\"", "a\nb"},
+		{"CRLF", "\"a\r\nb\"", "a\nb"},
+		{"two CRLF breaks", "\"a\r\n\r\nb\"", "a\n\nb"},
+		{"escaped CR before an LF break", "\"a\\r\nb\"", "a\r\nb"},
+		{"escaped CR before a CRLF break", "\"a\\r\r\nb\"", "a\r\nb"},
+		{"escaped CR alone", "\"a\\rb\"", "a\rb"},
+		{"lone raw CR", "\"a\rb\"", "a\rb"},
+		{"lone raw CR before the closing quote", "\"a\r\"", "a\r"},
+		{"escaped line break, LF", "\"a\\\nb\"", "a\nb"},
+		{"escaped line break, CRLF", "\"a\\\r\nb\"", "a\nb"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tok := NewLexer(strings.NewReader(tc.input), "t.sentrie").NextToken()
+			if tok.Kind != tokens.String || tok.Value != tc.want {
+				t.Fatalf("input %q: got %s %q, want String %q", tc.input, tok.Kind, tok.Value, tc.want)
+			}
+		})
+	}
+
+	// The token's span still covers the source text, including the \r bytes.
+	tok := NewLexer(strings.NewReader("\"a\r\nb\" x"), "t.sentrie").NextToken()
+	if tok.Range.From.Line != 1 || tok.Range.To.Line != 2 || tok.Range.To.Column != 3 || tok.Range.To.Offset != 6 {
+		t.Fatalf("CRLF string span: got %+v", tok.Range)
+	}
+}
