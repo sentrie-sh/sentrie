@@ -18,7 +18,7 @@ The operator's grant: a deployment-level JSON file, passed with `--capabilities`
 | `capabilities` | `LAYERED_ON` | [[constants]] | `APPNAME` forms the required `@sentrie/` prefix of module entries. |
 | `capabilities` | `IMPORTS` | `std.encoding/json` | Strict decoding with `DisallowUnknownFields` and a trailing-data check. |
 | `capabilities` | `READS_FROM` | [[infra.filesystem]] | `Load` reads the file named by `--capabilities`. |
-| [[cmd]] | `CALLS` | `capabilities` | `exec`, `serve` and `validate` load the file, check the index, and hand the grant to the executor. |
+| [[cmd]] | `CALLS` | `capabilities` | `exec`, `serve`, `validate` and `bench` load the file, check the index, and hand the grant to the executor. |
 | [[index]] | `READS_FROM` | `capabilities` | `CheckCapabilities` asks `AllowsBuiltin`, `AllowsModule` and `AllowsLocalModules` for every builtin call and `use`. |
 | [[runtime.executor]] | `READS_FROM` | `capabilities` | `WithCapabilities` stores the grant for builtin dispatch and installs it on the JS registry. |
 | [[runtime.js.registry]] | `READS_FROM` | `capabilities` | `PrepareUse` and `LoadRequire` refuse ungranted modules, including `require()` inside TypeScript. |
