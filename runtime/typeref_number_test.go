@@ -10,6 +10,7 @@ import (
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 func (r *RuntimeTestSuite) TestValidateAgainstNumberTypeRef() {
@@ -192,4 +193,48 @@ func (r *RuntimeTestSuite) TestValidateAgainstNumberTypeRefEdgeCases() {
 		r.Error(err)
 		r.Contains(err.Error(), "constraint failed")
 	})
+}
+
+// TestNumberInConstraintFromSource checks the `@in` constraint written in
+// source (#285). `in` is a keyword, and before the fix the constraint could
+// not be parsed at all, so it was reachable only from Go.
+func (r *RuntimeTestSuite) TestNumberInConstraintFromSource() {
+	ctx := r.T().Context()
+	src := `namespace com/app
+
+policy pol {
+  fact n: number @in([1, 2])
+  let one: number @in([1, 2]) = 1
+  let three: number @in([1, 2]) = 3
+  rule accepts = { yield one == 1 }
+  rule rejects = { yield three == 3 }
+  rule from_fact = { yield n > 0 }
+  rule is_check = { yield 1 is number @in([1, 2]) and not (3 is number @in([1, 2])) }
+  export decision of accepts
+  export decision of rejects
+  export decision of from_fact
+  export decision of is_check
+}
+`
+	_, exec := r.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "in.sentrie", src: src})
+	facts := map[string]any{"n": 1}
+
+	out, err := exec.ExecRule(ctx, "com/app", "pol", "accepts", facts)
+	r.Require().NoError(err)
+	r.Equal(trinary.True, out.Decision.State)
+
+	out, err = exec.ExecRule(ctx, "com/app", "pol", "is_check", facts)
+	r.Require().NoError(err)
+	r.Equal(trinary.True, out.Decision.State)
+
+	out, err = exec.ExecRule(ctx, "com/app", "pol", "from_fact", facts)
+	r.Require().NoError(err)
+	r.Equal(trinary.True, out.Decision.State)
+
+	_, err = exec.ExecRule(ctx, "com/app", "pol", "rejects", facts)
+	r.Require().Error(err)
+	r.Contains(err.Error(), "value 3 is not in the set")
+
+	_, err = exec.ExecRule(ctx, "com/app", "pol", "from_fact", map[string]any{"n": 3})
+	r.Require().Error(err)
 }
