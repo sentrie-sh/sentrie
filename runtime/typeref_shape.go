@@ -65,9 +65,19 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 		return xerr.ErrShapeNotFound(fmt.Sprintf("shape '%s' not found at %s", shapeFqn, typeRef.Span()))
 	}
 
+	// The shape's alias and field types resolve where the shape is declared
+	// (its policy, or its namespace), however it was reached: the caller's
+	// policy would miss, or silently pick, a different shape of the same name
+	// when the shape comes from another namespace (#281). The constraints on
+	// the reference itself, below, stay in the caller's scope.
+	scope := shape.ShapeScope()
+	if scope == nil {
+		scope = p
+	}
+
 	// a simple shape is an alias to another typeref
 	if shape.AliasOf != nil {
-		return validateValueAgainstTypeRef(ctx, ec, exec, p, v, shape.AliasOf, pos)
+		return validateValueAgainstTypeRef(ctx, ec, exec, scope, v, shape.AliasOf, pos)
 	}
 
 	// at this point, we know it's a complex shape
@@ -91,7 +101,8 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 			return errMismatch("field %s cannot be undefined at %s - expected field value", field.Name, pos)
 		}
 
-		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, fieldValue, field.TypeRef, pos); err != nil {
+		// A field composed in through `with` resolves in its declaring shape.
+		if err := validateValueAgainstTypeRef(ctx, ec, exec, field.TypeScope(scope), fieldValue, field.TypeRef, pos); err != nil {
 			return fmt.Errorf("field '%s' is not valid: %w", field.Name, err)
 		}
 	}

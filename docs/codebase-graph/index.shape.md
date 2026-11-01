@@ -25,18 +25,23 @@ tags: type-model, composition, hydration, records
 
 ## 3. Interface Contracts & Public Surface
 
-- **Signature:** `Shape` struct - `{ Statement, Namespace, Policy, Name, FQN, Model *ShapeModel, AliasOf ast.TypeRef, FilePath }` plus an unexported `hydrated uint32`
+- **Signature:** `Shape` struct - `{ Statement, Namespace, Policy, Name, FQN, Model *ShapeModel, AliasOf ast.TypeRef, FilePath }` plus unexported `shapeScope *Policy` and `hydrated uint32`
   - **Behavior:** `Model` and `AliasOf` are **mutually exclusive**: a complex shape has `Model` and a nil `AliasOf`, a simple shape the reverse. `Policy` is nil for namespace-scoped shapes.
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 
-- **Signature:** `ShapeModel` - `{ WithFQN *ast.FQN, Fields map[string]*ShapeModelField }` / `ShapeModelField` - `{ Node, Name, Optional, TypeRef }`
-  - **Behavior:** Fields are a map, so **declaration order is lost**. `Optional` here is field optionality, distinct from a nullable type ref.
+- **Signature:** `(*Shape).ShapeScope() -> *Policy`
+  - **Behavior:** The scope the shape's alias and field types resolve in: its policy, or for a namespace-level shape a `Policy` holding only its namespace (no policy shapes, no rules). Mirrors `Derive.ShapeScope` ([[index.derive]]). Set once by `createShape` and never written afterwards, so concurrent evaluations read it without a lock; a hand-built shape falls back to its policy, then a fresh namespace-only scope, then nil when it has neither.
+  - **Side Effects:** None for an indexed shape; allocates per call only for a hand-built one.
+  - **Exceptions:** None.
+
+- **Signature:** `ShapeModel` - `{ WithFQN *ast.FQN, Fields map[string]*ShapeModelField }` / `ShapeModelField` - `{ Node, Name, Optional, TypeRef, DeclaredIn *Shape }`
+  - **Behavior:** Fields are a map, so **declaration order is lost**. `Optional` here is field optionality, distinct from a nullable type ref. `DeclaredIn` is the shape whose declaration holds the field; `resolveDependency` copies field pointers, so a field composed in through `with` keeps its base shape. `(*ShapeModelField).TypeScope(fallback)` is `DeclaredIn.ShapeScope()`, or `fallback` when that is nil. [[runtime.typeref_shape]] and [[index.builtin_kind]] resolve the field's type there ([#281](https://github.com/sentrie-sh/sentrie/issues/281)).
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 
 - **Signature:** `createShape(ns *Namespace, p *Policy, stmt *ast.ShapeStatement) -> (*Shape, error)`
-  - **Behavior:** Builds the FQN from the policy when policy-scoped, otherwise the namespace; populates `Model` for complex shapes (recording `With` and each field) or `AliasOf` for simple ones. Fields with an empty name are skipped silently.
+  - **Behavior:** Builds the FQN from the policy when policy-scoped, otherwise the namespace; builds `shapeScope`; populates `Model` for complex shapes (recording `With` and each field, with `DeclaredIn` set to the new shape) or `AliasOf` for simple ones. Fields with an empty name are skipped silently.
   - **Side Effects:** Allocation only.
   - **Exceptions:** `duplicate shape field '%s' at %s` - note this one is **not** wrapped in `xerr.ErrIndex`, unlike its sibling errors.
 
