@@ -16,7 +16,7 @@ import (
 )
 
 // checkConstraintArgs checks the arguments of every constraint on every type
-// ref the index holds (#273): facts, policy lets, shape aliases and fields,
+// ref forEachTypeRef visits (#273): facts, policy lets, shape aliases and fields,
 // derive parameter and return types, and inside expressions block lets,
 // lambda parameter and return types, casts and `x is T`. Element, value and
 // field types of list, dict and record refs are checked too. The check is the
@@ -29,64 +29,8 @@ import (
 // literals) is not checked.
 func (idx *Index) checkConstraintArgs(ctx context.Context) error {
 	var errs []error
-	check := func(t ast.TypeRef) { errs = append(errs, typeRefConstraintArgErrors(t)...) }
-
-	shapes := map[*ast.ShapeStatement]struct{}{}
-	checkShape := func(s *Shape) {
-		if s == nil || s.Statement == nil {
-			return
-		}
-		if _, seen := shapes[s.Statement]; seen {
-			return
-		}
-		shapes[s.Statement] = struct{}{}
-		check(s.Statement.Simple)
-		if s.Statement.Complex != nil {
-			for _, f := range s.Statement.Complex.Fields {
-				if f != nil {
-					check(f.Type)
-				}
-			}
-		}
-	}
-
-	for _, ns := range idx.Namespaces {
-		for _, s := range ns.Shapes {
-			checkShape(s)
-		}
-		for _, policy := range ns.Policies {
-			for _, s := range policy.Shapes {
-				checkShape(s)
-			}
-			for _, fact := range policy.Facts {
-				check(fact.Type)
-			}
-			for _, let := range policy.Lets {
-				check(let.Type)
-			}
-		}
-	}
-	for _, d := range idx.DerivesByFQN {
-		if d.Lambda != nil {
-			checkLambdaTypes(d.Lambda, check)
-		}
-	}
-
-	err := idx.forEachScopedExpr(ctx, func(_ *kindCheckCtx, e ast.Expression) {
-		switch n := e.(type) {
-		case *ast.CastExpression:
-			check(n.TargetType)
-		case *ast.IsExpression:
-			check(n.Type)
-		case *ast.LambdaExpression:
-			checkLambdaTypes(n, check)
-		case *ast.BlockExpression:
-			for _, st := range n.Statements {
-				if vd, ok := st.(*ast.VarDeclaration); ok {
-					check(vd.Type)
-				}
-			}
-		}
+	err := idx.forEachTypeRef(ctx, func(_ typeRefSite, t ast.TypeRef) {
+		errs = append(errs, typeRefConstraintArgErrors(t)...)
 	})
 	if err != nil {
 		return err
@@ -97,21 +41,9 @@ func (idx *Index) checkConstraintArgs(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
-func checkLambdaTypes(lam *ast.LambdaExpression, check func(ast.TypeRef)) {
-	for _, t := range lam.ParamTypes {
-		check(t)
-	}
-	check(lam.ReturnType)
-}
-
-// typeRefConstraintArgErrors checks the constraints of t and of every type
-// ref nested in it.
+// typeRefConstraintArgErrors checks the constraints of t itself;
+// forEachTypeRef supplies the type refs nested in it.
 func typeRefConstraintArgErrors(t ast.TypeRef) []error {
-	if t == nil {
-		return nil
-	}
-	t = ast.UnwrapNullableTypeRef(t)
-
 	var errs []error
 	table := constraints.ForTypeRef(t)
 	for _, c := range t.GetConstraints() {
@@ -125,17 +57,6 @@ func typeRefConstraintArgErrors(t ast.TypeRef) []error {
 		}
 		if err := def.CheckArgs(args); err != nil {
 			errs = append(errs, xerr.ErrConstraintArg(c.Span(), c.Name, err))
-		}
-	}
-
-	switch n := t.(type) {
-	case *ast.ListTypeRef:
-		errs = append(errs, typeRefConstraintArgErrors(n.ElemType)...)
-	case *ast.DictTypeRef:
-		errs = append(errs, typeRefConstraintArgErrors(n.ValueType)...)
-	case *ast.RecordTypeRef:
-		for _, f := range n.Fields {
-			errs = append(errs, typeRefConstraintArgErrors(f)...)
 		}
 	}
 	return errs
