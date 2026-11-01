@@ -39,7 +39,7 @@ This node exposes no callable surface. Its "interface" is the set of productions
   - **Exceptions:** N/A.
 
 - **Signature:** `execSource ::= STRING | ('@' modulePathSegment ('/' modulePathSegment)*)`
-  - **Behavior:** The source of a `use` statement. `modulePathSegment ::= IDENT | KEYWORD`, so modules named after keywords (`@sentrie/string`) are importable; this is the only position where the grammar treats a keyword as a name (#158).
+  - **Behavior:** The source of a `use` statement. `modulePathSegment ::= IDENT | KEYWORD`, so modules named after keywords (`@sentrie/string`) are importable; one of two positions where the grammar treats a keyword as a name (#158); the other is `constraintName` (#285).
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 
@@ -49,7 +49,7 @@ This node exposes no callable surface. Its "interface" is the set of productions
   - **Exceptions:** N/A.
 
 - **Signature:** `typeRef` with `constraint` suffixes
-  - **Behavior:** Declares that type references carry named, argument-bearing constraints - the syntax counterpart to the checker tables in [[constraints]].
+  - **Behavior:** Declares that type references carry named, argument-bearing constraints - the syntax counterpart to the checker tables in [[constraints]]. `constraintName ::= IDENT | KEYWORD`, so a constraint named after a keyword (`@in`) can be written (#285).
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 
