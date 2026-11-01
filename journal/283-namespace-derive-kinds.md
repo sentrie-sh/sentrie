@@ -18,3 +18,10 @@
 - Proved the bite by restoring `index/builtin_kind.go` from main: the typed let, cast, alias chain, param reject and caller-namespace tests fail. The policy shadowing test fails against a mutant that always uses a namespace-only scope; the policy-local-shape test is a guard against a leaking scope and passes on main by design.
 - Ruled out: a shape-typed return type (the kind check never reads a derive's return type, call results of derives are unknown) and a pure lookalike-accept test (passes on main and on any plausible mutant).
 - _Model: claude-sonnet-5-5_
+
+### 13:13 - Review fix: resolve shapes by whole reference
+- Reviewer found that routing namespace derives through the stub scope exposed `resolveShapeReadOnly` looking up `ref.LastSegment()` in the local shapes first, so `com/lib/Names` resolved to a local `Names` (and the same for rule lets/facts on main). The runtime's `LookupShape` keys on `ref.String()`.
+- `resolveShapeReadOnly` now delegates to `idx.LookupShape(policy, policy.Namespace, ref)` with an error meaning unknown; the old lookup code is deleted. Consequence: a qualified name must be exported, as at runtime; `TestLookupShapeKindAliasVsComplex` now registers an export.
+- Tests: qualified shape shadowed by a local one (namespace derive and rule let, fails before), field chain accept/reject on a namespace derive's shape parameter (passes on main too, a guard). The field-chain case surprisingly already rejected on main; not investigated further.
+- Graph: `index.builtin_kind` notes the delegation.
+- _Model: claude-sonnet-5-5_

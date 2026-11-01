@@ -5,6 +5,7 @@ package index
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -392,6 +393,7 @@ func TestLookupShapeKindAliasVsComplex(t *testing.T) {
 	aliasShape, err := createShape(ns, nil, ast.NewShapeStatement("LabelAlias", ast.NewStringTypeRef(rng), nil, rng))
 	require.NoError(t, err)
 	ns.Shapes["LabelAlias"] = aliasShape
+	ns.ShapeExports["LabelAlias"] = &ExportedShape{Name: "LabelAlias"}
 
 	kind, ok := lookupShapeKind(idx, nil, ast.NewShapeTypeRef(ast.NewFQN([]string{"com", "ex", "LabelAlias"}, rng).Ptr(), rng))
 	require.True(t, ok)
@@ -706,4 +708,56 @@ policy p {
 }
 `, "f.sentrie")
 	s.Require().NoError(err)
+}
+
+const qualifiedShapeLibSource = `namespace com/lib
+shape Names list[string]
+export shape Names
+`
+
+// TestBuiltinCheckQualifiedShadowedShapeAccept checks that a qualified shape
+// reference resolves by its whole name, as the runtime does, so a local shape
+// with the same last segment does not stand in for it.
+func (s *IndexTestSuite) TestBuiltinCheckQualifiedShadowedShapeAccept() {
+	_, err := s.validateIsSources(qualifiedShapeLibSource, `namespace com/app
+shape Names string
+derive n = (t: com/lib/Names): number => { yield count(filter(t, (x) => { yield true })) }
+policy p {
+  rule allow = { yield n(["x"]) > 0 }
+  export decision of allow
+}
+`)
+	s.Require().NoError(err)
+
+	_, err = s.validateIsSources(qualifiedShapeLibSource, `namespace com/app
+shape Names string
+policy p {
+  rule allow = {
+    let s: com/lib/Names = ["x"]
+    yield count(filter(s, (x) => { yield true })) > 0
+  }
+  export decision of allow
+}
+`)
+	s.Require().NoError(err)
+}
+
+// TestBuiltinCheckNamespaceDeriveShapeFieldChain checks that a field of a
+// namespace derive's shape parameter is resolved through the derive's namespace.
+func (s *IndexTestSuite) TestBuiltinCheckNamespaceDeriveShapeFieldChain() {
+	const tmpl = `namespace com/ex
+shape U { items: %s }
+derive n = (t: U): number => { yield count(filter(t.items, (x) => { yield true })) }
+policy p {
+  fact u: U as u
+  rule allow = { yield n(u) > 0 }
+  export decision of allow
+}
+`
+	err := s.parseAndValidate(fmt.Sprintf(tmpl, "list[string]"), "f.sentrie")
+	s.Require().NoError(err)
+
+	err = s.parseAndValidate(fmt.Sprintf(tmpl, "string"), "f.sentrie")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "filter: first argument must be a list")
 }

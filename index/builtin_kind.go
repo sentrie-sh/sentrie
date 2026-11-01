@@ -238,39 +238,18 @@ func lookupShapeKind(idx *Index, policy *Policy, tr *ast.ShapeTypeRef) (box.Valu
 	return 0, false
 }
 
+// resolveShapeReadOnly resolves ref the way the runtime does (LookupShape keys
+// on the whole reference), treating a lookup error as an unknown shape.
 func resolveShapeReadOnly(idx *Index, policy *Policy, ref *ast.FQN) *Shape {
-	if ref == nil || ref.IsEmpty() {
+	var ns *Namespace
+	if policy != nil {
+		ns = policy.Namespace
+	}
+	shape, err := idx.LookupShape(policy, ns, ref)
+	if err != nil {
 		return nil
 	}
-	name := ref.LastSegment()
-
-	if policy != nil {
-		if s, ok := policy.Shapes[name]; ok {
-			return s
-		}
-		if policy.Namespace != nil {
-			if s, ok := policy.Namespace.Shapes[name]; ok {
-				return s
-			}
-		}
-	}
-
-	if len(ref.Parts) > 2 {
-		nsFQN := ref.Parent()
-		if namespace, err := idx.ResolveNamespace(nsFQN.String()); err == nil && namespace != nil {
-			if s, ok := namespace.Shapes[name]; ok {
-				return s
-			}
-		}
-		namespace, err := idx.ResolveNamespace(nsFQN.String())
-		if err != nil {
-			return nil
-		}
-		if err := namespace.VerifyShapeExported(name); err != nil {
-			return nil
-		}
-	}
-	return nil
+	return shape
 }
 
 func lookupShapeFieldTypeReadOnly(idx *Index, policy *Policy, shape *Shape, fieldName string) (ast.TypeRef, bool) {

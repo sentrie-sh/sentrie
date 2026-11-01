@@ -51,7 +51,7 @@ A best-effort static type inferencer: given an expression and a lexical scope, i
   - **Exceptions:** None; unknown is a return value, not an error.
 
 - **Signature:** `resolveShapeReadOnly` / `lookupShapeFieldTypeReadOnly` / `fieldTypeRefHop`
-  - **Behavior:** Shape lookup and field traversal that **never mutate** - the `ReadOnly` suffix marks that these must not trigger hydration, since kind checking runs before [[index.commit]].
+  - **Behavior:** `resolveShapeReadOnly` delegates to `(*Index).LookupShape` ([[index.is_resolve]]), keyed on the whole reference exactly as the runtime does, and treats a lookup error (missing or unexported shape) as unknown. Shape lookup and field traversal that **never mutate** - the `ReadOnly` suffix marks that these must not trigger hydration, since kind checking runs before [[index.commit]].
   - **Side Effects:** None by contract.
   - **Exceptions:** None.
 
