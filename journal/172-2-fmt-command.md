@@ -61,3 +61,31 @@
 ### 2026-11-04 02:27 - Review 4 suggestions
 - An emptied file with a failing Close now takes the restore path (only a failed Write with n == 0 skips it); added tests for that and for a partial write longer than the original; renamed the read-only test.
 - _Model: claude-sonnet-5-5, role: implementer subagent_
+
+### 2026-11-04 02:56 - Go-style pattern, cling-declared inputs
+- User direction: take inspiration from the Go CLI (`sentrie fmt ./...`) and do not work around cling. Supersedes the hand-parsed-arguments decision (`parseFmtArgs`), which existed only to recover paths cling swallows as flag values.
+- Now: one REQUIRED `pattern` argument plus `--check`/`--diff` hydrated by `cling.Hydrate`. `./...` and `dir/...` recurse; `dir` and `.` cover only files directly inside; a file is formatted whatever its extension. Required because with a default pattern `fmt --check f` would read check=f (false) and rewrite `.`; as required it errors, and `--check ./...` fails on ParseBool. Flags therefore follow the pattern.
+- cling binds only the first positional, so `fmtCmd` rejects extra non-flag words (a few lines of validation).
+- Write path, diff, symlink and de-dup rules unchanged. Removed the parseFmtArgs tests; added CLI-level tests for each pattern form and failure case.
+- _Model: claude-sonnet-5-5, role: implementer subagent_
+
+### 2026-11-04 02:58 - Retest after the pattern redesign
+- Added CLI tests: missing `dir/...`, `file/...` (formats that file), trailing slash, `./.../` (error), bare `...`, `. --check=false` writes, flag value naming a directory writes nothing, hidden directories skipped under `./...`.
+- Bite proof by mutating fmt.go: shallow default flipped, extra-positional check dropped and hidden-dir skip dropped each fail tests. Loosening the `/...` suffix match and defaulting an empty pattern to `.` are not caught: the latter because cling itself rejects a missing positional.
+- Gate re-run: make test, lint, gofmt, docs-graph, race on ./cmd/ pass.
+- _Model: claude-sonnet-5-5, role: test and CI subagent_
+
+### 2026-11-04 03:00 - Review 5 fixes
+- Part of the same cling decision: `fmtCmd` validates cling's output instead of reparsing. After Run every flag is `--name=value` and a bare flag is `--name=`, so a value other than empty, true or false (`--check f sub`) is rejected with a "put flags after the pattern" error.
+- `file/...` and a bare `/...` are errors, as in go fmt. Removed the multi-root de-duplication (one root, symlinks skipped on the walk) and its two tests. Added the missing blank line in the long description; fixed the previous entry's date.
+- _Model: claude-sonnet-5-5, role: implementer subagent_
+
+### 2026-11-04 03:01 - Retest after flag value validation
+- Added CLI tests: repeated flag (first one wins), `--check=TRUE` and `--check=1` rejected with nothing written, `--diff 1 sub` and `--check 1 sub` write nothing, guidance in the rejection message.
+- Bite proof: dropping the value validation in fmt.go fails the new tests.
+- Gate re-run: make test, lint, gofmt, docs-graph, race on ./cmd/ pass.
+- _Model: claude-sonnet-5-5, role: test and CI subagent_
+
+### 2026-11-04 03:02 - Final review approved
+- Review 6 approved the Go-style pattern redesign. Reworded cmd.md and the PR description: a bare `/...` is an error by sentrie's choice (Go reads it as a pattern under the filesystem root), and a literal `true` or `false` after a flag still binds as its value.
+- _Model: claude-opus-5-5, role: parent session_
