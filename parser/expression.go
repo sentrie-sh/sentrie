@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package parser
 
@@ -46,13 +33,21 @@ func (p *Parser) parseExpression(ctx context.Context, precedence Precedence) ast
 
 	leftExp := wrapWithTrailingComment(prefix(ctx, p), p)
 
-	for precedences[p.current.Kind] > precedence {
+	// An operand that failed has recorded its error. Handing nil on as the left
+	// of the next operator panics (`a/not/f(x)` reached the call parser with a
+	// nil callee), and wrapping it in a preceding comment hides the failure, so
+	// a nil operand ends the expression on both paths.
+	for leftExp != nil && precedences[p.current.Kind] > precedence {
 		infixFn, exists := p.infixHandlers[p.current.Kind]
 		if !exists {
 			break
 		}
 
 		leftExp = wrapWithTrailingComment(infixFn(ctx, p, leftExp, precedences[p.current.Kind]), p)
+	}
+
+	if leftExp == nil {
+		return nil
 	}
 
 	// if we had found a comment before hand

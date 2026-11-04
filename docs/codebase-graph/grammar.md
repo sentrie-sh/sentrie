@@ -39,7 +39,7 @@ This node exposes no callable surface. Its "interface" is the set of productions
   - **Exceptions:** N/A.
 
 - **Signature:** `execSource ::= STRING | ('@' modulePathSegment ('/' modulePathSegment)*)`
-  - **Behavior:** The source of a `use` statement. `modulePathSegment ::= IDENT | KEYWORD`, so modules named after keywords (`@sentrie/string`) are importable; one of two positions where the grammar treats a keyword as a name (#158); the other is `constraintName` (#285).
+  - **Behavior:** The source of a `use` statement. `modulePathSegment ::= IDENT | KEYWORD`, so modules named after keywords (`@sentrie/string`) are importable; one of the positions where the grammar treats a keyword as a name (#158); the others are `constraintName` (#285) and a later segment of `FQN ::= IDENT ('/' (IDENT | KEYWORD))*` (#297). The first `FQN` segment stays `IDENT`. Slash-qualified names in expressions are division chains in which a keyword after `/` is also a segment, except the six keywords that start an expression (`not`, `true`, `false`, `unknown`, `null`, `transform`).
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 

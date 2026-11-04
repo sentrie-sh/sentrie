@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package parser
 
@@ -527,5 +514,27 @@ func (s *ParserTestSuite) TestParseExpressionEdgeCases() {
 			s.Nil(expr, "Expected not to parse: %s (%s)", tc.input, tc.description)
 			s.NotNil(parser.err, "Expected error for: %s (%s)", tc.input, tc.description)
 		}
+	}
+}
+
+// TestParseExpressionStopsAfterAFailedOperand checks that an operand that fails
+// to parse ends the expression with its error, instead of handing a nil left
+// operand to the next operator or wrapping it in a comment. `a/not/f(x)` used
+// to panic in the call parser: `not` starts an expression, so after `/` it is
+// not a name segment, and `not /` fails.
+func (s *ParserTestSuite) TestParseExpressionStopsAfterAFailedOperand() {
+	for _, src := range []string{
+		"a/not/f(x)",
+		"a/not/b[0]",
+		"a/not/b.c",
+		"a/not/b + 1",
+		"a/true/not/f(x)",
+		"-- note\nnot )", // a failed prefix after a preceding comment
+	} {
+		parser := NewParserFromString(src, "test.sentrie")
+		var expr any
+		s.NotPanics(func() { expr = parser.parseExpression(s.T().Context(), LOWEST) }, "input: %s", src)
+		s.Nil(expr, "input: %s", src)
+		s.Error(parser.err, "input: %s", src)
 	}
 }
