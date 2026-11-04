@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package index
 
@@ -77,7 +64,7 @@ func (p *Policy) String() string {
 
 // latePolicyHeaderErr reports metadata, fact, or use after the policy body has started.
 func latePolicyHeaderErr(keyword, at string) error {
-	return fmt.Errorf("'%s' must appear before rules, exports, lets, and shapes at %s: %w", keyword, at, xerr.ErrIndex)
+	return fmt.Errorf("'%s' must appear before rules, exports, lets, derives, and shapes at %s: %w", keyword, at, xerr.ErrIndex)
 }
 
 type policyPhase int
@@ -264,10 +251,8 @@ func createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Progr
 			}
 
 		case *ast.DeriveStatement:
-			switch phase {
-			case policyPhaseMeta, policyPhaseFacts, policyPhaseUses:
-				return nil, latePolicyHeaderErr("derive", stmt.Span().String())
-			case policyPhaseBody:
+			if phase != policyPhaseBody {
+				phase = policyPhaseBody
 			}
 			if _, err := p.addDerive(idx, stmt, nsDerives, p.Derives); err != nil {
 				return nil, err

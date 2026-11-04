@@ -179,25 +179,6 @@ policy p {
 	require.Error(s.T(), err)
 }
 
-func (s *IndexTestSuite) TestPolicyDeriveLateHeaderRejected() {
-	ctx := s.T().Context()
-	idx := CreateIndex()
-	src := `namespace com/ex
-policy pol {
-  fact n:number
-  derive late = () => { yield 1 }
-  let _s = 0
-  rule r = { yield true }
-  export decision of r
-}
-`
-	prog, err := parser.NewParserFromString(src, "late_derive.sentra").ParseProgram(ctx)
-	require.NoError(s.T(), err)
-	err = idx.AddProgram(ctx, prog)
-	require.Error(s.T(), err)
-	require.Contains(s.T(), err.Error(), "derive")
-}
-
 func (s *IndexTestSuite) TestDeriveExprWalkCoversRichExpressionKinds() {
 	ctx := s.T().Context()
 	idx := CreateIndex()
