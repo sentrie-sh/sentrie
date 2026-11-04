@@ -232,3 +232,33 @@ policy polA {
 	s.Require().NoError(err)
 	s.Equal(trinary.True, out.Decision.State)
 }
+
+func (s *RuntimeTestSuite) TestExecRuleEvaluatesDeriveWithComments() {
+	ctx := s.T().Context()
+	src := `namespace com/ex
+
+derive doubleInc = (n: number): number => {
+  -- before the first let
+  let m = n * 2 -- trailing on a let
+  -- between lets
+  let k = collect([m], (x: number) => {
+    -- inside a lambda body
+    let y = x + 1
+    -- before the lambda yield
+    yield y
+  })
+  -- before the yield
+  yield k[0]
+}
+
+policy pol {
+  let _s = 0
+  rule ok = { yield doubleInc(2) }
+  export decision of ok
+}
+`
+	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "comments.sentrie", src: src})
+	out, err := exec.ExecRule(ctx, "com/ex", "pol", "ok", nil)
+	s.Require().NoError(err)
+	s.Equal(5.0, out.Decision.Value.Any())
+}
