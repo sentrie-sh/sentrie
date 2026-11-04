@@ -83,11 +83,14 @@ func (p *Parser) advanceExpected(kind tokens.Kind) (tokens.Instance, bool) {
 }
 
 // advanceNameOrKeyword consumes an identifier or a keyword token as a name.
-// Keywords are names in exactly two positions, where they cannot be read as
-// anything else: a segment of an `@scope/name` module path (`@sentrie/string`)
-// and a constraint name after `@` (`@in`). Everywhere else a keyword keeps its
-// keyword meaning. On any other token it reports `expected <expected>, got
-// <kind>`, so each position names what it wanted.
+// Keywords are names only in positions where they cannot be read as anything
+// else: a segment of an `@scope/name` module path (`@sentrie/string`), a
+// constraint name after `@` (`@in`) and a segment after `/` in a declaration or
+// type name read by parseFQN (`constraints/in`). After `/` in an expression,
+// parseInfixExpression reads a keyword as a name through isNameOnlyKeyword.
+// Everywhere else a keyword keeps its keyword meaning. On any other token it
+// reports `expected <expected>, got <kind>`, so each position names what it
+// wanted.
 func advanceNameOrKeyword(p *Parser, expected string) (tokens.Instance, bool) {
 	if kind, isKeyword := tokens.IsKeyword(p.head().Value); isKeyword && p.head().IsOfKind(kind) {
 		return p.advance(), true
@@ -97,6 +100,20 @@ func advanceNameOrKeyword(p *Parser, expected string) (tokens.Instance, bool) {
 		return tokens.Err(p.current.Range, fmt.Sprintf("expected %s, got %s", expected, p.current.Kind)), false
 	}
 	return p.advance(), true
+}
+
+// isNameOnlyKeyword reports whether tok is a keyword token that has no prefix
+// handler, so it can never start an expression. After `/` in an expression such
+// a keyword can only be a name segment. The six keywords that do start one
+// (`not`, `true`, `false`, `unknown`, `null`, `transform`) keep that meaning,
+// so `a/not b` stays `a / (not b)`.
+func (p *Parser) isNameOnlyKeyword(tok tokens.Instance) bool {
+	kind, isKeyword := tokens.IsKeyword(tok.Value)
+	if !isKeyword || !tok.IsOfKind(kind) {
+		return false
+	}
+	_, startsExpression := p.prefixHandlers[kind]
+	return !startsExpression
 }
 
 func (p *Parser) expect(kind tokens.Kind) bool {

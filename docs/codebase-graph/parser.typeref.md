@@ -32,7 +32,7 @@ tags: type-syntax, constraints, nullable, recursive-descent
   - **Behavior:** Validates that the head is an `Ident` or one of the primitive/aggregate keywords, then dispatches:
     - `string` / `number` / `document` → the corresponding scalar ref.
     - `boolean` **or** `trinary` → both map to `TrinaryTypeRef`; `boolean` is a pure alias with no distinct node.
-    - `Ident` → an FQN parsed into a `ShapeTypeRef`.
+    - `Ident` → an FQN parsed into a `ShapeTypeRef`; segments after the first may be keywords (`text/string/Item`, #297, see [[parser.fqn]]).
     - `list` / `dict` → constructed with a nil child, then a required `[ T ]` fills it in recursively.
     - `record` → constructed empty, then `[ T, U, … ]` fills a positional field list.
 
@@ -59,5 +59,5 @@ tags: type-syntax, constraints, nullable, recursive-descent
   - **`boolean` and `trinary` are indistinguishable after parsing.** A policy written with `boolean` produces a `TrinaryTypeRef`, so diagnostics and any type-name rendering will say "trinary".
   - **Commas are optional in `record[…]`.** The loop consumes a comma only if present, so `record[string number]` parses as two fields.
   - **Unterminated brackets rely on the head check, not EOF.** A missing `]` in a record loops until `advanceExpected` fails, reporting at end-of-input.
-  - **Any keyword is accepted as a constraint name.** `advanceNameOrKeyword`, shared with module path segments in [[parser.use]], does not keep a list of keyword constraint names; `AddConstraint` rejects a keyword that is not a constraint of the type (`@policy(1)`) with the same `cannot add constraint policy: not found` as an unknown identifier. `in` is the only constraint name that is also a keyword today.
+  - **Any keyword is accepted as a constraint name.** `advanceNameOrKeyword`, shared with module path segments in [[parser.use]] and later name segments in [[parser.fqn]], does not keep a list of keyword constraint names; `AddConstraint` rejects a keyword that is not a constraint of the type (`@policy(1)`) with the same `cannot add constraint policy: not found` as an unknown identifier. `in` is the only constraint name that is also a keyword today.
   - **Constraint rejection depends on generated tables.** An "unknown constraint" error most often means [[ast]]'s generated file is stale relative to [[constraints]] - see the generation hazard documented there.
