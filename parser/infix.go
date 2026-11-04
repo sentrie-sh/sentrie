@@ -19,7 +19,18 @@ func parseInfixExpression(ctx context.Context, p *Parser, left ast.Expression, p
 	if operatorToken.Kind == tokens.TokenDiv {
 		rhsPrec = INDEX
 	}
-	right := p.parseExpression(ctx, rhsPrec)
+	var right ast.Expression
+	if operatorToken.Kind == tokens.TokenDiv && p.isNameOnlyKeyword(p.head()) {
+		// A keyword that cannot start an expression is a name segment after
+		// `/`, so `lib/in/double(2)` and `x is text/string/Item` name a derive
+		// or shape in a keyword-segment namespace (#297). Nothing can follow
+		// the segment at INDEX precedence, so the identifier is the whole
+		// right operand.
+		tok := p.advance()
+		right = wrapWithTrailingComment(ast.NewIdentifier(tok.Value, tok.Range), p)
+	} else {
+		right = p.parseExpression(ctx, rhsPrec)
+	}
 
 	// Check if right operand parsing failed
 	if right == nil || p.err != nil {
