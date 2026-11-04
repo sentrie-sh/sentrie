@@ -180,3 +180,39 @@ func (s *CmdTestSuite) TestValidateCmdRejectsMissingShapeNames() {
 	s.Contains(err.Error(), "shape 'Nope' not found at ")
 	s.Contains(err.Error(), "policy.sentrie:6:27-31: index error")
 }
+
+const deriveFirstPolicy = `namespace t/a
+policy p {
+  derive n = (t: string): number => {
+    yield count(t)
+  }
+  rule ok = { yield n("x") == 1 }
+  export decision of ok
+}
+`
+
+// TestValidateCmdAcceptsPolicyDeriveFirst is the reproduction from #300:
+// validate used to fail with a late-header error on a derive that started the
+// policy body.
+func (s *CmdTestSuite) TestValidateCmdAcceptsPolicyDeriveFirst() {
+	dir := s.writeTestPack(deriveFirstPolicy)
+	err := runValidateCLI(s.T().Context(), []string{"t/a/p", "--pack-location", dir})
+	s.Require().NoError(err)
+}
+
+// TestValidateCmdRejectsFactAfterPolicyDerive pins the other side: a derive
+// starts the body, so a fact after it is still a late header, and the message
+// names derives among the statements that start the body.
+func (s *CmdTestSuite) TestValidateCmdRejectsFactAfterPolicyDerive() {
+	dir := s.writeTestPack(`namespace t/a
+policy p {
+  derive n = (t: string): number => { yield count(t) }
+  fact f: string
+  rule ok = { yield n(f) == 1 }
+  export decision of ok
+}
+`)
+	err := runValidateCLI(s.T().Context(), []string{"t/a/p", "--pack-location", dir})
+	s.Require().Error(err)
+	s.Contains(err.Error(), "'fact' must appear before rules, exports, lets, derives, and shapes")
+}
