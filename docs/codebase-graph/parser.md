@@ -23,6 +23,7 @@ tags: pratt-parser, recursive-descent, front-end, syntax-analysis
 | `parser` | `DEPENDS_ON` | [[grammar]] | Conformance only - implements the reference productions with no generated linkage. |
 | [[loader]] | `CALLS` | [[parser]] | `LoadPrograms` constructs one parser per `.sentrie` file and calls `ParseProgram`. |
 | [[index]] | `LAYERED_ON` | [[parser]] | Consumes this package's AST output rather than calling the parser directly. |
+| [[format]] | `CALLS` | [[parser]] | Parses a file, and parses its own output again to check it is equal; reuses the exported `Precedence` constants. |
 
 ## 3. Interface Contracts & Public Surface
 

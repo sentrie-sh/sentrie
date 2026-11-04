@@ -29,7 +29,7 @@ func parseBlockExpression(ctx context.Context, p *Parser) ast.Expression {
 
 	var statements []ast.Statement
 
-	for p.canExpectAnyOf(tokens.KeywordLet, tokens.LineComment) {
+	for p.canExpectAnyOf(tokens.KeywordLet, tokens.LineComment, tokens.TrailingComment) {
 		stmt := parsePolicyStatement(ctx, p)
 		if stmt == nil {
 			return nil // Error in parsing the block expression

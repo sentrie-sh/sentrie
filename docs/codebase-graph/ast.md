@@ -24,6 +24,7 @@ tags: syntax-tree, front-end, data-model, code-generation, ir
 | [[runtime]] | `LAYERED_ON` | [[ast]] | The evaluator switches on concrete node types to evaluate expressions and execute statements. |
 | [[loader]] | `LAYERED_ON` | [[ast]] | `LoadPrograms` returns `[]*ast.Program`, one per discovered policy file. |
 | [[pack]] | `LAYERED_ON` | [[ast]] | `pack.Pack` pairs a `PackFile` manifest with the parsed `[]*ast.Program`. |
+| [[format]] | `LAYERED_ON` | [[ast]] | Prints every node kind back to source and compares programs field by field, ignoring positions. |
 
 ## 3. Interface Contracts & Public Surface
 
@@ -43,12 +44,12 @@ tags: syntax-tree, front-end, data-model, code-generation, ir
   - **Exceptions:** None.
 
 - **Signature:** Declaration statements - `NamespaceStatement`, `PolicyStatement`, `FactStatement`, `UseStatement`, `VarDeclaration`, `RuleStatement`, `ShapeStatement`, `DeriveStatement`, `ExportDeriveStatement`, `RuleExportStatement`, `ShapeExportStatement`, `ImportClause`, `WithClause`, `AttachmentClause`, `CommentStatement`, and the policy-metadata trio `TitleStatement`/`DescriptionStatement`/`VersionStatement`/`TagStatement`
-  - **Behavior:** Structural surface of a policy pack. `RuleStatement` carries `Default`, `When`, and `Body` as independent optional expressions; `FactStatement` carries type, alias, default expression, and an `Optional` flag; `UseStatement` distinguishes a relative path (`RelativeFrom`) from a library reference (`LibFrom`).
+  - **Behavior:** Structural surface of a policy pack. `RuleStatement` carries `Default`, `When`, and `Body` as independent optional expressions; `FactStatement` carries type, alias, default expression, and an `Optional` flag; `UseStatement` distinguishes a relative path (`RelativeFrom`) from a library reference (`LibFrom`). `CommentStatement.Trailing` records a comment that followed code on its line, and `Cmplx.Comments` holds a shape body's comments.
   - **Side Effects:** None - all are inert data.
   - **Exceptions:** None; constructors cannot fail.
 
 - **Signature:** Expressions - `BlockExpression`, `LambdaExpression`, `CallExpression`, `InfixExpression`, `UnaryExpression`, `TernaryExpression`, `CastExpression`, `TransformExpression`, `FieldAccessExpression`, `IndexAccessExpression`, `PipelineHoleExpression`, `IsDefinedExpression`, `IsEmptyExpression`, `IsExpression`, `Identifier`, `TrailingCommentExpression`, `PrecedingCommentExpression`, and the literal family (`Integer`, `Float`, `String`, `Trinary`, `Null`, `List`, `Map`)
-  - **Behavior:** The evaluable surface. `BlockExpression` pairs statements with a mandatory `Yield` expression - blocks are expressions, not statements. `CallExpression` carries `Memoized`/`MemoizeTTL` so memoization is a *syntactic* property resolved by [[runtime]]. `PipelineHoleExpression` is the `#` placeholder substituted by `|>`. `IsExpression` is `x is T`: `Type` alone for type syntax, `Right` alone for a value, and both for a bare or qualified name until [[index.is_resolve]] picks one (`Ambiguous()`).
+  - **Behavior:** The evaluable surface. `BlockExpression` pairs statements with a mandatory `Yield` expression - blocks are expressions, not statements. `CallExpression` carries `Memoized`/`MemoizeTTL` so memoization is a *syntactic* property resolved by [[runtime]]; for a pipeline stage it also carries `Piped` and `PipeArgs`, the source form that [[format]] prints and evaluation ignores. `PipelineHoleExpression` is the `#` placeholder substituted by `|>`. `IsExpression` is `x is T`: `Type` alone for type syntax, `Right` alone for a value, and both for a bare or qualified name until [[index.is_resolve]] picks one (`Ambiguous()`).
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -74,4 +75,5 @@ tags: syntax-tree, front-end, data-model, code-generation, ir
   - **Generated table drift.** `typeref_constraint_args_gen.go` is produced from [[constraints]] under the `generate` build tag and the generator **panics unless `GIT_USER_NAME` and `GIT_USER_EMAIL` are set**. Adding a constraint to [[constraints]] without re-running `go generate` means the parser rejects it as unknown while the runtime would have accepted it.
   - **No structural validation.** Constructors accept anything - nil bodies, empty parameter lists, mismatched parallel slices. `LambdaExpression.ParamTypes` and `ParamOpts` are *parallel slices* that may be nil or shorter than `Params`; every reader must bounds-check rather than index directly.
   - **Interface-typed children.** `Statement`/`Expression`/`TypeRef` fields are frequently nil for optional syntax (`RuleStatement.When`, `FactStatement.Default`, `LambdaExpression.ReturnType`). A nil check is required before every recursive descent.
-  - **Comments in the tree.** Comments survive as both statements and expression wrappers (`TrailingCommentExpression`, `PrecedingCommentExpression`), so consumers must unwrap them before matching on expression shape.
+  - **Comments in the tree.** Comments survive as statements (top level, policy and block bodies), as `Cmplx.Comments` in shapes, and as expression wrappers (`TrailingCommentExpression`, `PrecedingCommentExpression`), so consumers must skip or unwrap them before matching on shape.
+  - **Source-form fields evaluation must not read.** `CallExpression.Piped`/`PipeArgs`, `CommentStatement.Trailing` and `TrinaryTypeRef.Boolean` exist only so [[format]] can reprint the source; `PipeArgs` still holds `#` holes.
