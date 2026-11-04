@@ -7,7 +7,8 @@
 Program = (Comment)* NamespaceDecl (TopLevelDecl / Comment)*
 TopLevelDecl = PolicyDecl / ShapeDecl / ExportShape / DeriveDecl / ExportDerive
 NamespaceDecl = "namespace" FQN
-FQN = IDENT ("/" IDENT)*
+/* A name's first segment is an identifier; a later segment may be a keyword (e.g. namespace constraints/in, text/string), since after "/" a keyword has no other meaning here. A slash-qualified name in an expression (a derive callee lib/in/double(2), the right of "is") is a division chain; there a keyword after "/" is also a segment, except the six that start an expression (not, true, false, unknown, null, transform), which keep that meaning: a/not b and a/true stay division. */
+FQN = IDENT ("/" (IDENT / KEYWORD))*
 
 /* Declarations */
 PolicyDecl = "policy" IDENT "{" PolicyStatement* "}"
@@ -15,7 +16,7 @@ FactDecl = "fact" IDENT ("?")? ":" TypeRef ("as" IDENT)? ("default" Expr)?
 
 UseStmt = "use" "{" IDENT ("," IDENT)* "}" "from" ExecSource ("as" IDENT)?
 ExecSource = STRING / ("@" ModulePathSegment ("/" ModulePathSegment)*)
-/* A module path segment may be a keyword (e.g. @sentrie/string). The other position where a keyword is accepted as a name is a constraint name (ConstraintName). The default alias is the last segment, so a keyword last segment needs an explicit "as" IDENT. */
+/* A module path segment may be a keyword (e.g. @sentrie/string). Keywords are also accepted as a constraint name (ConstraintName) and as a later segment of an FQN. The default alias is the last segment, so a keyword last segment needs an explicit "as" IDENT. */
 ModulePathSegment = IDENT / KEYWORD
 /* A STRING source is a file path relative to the policy and must not start with "@": a quoted "@scope/name" is rejected with a hint to drop the quotes. */
 
