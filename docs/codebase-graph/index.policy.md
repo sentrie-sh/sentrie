@@ -43,7 +43,7 @@ tags: policy-model, scoping, metadata, decision-export, phase-ordering
 - **Signature:** `createPolicy(ns *Namespace, policy *ast.PolicyStatement, program *ast.Program, idx *Index, nsDerives map[string]*Derive) -> (*Policy, error)`
   - **Behavior:** Walks the body once, skipping comments, advancing a `policyPhase` state machine (`meta → facts → uses → body`) and rejecting any statement that appears out of phase. Builds `TagsByKey` at the end and requires at least one rule export.
   - **Side Effects:** Registers policy-scoped derives into `idx.DerivesByFQN`.
-  - **Exceptions:** `ErrPolicyMetadataContiguous` (metadata after facts/uses but before body); `latePolicyHeaderErr` (metadata, fact, use, or derive after the body started); `ErrPolicyFactAfterUse`; duplicate metadata conflicts; `ErrPolicyEmptyTitle`; `ErrPolicyInvalidVersion`; `ErrPolicyEmptyTagKey`; `cannot export unknown rule`; `cannot rebind to existing alias`; `unsupported statement in policy`; `policy '%s' does not export any rules`.
+  - **Exceptions:** `ErrPolicyMetadataContiguous` (metadata after facts/uses but before body); `latePolicyHeaderErr` (metadata, fact, or use after the body started; the message lists rules, exports, lets, derives, and shapes as the statements that start the body); `ErrPolicyFactAfterUse`; duplicate metadata conflicts; `ErrPolicyEmptyTitle`; `ErrPolicyInvalidVersion`; `ErrPolicyEmptyTagKey`; `cannot export unknown rule`; `cannot rebind to existing alias`; `unsupported statement in policy`; `policy '%s' does not export any rules`.
 
 - **Signature:** `(*Policy).AddFact(fact) -> error`
   - **Behavior:** Keys by `fact.Alias` and registers it in `seenIdentifiers`. Enforces that a **required (non-optional) fact cannot carry a default**.
@@ -64,7 +64,7 @@ tags: policy-model, scoping, metadata, decision-export, phase-ordering
 - **Statefulness:** Mutable during `createPolicy`, then read-only except for shape hydration in [[index.commit]].
 - **Performance/Scale Notes:** One linear pass over the body; `seenIdentifiers` keeps duplicate detection O(1) per declaration.
 - **Dependencies Risk:**
-  - **Phase ordering is strict and one-way.** Once any body statement (let, rule, export, shape, derive) appears, the phase latches to `body` and every later metadata, fact, or `use` is rejected. Reordering a file's declarations can therefore turn a valid policy invalid with no grammar change.
+  - **Phase ordering is strict and one-way.** The first body statement (let, rule, export, shape, derive) latches the phase to `body`, even when it is the very first statement of the policy, and every later metadata, fact, or `use` is rejected. Reordering a file's declarations can therefore turn a valid policy invalid with no grammar change.
   - **Metadata must be contiguous *and* first.** Interleaving `title` after a `fact` triggers `ErrPolicyMetadataContiguous`, a different error from the "late header" case - two distinct diagnostics for what a user perceives as the same mistake.
   - **Facts are keyed by alias.** Lookups by declared name miss every aliased fact; the alias is the runtime-facing identifier.
   - **Shapes escape `seenIdentifiers`.** A policy-local shape may share a name with a rule or let, unlike every other declaration pair - an asymmetry worth knowing before assuming names are globally unique inside a policy.
