@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package ast
 
@@ -30,6 +17,13 @@ type CallExpression struct {
 	Arguments  []Expression
 	Memoized   bool
 	MemoizeTTL *time.Duration
+
+	// Piped and PipeArgs record the source form of a call written as a
+	// pipeline stage, `Piped |> Callee(PipeArgs...)`. The parser desugars the
+	// stage into Arguments, which is all evaluation reads; these two fields
+	// only let a printer reproduce the pipeline. Piped is nil for a plain call.
+	Piped    Expression
+	PipeArgs []Expression
 }
 
 func NewCallExpression(callee Expression, arguments []Expression, memoized bool, memoizeTTL *time.Duration, ssp tokens.Range) *CallExpression {

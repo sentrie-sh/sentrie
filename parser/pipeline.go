@@ -59,7 +59,10 @@ func parsePipelineExpression(ctx context.Context, p *Parser, left ast.Expression
 		args = append(args, left)
 		args = append(args, rhs.Arguments...)
 	}
-	return ast.NewCallExpression(rhs.Callee, args, rhs.Memoized, rhs.MemoizeTTL, pipelineRange)
+	call := ast.NewCallExpression(rhs.Callee, args, rhs.Memoized, rhs.MemoizeTTL, pipelineRange)
+	call.Piped = left
+	call.PipeArgs = rhs.Arguments
+	return call
 }
 
 func hasIdentifierRoot(expr ast.Expression) bool {
@@ -138,7 +141,10 @@ func substitutePipelineHoles(expr ast.Expression, replacement ast.Expression) as
 		for i := range t.Arguments {
 			args[i] = substitutePipelineHoles(t.Arguments[i], replacement)
 		}
-		return ast.NewCallExpression(substitutePipelineHoles(t.Callee, replacement), args, t.Memoized, t.MemoizeTTL, t.Span())
+		call := ast.NewCallExpression(substitutePipelineHoles(t.Callee, replacement), args, t.Memoized, t.MemoizeTTL, t.Span())
+		call.Piped = t.Piped
+		call.PipeArgs = t.PipeArgs
+		return call
 	case *ast.FieldAccessExpression:
 		return ast.NewFieldAccessExpression(substitutePipelineHoles(t.Left, replacement), t.Field, t.Span())
 	case *ast.IndexAccessExpression:

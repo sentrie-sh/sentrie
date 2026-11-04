@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package parser
 
@@ -80,16 +67,17 @@ func parseComplexShape(ctx context.Context, p *Parser) *ast.Cmplx {
 	}
 
 	for !p.head().IsOfKind(tokens.PunctRightCurly) {
+		if p.canExpectAnyOf(tokens.TrailingComment, tokens.LineComment) {
+			if comment, ok := parseCommentStatement(ctx, p).(*ast.CommentStatement); ok {
+				stmt.Comments = append(stmt.Comments, comment)
+			}
+			continue
+		}
 		field := parseShapeField(ctx, p)
 		if field == nil {
 			return nil
 		}
 		stmt.Fields[field.Name] = field
-
-		// consume trailing comments
-		for p.canExpectAnyOf(tokens.TrailingComment, tokens.LineComment) {
-			p.advance()
-		}
 	}
 
 	rCurly, found := p.advanceExpected(tokens.PunctRightCurly)
