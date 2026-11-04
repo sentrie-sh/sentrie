@@ -17,7 +17,7 @@ tags: entrypoint, program-structure, namespace-enforcement, front-end
 | :--- | :--- | :--- | :--- |
 | `parser.parse` | `CALLS` | [[parser.statement]] | Delegates each statement to `parseStatement`, which dispatches on the top-level handler table. |
 | `parser.parse` | `CALLS` | [[parser.parser]] | Uses `hasTokens`, `canExpect`, and `advance` to drive the token window. |
-| `parser.parse` | `CALLS` | [[ast]] | Builds `ast.Program` and wraps stray trailing comments into `ast.NewCommentStatement`. |
+| `parser.parse` | `CALLS` | [[ast]] | Builds `ast.Program` and wraps stray trailing comments into `ast.NewTrailingCommentStatement`, which sets `Trailing`. |
 | `parser.parse` | `DEPENDS_ON` | [[tokens]] | Recognises `PunctSemicolon` and `TrailingComment` for housekeeping. |
 | [[loader]] | `CALLS` | [[parser.parse]] | `LoadPrograms` calls this once per discovered `.sentrie` file and collects the results. |
 

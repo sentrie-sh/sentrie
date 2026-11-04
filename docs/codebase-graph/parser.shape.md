@@ -32,7 +32,7 @@ Parses `shape <ident>` in its two mutually exclusive forms: a **simple** alias t
   - **Exceptions:** Returns `nil` for a missing keyword or name, or when both forms fail to produce a value.
 
 - **Signature:** `parseComplexShape(ctx: context.Context, p: *Parser) -> *ast.Cmplx`
-  - **Behavior:** Optionally consumes `with <fqn>` as the composition base, then a required `{ … }` field block. Fields are collected into a **map keyed by field name**, with trailing/line comments skipped between fields. The range is extended to the closing brace.
+  - **Behavior:** Optionally consumes `with <fqn>` as the composition base, then a required `{ … }` field block. Fields are collected into a **map keyed by field name**, with comments between fields (including one right after `{`) parsed by [[parser.comment]] into `Cmplx.Comments` in source order, so a printer can merge them back by position. The range is extended to the closing brace.
   - **Side Effects:** Consumes tokens; may record errors.
   - **Exceptions:** Returns `nil` on a failed base FQN, a missing `{` or `}`, or a failed field.
 
