@@ -126,6 +126,73 @@ policy pol {
 	require.NoError(s.T(), idx.Validate(ctx))
 }
 
+func (s *IndexTestSuite) TestDeriveBodyCommentsPassValidation() {
+	ctx := s.T().Context()
+	idx := CreateIndex()
+	src := `namespace com/ex
+derive helper = (n: number): number => {
+  -- before the only let
+  let m = n * 2 -- trailing on a let
+  -- before the yield
+  yield m
+}
+derive commented = (n: number): number => {
+  -- before the first let
+  let a = helper(n)
+  -- between lets
+  let b = collect([a], (x: number) => {
+    -- inside a lambda body, before its let
+    let y = x + 1
+    -- inside a lambda body, before its yield
+    yield y
+  })
+  -- before the yield
+  yield first(collect(b, (z: number) => {
+    -- inside a lambda in the yield
+    yield z
+  }), (w: number) => { yield w > 0 })
+}
+policy pol {
+  let _s = 0
+  rule allow = { yield commented(2) == 5 }
+  export decision of allow
+}
+`
+	prog, err := parser.NewParserFromString(src, "comments.sentra").ParseProgram(ctx)
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
+	require.NoError(s.T(), idx.Validate(ctx))
+}
+
+func (s *IndexTestSuite) TestDeriveCycleDetectedThroughCommentedBodies() {
+	ctx := s.T().Context()
+	idx := CreateIndex()
+	src := `namespace com/ex
+
+derive a = () => {
+  -- a comment ahead of the call must not hide it from the cycle check
+  let v = com/ex/b()
+  yield v
+}
+derive b = () => {
+  -- likewise here
+  yield com/ex/a()
+}
+
+policy pol {
+  let _seed = 0
+  rule allow = { yield true }
+  export decision of allow
+}
+`
+	prog, err := parser.NewParserFromString(src, "cyc-comments.sentra").ParseProgram(ctx)
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), idx.AddProgram(ctx, prog))
+	err = idx.Validate(ctx)
+	require.Error(s.T(), err)
+	require.Contains(s.T(), err.Error(), "cyclic derive dependency")
+}
+
 func (s *IndexTestSuite) TestResolveDeriveNotFound() {
 	idx := CreateIndex()
 	_, err := idx.ResolveDerive("com/nope/never")

@@ -62,6 +62,9 @@ func forEachDeriveExprChild(e ast.Expression, yield func(ast.Expression) error) 
 		return yield(n.ElseBranch)
 	case *ast.BlockExpression:
 		for _, st := range n.Statements {
+			if _, ok := st.(*ast.CommentStatement); ok {
+				continue
+			}
 			vd, ok := st.(*ast.VarDeclaration)
 			if !ok {
 				return fmt.Errorf("derive walk: unsupported statement %T", st)

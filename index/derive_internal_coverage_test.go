@@ -180,15 +180,37 @@ func (s *IndexTestSuite) TestIsAllowedDeriveCallbackArgDefaultBranch() {
 func (s *IndexTestSuite) TestWalkDeriveBlockAndScanLambdasRejectUnsupportedStatements() {
 	r := deriveCovRng(6)
 	badStmt := ast.NewBlockExpression(
-		[]ast.Statement{ast.NewCommentStatement("nope", r)},
+		[]ast.Statement{ast.NewCommentStatement("skipped", r), ast.NewTitleStatement("nope", r)},
 		ast.NewIntegerLiteral(1, r),
 		r,
 	)
 	err := walkDeriveBlock(CreateIndex(), &Derive{}, badStmt, map[string]struct{}{})
-	s.Error(err)
+	s.ErrorContains(err, "derive body may only contain let declarations before yield (got *ast.TitleStatement)")
 
 	err = scanLambdasOutsideCalls(badStmt, false)
-	s.Error(err)
+	s.ErrorContains(err, "derive walk: unsupported statement *ast.TitleStatement")
+}
+
+func (s *IndexTestSuite) TestWalkDeriveBlockAndScanLambdasSkipCommentStatements() {
+	r := deriveCovRng(6)
+	commented := ast.NewBlockExpression(
+		[]ast.Statement{
+			ast.NewCommentStatement("before", r),
+			ast.NewVarDeclaration("x", nil, ast.NewIntegerLiteral(1, r), r),
+			ast.NewCommentStatement("after", r),
+		},
+		ast.NewIdentifier("x", r),
+		r,
+	)
+	s.NoError(walkDeriveBlock(CreateIndex(), &Derive{}, commented, map[string]struct{}{}))
+	s.NoError(scanLambdasOutsideCalls(commented, false))
+
+	var visited []ast.Expression
+	s.NoError(forEachDeriveExprChild(commented, func(e ast.Expression) error {
+		visited = append(visited, e)
+		return nil
+	}))
+	s.Len(visited, 2)
 }
 
 func (s *IndexTestSuite) TestWalkDeriveExprSeenCyclicAndLambdaBody() {
@@ -489,7 +511,7 @@ func (s *IndexTestSuite) TestForEachDeriveExprChildBlockAndTernaryErrors() {
 	r := deriveCovRng(17)
 	s.Error(forEachDeriveExprChild(
 		ast.NewBlockExpression(
-			[]ast.Statement{ast.NewCommentStatement("bad", r)},
+			[]ast.Statement{ast.NewCommentStatement("skipped", r), ast.NewTitleStatement("bad", r)},
 			ast.NewIntegerLiteral(1, r),
 			r,
 		),

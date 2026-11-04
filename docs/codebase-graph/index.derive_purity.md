@@ -35,14 +35,14 @@ The static gate that makes `derive` genuinely pure. It walks every derive body w
   - **Exceptions:** Propagated from the walk.
 
 - **Signature:** `walkDeriveBlock(idx, d, b, scope) -> error`
-  - **Behavior:** A derive body may contain **only `let` declarations before `yield`**. Each let's initializer is checked against the scope *before* the binding is added, so a let cannot reference itself. The scope is cloned per binding, giving proper sequential shadowing.
+  - **Behavior:** A derive body may contain **only `let` declarations before `yield`**; line comments (`ast.CommentStatement`) are skipped as inert, and every other statement kind is rejected. Each let's initializer is checked against the scope *before* the binding is added, so a let cannot reference itself. The scope is cloned per binding, giving proper sequential shadowing.
   - **Side Effects:** None; scopes are copied.
   - **Exceptions:** `derive body may only contain let declarations before yield (got %T)`.
 
 - **Signature:** `yieldHasNoLambda(e) -> error` / `scanLambdasOutsideCalls(e, underCall bool) -> error`
-  - **Behavior:** Rejects a lambda appearing in a yielded position unless it is an **argument to a call** - so `filter(xs, x => …)` is fine but returning a function is not. This keeps derives first-order at their boundary.
+  - **Behavior:** Rejects a lambda appearing in a yielded position unless it is an **argument to a call** - so `filter(xs, x => …)` is fine but returning a function is not. This keeps derives first-order at their boundary. Inside a block it skips comment statements and scans each let's value.
   - **Side Effects:** None.
-  - **Exceptions:** `derive cannot yield a lambda value`; `derive purity: unsupported expression in yield scan %T`.
+  - **Exceptions:** `derive cannot yield a lambda value`; `derive purity: unsupported expression in yield scan %T`; `derive walk: unsupported statement %T` for a block statement that is neither a `let` nor a comment.
 
 - **Signature:** `walkDeriveExpr` / `walkDeriveExprSeen(idx, d, e, scope, seen) -> error`
   - **Behavior:** The main recursive check, carrying a `seen` set of expression pointers to detect a cyclic AST.
