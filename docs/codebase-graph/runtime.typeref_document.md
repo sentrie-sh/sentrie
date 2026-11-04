@@ -31,7 +31,7 @@ Validates a value against the `document` type - the schemaless container intende
 - **Statefulness:** Stateless.
 - **Performance/Scale Notes:** O(constraints); document size is irrelevant to the base check.
 - **Dependencies Risk:**
-  - **A document is a dict with a different constraint table.** The two validators are structurally the same; the type distinction exists to select `DocumentContraintCheckers` over `DictContraintCheckers`. Anything meaningful about `document` lives in [[constraints]], not here.
+  - **A document is the dict validator without the per-value check.** [[runtime.typeref_dict]] also validates every value against its value type (#299); `document` only checks the kind and selects `DocumentContraintCheckers` over `DictContraintCheckers`. Anything meaningful about `document` lives in [[constraints]], not here.
   - **Only maps qualify.** A YAML or JSON document whose root is a list fails, so multi-document or array-rooted payloads must be wrapped before they can be declared as `document`.
   - **A document-typed fact carries no guarantee about its contents**, so every field access against it is an unchecked lookup that yields `Undefined` on a miss. Policies over documents should pair the type with `is defined` guards or explicit constraints.
   - Shares the `exec.(*executorImpl)` assertion described in [[runtime.typeref]].
