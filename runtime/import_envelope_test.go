@@ -159,7 +159,7 @@ func (s *RuntimeTestSuite) TestImportedDecisionKeepsStateValueAndAttachmentAcces
   export decision of viaDeriveF
   export decision of viaDeriveU
 }
-derive isTrue = (x: dict[trinary]): trinary => { yield x or false }
+derive isTrue = (x: document): trinary => { yield x or false }
 `
 	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "import_access.sentrie", src: src})
 
@@ -308,22 +308,17 @@ func (s *RuntimeTestSuite) TestImportedDecisionThroughAWithFactBinding() {
 policy rd {
   fact flag: document
   rule via = { yield flag or false }
-  export decision of via
-}
-policy rb {
-  fact flag: dict[bool]
-  rule via = { yield flag or false }
-  export decision of via
-}
-policy rl {
-  fact flag: dict[trinary]
-  rule via = { yield flag or false }
   rule nested = { yield flag.state == false }
   export decision of via
   export decision of nested
 }
+policy rb {
+  fact flag: dict[trinary]
+  rule via = { yield flag or false }
+  export decision of via
+}
 policy rn {
-  fact flags: list[dict[trinary]]
+  fact flags: list[document]
   rule via = { yield flags[0] or false }
   export decision of via
 }
@@ -337,8 +332,6 @@ policy p {
   rule rdU = import decision via from t/rd with flag as impU
   rule rbF = import decision via from t/rb with flag as impF
   rule rbU = import decision via from t/rb with flag as impU
-  rule rlF = import decision via from t/rl with flag as impF
-  rule rlU = import decision via from t/rl with flag as impU
   rule rnF = import decision via from t/rn with flags as [impF]
   rule rnU = import decision via from t/rn with flags as [impU]
   export decision of rtF
@@ -348,8 +341,6 @@ policy p {
   export decision of rdU
   export decision of rbF
   export decision of rbU
-  export decision of rlF
-  export decision of rlU
   export decision of rnF
   export decision of rnU
 }
@@ -362,13 +353,19 @@ policy p {
 	}{
 		{"rtF", trinary.False}, {"rtU", trinary.Unknown}, {"rtBool", trinary.True},
 		{"rdF", trinary.False}, {"rdU", trinary.Unknown},
-		{"rbF", trinary.False}, {"rbU", trinary.Unknown},
-		{"rlF", trinary.False}, {"rlU", trinary.Unknown},
 		{"rnF", trinary.False}, {"rnU", trinary.Unknown},
 	} {
 		out, err := exec.ExecRule(ctx, "t", "p", c.rule, nil)
 		s.Require().NoError(err, c.rule)
 		s.Equal(c.want, out.Decision.State, c.rule)
+	}
+
+	// an envelope is a dict whose values are not all truth values, so it does
+	// not conform to dict[trinary] (#299)
+	for _, rule := range []string{"rbF", "rbU"} {
+		_, err := exec.ExecRule(ctx, "t", "p", rule, nil)
+		s.Require().Error(err, rule)
+		s.Contains(err.Error(), "value for key", rule)
 	}
 }
 
@@ -407,7 +404,7 @@ func (s *RuntimeTestSuite) TestImportedDecisionBoundToATruthType() {
   export decision of retF
 }
 derive asIs = (x: trinary): trinary => { yield x }
-derive back = (x: dict[trinary]): trinary => { yield x }
+derive back = (x: document): trinary => { yield x }
 `
 	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "import_typed.sentrie", src: src})
 
