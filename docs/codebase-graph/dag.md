@@ -9,14 +9,14 @@ tags: graph-algorithms, cycle-detection, dependency-ordering, static-analysis
 # Node: DAG (Generic Directed Acyclic Graph)
 
 ## 1. Architectural Role & Intent
-`dag` is a small, dependency-free generic directed-acyclic-graph utility providing node/edge insertion, topological sorting, and cycle detection over any `fmt.Stringer` key type. It exists to serve one architectural need: [[index]] must order `derive` declarations by their dependencies and must reject policies whose derivations reference each other cyclically, before any evaluation is attempted. Keeping it generic and project-agnostic means the ordering logic is testable in isolation from policy semantics.
+`dag` is a small, dependency-free generic directed-acyclic-graph utility providing node/edge insertion, topological sorting, and cycle detection over any `fmt.Stringer` key type. It exists to serve one architectural need: [[index]] must reject policies whose derives or rules reference each other cyclically (cycle detection), and must order shape hydration so that a shape's `with` parent is complete before the shape copies it, before any evaluation is attempted. Keeping it generic and project-agnostic means the ordering logic is testable in isolation from policy semantics.
 
 ## 2. Graph Edges (Strict Relational Data)
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `dag` | `IMPORTS` | `std.errors`, `std.fmt`, `std.slices`, `std.strings`, `std.sync` | Zero internal or third-party dependencies; a graph sink. |
-| [[index]] | `LAYERED_ON` | [[dag]] | Builds a graph of derive/rule dependencies and calls `TopoSort` to establish evaluation order. |
+| [[index]] | `LAYERED_ON` | [[dag]] | Builds graphs of derive, rule and shape dependencies and detects cycles in each; only the shape graph is ordered with `TopoSort` (see [[index.commit]]). |
 | [[index.derive]] | `CALLS` | [[dag]] | Registers each derive as a node and each referenced symbol as an edge. |
 | [[index.derive_cycle]] | `CALLS` | [[dag]] | Uses `DetectFirstCycle` to produce a human-readable cyclic-dependency diagnostic. |
 
@@ -38,7 +38,7 @@ tags: graph-algorithms, cycle-detection, dependency-ordering, static-analysis
   - **Exceptions:** Returns `ErrNodeMissing` if either endpoint was never added, and `ErrSelfLoop` if `from == to` - the latter catches the trivial "a derive references itself" case eagerly rather than deferring it to topological sort.
 
 - **Signature:** `G.TopoSort() -> ([]T, error)`
-  - **Behavior:** Returns vertices in dependency order, so that every node appears after everything it depends on. This is the evaluation order consumed by [[index]].
+  - **Behavior:** Returns vertices so that for every edge `from -> to`, `from` appears before `to`. The edge direction is the caller's to choose: a caller whose edges point from a node to the thing it depends on gets dependents before dependencies, and must iterate in reverse to process dependencies first (as [[index.commit]] does for shapes).
   - **Side Effects:** None (read-only traversal).
   - **Exceptions:** Returns `ErrNotADAG` when the graph contains a cycle.
 
