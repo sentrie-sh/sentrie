@@ -172,6 +172,7 @@ graph TD
     INDEX --> EXEC
     API --> EXEC
     CMD --> EXEC
+    CMD --> FORMAT
 
     EXEC --> EVAL
     EVAL --> TYPEREF
