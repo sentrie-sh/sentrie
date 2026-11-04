@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -52,9 +39,10 @@ func (r *RuntimeTestSuite) TestValidateAgainstMapTypeRef() {
 		r.Contains(err.Error(), "is not a dict")
 	})
 
-	r.Run("accepts dict values without constraints", func() {
+	r.Run("rejects dict values of the wrong element type", func() {
 		err := validateAgainstDictTypeRef(r.T().Context(), &ExecutionContext{}, &executorImpl{}, &index.Policy{}, box.FromAny(map[string]any{"x": "any-value", "y": 2.0}), typeRef, stubRange())
-		r.NoError(err)
+		r.Error(err)
+		r.Contains(err.Error(), "value for key \"x\" is not valid")
 	})
 }
 

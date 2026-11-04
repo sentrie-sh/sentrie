@@ -44,4 +44,3 @@ Implements `x is T` (#150): a total predicate that answers whether a value valid
   - **Nested field shapes resolve in the same scope as the outer shape's site**, not in the namespace that declared the outer shape, as for every typed value; a qualified shape from another namespace whose fields name that namespace's local shapes is the same pre-existing problem.
   - **An omitted optional fact fails before `is` runs.** Evaluating the operand raises "identifier not found" today; once #134 lands an omitted optional fact resolves as undefined and `x is T` is `false`.
   - **`is not T` and `is T` both return a bool.** `not` produces a `box.Trinary`, which boxes a known outcome as `ValueBool` since [#135](https://github.com/sentrie-sh/sentrie/issues/135).
-  - **`dict[T]` checks only the outer kind.** [[runtime.typeref_dict]] never validates values against `T`, so `{"k": "s"} is dict[number]` is `true`.
