@@ -130,27 +130,6 @@ func (s *CmdTestSuite) TestFmtMissingPathFailsAndFormatsRest() {
 	s.NotEqual(fmtMessy, string(got))
 }
 
-func (s *CmdTestSuite) TestFmtDefaultsToCurrentDirectory() {
-	dir := s.T().TempDir()
-	p := s.write(dir, "a.sentrie", fmtMessy)
-	s.T().Chdir(dir)
-	s.Require().NoError(Execute(s.T().Context(), Setup(s.T().Context(), "test"), []string{"sentrie", "fmt"}))
-	got, _ := os.ReadFile(p)
-	s.NotEqual(fmtMessy, string(got))
-}
-
-func (s *CmdTestSuite) TestFmtCLIFlagBeforePath() {
-	dir := s.T().TempDir()
-	p := s.write(dir, "a.sentrie", fmtMessy)
-	err := Execute(s.T().Context(), Setup(s.T().Context(), "test"), []string{"sentrie", "fmt", "--check", dir})
-	s.Require().Error(err)
-	got, _ := os.ReadFile(p)
-	s.Equal(fmtMessy, string(got))
-	s.Require().NoError(Execute(s.T().Context(), Setup(s.T().Context(), "test"), []string{"sentrie", "fmt", dir, "--check=false"}))
-	got, _ = os.ReadFile(p)
-	s.NotEqual(fmtMessy, string(got))
-}
-
 func (s *CmdTestSuite) TestUnifiedDiffHunks() {
 	s.Equal("", unifiedDiff("f", "a\n", "a\n"))
 	var old, nw []string
@@ -209,14 +188,6 @@ func (s *CmdTestSuite) TestFmtHiddenRootDirectoryIsWalkedWhenNamed() {
 	s.NotEqual(fmtMessy, string(got))
 }
 
-func (s *CmdTestSuite) TestFmtFileNamedTwiceIsReportedOnce() {
-	dir := s.T().TempDir()
-	p := s.write(dir, "a.sentrie", fmtMessy)
-	var out strings.Builder
-	s.Require().Error(runFmt(s.T().Context(), &out, &strings.Builder{}, fmtOptions{paths: []string{p, dir, filepath.Join(dir, ".", "a.sentrie")}, check: true}))
-	s.Equal(p+"\n", out.String())
-}
-
 func (s *CmdTestSuite) TestFmtCheckKeepsModeAndParseErrorWithCheck() {
 	dir := s.T().TempDir()
 	p := s.write(dir, "a.sentrie", fmtMessy)
@@ -231,30 +202,6 @@ func (s *CmdTestSuite) TestFmtCheckKeepsModeAndParseErrorWithCheck() {
 	s.Equal(os.FileMode(0o640), st.Mode().Perm())
 }
 
-func (s *CmdTestSuite) TestParseFmtArgs() {
-	o, err := parseFmtArgs(nil)
-	s.Require().NoError(err)
-	s.Equal([]string{"."}, o.paths)
-	s.False(o.check || o.diff)
-
-	o, err = parseFmtArgs([]string{"--check", "--diff=true", "a", "b"})
-	s.Require().NoError(err)
-	s.True(o.check && o.diff)
-	s.Equal([]string{"a", "b"}, o.paths)
-
-	o, err = parseFmtArgs([]string{"--check=dir", "x"})
-	s.Require().NoError(err)
-	s.True(o.check)
-	s.Equal([]string{"x", "dir"}, o.paths)
-
-	o, err = parseFmtArgs([]string{"--check=false", "x"})
-	s.Require().NoError(err)
-	s.False(o.check)
-
-	_, err = parseFmtArgs([]string{"--nope"})
-	s.Require().Error(err)
-}
-
 func (s *CmdTestSuite) TestUnifiedDiffEdges() {
 	s.Equal("--- f\n+++ f\n@@ -0,0 +1 @@\n+new\n", unifiedDiff("f", "", "new\n"))
 	s.Equal("--- f\n+++ f\n@@ -1 +0,0 @@\n-old\n", unifiedDiff("f", "old\n", ""))
@@ -262,34 +209,6 @@ func (s *CmdTestSuite) TestUnifiedDiffEdges() {
 	s.Equal("--- f\n+++ f\n@@ -1,3 +1,2 @@\n a\n b\n-c\n", unifiedDiff("f", "a\nb\nc\n", "a\nb\n"))
 	s.Equal("--- f\n+++ f\n@@ -1,2 +1,3 @@\n a\n b\n+c\n", unifiedDiff("f", "a\nb\n", "a\nb\nc\n"))
 	s.Equal("--- f\n+++ f\n@@ -1,2 +1 @@\n-a\n b\n", unifiedDiff("f", "a\nb\n", "b\n"))
-}
-
-func (s *CmdTestSuite) TestFmtFlagValueNamingExistingPathIsAPath() {
-	for _, name := range []string{"f", "1"} {
-		dir := s.T().TempDir()
-		p := s.write(dir, name+"/a.sentrie", fmtMessy)
-		other := s.write(dir, "o.sentrie", fmtMessy)
-		s.T().Chdir(dir)
-		opts, err := parseFmtArgs([]string{"--check=" + name})
-		s.Require().NoError(err)
-		s.True(opts.check)
-		s.Equal([]string{name}, opts.paths)
-		s.Require().Error(runFmt(s.T().Context(), &strings.Builder{}, &strings.Builder{}, opts))
-		for _, f := range []string{p, other} {
-			got, _ := os.ReadFile(f)
-			s.Equal(fmtMessy, string(got))
-		}
-	}
-}
-
-func (s *CmdTestSuite) TestFmtFlagPathsAreSorted() {
-	dir := s.T().TempDir()
-	s.write(dir, "b/x.sentrie", "")
-	s.write(dir, "a/x.sentrie", "")
-	s.T().Chdir(dir)
-	opts, err := parseFmtArgs([]string{"--diff=b", "pos", "--check=a"})
-	s.Require().NoError(err)
-	s.Equal([]string{"pos", "a", "b"}, opts.paths)
 }
 
 func (s *CmdTestSuite) TestFmtSymlinkRootIsWalkedAndReportedUnderGivenName() {
@@ -400,16 +319,6 @@ func (s *CmdTestSuite) TestFmtFailedRestoreKeepsBackupAndNamesIt() {
 			s.Equal(fmtMessy, string(bak))
 		}
 	}
-}
-
-func (s *CmdTestSuite) TestFmtSymlinkAndTargetCountOnce() {
-	dir := s.T().TempDir()
-	real := s.write(dir, "real/a.sentrie", fmtMessy)
-	lnk := filepath.Join(dir, "lnk")
-	s.Require().NoError(os.Symlink(filepath.Dir(real), lnk))
-	var out strings.Builder
-	s.Require().Error(runFmt(s.T().Context(), &out, &strings.Builder{}, fmtOptions{paths: []string{lnk, filepath.Dir(real)}, check: true}))
-	s.Equal(filepath.Join(lnk, "a.sentrie")+"\n", out.String())
 }
 
 func (s *CmdTestSuite) TestUnifiedDiffFallbackHunkCounts() {
@@ -597,4 +506,216 @@ func (s *CmdTestSuite) TestFmtCloseFailureAfterEmptyWriteRestoresOriginal() {
 	s.Equal(fmtMessy, string(got))
 	entries, _ := os.ReadDir(dir)
 	s.Len(entries, 1)
+}
+
+func (s *CmdTestSuite) runFmtCLI(args ...string) error {
+	ctx := s.T().Context()
+	return Execute(ctx, Setup(ctx, "test"), append([]string{"sentrie", "fmt"}, args...))
+}
+
+func (s *CmdTestSuite) formatted(p string) bool {
+	got, err := os.ReadFile(p)
+	s.Require().NoError(err)
+	return string(got) != fmtMessy
+}
+
+func (s *CmdTestSuite) fmtTree() (dir, top, nested string) {
+	dir = s.T().TempDir()
+	top = s.write(dir, "sub/top.sentrie", fmtMessy)
+	nested = s.write(dir, "sub/deep/nested.sentrie", fmtMessy)
+	s.T().Chdir(dir)
+	return dir, top, nested
+}
+
+func (s *CmdTestSuite) TestFmtCLIEllipsisRecurses() {
+	_, top, nested := s.fmtTree()
+	s.Require().NoError(s.runFmtCLI("./..."))
+	s.True(s.formatted(top))
+	s.True(s.formatted(nested))
+}
+
+func (s *CmdTestSuite) TestFmtCLIDirEllipsisRecurses() {
+	_, top, nested := s.fmtTree()
+	s.Require().NoError(s.runFmtCLI("sub/..."))
+	s.True(s.formatted(top))
+	s.True(s.formatted(nested))
+}
+
+func (s *CmdTestSuite) TestFmtCLIDirIsNotRecursive() {
+	_, top, nested := s.fmtTree()
+	s.Require().NoError(s.runFmtCLI("sub"))
+	s.True(s.formatted(top))
+	s.False(s.formatted(nested))
+}
+
+func (s *CmdTestSuite) TestFmtCLIDotIsNotRecursive() {
+	dir, _, nested := s.fmtTree()
+	root := s.write(dir, "root.sentrie", fmtMessy)
+	s.Require().NoError(s.runFmtCLI("."))
+	s.True(s.formatted(root))
+	s.False(s.formatted(nested))
+}
+
+func (s *CmdTestSuite) TestFmtCLIFilePattern() {
+	_, top, nested := s.fmtTree()
+	s.Require().NoError(s.runFmtCLI("sub/top.sentrie"))
+	s.True(s.formatted(top))
+	s.False(s.formatted(nested))
+}
+
+func (s *CmdTestSuite) TestFmtCLINoPatternIsAnErrorAndWritesNothing() {
+	_, top, nested := s.fmtTree()
+	s.Require().Error(s.runFmtCLI())
+	s.Require().Error(s.runFmtCLI("--check"))
+	s.False(s.formatted(top))
+	s.False(s.formatted(nested))
+}
+
+func (s *CmdTestSuite) TestFmtCLIFlagBeforePatternFailsAndWritesNothing() {
+	dir, top, nested := s.fmtTree()
+	s.Require().NoError(os.MkdirAll(filepath.Join(dir, "f"), 0o755))
+	s.write(dir, "f/x.sentrie", fmtMessy)
+	s.Require().Error(s.runFmtCLI("--check", "f"))
+	s.Require().Error(s.runFmtCLI("--check", "./..."))
+	s.False(s.formatted(top))
+	s.False(s.formatted(nested))
+	s.False(s.formatted(filepath.Join(dir, "f/x.sentrie")))
+}
+
+func (s *CmdTestSuite) TestFmtCLICheckAfterPattern() {
+	_, top, _ := s.fmtTree()
+	s.Require().Error(s.runFmtCLI("./...", "--check"))
+	s.False(s.formatted(top))
+	s.Require().Error(s.runFmtCLI("./...", "--diff", "--check"))
+	s.False(s.formatted(top))
+	s.Require().NoError(s.runFmtCLI("./...", "--diff"))
+	s.False(s.formatted(top))
+	s.Require().NoError(s.runFmtCLI("./...", "--check=false"))
+	s.True(s.formatted(top))
+}
+
+func (s *CmdTestSuite) TestFmtCLITwoPatternsIsAnError() {
+	_, top, nested := s.fmtTree()
+	err := s.runFmtCLI("sub", "sub/deep")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "sub/deep")
+	s.False(s.formatted(top))
+	s.False(s.formatted(nested))
+}
+
+func (s *CmdTestSuite) TestFmtCLIMissingDirEllipsisFails() {
+	s.fmtTree()
+	s.Require().Error(s.runFmtCLI("nope/..."))
+}
+
+func (s *CmdTestSuite) TestFmtCLIFileEllipsisIsAnError() {
+	_, top, _ := s.fmtTree()
+	err := s.runFmtCLI("sub/top.sentrie/...")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "not a directory")
+	s.False(s.formatted(top))
+	err = s.runFmtCLI("/...")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "no directory")
+}
+
+func (s *CmdTestSuite) TestFmtCLIFlagSwallowingPatternIsRejected() {
+	_, top, nested := s.fmtTree()
+	for _, args := range [][]string{{"--check", "f", "sub"}, {"--diff", "1", "sub"}} {
+		err := s.runFmtCLI(args...)
+		s.Require().Error(err)
+		s.Contains(err.Error(), "put flags after the pattern")
+		s.False(s.formatted(top))
+		s.False(s.formatted(nested))
+	}
+	s.Require().Error(s.runFmtCLI("sub", "--check"))
+	s.Require().Error(s.runFmtCLI("sub", "--check=true"))
+	s.False(s.formatted(top))
+	s.Require().NoError(s.runFmtCLI("sub", "--check=false"))
+	s.True(s.formatted(top))
+}
+
+func (s *CmdTestSuite) TestFmtCLITrailingSlashIsADirectory() {
+	_, top, nested := s.fmtTree()
+	s.Require().NoError(s.runFmtCLI("sub/"))
+	s.True(s.formatted(top))
+	s.False(s.formatted(nested))
+}
+
+func (s *CmdTestSuite) TestFmtCLISlashEllipsisSlashFails() {
+	_, top, nested := s.fmtTree()
+	s.Require().Error(s.runFmtCLI("./.../"))
+	s.False(s.formatted(top))
+	s.False(s.formatted(nested))
+}
+
+func (s *CmdTestSuite) TestFmtCLIBareEllipsisIsRecursive() {
+	_, top, nested := s.fmtTree()
+	s.Require().NoError(s.runFmtCLI("..."))
+	s.True(s.formatted(top))
+	s.True(s.formatted(nested))
+}
+
+func (s *CmdTestSuite) TestFmtCLICheckFalseWritesForDot() {
+	dir, _, nested := s.fmtTree()
+	root := s.write(dir, "root.sentrie", fmtMessy)
+	s.Require().NoError(s.runFmtCLI(".", "--check=false"))
+	s.True(s.formatted(root))
+	s.False(s.formatted(nested))
+}
+
+func (s *CmdTestSuite) TestFmtCLIFlagValueNamingADirectoryWritesNothing() {
+	dir, top, nested := s.fmtTree()
+	for _, name := range []string{"1", "t", "true"} {
+		s.write(dir, name+"/x.sentrie", fmtMessy)
+	}
+	s.Require().Error(s.runFmtCLI("--check", "1"))
+	s.Require().Error(s.runFmtCLI("--diff", "t"))
+	_ = s.runFmtCLI("./...", "--check", "1")
+	_ = s.runFmtCLI("./...", "--diff", "t")
+	for _, p := range []string{top, nested, filepath.Join(dir, "1/x.sentrie"), filepath.Join(dir, "t/x.sentrie")} {
+		s.False(s.formatted(p), p)
+	}
+}
+
+func (s *CmdTestSuite) TestFmtCLIEllipsisSkipsHiddenDirectories() {
+	dir, top, _ := s.fmtTree()
+	hidden := s.write(dir, "sub/.hid/h.sentrie", fmtMessy)
+	s.Require().NoError(s.runFmtCLI("./..."))
+	s.True(s.formatted(top))
+	s.False(s.formatted(hidden))
+}
+
+func (s *CmdTestSuite) TestFmtCLIRepeatedFlagFirstOneWins() {
+	// Recorded behaviour: cling keeps the first of a repeated flag.
+	_, top, _ := s.fmtTree()
+	s.Require().Error(s.runFmtCLI("sub", "--check", "--check=false"))
+	s.False(s.formatted(top))
+	s.Require().NoError(s.runFmtCLI("sub", "--check=false", "--check"))
+	s.True(s.formatted(top))
+}
+
+func (s *CmdTestSuite) TestFmtCLIBooleanSpellings() {
+	_, top, _ := s.fmtTree()
+	// "TRUE" and "1" are not accepted values: nothing is written
+	s.Require().Error(s.runFmtCLI("sub", "--check=TRUE"))
+	s.Require().Error(s.runFmtCLI("sub", "--check=1"))
+	s.False(s.formatted(top))
+	s.Require().Error(s.runFmtCLI("sub", "--check=true"))
+	s.False(s.formatted(top))
+}
+
+func (s *CmdTestSuite) TestFmtCLIFlagBeforePatternWithValueWritesNothing() {
+	_, top, nested := s.fmtTree()
+	s.Require().Error(s.runFmtCLI("--diff", "1", "sub"))
+	s.Require().Error(s.runFmtCLI("--check", "1", "sub"))
+	s.False(s.formatted(top))
+	s.False(s.formatted(nested))
+}
+
+func (s *CmdTestSuite) TestFmtCLIFlagValueIsRejectedWithGuidance() {
+	s.fmtTree()
+	err := s.runFmtCLI("sub", "--check=1")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "takes no value")
 }

@@ -12,8 +12,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/binaek/cling"
@@ -24,6 +22,13 @@ import (
 func addFmtCmd(cli *cling.CLI) {
 	cli.WithCommand(
 		cling.NewCommand("fmt", fmtCmd).
+			WithDescription("Format .sentrie files: sentrie fmt <pattern> [--check] [--diff]").
+			WithLongDescription(fmtLongDescription).
+			WithArgument(cling.NewStringCmdInput("pattern").
+				WithDescription("What to format: ./... (all files below the current directory), dir/..., dir (only the files directly in it) or a file").
+				Required().
+				AsArgument(),
+			).
 			WithFlag(cling.NewBoolCmdInput("check").
 				WithDefault(false).
 				WithDescription("Write nothing; list the files that would change and fail if there are any").
@@ -37,56 +42,42 @@ func addFmtCmd(cli *cling.CLI) {
 	)
 }
 
+const fmtLongDescription = `Formats .sentrie files in place, like go fmt. The pattern is required:
+  ./...      every .sentrie file below the current directory
+  dir/...    every .sentrie file below dir
+  dir        the .sentrie files directly in dir, not in its subdirectories
+  file       that file, whatever its extension
+Put the flags after the pattern (sentrie fmt ./... --check): the CLI reads the
+word after a flag as its value. --check lists the files that would change and
+exits non-zero if there are any; --diff prints a unified diff and, like gofmt -d,
+exits zero on its own. Neither writes any file.
+`
+
+type fmtCmdArgs struct {
+	Pattern string `cling-name:"pattern"`
+	Check   bool   `cling-name:"check"`
+	Diff    bool   `cling-name:"diff"`
+}
+
 type fmtOptions struct {
 	check bool
 	diff  bool
 	paths []string
+	// shallow makes a directory contribute only the files directly in it.
+	shallow bool
 }
 
-// parseFmtArgs reads the arguments of `sentrie fmt` itself instead of using
-// cling.Hydrate. cling takes the word after a bare `--check` as that flag's
-// value and passes it on as `--check=<word>`, and its arguments are fixed
-// positions, so `fmt --check dir` would lose the path. A flag value is therefore
-// taken as a path when it names an existing path or is not a boolean, and such
-// paths are processed after the positional ones, in sorted order.
-func parseFmtArgs(args []string) (fmtOptions, error) {
-	var opts fmtOptions
-	var flagPaths []string
-	for _, arg := range args {
-		name, value, hasValue := strings.Cut(strings.TrimPrefix(arg, "--"), "=")
-		if !strings.HasPrefix(arg, "--") || (name != "check" && name != "diff") {
-			// An unknown flag only reaches here when parseFmtArgs is called
-			// directly: cling rejects undefined flags before the command runs.
-			if strings.HasPrefix(arg, "--") {
-				return opts, fmt.Errorf("unknown flag %q for fmt", arg)
-			}
-			opts.paths = append(opts.paths, arg)
-			continue
-		}
-		on := true
-		if hasValue && value != "" {
-			// A value naming an existing path is a path, even when it also
-			// reads as a boolean (`--check f` with a directory `f`).
-			if _, err := os.Stat(value); err == nil {
-				flagPaths = append(flagPaths, value)
-			} else if b, err := strconv.ParseBool(value); err == nil {
-				on = b
-			} else {
-				flagPaths = append(flagPaths, value)
-			}
-		}
-		if name == "check" {
-			opts.check = opts.check || on
-		} else {
-			opts.diff = opts.diff || on
-		}
+// fmtOptionsFor turns a go-style pattern into the paths to format: "dir/..."
+// and "..." walk recursively, anything else is a file or a single directory.
+func fmtOptionsFor(pattern string, check, diff bool) fmtOptions {
+	opts := fmtOptions{check: check, diff: diff, paths: []string{pattern}, shallow: true}
+	switch {
+	case pattern == "...":
+		opts.paths, opts.shallow = []string{"."}, false
+	case strings.HasSuffix(pattern, "/..."):
+		opts.paths, opts.shallow = []string{strings.TrimSuffix(pattern, "/...")}, false
 	}
-	slices.Sort(flagPaths)
-	opts.paths = append(opts.paths, flagPaths...)
-	if len(opts.paths) == 0 {
-		opts.paths = []string{"."}
-	}
-	return opts, nil
+	return opts
 }
 
 // fmtCmd formats .sentrie files in place. With --check or --diff it writes
@@ -96,15 +87,43 @@ func parseFmtArgs(args []string) (fmtOptions, error) {
 // parsed or formatted is reported on stderr and fails the command, and the
 // remaining files are still processed.
 func fmtCmd(ctx context.Context, args []string) error {
-	opts, err := parseFmtArgs(args)
-	if err != nil {
+	input := fmtCmdArgs{}
+	if err := cling.Hydrate(ctx, args, &input); err != nil {
 		return err
 	}
-	return runFmt(ctx, os.Stdout, os.Stderr, opts)
+	// cling binds only the first positional and ignores the rest; every flag
+	// reaches the handler as --name=value, so the other words are extras.
+	var words []string
+	for _, a := range args {
+		if !strings.HasPrefix(a, "--") {
+			words = append(words, a)
+		}
+	}
+	if len(words) > 1 {
+		return fmt.Errorf("fmt takes one pattern, got extra arguments: %s", strings.Join(words[1:], " "))
+	}
+	// A flag before the pattern swallows it as its value (--check f arrives as
+	// --check=f): bare flags arrive as --name=, so anything else is a mistake.
+	for _, a := range args {
+		for _, name := range []string{"check", "diff"} {
+			if v, ok := strings.CutPrefix(a, "--"+name+"="); ok && v != "" && v != "true" && v != "false" {
+				return fmt.Errorf("--%s takes no value (got %q); put flags after the pattern, e.g. sentrie fmt ./... --%s", name, v, name)
+			}
+		}
+	}
+	if root, ok := strings.CutSuffix(input.Pattern, "/..."); ok {
+		if root == "" {
+			return fmt.Errorf("pattern %q has no directory before the ellipsis", input.Pattern)
+		}
+		if info, err := os.Stat(root); err == nil && !info.IsDir() {
+			return fmt.Errorf("%s is not a directory, so %q is not a valid pattern", root, input.Pattern)
+		}
+	}
+	return runFmt(ctx, os.Stdout, os.Stderr, fmtOptionsFor(input.Pattern, input.Check, input.Diff))
 }
 
 func runFmt(ctx context.Context, stdout, stderr io.Writer, opts fmtOptions) error {
-	files, walkErrs := collectFmtFiles(ctx, opts.paths)
+	files, walkErrs := collectFmtFiles(ctx, opts.paths, opts.shallow)
 	for _, e := range walkErrs {
 		_, _ = fmt.Fprintf(stderr, "%v\n", e)
 	}
@@ -264,23 +283,12 @@ func backupFile(path string, orig []byte, mode fs.FileMode) (string, error) {
 }
 
 // collectFmtFiles expands the paths into the files to format, in the order
-// given and each file once. A directory contributes its *.sentrie files,
-// recursively, skipping hidden directories and symbolic links. A path named
+// given. A directory contributes its *.sentrie files,
+// recursively (only those directly in it when shallow), skipping hidden directories and symbolic links. A path named
 // directly is formatted whatever its extension.
-func collectFmtFiles(ctx context.Context, paths []string) ([]string, []error) {
+func collectFmtFiles(ctx context.Context, paths []string, shallow bool) ([]string, []error) {
 	var files []string
 	var errs []error
-	seen := map[string]bool{}
-	add := func(p string) {
-		key := filepath.Clean(p)
-		if r, err := filepath.EvalSymlinks(p); err == nil {
-			key = r
-		}
-		if !seen[key] {
-			seen[key] = true
-			files = append(files, p)
-		}
-	}
 
 	for _, root := range paths {
 		info, err := os.Stat(root)
@@ -289,7 +297,7 @@ func collectFmtFiles(ctx context.Context, paths []string) ([]string, []error) {
 			continue
 		}
 		if !info.IsDir() {
-			add(root)
+			files = append(files, root)
 			continue
 		}
 		// WalkDir does not descend into a root that is a symlink, so walk the
@@ -311,6 +319,9 @@ func collectFmtFiles(ctx context.Context, paths []string) ([]string, []error) {
 				return ctx.Err()
 			}
 			if d.IsDir() {
+				if shallow && p != walkRoot {
+					return fs.SkipDir
+				}
 				if p != walkRoot && strings.HasPrefix(d.Name(), ".") {
 					return fs.SkipDir
 				}
@@ -321,7 +332,7 @@ func collectFmtFiles(ctx context.Context, paths []string) ([]string, []error) {
 				if relErr != nil {
 					rel = p
 				}
-				add(filepath.Join(root, rel))
+				files = append(files, filepath.Join(root, rel))
 			}
 			return nil
 		})
