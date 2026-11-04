@@ -5,6 +5,9 @@ package runtime
 
 import (
 	"context"
+	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
@@ -18,8 +21,17 @@ func validateAgainstDictTypeRef(ctx context.Context, ec *ExecutionContext, exec 
 		return err
 	}
 
-	if _, ok := v.DictValue(); !ok {
+	entries, ok := v.DictValue()
+	if !ok {
 		return errMismatch("value %v is not a dict", v)
+	}
+
+	// check every value against the element type, in key order so the
+	// reported key is the same on every run
+	for _, key := range slices.Sorted(maps.Keys(entries)) {
+		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, entries[key], typeRef.ValueType, pos); err != nil {
+			return fmt.Errorf("value for key %q is not valid at %s: %w", key, pos, err)
+		}
 	}
 
 	return checkConstraints(ctx, v, bound, pos)
