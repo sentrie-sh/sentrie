@@ -9,7 +9,7 @@ tags: cli, entrypoint, orchestration, commands
 # Node: cmd (Command-Line Interface)
 
 ## 1. Architectural Role & Intent
-Defines the four user-facing commands and wires the loading pipeline behind each. Every command that touches a pack repeats the same five-step sequence - load pack, create index, load programs, add programs, validate - which makes this package the canonical reference for how the compilation pipeline is assembled in practice.
+Defines the five user-facing commands and wires the loading pipeline behind each. Every command that touches a pack repeats the same five-step sequence - load pack, create index, load programs, add programs, validate - which makes this package the canonical reference for how the compilation pipeline is assembled in practice.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -18,6 +18,7 @@ Defines the four user-facing commands and wires the loading pipeline behind each
 | `cmd` | `IMPORTS` | `ext.binaek.cling` | The CLI framework: command, flag, and argument definitions plus `Hydrate` for typed binding. |
 | `cmd` | `CALLS` | [[loader]] | `LoadPack` reads the manifest; `LoadPrograms` parses every policy file. |
 | `cmd` | `CALLS` | [[index]] | `CreateIndex`, `SetPack`, `AddProgram`, `Validate`, and `NondeterminismWarnings` in `validate`. |
+| `cmd` | `CALLS` | [[format]] | `fmt` runs `format.Source` on each `.sentrie` file it finds. |
 | `cmd` | `READS_FROM` | [[runtime.js.registry]] | `validate` passes `js.IsNondeterministicExport` to the index's warning pass. |
 | `cmd` | `CALLS` | [[capabilities]] | `exec`, `serve` and `validate` load `--capabilities`, run `index.CheckCapabilities`, and pass `runtime.WithCapabilities` to the executor. |
 | `cmd` | `CALLS` | [[runtime.executor]] | `NewExecutor`, then `ExecPolicy` / `ExecRule`. |
@@ -28,7 +29,7 @@ Defines the four user-facing commands and wires the loading pipeline behind each
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `Setup(ctx context.Context, version string) -> *cling.CLI`
-  - **Behavior:** Builds the CLI with pre-run and post-run debug logging and registers all four commands.
+  - **Behavior:** Builds the CLI with pre-run and post-run debug logging and registers all five commands.
   - **Side Effects:** None until run.
   - **Exceptions:** None.
 
@@ -59,6 +60,11 @@ Defines the four user-facing commands and wires the loading pipeline behind each
   - **Side Effects:** None beyond reading files.
   - **Exceptions:** Any pipeline error.
 
+- **Signature:** `sentrie fmt <pattern> [--check] [--diff]` ([#172](https://github.com/sentrie-sh/sentrie/issues/172))
+  - **Behavior:** Formats `.sentrie` files with [[format]]. The one required `pattern` follows `go fmt`: `./...` or `dir/...` walks every `*.sentrie` file below the directory (hidden directories and symlinks met on the walk are skipped; a symlinked root is followed); `dir` (including `.`) covers only the files directly in it; a file path is formatted whatever its extension. No pattern, or a second positional, is an error. Rewrites a file in place (keeping its mode) only when its content changes. `--check` writes nothing, prints each file that would change and fails when there are any. `--diff` writes nothing and prints a unified diff per changed file; like `gofmt -d` it exits 0 alone, and with `--check` it fails too. A file that cannot be read, parsed or formatted is reported on stderr (each error is printed as is, since it already names the file), makes the exit status non-zero, and the other files are still processed.
+  - **Side Effects:** Rewrites files (unless `--check`/`--diff`); prints to stdout and stderr. The diff is a small LCS helper in `cmd/fmt_diff.go`, which above `maxLCSCells` (4M cells) reports the changed middle as one delete-all/insert-all hunk. Files are rewritten following `gofmt -w`: the original bytes go to a backup beside the file, the file is opened write-only without truncation (a file that cannot be opened, such as a read-only one, is never touched and the backup is removed), the new bytes are written over it and it is truncated to their length, then the backup is removed. Writing in place keeps symlinks, hard links, owner and xattrs. If bytes were written and the write then fails, the original is written back and the backup removed; the backup is kept and named in the error only when that restore also fails. A backup that cannot be made leaves the file untouched.
+  - **Exceptions:** A summary error (`N file(s) could not be formatted` / `are not formatted`) after all files are processed.
+
 - **Signature:** `sentrie init <name> [--directory .]`
   - **Behavior:** Validates the pack name, builds a default manifest, requires the target to be an **existing empty directory**, and writes the pack file with non-inline TOML tables.
   - **Side Effects:** Creates the pack manifest.
@@ -74,4 +80,5 @@ Defines the four user-facing commands and wires the loading pipeline behind each
   - **`serve` checks `ctx.Err()` inside the program loop but `exec` and `validate` do not**, so only `serve` is interruptible during indexing.
   - **`exec` builds `[]*ExecutorOutput{output}` without a nil guard**, the same shape as the API handler - though the subsequent `runErr` check means the nil is not dereferenced on the failure path.
   - **`init` requires a completely empty directory**, so it cannot add a manifest to an existing project - a notable friction point for adopting Sentrie into an existing repository.
+  - **`fmt` declares its inputs with cling like the other commands, and the pattern is required for a reason.** cling reads the word after a bare flag as that flag's value, so with a default pattern `sentrie fmt --check f` would mean check=false and rewrite `.`. With a required pattern it fails instead (and `--check ./...` fails on ParseBool), so flags go after the pattern: `sentrie fmt ./... --check`. cling binds only one positional and ignores the rest, so `fmtCmd` rejects extra non-flag words itself (every flag reaches the handler as `--name=value`). A bare `--check` at the end hydrates to true and reaches the handler as `--check=`, so `fmtCmd` rejects any `--check=`/`--diff=` value other than empty, `true` or `false` (`fmt --check f sub` would otherwise read check=false and rewrite `sub`); this validates cling's output, it does not reparse. A literal `true` or `false` after a flag still binds as its value (`fmt --check false sub` rewrites `sub`), since it cannot be told apart from `--check=false`. `dir/...` on a file is an error as in `go fmt`; a bare `/...` is also an error, a sentrie choice (Go reads it as a pattern under the filesystem root).
   - **`encodePackFile` is a package-level variable specifically so tests can override it**, which is worth knowing before changing its signature.
