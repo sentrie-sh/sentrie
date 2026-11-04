@@ -31,10 +31,10 @@ func walkDeriveExprDFS(root ast.Expression, visit func(ast.Expression) error) er
 //   - A derive body is a pure expression, so the kinds that only make sense in
 //     a rule body (import and attachment clauses) are rejected rather than
 //     descended into. This keeps derive purity failing closed.
-//   - A block may hold only `let` declarations before its yield. The let's
-//     value is yielded directly (the VarDeclaration node itself is not an
-//     expression), and any other statement (a rule or a line comment) is
-//     rejected, matching the rule walkDeriveBlock enforces.
+//   - A block may hold only `let` declarations and line comments before its
+//     yield. The let's value is yielded directly (the VarDeclaration node
+//     itself is not an expression), a comment is skipped, and any other
+//     statement is rejected, matching the rule walkDeriveBlock enforces.
 //   - The errors name the derive walk, not the reference walk.
 //
 // A new expression kind needs a case in forEachExprChild only;
@@ -50,6 +50,8 @@ func forEachDeriveExprChild(e ast.Expression, yield func(ast.Expression) error) 
 		switch c := child.(type) {
 		case *ast.VarDeclaration:
 			childErr = yield(c.Value)
+		case *ast.CommentStatement:
+			childErr = nil
 		case ast.Expression:
 			childErr = yield(c)
 		default:
