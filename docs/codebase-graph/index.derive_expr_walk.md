@@ -28,15 +28,15 @@ The package's single generic AST expression traversal: `forEachDeriveExprChild` 
   - **Exceptions:** Propagates the visitor's error or the child enumerator's.
 
 - **Signature:** `forEachDeriveExprChild(e ast.Expression, yield func(ast.Expression) error) -> error`
-  - **Behavior:** Yields direct children per type. Leaves (identifiers, all literals, pipeline holes) yield nothing. Notable shapes: a ternary yields **only condition and else** when `Elvis` is set, matching how the parser aliases the abbreviated form; a block yields each let's value then the yield expression; map literals yield **both key and value**; comment wrappers yield their wrapped expression, making them transparent.
+  - **Behavior:** Yields direct children per type. Leaves (identifiers, all literals, pipeline holes) yield nothing. Notable shapes: a ternary yields **only condition and else** when `Elvis` is set, matching how the parser aliases the abbreviated form; a block skips comment statements and yields each let's value then the yield expression; map literals yield **both key and value**; comment wrappers yield their wrapped expression, making them transparent.
   - **Side Effects:** None.
-  - **Exceptions:** `derive walk: unsupported statement %T` for a non-`VarDeclaration` inside a block; `derive walk: unsupported expression %T` for an unrecognised type.
+  - **Exceptions:** `derive walk: unsupported statement %T` for a block statement that is neither a `VarDeclaration` nor a `CommentStatement`; `derive walk: unsupported expression %T` for an unrecognised type.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless and reentrant.
 - **Performance/Scale Notes:** Allocation-free apart from closures; cost is linear in AST size. It is invoked repeatedly by three passes over the same bodies, so a body is walked several times per validation.
 - **Dependencies Risk:**
   - **The default case fails closed.** Any new `ast.Expression` type is an immediate error in every pass that uses this walker until it is added here. That is a deliberate safety property for [[index.derive_purity]] - unknown constructs are never silently permitted - but it means AST additions require a coordinated change.
-  - **Blocks only tolerate `let`.** The statement switch mirrors the purity rule, so this walker cannot traverse a block containing any other statement kind even in contexts where that would be legal.
+  - **Blocks only tolerate `let` and comments.** The statement switch mirrors the purity rule, so this walker cannot traverse a block containing any other statement kind even in contexts where that would be legal. Comment statements must stay skipped here, not rejected: [[index.derive_cycle]] discards this walker's error, so a rejected comment would end the callee walk early and hide a cycle (#296).
   - **No cycle protection.** `walkDeriveExprDFS` has no `seen` set; callers that might encounter a shared or cyclic AST must supply their own, as `walkDeriveExprSeen` does in [[index.derive_purity]].
   - **The `derive` prefix understates its reach.** Changing behaviour here to suit derive analysis silently changes rule-body builtin checking too.
