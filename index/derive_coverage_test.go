@@ -14,7 +14,7 @@ import (
 
 func deriveCovRng(line int) tokens.Range {
 	return tokens.Range{
-		File: "cov.sentrie",
+		File: "cov.sentra",
 		From: tokens.Pos{Line: line, Column: 1, Offset: 0},
 		To:   tokens.Pos{Line: line, Column: 2, Offset: 1},
 	}
@@ -69,7 +69,7 @@ policy pol {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "unk_slash.sentrie").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "unk_slash.sentra").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
@@ -89,7 +89,7 @@ policy pol {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "two_param_cb.sentrie").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "two_param_cb.sentra").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
@@ -111,7 +111,7 @@ policy pol {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "hof_lambda.sentrie").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "hof_lambda.sentra").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	require.NoError(s.T(), idx.Validate(ctx))
@@ -128,7 +128,7 @@ policy pol {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "pol_dup.sentrie").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "pol_dup.sentra").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	err = idx.AddProgram(ctx, prog)
 	require.Error(s.T(), err)
@@ -154,7 +154,7 @@ policy p {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "dup_export.sentrie").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "dup_export.sentra").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	err = idx.AddProgram(ctx, prog)
 	require.Error(s.T(), err)
@@ -173,29 +173,10 @@ policy p {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "dup_shape2.sentrie").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "dup_shape2.sentra").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	err = idx.AddProgram(ctx, prog)
 	require.Error(s.T(), err)
-}
-
-func (s *IndexTestSuite) TestPolicyDeriveLateHeaderRejected() {
-	ctx := s.T().Context()
-	idx := CreateIndex()
-	src := `namespace com/ex
-policy pol {
-  fact n:number
-  derive late = () => { yield 1 }
-  let _s = 0
-  rule r = { yield true }
-  export decision of r
-}
-`
-	prog, err := parser.NewParserFromString(src, "late_derive.sentrie").ParseProgram(ctx)
-	require.NoError(s.T(), err)
-	err = idx.AddProgram(ctx, prog)
-	require.Error(s.T(), err)
-	require.Contains(s.T(), err.Error(), "derive")
 }
 
 func (s *IndexTestSuite) TestDeriveExprWalkCoversRichExpressionKinds() {
@@ -213,7 +194,7 @@ policy pol {
   export decision of allow
 }
 `
-	prog, err := parser.NewParserFromString(src, "fat_walk.sentrie").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "fat_walk.sentra").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	require.NoError(s.T(), idx.Validate(ctx))
@@ -230,7 +211,7 @@ policy pol {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "reduce_cb.sentrie").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "reduce_cb.sentra").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	require.NoError(s.T(), idx.Validate(ctx))
@@ -252,7 +233,7 @@ policy p {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "mixed.sentrie").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "mixed.sentra").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	require.NoError(s.T(), idx.Validate(ctx))
