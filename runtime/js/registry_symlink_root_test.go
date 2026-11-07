@@ -138,3 +138,38 @@ func (s *JSTestSuite) TestLoadRequire_InnerLinkInsidePackRootAllowed() {
 		s.Equal(int64(7), ex.Get("v").ToInteger(), spec)
 	}
 }
+
+// One file reached through the symlinked and the resolved spelling of the
+// root, and through different relative specifiers, has one @local key and is
+// compiled once. A key never carries ".." or an absolute path.
+func (s *JSTestSuite) TestModuleCacheKey_SameFileAcrossRootSpellingsAndSpecifiers() {
+	linkRoot, realRoot := s.symlinkedPackRoot()
+	s.writePackFile(realRoot, "lib/b.ts", "export const v = 1;")
+	resolvedReal, err := filepath.EvalSymlinks(realRoot)
+	s.Require().NoError(err)
+
+	for _, root := range []string{linkRoot, realRoot, resolvedReal} {
+		reg := NewRegistry(root)
+		for _, from := range []string{linkRoot, realRoot, resolvedReal} {
+			for _, spec := range []string{
+				"./lib/b.ts", "./lib/../lib/b.ts", "./lib/./b.ts", "@local/lib/b.ts",
+			} {
+				key, _, _, _, err := reg.resolveRequire(from, spec)
+				s.Require().NoError(err, "%s from %s", spec, from)
+				s.Equal("@local/lib/b.ts", key, "%s from %s root %s", spec, from, root)
+				s.NotContains(key, "..")
+				s.False(filepath.IsAbs(key), key)
+			}
+		}
+	}
+
+	reg := NewRegistry(linkRoot)
+	ar := NewAliasRuntime(reg, linkRoot)
+	for _, from := range []string{linkRoot, realRoot, resolvedReal} {
+		for _, spec := range []string{"./lib/b.ts", "./lib/../lib/b.ts", "@local/lib/b.ts"} {
+			_, err := ar.Require(s.T().Context(), from, spec)
+			s.Require().NoError(err, "%s from %s", spec, from)
+		}
+	}
+	s.Equal(int64(1), reg.CompiledPrograms())
+}
