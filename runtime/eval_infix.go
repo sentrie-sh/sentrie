@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -25,6 +12,7 @@ import (
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, in *ast.InfixExpression) (box.Value, *trace.Node, error) {
@@ -32,6 +20,11 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		"operator": in.Operator,
 	})
 	defer done()
+
+	switch in.Operator {
+	case "and", "or", "xor":
+		return evalLogical(ctx, ec, exec, p, in, node)
+	}
 
 	l, ln, err := eval(ctx, ec, exec, p, in.Left)
 	node.Attach(ln)
@@ -136,20 +129,6 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		out := box.Bool(ln >= rn)
 		return out, node.SetResult(out), nil
 
-	case "and":
-		out := box.Trinary(box.TrinaryFrom(l).And(box.TrinaryFrom(r)))
-		return out, node.SetResult(out), nil
-
-	case "or":
-		out := box.Trinary(box.TrinaryFrom(l).Or(box.TrinaryFrom(r)))
-		return out, node.SetResult(out), nil
-
-	case "xor":
-		left := box.TrinaryFrom(l)
-		right := box.TrinaryFrom(r)
-		out := box.Trinary(left.Or(right).And(left.And(right).Not()))
-		return out, node.SetResult(out), nil
-
 	case "in":
 		out := box.Bool(box.ContainsValue(r, l))
 		return out, node.SetResult(out), nil
@@ -170,4 +149,43 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		err := fmt.Errorf("unsupported infix op: %s", in.Operator)
 		return box.Undefined(), node.SetErr(err), err
 	}
+}
+
+// evalLogical evaluates `and`, `or` and `xor` with Kleene three-valued logic.
+// An undefined or null operand reads as unknown through box.TrinaryFrom, so
+// it does not absorb the result the way it does for the other operators.
+// `and` and `or` short-circuit: when the left side decides the result (false
+// for `and`, true for `or`) the right side is never evaluated, so its errors,
+// module calls and trace node never happen. `xor` always needs both sides.
+func evalLogical(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, in *ast.InfixExpression, node *trace.Node) (box.Value, *trace.Node, error) {
+	l, ln, err := eval(ctx, ec, exec, p, in.Left)
+	node.Attach(ln)
+	if err != nil {
+		return box.Undefined(), node.SetErr(err), err
+	}
+	left := box.TrinaryFrom(l)
+
+	if (in.Operator == "and" && left == trinary.False) || (in.Operator == "or" && left == trinary.True) {
+		out := box.Trinary(left)
+		return out, node.SetResult(out), nil
+	}
+
+	r, rn, err := eval(ctx, ec, exec, p, in.Right)
+	node.Attach(rn)
+	if err != nil {
+		return box.Undefined(), node.SetErr(err), err
+	}
+	right := box.TrinaryFrom(r)
+
+	var res trinary.Value
+	switch in.Operator {
+	case "and":
+		res = left.And(right)
+	case "or":
+		res = left.Or(right)
+	default: // xor
+		res = left.Or(right).And(left.And(right).Not())
+	}
+	out := box.Trinary(res)
+	return out, node.SetResult(out), nil
 }
