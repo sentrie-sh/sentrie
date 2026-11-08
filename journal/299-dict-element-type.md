@@ -30,3 +30,10 @@
 - `runtime.typeref_document` claimed the dict and document validators were structurally the same; reworded as the dict validator without the per-value check.
 - Dated the 2026-11-03 headings, as the branch spans two days.
 - _Model: claude-opus-5-5_
+
+### 2026-11-08 16:00 - Rebase onto main after #273 and #282
+- `runtime/typeref_dict.go`: #273 (merged as #278) moved constraint handling into `bindConstraints` and `checkConstraints`. Kept that order and put the sorted per-value check between the kind check and `checkConstraints`, so the `constraints` import stays gone.
+- `runtime/import_envelope_test.go`: took this branch's side, which supersedes #282's `dict[bool]` to `dict[boolean]` edit; the file now matches this branch's version.
+- Graph nodes: `constraints.md` keeps #273's regexp caching note with this branch's dict mention; `runtime.typeref_dict.md` keeps #273's `typeref_constraints` edge and contract alongside the per-value check.
+- All tests and `make docs-graph` pass.
+- _Model: claude-opus-5-5_
