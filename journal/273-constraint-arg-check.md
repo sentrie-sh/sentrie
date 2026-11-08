@@ -50,3 +50,7 @@
 - Dropped the eight `READS_FROM` rows in `constraints` that pointed the typeref validators at the per-kind tables, and the `CALLS runtime.eval` row (constraint argument evaluation) from the seven typeref nodes that had one. Both moved to `bindConstraints` in `runtime.typeref_constraints`, whose rows already say so.
 - Folded a duplicated "Test and CI pass" entry out of the journal commit; it was appended twice while commits waited on signing.
 - _Model: claude-opus-5-5_
+
+### 2026-11-08 14:00 - Rebase onto main after #269
+- #269 (merged as #274) added `index.expr_walk` to the index list in `docs/codebase-graph/overview.md` at the line where this branch adds `index.constraint_args`. Kept both lines.
+- _Model: claude-opus-5-5_
