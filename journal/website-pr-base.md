@@ -13,3 +13,7 @@
 - The rename closed release PR website #36: GitHub retargets PRs whose base is renamed, but a PR whose head is renamed is treated as having its head deleted. Its body was empty and it had no labels or reviewers. The replacement `next` into `main` PR could not be opened from this session (permission denied) and was left to the user.
 - Found the website repo is squash-only with `delete_branch_on_merge` on, so merging the release PR would delete `next` and push the open docs PRs onto `main`. The rule now says to protect `next` or restore it and retarget before merging the release PR.
 - _Model: claude-opus-5-5_
+
+### 21:28 - Replace the release PR
+- Opened website #73 (`next` into `main`, title "V0.0.5") to replace #36 on the user's go-ahead.
+- _Model: claude-opus-5-5_
