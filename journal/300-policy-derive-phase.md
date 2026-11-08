@@ -21,3 +21,9 @@
 - All four fail on main's index/policy.go (verified by swapping the file and restoring it); the index-level tests already in policy_derive_phase_test.go were not duplicated.
 - Ruled out: other callers of the old message (rg finds none outside index tests already updated); the many `let _seed = 0` workarounds in existing derive tests are left alone (would be a separate cleanup, they still pass).
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-08 15:45 - Rebase onto main after #272, #282 and #285
+- `index/derive_coverage_test.go`: this branch deletes `TestPolicyDeriveLateHeaderRejected`, which main had also edited. Resolving with this branch's side reverted #272's `.sentra` to `.sentrie` renames in the rest of the file, so a follow-up commit restores them; the file now differs from main only by the deleted test.
+- `cmd/validate_test.go`: #282 and #285 append tests where this branch appends its derive-first test. Kept main's file and appended this branch's tail from `const deriveFirstPolicy`.
+- All tests and `make docs-graph` pass.
+- _Model: claude-opus-5-5_
