@@ -24,3 +24,9 @@
 - Review pointed out #270 is not merged, so "as heredocs do" and "since #270" were false on main. Reworded the `atCRLFBreak` doc comment, the graph bullet and the PR description to say a CRLF heredoc matches only once #270 lands.
 - Trimmed the unterminated-string subtest comment to what it checks, and added the trial-merge conflicts (270 on the graph node, 279 on the lexer test file) to the Review notes.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-08 14:35 - Rebase onto main after #270 and #279
+- `docs/codebase-graph/lexer.md`: kept this branch's "Line breaks in string literals" bullet and main's heredoc bullet from #270 (merged as #275), dropping this branch's older heredoc text.
+- `lexer/lexer_test.go`: both sides appended tests; kept main's file and appended `TestLexerStringLiteralLineBreaks` and `TestLexerStringLiteralCRLFPositions` whole.
+- `lexer`, `parser` and `runtime` tests and `make docs-graph` pass.
+- _Model: claude-opus-5-5_
