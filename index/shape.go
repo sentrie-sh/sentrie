@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package index
 
@@ -36,7 +23,8 @@ type Shape struct {
 	AliasOf   ast.TypeRef
 	FilePath  string
 
-	hydrated uint32 // 0 = not hydrated, 1 = hydrated
+	shapeScope *Policy // see ShapeScope
+	hydrated   uint32  // 0 = not hydrated, 1 = hydrated
 }
 
 type ShapeModel struct {
@@ -54,10 +42,45 @@ type ShapeModelField struct {
 	Name     string
 	Optional bool
 	TypeRef  ast.TypeRef
+
+	// DeclaredIn is the shape whose declaration holds the field. A field a
+	// shape takes in through `with` keeps the shape it came from, so its type
+	// resolves where it was written. Nil only for a hand-built model.
+	DeclaredIn *Shape
 }
 
 func (s *Shape) String() string {
 	return s.FQN.String()
+}
+
+// ShapeScope is the policy whose shapes the shape's alias and field types
+// resolve against: the shape's own policy, or for a namespace-level shape a
+// Policy that holds only the shape's namespace (no policy shapes, no rules).
+// It is built once when the shape is indexed and never written afterwards, so
+// concurrent evaluations read it without a lock. It is nil for a hand-built
+// shape with neither a policy nor a namespace.
+func (s *Shape) ShapeScope() *Policy {
+	if s.shapeScope != nil {
+		return s.shapeScope
+	}
+	if s.Policy != nil {
+		return s.Policy
+	}
+	if s.Namespace != nil {
+		return &Policy{Namespace: s.Namespace}
+	}
+	return nil
+}
+
+// TypeScope is the policy whose shapes the field's type resolves against: the
+// declaring shape's scope, or fallback when the declaring shape has none.
+func (f *ShapeModelField) TypeScope(fallback *Policy) *Policy {
+	if f.DeclaredIn != nil {
+		if scope := f.DeclaredIn.ShapeScope(); scope != nil {
+			return scope
+		}
+	}
+	return fallback
 }
 
 func (s *Shape) resolveDependency(idx *Index, inPolicy *Policy) error {
@@ -168,6 +191,10 @@ func createShape(ns *Namespace, p *Policy, stmt *ast.ShapeStatement) (*Shape, er
 		FQN:       fqn,
 		FilePath:  stmt.Rnge.File,
 	}
+	shape.shapeScope = p
+	if shape.shapeScope == nil {
+		shape.shapeScope = &Policy{Namespace: ns}
+	}
 
 	if stmt.Complex != nil {
 		shape.Model = &ShapeModel{Fields: make(map[string]*ShapeModelField)}
@@ -185,10 +212,11 @@ func createShape(ns *Namespace, p *Policy, stmt *ast.ShapeStatement) (*Shape, er
 			}
 
 			shape.Model.Fields[field.Name] = &ShapeModelField{
-				Node:     field,
-				Name:     field.Name,
-				Optional: field.Optional,
-				TypeRef:  field.Type,
+				Node:       field,
+				Name:       field.Name,
+				Optional:   field.Optional,
+				TypeRef:    field.Type,
+				DeclaredIn: shape,
 			}
 		}
 	} else {

@@ -16,6 +16,7 @@ The most substantial validator: it resolves a shape reference through a three-ti
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `runtime.typeref_shape` | `READS_FROM` | [[index]] | `Policy.Shapes`, `Namespace.Shapes`, `Index.ResolveNamespace`, `Index.ResolveShape`. |
+| `runtime.typeref_shape` | `READS_FROM` | [[index.shape]] | `Shape.ShapeScope` and `ShapeModelField.TypeScope` give the scope the alias and field types recurse in. |
 | `runtime.typeref_shape` | `CALLS` | [[index.namespace]] | `VerifyShapeExported` gates cross-namespace references. |
 | `runtime.typeref_shape` | `CALLS` | [[runtime.typeref]] | Recurses per field, and for the whole value when the shape is an alias. |
 | `runtime.typeref_shape` | `CALLS` | [[runtime.typeref_constraints]] | `bindConstraints` before the kind check, `checkConstraints` after it. |
@@ -27,9 +28,10 @@ The most substantial validator: it resolves a shape reference through a three-ti
 - **Signature:** `validateAgainstShapeTypeRef(ctx, ec, exec Executor, p *index.Policy, v box.Value, typeRef *ast.ShapeTypeRef, pos tokens.Range) -> error`
   - **Behavior:** Binds its own constraints first ([[runtime.typeref_constraints]]: arguments evaluated and checked against the definition, #273), then four phases.
     1. **Resolution** - policy shapes first (the source comment notes this deliberately overrides the namespace), then namespace shapes, then, only when the reference has **more than two segments**, a cross-namespace lookup guarded by `VerifyShapeExported`.
-    2. **Alias short-circuit** - if `shape.AliasOf` is set, revalidate the whole value against that type and return.
-    3. **Field walk** - the value must be a dict; each declared field is looked up, missing optional fields are skipped, missing required fields error, a present-but-undefined field errors, and each present field recurses.
+    2. **Alias short-circuit** - if `shape.AliasOf` is set, revalidate the whole value against that type and return. The alias resolves in the shape's own scope (`Shape.ShapeScope`, see below), not in `p`.
+    3. **Field walk** - the value must be a dict; each declared field is looked up, missing optional fields are skipped, missing required fields error, a present-but-undefined field errors, and each present field recurses in its declaring shape's scope (`ShapeModelField.TypeScope`), so a field composed in through `with` resolves where its base shape was declared.
     4. **Constraints** - shape-level checkers.
+  - **Scope:** Only the reference itself resolves in `p`. Once the shape is found, its alias and field types (and their constraint arguments) resolve in the shape's scope: its policy for a policy-scoped shape, otherwise a `Policy` holding only its namespace, built once by [[index.shape]] `createShape`. An exported shape whose field names a sibling shape therefore works from any namespace, and a caller's same-named shape is never used ([#281](https://github.com/sentrie-sh/sentrie/issues/281)). The constraints written on the reference (`typeRef.GetConstraints()`) still evaluate in `p`. A hand-built shape with neither a policy nor a namespace falls back to `p`.
   - **Side Effects:** Constraint argument evaluation; index lookups.
   - **Exceptions:** `xerr.ErrNamespaceNotFound`; `xerr.ErrShapeNotFound`; `value %v is not a shape at %s`; `field %s is required at %s`; `field %s cannot be undefined at %s`; `field '%s' is not valid: %w`; constraint errors.
 

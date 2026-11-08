@@ -761,3 +761,74 @@ policy p {
 	s.Require().Error(err)
 	s.Contains(err.Error(), "filter: first argument must be a list")
 }
+
+// TestBuiltinCheckShapeFieldAndAliasKindUseShapeScope checks that a field
+// access on, or an alias of, a shape from another namespace takes its kind
+// from the shape's own namespace: the caller's Tags is a string, but the
+// catalog's is a list, so filter accepts both (#281).
+func (s *IndexTestSuite) TestBuiltinCheckShapeFieldAndAliasKindUseShapeScope() {
+	err := s.validateSources(
+		[2]string{"catalog.sentrie", `namespace com/example/catalog
+shape Tags list[string]
+shape TagList Tags
+shape Item {
+  tags: Tags
+}
+export shape Item
+export shape TagList
+`},
+		[2]string{"shop.sentrie", `namespace com/example/shop
+shape Tags string
+policy cart {
+  fact line: com/example/catalog/Item as line
+  fact tags: com/example/catalog/TagList as tags
+  rule viaField = { yield filter(line.tags, (x) => { yield x }) }
+  rule viaAlias = { yield filter(tags, (x) => { yield x }) }
+  export decision of viaField
+  export decision of viaAlias
+}
+`},
+	)
+	s.Require().NoError(err)
+}
+
+// TestBuiltinCheckShapeFieldChainAndWithFieldKindUseDeclaringScope checks that
+// a field of a field, and a field a shape takes in through `with`, take their
+// kind from the shape that declares them: the caller's Tags is a string, the
+// catalog's a list, so filter must accept both accesses (#281).
+func (s *IndexTestSuite) TestBuiltinCheckShapeFieldChainAndWithFieldKindUseDeclaringScope() {
+	err := s.validateSources(
+		[2]string{"catalog.sentrie", `namespace com/example/catalog
+shape Tags list[string]
+shape Item {
+  tags: Tags
+}
+shape Order {
+  item: Item
+}
+shape Base {
+  tags: Tags
+}
+export shape Order
+export shape Base
+`},
+		[2]string{"shop.sentrie", `namespace com/example/shop
+shape Tags string
+shape Item {
+  tags: string
+}
+shape Line with com/example/catalog/Base {
+  sku: string
+}
+policy cart {
+  fact order: com/example/catalog/Order as order
+  fact line: Line as line
+  rule viaChain = { yield filter(order.item.tags, (x) => { yield x }) }
+  rule viaWith = { yield filter(line.tags, (x) => { yield x }) }
+  export decision of viaChain
+  export decision of viaWith
+}
+`},
+	)
+	s.Require().NoError(err)
+}
