@@ -4,6 +4,8 @@
 package runtime
 
 import (
+	"strings"
+
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/trinary"
 )
@@ -344,12 +346,25 @@ export derive viaReturn
 		[2]string{"typedLet", `t/d/viaLet({ "b": 1 })`},
 		[2]string{"return", `t/d/viaReturn({ "b": 1 })`},
 	)
-	got := s.runDeriveShapeScopeRules([]deriveTestProgram{
-		{name: "d.sentrie", src: lib},
-		{name: "e.sentrie", src: caller},
-	}, "param", "cast", "typedLet", "return")
-	for rule, run := range got {
-		s.Require().Error(run.err, rule)
-		s.Contains(run.err.Error(), "Nope", rule)
+	ctx := s.T().Context()
+	idx := s.mustBuildDeriveIndex(ctx,
+		deriveTestProgram{name: "d.sentrie", src: lib},
+		deriveTestProgram{name: "e.sentrie", src: caller},
+	)
+
+	// The shape name check (#282) rejects all four names in the derive's
+	// scope before anything runs.
+	err := idx.Validate(ctx)
+	s.Require().Error(err)
+	s.Equal(4, strings.Count(err.Error(), "shape 'Nope' not found"), err.Error())
+
+	// An index that skipped validation still fails at run time rather than
+	// falling back to the caller's shape.
+	rawExec, err := NewExecutor(idx)
+	s.Require().NoError(err)
+	for _, rule := range []string{"param", "cast", "typedLet", "return"} {
+		_, err := rawExec.ExecRule(ctx, "t/e", "p", rule, nil)
+		s.Require().Error(err, rule)
+		s.Contains(err.Error(), "Nope", rule)
 	}
 }
