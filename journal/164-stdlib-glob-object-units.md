@@ -33,3 +33,11 @@
 - Suggestion taken: `object_get` with a null object returns the default even for an empty path (a present key holding null still returns null). Suggestion taken: commit queue folds registration into one builtins commit so each commit compiles. PR wording changed from "linear" to "no backtracking blow-up".
 - PR description Testing notes now record that lint ran (v2.4.0, 0 issues) and list the test agent's files; Review notes carry the document-kind change.
 - _Model: claude-sonnet-5-5, role: implementer subagent_
+
+### 2026-11-08 15:28 - Merge main and resolve conflicts
+- PR #268 conflicted with `main`. Local `main` was 19 commits behind origin (3301d9a to cc87665, #288 through #306), so it was fast-forwarded first, then merged into this branch (`5373d22`).
+- Only textual conflict: `index/builtin_check_test.go`. Both sides had appended tests to the end of the suite: this branch's four stdlib and document-fact tests, and `main`'s derive shape-scope tests from #276 and #293. Resolved by keeping `main`'s file and appending this branch's four functions unchanged; checked first that this branch's side was the base file plus exactly those four (51 test functions = 47 + 4).
+- Semantic conflict with #305 (dict element types are now checked): `TestStdlibBuiltinsEndToEnd/glob_derive` failed because `pure_get` declared `m: dict[number]` but was passed `{ "a": { "b": 1 } }`. The type was wrong all along and passed only because element types were unchecked. Fixed the test, not the check: the parameter is now `dict[dict[number]]` (`e9558fe`). The other `dict[number]` derives in `runtime/stdlib_builtins_derive_test.go` and the `dict[number]` fact in `lang_test/0051` hold flat numeric dicts and still pass.
+- No fixture number collision: `0051` is still unique in `lang_test/`.
+- Gate on the merged tree: `make test` (after the fix), `make lint` (0 issues), `make docs-graph`, gofmt, and `go test -race` on `builtins`, `index`, `cmd` all pass.
+- _Model: claude-opus-5-5_
