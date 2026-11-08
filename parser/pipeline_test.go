@@ -32,7 +32,7 @@ func (s *ParserTestSuite) TestPipelineExpressionLowering() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.NotNil(expr, "expression should parse: %s", tc.input)
 		s.Nil(parser.err, "expression should not produce parser error: %s", tc.input)
@@ -71,7 +71,7 @@ func (s *ParserTestSuite) TestPipelineExpressionMemoizationPreserved() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.NotNil(expr, "expression should parse: %s", tc.input)
 		s.Nil(parser.err, "expression should not produce parser error: %s", tc.input)
@@ -116,7 +116,7 @@ func (s *ParserTestSuite) TestPipelineExpressionInvalidTargets() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.Nil(expr, "expected parse failure for invalid pipeline target: %s", tc.input)
 		s.NotNil(parser.err, "expected parser error for: %s", tc.input)
@@ -127,7 +127,7 @@ func (s *ParserTestSuite) TestPipelineExpressionInvalidTargets() {
 }
 
 func (s *ParserTestSuite) TestHasIdentifierRoot() {
-	rng := tokens.BadRange("test.sentra")
+	rng := tokens.BadRange("test.sentrie")
 	s.True(hasIdentifierRoot(ast.NewIdentifier("f", rng)))
 	s.True(
 		hasIdentifierRoot(
@@ -156,7 +156,7 @@ func (s *ParserTestSuite) TestHasIdentifierRoot() {
 }
 
 func (s *ParserTestSuite) TestPipelineHoleHelpers() {
-	rng := tokens.BadRange("test.sentra")
+	rng := tokens.BadRange("test.sentrie")
 	replacement := ast.NewIdentifier("x", rng)
 
 	exprs := []struct {
@@ -268,11 +268,11 @@ func durationPtr(d time.Duration) *time.Duration {
 }
 
 func (s *ParserTestSuite) TestPrimaryLiteralParseErrors() {
-	rng := tokens.BadRange("test.sentra")
+	rng := tokens.BadRange("test.sentrie")
 
 	p := &Parser{
 		current: tokens.New(tokens.Int, "12x", rng),
-		next:    tokens.EofInstance("test.sentra", rng.To),
+		next:    tokens.EofInstance("test.sentrie", rng.To),
 	}
 	s.Nil(parseIntegerLiteral(s.T().Context(), p))
 	s.Error(p.err)
@@ -280,7 +280,7 @@ func (s *ParserTestSuite) TestPrimaryLiteralParseErrors() {
 
 	p = &Parser{
 		current: tokens.New(tokens.Float, "1.2.3", rng),
-		next:    tokens.EofInstance("test.sentra", rng.To),
+		next:    tokens.EofInstance("test.sentrie", rng.To),
 	}
 	s.Nil(parseFloatLiteral(s.T().Context(), p))
 	s.Error(p.err)
@@ -288,7 +288,7 @@ func (s *ParserTestSuite) TestPrimaryLiteralParseErrors() {
 
 	p = &Parser{
 		current: tokens.New(tokens.Int, "42", rng),
-		next:    tokens.EofInstance("test.sentra", rng.To),
+		next:    tokens.EofInstance("test.sentrie", rng.To),
 	}
 	s.Nil(parseNullLiteral(s.T().Context(), p))
 	s.Error(p.err)

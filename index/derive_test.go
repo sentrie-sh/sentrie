@@ -24,7 +24,7 @@ policy pol {
   export decision of allow
 }
 `
-	p := parser.NewParserFromString(src, "one.sentra")
+	p := parser.NewParserFromString(src, "one.sentrie")
 	prog, err := p.ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
@@ -50,7 +50,7 @@ policy pol {
   export decision of allow
 }
 `
-	p := parser.NewParserFromString(src, "cyc.sentra")
+	p := parser.NewParserFromString(src, "cyc.sentrie")
 	prog, err := p.ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
@@ -78,10 +78,10 @@ policy p2 {
   export decision of r
 }
 `
-	prog1, err := parser.NewParserFromString(src1, "a.sentra").ParseProgram(ctx)
+	prog1, err := parser.NewParserFromString(src1, "a.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog1))
-	prog2, err := parser.NewParserFromString(src2, "b.sentra").ParseProgram(ctx)
+	prog2, err := parser.NewParserFromString(src2, "b.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	err = idx.AddProgram(ctx, prog2)
 	require.Error(s.T(), err)
@@ -99,7 +99,7 @@ policy p {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "e.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "e.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	err = idx.AddProgram(ctx, prog)
 	require.Error(s.T(), err)
@@ -120,7 +120,7 @@ policy pol {
   export decision of allow
 }
 `
-	prog, err := parser.NewParserFromString(src, "fat.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "fat.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	require.NoError(s.T(), idx.Validate(ctx))
@@ -144,7 +144,7 @@ policy p {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "exp.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "exp.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	require.NoError(s.T(), idx.Validate(ctx))
@@ -165,7 +165,7 @@ policy pa {
   export decision of x
 }
 `
-	prog, err := parser.NewParserFromString(src, "a.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "a.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	require.NoError(s.T(), idx.Validate(ctx))
@@ -184,7 +184,7 @@ policy pol {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "mod.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "mod.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
@@ -204,7 +204,7 @@ policy pol {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "fact.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "fact.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
@@ -223,7 +223,7 @@ policy pol {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "lam.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "lam.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
@@ -245,7 +245,7 @@ policy pol {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "let.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "let.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	require.NoError(s.T(), idx.Validate(ctx))
@@ -262,7 +262,7 @@ policy pol {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "filt.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "filt.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	require.NoError(s.T(), idx.Validate(ctx))
@@ -280,7 +280,7 @@ policy pol {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "filt_derive_cb.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "filt_derive_cb.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	require.NoError(s.T(), idx.Validate(ctx))
@@ -305,10 +305,10 @@ policy pol2 {
   export decision of r2
 }
 `
-	p1, err := parser.NewParserFromString(srcCaller, "caller.sentra").ParseProgram(ctx)
+	p1, err := parser.NewParserFromString(srcCaller, "caller.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, p1))
-	p2, err := parser.NewParserFromString(srcHelper, "helper.sentra").ParseProgram(ctx)
+	p2, err := parser.NewParserFromString(srcHelper, "helper.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, p2))
 	err = idx.Validate(ctx)
@@ -334,10 +334,10 @@ policy pol {
   export decision of r
 }
 `
-	p1, err := parser.NewParserFromString(srcHelper, "h.sentra").ParseProgram(ctx)
+	p1, err := parser.NewParserFromString(srcHelper, "h.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, p1))
-	p2, err := parser.NewParserFromString(srcCaller, "c.sentra").ParseProgram(ctx)
+	p2, err := parser.NewParserFromString(srcCaller, "c.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, p2))
 	require.NoError(s.T(), idx.Validate(ctx))
@@ -354,7 +354,7 @@ policy pol {
   export decision of gate
 }
 `
-	p := parser.NewParserFromString(src, "slash.sentra")
+	p := parser.NewParserFromString(src, "slash.sentrie")
 	prog, err := p.ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
@@ -373,7 +373,7 @@ policy pol {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "bare.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "bare.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
@@ -392,7 +392,7 @@ policy pol {
   export decision of gate
 }
 `
-	prog, err := parser.NewParserFromString(src, "rule.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "rule.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
@@ -411,7 +411,7 @@ policy pol {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "unkid.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "unkid.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
@@ -433,7 +433,7 @@ policy pol {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "call.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "call.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
@@ -458,7 +458,7 @@ policy polB {
   export decision of rb
 }
 `
-	prog, err := parser.NewParserFromString(src, "crosspol.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "crosspol.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
@@ -478,7 +478,7 @@ policy polA {
   export decision of ra
 }
 `
-	prog, err := parser.NewParserFromString(src, "nspol.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "nspol.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	err = idx.Validate(ctx)
@@ -498,7 +498,7 @@ policy polA {
   export decision of gate
 }
 `
-	prog, err := parser.NewParserFromString(src, "samepol.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "samepol.sentrie").ParseProgram(ctx)
 	require.NoError(s.T(), err)
 	require.NoError(s.T(), idx.AddProgram(ctx, prog))
 	require.NoError(s.T(), idx.Validate(ctx))

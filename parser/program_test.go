@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License")
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package parser
 
@@ -32,7 +19,7 @@ func (s *ParserTestSuite) TestParseProgramBasic() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		program, err := parser.ParseProgram(s.T().Context())
 		s.NoError(err, "Expected no error for: %s", tc.input)
 		s.NotNil(program, "Expected program for: %s", tc.input)
@@ -56,7 +43,7 @@ policy admin {
 	rule validate = { yield x > 0 }
 }
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Expected no error for program with policies")
 	s.NotNil(program, "Expected program for program with policies")
@@ -81,7 +68,7 @@ shape User {
 }
 shape Person string
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Expected no error for program with shapes")
 	s.NotNil(program, "Expected program for program with shapes")
@@ -106,7 +93,7 @@ policy user {
 }
 export shape User
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Expected no error for program with exports")
 	s.NotNil(program, "Expected program for program with exports")
@@ -132,7 +119,7 @@ policy user {
 }
 -- Final comment
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Expected no error for program with comments")
 	s.NotNil(program, "Expected program for program with comments")
@@ -179,7 +166,7 @@ policy admin {
 -- Export shape
 export shape User
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Expected no error for complex program")
 	s.NotNil(program, "Expected program for complex program")
@@ -202,7 +189,7 @@ export shape User
 
 // TestParseProgramEmpty tests parsing empty programs
 func (s *ParserTestSuite) TestParseProgramEmpty() {
-	parser := NewParserFromString("", "test.sentra")
+	parser := NewParserFromString("", "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Expected no error for empty program")
 	s.Nil(program, "Expected nil program for empty input")
@@ -210,7 +197,7 @@ func (s *ParserTestSuite) TestParseProgramEmpty() {
 
 // TestParseProgramWhitespaceOnly tests parsing whitespace-only programs
 func (s *ParserTestSuite) TestParseProgramWhitespaceOnly() {
-	parser := NewParserFromString("   \n\t   ", "test.sentra")
+	parser := NewParserFromString("   \n\t   ", "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Expected no error for whitespace-only program")
 	s.Nil(program, "Expected nil program for whitespace-only input")
@@ -218,7 +205,7 @@ func (s *ParserTestSuite) TestParseProgramWhitespaceOnly() {
 
 // TestParseProgramCommentOnly tests parsing comment-only programs
 func (s *ParserTestSuite) TestParseProgramCommentOnly() {
-	parser := NewParserFromString("-- This is a comment", "test.sentra")
+	parser := NewParserFromString("-- This is a comment", "test.sentrie")
 	program, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Expected no error for comment-only program")
 	s.NotNil(program, "Expected program for comment-only input")
@@ -235,7 +222,7 @@ func (s *ParserTestSuite) TestParseProgramInvalidNamespace() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		program, err := parser.ParseProgram(s.T().Context())
 		s.Error(err, "Expected error for: %s", tc)
 		s.Nil(program, "Expected nil program for: %s", tc)
@@ -249,7 +236,7 @@ namespace com/example
 policy user { }
 namespace com/other
 `
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 	_, err := parser.ParseProgram(s.T().Context())
 	s.Error(err, "Expected error for multiple namespaces")
 }
@@ -270,7 +257,7 @@ func (s *ParserTestSuite) TestParseProgramEdgeCases() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		_, err := parser.ParseProgram(s.T().Context())
 
 		if tc.shouldError {

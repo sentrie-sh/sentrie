@@ -9,7 +9,7 @@ import (
 
 func (s *AstTestSuite) TestNullableTypeRefHelpersAndConstraintPropagation() {
 	r := tokens.Range{
-		File: "test.sentra",
+		File: "test.sentrie",
 		From: tokens.Pos{Line: 1, Column: 1, Offset: 0},
 		To:   tokens.Pos{Line: 1, Column: 6, Offset: 5},
 	}
@@ -25,12 +25,12 @@ func (s *AstTestSuite) TestNullableTypeRefHelpersAndConstraintPropagation() {
 
 func (s *AstTestSuite) TestNullableTypeRefAddConstraintUpdatesOuterSpan() {
 	r := tokens.Range{
-		File: "test.sentra",
+		File: "test.sentrie",
 		From: tokens.Pos{Line: 1, Column: 1, Offset: 0},
 		To:   tokens.Pos{Line: 1, Column: 6, Offset: 5},
 	}
 	constraintRange := tokens.Range{
-		File: "test.sentra",
+		File: "test.sentrie",
 		From: tokens.Pos{Line: 1, Column: 8, Offset: 7},
 		To:   tokens.Pos{Line: 1, Column: 20, Offset: 19},
 	}
@@ -45,7 +45,7 @@ func (s *AstTestSuite) TestNullableTypeRefAddConstraintUpdatesOuterSpan() {
 
 func (s *AstTestSuite) TestNullableTypeRefAddConstraintPropagatesInnerError() {
 	r := tokens.Range{
-		File: "test.sentra",
+		File: "test.sentrie",
 		From: tokens.Pos{Line: 1, Column: 1, Offset: 0},
 		To:   tokens.Pos{Line: 1, Column: 6, Offset: 5},
 	}

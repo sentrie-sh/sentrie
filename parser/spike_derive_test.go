@@ -15,7 +15,7 @@ import (
 func TestSlashCalleeVsDivisionSpike(t *testing.T) {
 	ctx := t.Context()
 
-	div := NewParserFromString(`namespace n; policy p { export decision of r; rule r = { yield a / b } }`, "t.sentra")
+	div := NewParserFromString(`namespace n; policy p { export decision of r; rule r = { yield a / b } }`, "t.sentrie")
 	prog, err := div.ParseProgram(ctx)
 	require.NoError(t, err)
 	pol := prog.Statements[1].(*ast.PolicyStatement)
@@ -25,7 +25,7 @@ func TestSlashCalleeVsDivisionSpike(t *testing.T) {
 	require.True(t, ok, "a / b should be infix division")
 	require.Equal(t, "/", infix.Operator)
 
-	call := NewParserFromString(`namespace n; policy p { export decision of r; rule r = { yield com/example/ns/name(x) } }`, "t2.sentra")
+	call := NewParserFromString(`namespace n; policy p { export decision of r; rule r = { yield com/example/ns/name(x) } }`, "t2.sentrie")
 	prog2, err := call.ParseProgram(ctx)
 	require.NoError(t, err)
 	pol2 := prog2.Statements[1].(*ast.PolicyStatement)
@@ -39,7 +39,7 @@ func TestSlashCalleeVsDivisionSpike(t *testing.T) {
 
 func TestTypedLambdaParamSpike(t *testing.T) {
 	ctx := t.Context()
-	p := NewParserFromString(`namespace n; policy p { export decision of r; rule r = { yield (a: number, b?: string) => { yield 1 } } }`, "tl.sentra")
+	p := NewParserFromString(`namespace n; policy p { export decision of r; rule r = { yield (a: number, b?: string) => { yield 1 } } }`, "tl.sentrie")
 	prog, err := p.ParseProgram(ctx)
 	require.NoError(t, err)
 	pol := prog.Statements[1].(*ast.PolicyStatement)

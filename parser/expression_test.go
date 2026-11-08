@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package parser
 
@@ -24,7 +11,7 @@ import (
 // TestParseExpressionIdentifier tests parsing identifier expressions
 func (s *ParserTestSuite) TestParseExpressionIdentifier() {
 	input := `x`
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 
 	expr := parser.parseExpression(s.T().Context(), LOWEST)
 	s.NotNil(expr)
@@ -37,7 +24,7 @@ func (s *ParserTestSuite) TestParseExpressionIdentifier() {
 // TestParseExpressionStringLiteral tests parsing string literal expressions
 func (s *ParserTestSuite) TestParseExpressionStringLiteral() {
 	input := `"hello world"`
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 
 	expr := parser.parseExpression(s.T().Context(), LOWEST)
 	s.NotNil(expr)
@@ -50,7 +37,7 @@ func (s *ParserTestSuite) TestParseExpressionStringLiteral() {
 // TestParseExpressionIntegerLiteral tests parsing integer literal expressions
 func (s *ParserTestSuite) TestParseExpressionIntegerLiteral() {
 	input := `42`
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 
 	expr := parser.parseExpression(s.T().Context(), LOWEST)
 	s.NotNil(expr)
@@ -63,7 +50,7 @@ func (s *ParserTestSuite) TestParseExpressionIntegerLiteral() {
 // TestParseExpressionFloatLiteral tests parsing float literal expressions
 func (s *ParserTestSuite) TestParseExpressionFloatLiteral() {
 	input := `3.14`
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 
 	expr := parser.parseExpression(s.T().Context(), LOWEST)
 	s.NotNil(expr)
@@ -85,7 +72,7 @@ func (s *ParserTestSuite) TestParseExpressionBooleanLiteral() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.NotNil(expr)
 
@@ -111,7 +98,7 @@ func (s *ParserTestSuite) TestParseExpressionTrinaryLiteral() {
 	testCases := []string{"true", "false", "unknown"}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.NotNil(expr)
 
@@ -131,7 +118,7 @@ func (s *ParserTestSuite) TestParseExpressionTrinaryLiteral() {
 // TestParseExpressionNullLiteral tests parsing null literal expressions
 func (s *ParserTestSuite) TestParseExpressionNullLiteral() {
 	input := `null`
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 
 	expr := parser.parseExpression(s.T().Context(), LOWEST)
 	s.NotNil(expr)
@@ -164,7 +151,7 @@ func (s *ParserTestSuite) TestParseExpressionInfixExpression() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.NotNil(expr, "Failed to parse: %s", tc.input)
 
@@ -188,7 +175,7 @@ func (s *ParserTestSuite) TestParseExpressionUnaryExpression() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.NotNil(expr, "Failed to parse: %s", tc.input)
 
@@ -202,7 +189,7 @@ func (s *ParserTestSuite) TestParseExpressionUnaryExpression() {
 // TestParseExpressionGroupedExpression tests parsing grouped expressions
 func (s *ParserTestSuite) TestParseExpressionGroupedExpression() {
 	input := `(1 + 2) * 3`
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 
 	expr := parser.parseExpression(s.T().Context(), LOWEST)
 	s.NotNil(expr)
@@ -220,7 +207,7 @@ func (s *ParserTestSuite) TestParseExpressionGroupedExpression() {
 // TestParseExpressionTernaryExpression tests parsing ternary expressions
 func (s *ParserTestSuite) TestParseExpressionTernaryExpression() {
 	input := `true ? "yes" : "no"`
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 
 	expr := parser.parseExpression(s.T().Context(), LOWEST)
 	s.NotNil(expr)
@@ -245,7 +232,7 @@ func (s *ParserTestSuite) TestParseExpressionListLiteral() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.NotNil(expr, "Failed to parse: %s", tc.input)
 
@@ -267,7 +254,7 @@ func (s *ParserTestSuite) TestParseExpressionMapLiteral() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.NotNil(expr, "Failed to parse: %s", tc.input)
 
@@ -280,7 +267,7 @@ func (s *ParserTestSuite) TestParseExpressionMapLiteral() {
 // TestParseExpressionCallExpression tests parsing call expressions
 func (s *ParserTestSuite) TestParseExpressionCallExpression() {
 	input := `myFunction(arg1, arg2)`
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 
 	expr := parser.parseExpression(s.T().Context(), LOWEST)
 	s.NotNil(expr)
@@ -304,7 +291,7 @@ func (s *ParserTestSuite) TestParseExpressionIndexExpression() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.NotNil(expr, "Failed to parse: %s", tc.input)
 
@@ -335,7 +322,7 @@ func (s *ParserTestSuite) TestParseExpressionPrecedence() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.NotNil(expr, "Failed to parse: %s", tc.input)
 
@@ -349,7 +336,7 @@ func (s *ParserTestSuite) TestParseExpressionPrecedence() {
 func (s *ParserTestSuite) TestParseExpressionWithComments() {
 	input := `-- comment before
 x + y -- comment after`
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 
 	expr := parser.parseExpression(s.T().Context(), LOWEST)
 	s.NotNil(expr)
@@ -361,7 +348,7 @@ x + y -- comment after`
 // TestParseExpressionInvalidToken tests parsing with invalid tokens
 func (s *ParserTestSuite) TestParseExpressionInvalidToken() {
 	input := `@#$%`
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 
 	expr := parser.parseExpression(s.T().Context(), LOWEST)
 	s.Nil(expr)
@@ -371,7 +358,7 @@ func (s *ParserTestSuite) TestParseExpressionInvalidToken() {
 // TestParseExpressionEmptyInput tests parsing empty input
 func (s *ParserTestSuite) TestParseExpressionEmptyInput() {
 	input := ``
-	parser := NewParserFromString(input, "test.sentra")
+	parser := NewParserFromString(input, "test.sentrie")
 
 	expr := parser.parseExpression(s.T().Context(), LOWEST)
 	s.Nil(expr)
@@ -393,7 +380,7 @@ func (s *ParserTestSuite) TestParseExpressionUnaryOperators() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.NotNil(expr, "Failed to parse: %s", tc.input)
 
@@ -429,7 +416,7 @@ func (s *ParserTestSuite) TestParseExpressionBinaryOperators() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.NotNil(expr, "Failed to parse: %s", tc.input)
 
@@ -455,7 +442,7 @@ func (s *ParserTestSuite) TestParseExpressionFieldAccess() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.NotNil(expr, "Failed to parse: %s", tc.input)
 
@@ -483,7 +470,7 @@ func (s *ParserTestSuite) TestParseExpressionComplexNested() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 		s.NotNil(expr, "Failed to parse: %s", tc.input)
 		s.Equal(tc.expected, expr.String(), "String representation mismatch for: %s", tc.input)
@@ -517,7 +504,7 @@ func (s *ParserTestSuite) TestParseExpressionEdgeCases() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		expr := parser.parseExpression(s.T().Context(), LOWEST)
 
 		if tc.shouldParse {

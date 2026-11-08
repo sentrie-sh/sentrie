@@ -8,17 +8,17 @@ import (
 )
 
 func (s *ParserTestSuite) TestParseTypeRefConstraintErrorBranches() {
-	noAt := NewParserFromString("minlength(1)", "test.sentra")
+	noAt := NewParserFromString("minlength(1)", "test.sentrie")
 	constraint := parseTypeRefConstraint(s.T().Context(), noAt, nil)
 	s.Nil(constraint)
 	s.Error(noAt.err)
 
-	missingName := NewParserFromString("@(1)", "test.sentra")
+	missingName := NewParserFromString("@(1)", "test.sentrie")
 	constraint = parseTypeRefConstraint(s.T().Context(), missingName, nil)
 	s.Nil(constraint)
 	s.Error(missingName.err)
 
-	missingArgs := NewParserFromString("@minlength()", "test.sentra")
+	missingArgs := NewParserFromString("@minlength()", "test.sentrie")
 	constraint = parseTypeRefConstraint(s.T().Context(), missingArgs, nil)
 	s.NotNil(constraint)
 	s.Equal("minlength", constraint.Name)
@@ -26,12 +26,12 @@ func (s *ParserTestSuite) TestParseTypeRefConstraintErrorBranches() {
 }
 
 func (s *ParserTestSuite) TestParseTypeRefConstraintAdditionalErrorBranches() {
-	missingParen := NewParserFromString("@minlength", "test.sentra")
+	missingParen := NewParserFromString("@minlength", "test.sentrie")
 	constraint := parseTypeRefConstraint(s.T().Context(), missingParen, nil)
 	s.Nil(constraint)
 	s.Error(missingParen.err)
 
-	nonLiteralArg := NewParserFromString("@minlength(user.name)", "test.sentra")
+	nonLiteralArg := NewParserFromString("@minlength(user.name)", "test.sentrie")
 	constraint = parseTypeRefConstraint(s.T().Context(), nonLiteralArg, nil)
 	s.Nil(constraint)
 	s.Error(nonLiteralArg.err)
@@ -75,7 +75,7 @@ func (s *ParserTestSuite) TestParseTypeRefDirectKindCoverage() {
 	}
 
 	for _, tc := range cases {
-		p := NewParserFromString(tc.input, "test.sentra")
+		p := NewParserFromString(tc.input, "test.sentrie")
 		ref := parseTypeRef(s.T().Context(), p)
 		s.Require().NoError(p.err)
 		s.Require().NotNil(ref)
@@ -84,17 +84,17 @@ func (s *ParserTestSuite) TestParseTypeRefDirectKindCoverage() {
 }
 
 func (s *ParserTestSuite) TestParseTypeRefDirectCollectionErrorBranches() {
-	listOnly := NewParserFromString("list", "test.sentra")
+	listOnly := NewParserFromString("list", "test.sentrie")
 	listRef := parseTypeRef(s.T().Context(), listOnly)
 	s.Nil(listRef)
 	s.Error(listOnly.err)
 
-	dictOnly := NewParserFromString("dict", "test.sentra")
+	dictOnly := NewParserFromString("dict", "test.sentrie")
 	dictRef := parseTypeRef(s.T().Context(), dictOnly)
 	s.Nil(dictRef)
 	s.Error(dictOnly.err)
 
-	recordOnly := NewParserFromString("record", "test.sentra")
+	recordOnly := NewParserFromString("record", "test.sentrie")
 	recordRef := parseTypeRef(s.T().Context(), recordOnly)
 	s.Nil(recordRef)
 	s.Error(recordOnly.err)

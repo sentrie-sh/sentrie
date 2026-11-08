@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
@@ -26,7 +13,7 @@ import (
 )
 
 func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
-	typeRef := ast.NewDocumentTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+	typeRef := ast.NewDocumentTypeRef(tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 
 	r.Run("should return an error if the value is a string", func() {
 		// Create a mock execution context and executor
@@ -35,7 +22,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 		p := &index.Policy{}
 
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny("not a document"), typeRef, mockExpr.Span())
 
 		r.Error(err)
@@ -49,7 +36,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 		p := &index.Policy{}
 
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(int64(123)), typeRef, mockExpr.Span())
 
 		r.Error(err)
@@ -63,7 +50,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 		p := &index.Policy{}
 
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(float64(123.45)), typeRef, mockExpr.Span())
 
 		r.Error(err)
@@ -77,7 +64,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 		p := &index.Policy{}
 
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(true), typeRef, mockExpr.Span())
 
 		r.Error(err)
@@ -91,7 +78,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 		p := &index.Policy{}
 
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny([]interface{}{"item1", "item2"}), typeRef, mockExpr.Span())
 
 		r.Error(err)
@@ -105,7 +92,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 		p := &index.Policy{}
 
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(nil), typeRef, mockExpr.Span())
 
 		r.Error(err)
@@ -119,7 +106,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 		p := &index.Policy{}
 
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(map[string]interface{}{}), typeRef, mockExpr.Span())
 
 		r.NoError(err)
@@ -132,7 +119,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 		p := &index.Policy{}
 
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		doc := map[string]interface{}{
 			"name":  "John Doe",
 			"email": "john@example.com",
@@ -150,7 +137,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 		p := &index.Policy{}
 
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		doc := map[string]interface{}{
 			"name":    "John Doe",
 			"age":     int64(30),
@@ -171,7 +158,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 		p := &index.Policy{}
 
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		doc := map[string]interface{}{
 			"user": map[string]interface{}{
 				"name": "John Doe",
@@ -197,7 +184,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 		p := &index.Policy{}
 
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		doc := map[string]interface{}{
 			"items":   []interface{}{"item1", "item2", "item3"},
 			"numbers": []interface{}{int64(1), int64(2), int64(3)},
@@ -210,7 +197,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRef() {
 }
 
 func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefEdgeCases() {
-	typeRef := ast.NewDocumentTypeRef(tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+	typeRef := ast.NewDocumentTypeRef(tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 
 	r.Run("should return an error if the value is a map with non-string keys", func() {
 		// Create a mock execution context and executor
@@ -219,7 +206,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefEdgeCases() {
 		p := &index.Policy{}
 
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		err := validateAgainstDocumentTypeRef(r.T().Context(), ec, exec, p, box.FromAny(map[int]interface{}{1: "value"}), typeRef, mockExpr.Span())
 
 		r.Error(err)
@@ -233,7 +220,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefEdgeCases() {
 		p := &index.Policy{}
 
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		doc := map[string]interface{}{
 			"":        "empty key",
 			"normal":  "normal key",
@@ -251,7 +238,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefEdgeCases() {
 		p := &index.Policy{}
 
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		doc := map[string]interface{}{
 			"key-with-dash":       "value1",
 			"key_with_underscore": "value2",
@@ -270,7 +257,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefEdgeCases() {
 		p := &index.Policy{}
 
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		doc := map[string]interface{}{
 			"姓名":    "张三",
 			"email": "zhang@example.com",
@@ -289,7 +276,7 @@ func (r *RuntimeTestSuite) TestValidateAgainstDocumentTypeRefEdgeCases() {
 		p := &index.Policy{}
 
 		// Create a mock expression for the test
-		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
+		mockExpr := ast.NewIdentifier("test", tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}})
 		doc := func() map[string]interface{} {
 			doc := make(map[string]interface{})
 			for i := 0; i < 1000; i++ {

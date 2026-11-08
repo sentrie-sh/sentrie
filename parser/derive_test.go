@@ -23,7 +23,7 @@ policy pol {
   rule allow = { yield dup(2) == 4 }
 }
 `
-	p := NewParserFromString(src, "d.sentra")
+	p := NewParserFromString(src, "d.sentrie")
 	prog, err := p.ParseProgram(ctx)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(prog.Statements), 4)
@@ -38,7 +38,7 @@ func TestParseDeriveRequiresLambda(t *testing.T) {
 	p := NewParserFromString(`namespace com/x
 derive bad = 1
 policy p { export decision of r; rule r = { yield true } }
-`, "bad.sentra")
+`, "bad.sentrie")
 	_, err := p.ParseProgram(ctx)
 	require.Error(t, err)
 }
@@ -48,7 +48,7 @@ func TestParseDeriveMissingAssignErrors(t *testing.T) {
 	_, err := NewParserFromString(`namespace com/x
 derive bad (n: number): number => { yield n }
 policy p { export decision of r; rule r = { yield true } }
-`, "noassign.sentra").ParseProgram(ctx)
+`, "noassign.sentrie").ParseProgram(ctx)
 	require.Error(t, err)
 }
 
@@ -60,7 +60,7 @@ policy p {
   export decision of r
   rule r = { yield _s ?: 1 == 1 }
 }
-`, "elvis.sentra").ParseProgram(ctx)
+`, "elvis.sentrie").ParseProgram(ctx)
 	require.NoError(t, err)
 }
 
@@ -72,7 +72,7 @@ policy p {
   export decision of r
   rule r = { yield true ? 1 : 0 == 0 }
 }
-`, "ternary.sentra").ParseProgram(ctx)
+`, "ternary.sentrie").ParseProgram(ctx)
 	require.NoError(t, err)
 }
 
@@ -83,7 +83,7 @@ policy p {
   export decision of r
   rule r = { yield (a?: number, b: number) => { yield 1 } }
 }
-`, "opt.sentra")
+`, "opt.sentrie")
 	_, err := p.ParseProgram(ctx)
 	require.Error(t, err)
 }

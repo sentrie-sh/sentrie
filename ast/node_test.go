@@ -11,7 +11,7 @@ import (
 func (s *AstTestSuite) TestNodeInterface() {
 	// Test that all node types implement the Node interface
 	r := tokens.Range{
-		File: "test.sentra",
+		File: "test.sentrie",
 		From: tokens.Pos{Line: 1, Column: 1, Offset: 0},
 		To:   tokens.Pos{Line: 1, Column: 4, Offset: 3},
 	}
@@ -39,7 +39,7 @@ func (s *AstTestSuite) TestCodeableInterface() {
 func (s *AstTestSuite) TestStatementInterface() {
 	// Test that all statement types implement the Statement interface
 	r := tokens.Range{
-		File: "test.sentra",
+		File: "test.sentrie",
 		From: tokens.Pos{Line: 1, Column: 1, Offset: 0},
 		To:   tokens.Pos{Line: 1, Column: 4, Offset: 3},
 	}
@@ -81,7 +81,7 @@ func (s *AstTestSuite) TestStatementInterface() {
 func (s *AstTestSuite) TestExpressionInterface() {
 	// Test that all expression types implement the Expression interface
 	r := tokens.Range{
-		File: "test.sentra",
+		File: "test.sentrie",
 		From: tokens.Pos{Line: 1, Column: 1, Offset: 0},
 		To:   tokens.Pos{Line: 1, Column: 4, Offset: 3},
 	}
@@ -112,10 +112,10 @@ func (s *AstTestSuite) TestExpressionInterface() {
 func (s *AstTestSuite) TestNodePositioning() {
 	// Test various range values
 	testRanges := []tokens.Range{
-		{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 4, Offset: 3}},
-		{File: "test.sentra", From: tokens.Pos{Line: 10, Column: 5, Offset: 0}, To: tokens.Pos{Line: 10, Column: 8, Offset: 3}},
-		{File: "test.sentra", From: tokens.Pos{Line: 100, Column: 50, Offset: 0}, To: tokens.Pos{Line: 100, Column: 53, Offset: 3}},
-		{File: "test.sentra", From: tokens.Pos{Line: 0, Column: 0, Offset: 0}, To: tokens.Pos{Line: 0, Column: 3, Offset: 3}}, // Edge case
+		{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 4, Offset: 3}},
+		{File: "test.sentrie", From: tokens.Pos{Line: 10, Column: 5, Offset: 0}, To: tokens.Pos{Line: 10, Column: 8, Offset: 3}},
+		{File: "test.sentrie", From: tokens.Pos{Line: 100, Column: 50, Offset: 0}, To: tokens.Pos{Line: 100, Column: 53, Offset: 3}},
+		{File: "test.sentrie", From: tokens.Pos{Line: 0, Column: 0, Offset: 0}, To: tokens.Pos{Line: 0, Column: 3, Offset: 3}}, // Edge case
 	}
 
 	for _, r := range testRanges {
@@ -130,7 +130,7 @@ func (s *AstTestSuite) TestNodePositioning() {
 // TestNodeStringRepresentation tests string representation of nodes
 func (s *AstTestSuite) TestNodeStringRepresentation() {
 	r := tokens.Range{
-		File: "test.sentra",
+		File: "test.sentrie",
 		From: tokens.Pos{Line: 1, Column: 1, Offset: 0},
 		To:   tokens.Pos{Line: 1, Column: 4, Offset: 3},
 	}
@@ -153,7 +153,7 @@ func (s *AstTestSuite) TestNodeStringRepresentation() {
 
 func (s *AstTestSuite) TestDictTypeRefStringAndKind() {
 	r := tokens.Range{
-		File: "test.sentra",
+		File: "test.sentrie",
 		From: tokens.Pos{Line: 1, Column: 1, Offset: 0},
 		To:   tokens.Pos{Line: 1, Column: 12, Offset: 11},
 	}

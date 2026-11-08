@@ -12,35 +12,35 @@ import (
 func TestParseTypedLambdaReturnTypeAndEmptyParams(t *testing.T) {
 	ctx := t.Context()
 	src := `namespace n; policy p { export decision of r; rule r = { yield (): number => { yield 1 } } }`
-	_, err := NewParserFromString(src, "tl1.sentra").ParseProgram(ctx)
+	_, err := NewParserFromString(src, "tl1.sentrie").ParseProgram(ctx)
 	require.NoError(t, err)
 }
 
 func TestParseTypedLambdaMalformedParamListErrors(t *testing.T) {
 	ctx := t.Context()
 	src := `namespace n; policy p { export decision of r; rule r = { yield (a number) => { yield 1 } } }`
-	_, err := NewParserFromString(src, "tl2.sentra").ParseProgram(ctx)
+	_, err := NewParserFromString(src, "tl2.sentrie").ParseProgram(ctx)
 	require.Error(t, err)
 }
 
 func TestParseTypedLambdaMissingRParenErrors(t *testing.T) {
 	ctx := t.Context()
 	src := `namespace n; policy p { export decision of r; rule r = { yield (a: number => { yield 1 } } }`
-	_, err := NewParserFromString(src, "tl3.sentra").ParseProgram(ctx)
+	_, err := NewParserFromString(src, "tl3.sentrie").ParseProgram(ctx)
 	require.Error(t, err)
 }
 
 func TestParseTypedLambdaOptionalBeforeRequiredRejected(t *testing.T) {
 	ctx := t.Context()
 	src := `namespace n; policy p { export decision of r; rule r = { yield (a?, b: number) => { yield 1 } } }`
-	_, err := NewParserFromString(src, "tl4.sentra").ParseProgram(ctx)
+	_, err := NewParserFromString(src, "tl4.sentrie").ParseProgram(ctx)
 	require.Error(t, err)
 }
 
 func TestParseTypedLambdaRequiredAfterOptionalRejected(t *testing.T) {
 	ctx := t.Context()
 	src := `namespace n; policy p { export decision of r; rule r = { yield (a?: number, b: number) => { yield 1 } } }`
-	_, err := NewParserFromString(src, "tl_req_after_opt.sentra").ParseProgram(ctx)
+	_, err := NewParserFromString(src, "tl_req_after_opt.sentrie").ParseProgram(ctx)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "required lambda parameter")
 }
@@ -48,7 +48,7 @@ func TestParseTypedLambdaRequiredAfterOptionalRejected(t *testing.T) {
 func TestParseTypedLambdaUntypedOptionalParam(t *testing.T) {
 	ctx := t.Context()
 	src := `namespace n; policy p { export decision of r; rule r = { yield (a: number, b?: number): number => { yield a } } }`
-	_, err := NewParserFromString(src, "tl_opt.sentra").ParseProgram(ctx)
+	_, err := NewParserFromString(src, "tl_opt.sentrie").ParseProgram(ctx)
 	require.NoError(t, err)
 }
 
@@ -60,19 +60,19 @@ policy p {
   export decision of r
   rule r = { yield _s ?: }
 }
-`, "elvis_bad.sentra").ParseProgram(ctx)
+`, "elvis_bad.sentrie").ParseProgram(ctx)
 	require.Error(t, err)
 }
 
 func TestParseTypedLambdaInvalidParamTokenErrors(t *testing.T) {
 	ctx := t.Context()
-	_, err := NewParserFromString(`namespace n; policy p { export decision of r; rule r = { yield (1: number) => { yield 1 } } }`, "tl_bad_param.sentra").ParseProgram(ctx)
+	_, err := NewParserFromString(`namespace n; policy p { export decision of r; rule r = { yield (1: number) => { yield 1 } } }`, "tl_bad_param.sentrie").ParseProgram(ctx)
 	require.Error(t, err)
 }
 
 func TestParseTypedLambdaNonBlockBodyErrors(t *testing.T) {
 	ctx := t.Context()
-	_, err := NewParserFromString(`namespace n; policy p { export decision of r; rule r = { yield (a: number): number => a } }`, "tl_not_block.sentra").ParseProgram(ctx)
+	_, err := NewParserFromString(`namespace n; policy p { export decision of r; rule r = { yield (a: number): number => a } }`, "tl_not_block.sentrie").ParseProgram(ctx)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "lambda body must be a block")
 }
@@ -80,14 +80,14 @@ func TestParseTypedLambdaNonBlockBodyErrors(t *testing.T) {
 func TestParseTypedLambdaMissingReturnTypeAfterColonErrors(t *testing.T) {
 	ctx := t.Context()
 	src := `namespace n; policy p { export decision of r; rule r = { yield (a: number): => { yield 1 } } }`
-	_, err := NewParserFromString(src, "tl_bad_ret.sentra").ParseProgram(ctx)
+	_, err := NewParserFromString(src, "tl_bad_ret.sentrie").ParseProgram(ctx)
 	require.Error(t, err)
 }
 
 func TestParseTypedLambdaMissingFatArrowErrors(t *testing.T) {
 	ctx := t.Context()
 	src := `namespace n; policy p { export decision of r; rule r = { yield (a: number): number { yield 1 } } }`
-	_, err := NewParserFromString(src, "tl_no_arrow.sentra").ParseProgram(ctx)
+	_, err := NewParserFromString(src, "tl_no_arrow.sentrie").ParseProgram(ctx)
 	require.Error(t, err)
 }
 
@@ -126,7 +126,7 @@ policy p {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := NewParserFromString(tc.src, tc.name+".sentra").ParseProgram(ctx)
+			_, err := NewParserFromString(tc.src, tc.name+".sentrie").ParseProgram(ctx)
 			require.Error(t, err)
 			require.Contains(t, err.Error(), "duplicate lambda parameter")
 		})

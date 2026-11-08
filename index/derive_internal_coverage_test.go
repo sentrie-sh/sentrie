@@ -336,7 +336,7 @@ policy pol {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "cyc_cancel.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "cyc_cancel.sentrie").ParseProgram(ctx)
 	s.Require().NoError(err)
 	s.Require().NoError(idx.AddProgram(ctx, prog))
 	vctx, cancel := context.WithCancel(ctx)
@@ -357,7 +357,7 @@ policy p {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "dup_shape.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "dup_shape.sentrie").ParseProgram(ctx)
 	s.Require().NoError(err)
 	err = idx.AddProgram(ctx, prog)
 	s.Error(err)
@@ -375,7 +375,7 @@ policy pol {
   export decision of ternary
 }
 `
-	prog, err := parser.NewParserFromString(src, "elvis_rule.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "elvis_rule.sentrie").ParseProgram(ctx)
 	s.Require().NoError(err)
 	s.Require().NoError(idx.AddProgram(ctx, prog))
 	s.Require().NoError(idx.Validate(ctx))
@@ -454,7 +454,7 @@ policy p {
   rule r = { yield true }
   export decision of r
 }
-`, "exp_conflict.sentra").ParseProgram(ctx)
+`, "exp_conflict.sentrie").ParseProgram(ctx)
 	s.Require().NoError(err)
 	err = idx.AddProgram(ctx, prog)
 	s.Require().NoError(err)
@@ -465,7 +465,7 @@ policy p2 {
   rule r2 = { yield true }
   export decision of r2
 }
-`, "exp_conflict2.sentra").ParseProgram(ctx)
+`, "exp_conflict2.sentrie").ParseProgram(ctx)
 	s.Require().NoError(err)
 	err = idx.AddProgram(ctx, prog2)
 	s.Error(err)
@@ -530,7 +530,7 @@ policy p {
   rule r = { yield true }
   export decision of r
 }
-`, "base.sentra").ParseProgram(ctx)
+`, "base.sentrie").ParseProgram(ctx)
 	s.Require().NoError(err)
 	r := deriveCovRng(18)
 	stmts := make([]ast.Statement, 0, len(base.Statements)+1)
@@ -663,7 +663,7 @@ policy pol {
   export decision of r
 }
 `
-	prog, err := parser.NewParserFromString(src, "dup_edge.sentra").ParseProgram(ctx)
+	prog, err := parser.NewParserFromString(src, "dup_edge.sentrie").ParseProgram(ctx)
 	s.Require().NoError(err)
 	s.Require().NoError(idx.AddProgram(ctx, prog))
 	s.Require().NoError(idx.Validate(ctx))

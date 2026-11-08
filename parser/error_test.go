@@ -5,21 +5,21 @@ package parser
 
 // TestParseErrorEmptyInput tests parsing empty input
 func (s *ParserTestSuite) TestParseErrorEmptyInput() {
-	parser := NewParserFromString("", "test.sentra")
+	parser := NewParserFromString("", "test.sentrie")
 	_, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Empty input should not error")
 }
 
 // TestParseErrorWhitespaceOnly tests parsing whitespace-only input
 func (s *ParserTestSuite) TestParseErrorWhitespaceOnly() {
-	parser := NewParserFromString("   \n\t   ", "test.sentra")
+	parser := NewParserFromString("   \n\t   ", "test.sentrie")
 	_, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Whitespace-only input should not error")
 }
 
 // TestParseErrorCommentOnly tests parsing comment-only input
 func (s *ParserTestSuite) TestParseErrorCommentOnly() {
-	parser := NewParserFromString("-- This is a comment", "test.sentra")
+	parser := NewParserFromString("-- This is a comment", "test.sentrie")
 	_, err := parser.ParseProgram(s.T().Context())
 	s.NoError(err, "Comment-only input should not error")
 }
@@ -36,7 +36,7 @@ func (s *ParserTestSuite) TestParseErrorUnexpectedTokens() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		_, err := parser.ParseProgram(s.T().Context())
 		s.Error(err, "Expected error for: %s", tc)
 	}
@@ -61,7 +61,7 @@ func (s *ParserTestSuite) TestParseErrorIncompleteStatement() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		_, err := parser.ParseProgram(s.T().Context())
 		s.Error(err, "Expected error for: %s", tc.input)
 		s.Contains(err.Error(), tc.expected, "Error message should contain: %s", tc.expected)
@@ -80,7 +80,7 @@ func (s *ParserTestSuite) TestParseErrorMismatchedBrackets() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		_, err := parser.ParseProgram(s.T().Context())
 		s.Error(err, "Expected error for mismatched brackets: %s", tc)
 	}
@@ -98,7 +98,7 @@ func (s *ParserTestSuite) TestParseErrorInvalidIdentifiers() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		_, err := parser.ParseProgram(s.T().Context())
 		s.Error(err, "Expected error for invalid identifier: %s", tc)
 	}
@@ -116,7 +116,7 @@ func (s *ParserTestSuite) TestParseErrorInvalidExpressions() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		_, err := parser.ParseProgram(s.T().Context())
 		s.Error(err, "Expected error for invalid expression: %s", tc)
 	}
@@ -132,7 +132,7 @@ func (s *ParserTestSuite) TestParseErrorInvalidTypes() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		_, err := parser.ParseProgram(s.T().Context())
 		s.Error(err, "Expected error for invalid type: %s", tc)
 	}
@@ -148,7 +148,7 @@ func (s *ParserTestSuite) TestParseErrorInvalidLiterals() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		_, err := parser.ParseProgram(s.T().Context())
 		s.Error(err, "Expected error for invalid literal: %s", tc)
 	}
@@ -167,7 +167,7 @@ func (s *ParserTestSuite) TestParseErrorInvalidOperators() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		_, err := parser.ParseProgram(s.T().Context())
 		s.Error(err, "Expected error for invalid operator: %s", tc)
 	}
@@ -183,7 +183,7 @@ func (s *ParserTestSuite) TestParseErrorInvalidKeywords() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		_, err := parser.ParseProgram(s.T().Context())
 		s.Error(err, "Expected error for invalid keyword: %s", tc)
 	}
@@ -199,7 +199,7 @@ func (s *ParserTestSuite) TestParseErrorInvalidSyntax() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc, "test.sentra")
+		parser := NewParserFromString(tc, "test.sentrie")
 		_, err := parser.ParseProgram(s.T().Context())
 		s.Error(err, "Expected error for invalid syntax: %s", tc)
 	}
@@ -225,7 +225,7 @@ func (s *ParserTestSuite) TestParseErrorEdgeCases() {
 	}
 
 	for _, tc := range testCases {
-		parser := NewParserFromString(tc.input, "test.sentra")
+		parser := NewParserFromString(tc.input, "test.sentrie")
 		_, err := parser.ParseProgram(s.T().Context())
 
 		if tc.shouldError {

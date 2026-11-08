@@ -17,7 +17,7 @@ import (
 )
 
 func stubRange() tokens.Range {
-	return tokens.Range{File: "test.sentra", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}
+	return tokens.Range{File: "test.sentrie", From: tokens.Pos{Line: 1, Column: 1, Offset: 0}, To: tokens.Pos{Line: 1, Column: 1, Offset: 0}}
 }
 
 func (s *RuntimeTestSuite) TestCalculateHashKeyDistinguishesUndefinedAndNull() {

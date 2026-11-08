@@ -13,7 +13,7 @@ import (
 func TestParseElvisInRuleYield(t *testing.T) {
 	ctx := t.Context()
 	src := `namespace n; policy p { export decision of r; rule r = { yield null ?: 7 } }`
-	prog, err := NewParserFromString(src, "elvis.sentra").ParseProgram(ctx)
+	prog, err := NewParserFromString(src, "elvis.sentrie").ParseProgram(ctx)
 	require.NoError(t, err)
 	pol := prog.Statements[1].(*ast.PolicyStatement)
 	rule := findRuleStmt(t, pol.Statements, "r")
@@ -26,7 +26,7 @@ func TestParseElvisInRuleYield(t *testing.T) {
 func TestParseClassicTernaryInRuleYield(t *testing.T) {
 	ctx := t.Context()
 	src := `namespace n; policy p { export decision of r; rule r = { yield true ? 1 : 2 } }`
-	prog, err := NewParserFromString(src, "tern.sentra").ParseProgram(ctx)
+	prog, err := NewParserFromString(src, "tern.sentrie").ParseProgram(ctx)
 	require.NoError(t, err)
 	pol := prog.Statements[1].(*ast.PolicyStatement)
 	rule := findRuleStmt(t, pol.Statements, "r")

@@ -15,7 +15,7 @@ func (s *ParserTestSuite) TestParseExpressionList() {
 	ctx := s.T().Context()
 
 	s.T().Run("empty_before_close", func(t *testing.T) {
-		p := NewParserFromString(")", "test.sentra")
+		p := NewParserFromString(")", "test.sentrie")
 		args := parseExpressionList(ctx, p, tokens.PunctRightParentheses)
 		s.NotNil(args)
 		s.Empty(args)
@@ -23,7 +23,7 @@ func (s *ParserTestSuite) TestParseExpressionList() {
 	})
 
 	s.T().Run("single_integer", func(t *testing.T) {
-		p := NewParserFromString("42)", "test.sentra")
+		p := NewParserFromString("42)", "test.sentrie")
 		args := parseExpressionList(ctx, p, tokens.PunctRightParentheses)
 		s.Require().Len(args, 1)
 		lit, ok := args[0].(*ast.IntegerLiteral)
@@ -33,7 +33,7 @@ func (s *ParserTestSuite) TestParseExpressionList() {
 	})
 
 	s.T().Run("two_comma_separated", func(t *testing.T) {
-		p := NewParserFromString("1, 2)", "test.sentra")
+		p := NewParserFromString("1, 2)", "test.sentrie")
 		args := parseExpressionList(ctx, p, tokens.PunctRightParentheses)
 		s.Require().Len(args, 2)
 		a0, ok := args[0].(*ast.IntegerLiteral)
@@ -46,7 +46,7 @@ func (s *ParserTestSuite) TestParseExpressionList() {
 	})
 
 	s.T().Run("double_comma", func(t *testing.T) {
-		p := NewParserFromString("1,,2)", "test.sentra")
+		p := NewParserFromString("1,,2)", "test.sentrie")
 		s.Nil(parseExpressionList(ctx, p, tokens.PunctRightParentheses))
 		s.Error(p.err)
 	})
@@ -54,11 +54,11 @@ func (s *ParserTestSuite) TestParseExpressionList() {
 
 func (s *ParserTestSuite) TestParseCallExpressionArguments() {
 	ctx := s.T().Context()
-	rng := tokens.BadRange("test.sentra")
+	rng := tokens.BadRange("test.sentrie")
 	left := ast.NewIdentifier("fn", rng)
 
 	s.T().Run("empty", func(t *testing.T) {
-		p := NewParserFromString("()", "test.sentra")
+		p := NewParserFromString("()", "test.sentrie")
 		expr := parseCallExpression(ctx, p, left, CALL)
 		s.Require().NotNil(expr)
 		call := expr.(*ast.CallExpression)
@@ -67,7 +67,7 @@ func (s *ParserTestSuite) TestParseCallExpressionArguments() {
 	})
 
 	s.T().Run("two_literals", func(t *testing.T) {
-		p := NewParserFromString("(1, 2)", "test.sentra")
+		p := NewParserFromString("(1, 2)", "test.sentrie")
 		expr := parseCallExpression(ctx, p, left, CALL)
 		s.Require().NotNil(expr)
 		call := expr.(*ast.CallExpression)
@@ -76,7 +76,7 @@ func (s *ParserTestSuite) TestParseCallExpressionArguments() {
 	})
 
 	s.T().Run("identifier_arg", func(t *testing.T) {
-		p := NewParserFromString("(x)", "test.sentra")
+		p := NewParserFromString("(x)", "test.sentrie")
 		expr := parseCallExpression(ctx, p, left, CALL)
 		s.Require().NotNil(expr)
 		call := expr.(*ast.CallExpression)
@@ -89,30 +89,30 @@ func (s *ParserTestSuite) TestParseCallExpressionArguments() {
 }
 
 func (s *ParserTestSuite) TestParseCallExpressionErrorBranches() {
-	rng := tokens.BadRange("test.sentra")
+	rng := tokens.BadRange("test.sentrie")
 	left := ast.NewIdentifier("fn", rng)
 
-	p := NewParserFromString("fn", "test.sentra")
+	p := NewParserFromString("fn", "test.sentrie")
 	s.Nil(parseCallExpression(s.T().Context(), p, left, CALL))
 	s.Error(p.err)
 	s.Contains(p.err.Error(), "expected")
 
-	p = NewParserFromString("fn(,)", "test.sentra")
+	p = NewParserFromString("fn(,)", "test.sentrie")
 	callHead := p.parseExpression(s.T().Context(), LOWEST)
 	s.Nil(callHead)
 	s.Error(p.err)
 
-	p = NewParserFromString("fn(1", "test.sentra")
+	p = NewParserFromString("fn(1", "test.sentrie")
 	s.Nil(p.parseExpression(s.T().Context(), LOWEST))
 	s.Error(p.err)
 	s.Contains(p.err.Error(), "expected")
 }
 
 func (s *ParserTestSuite) TestParseCallExpressionMemoizationSuffix() {
-	rng := tokens.BadRange("test.sentra")
+	rng := tokens.BadRange("test.sentrie")
 	left := ast.NewIdentifier("fn", rng)
 
-	p := NewParserFromString("()!15", "test.sentra")
+	p := NewParserFromString("()!15", "test.sentrie")
 	expr := parseCallExpression(s.T().Context(), p, left, CALL)
 	s.Require().NotNil(expr)
 	call, ok := expr.(*ast.CallExpression)
@@ -121,14 +121,14 @@ func (s *ParserTestSuite) TestParseCallExpressionMemoizationSuffix() {
 	s.Require().NotNil(call.MemoizeTTL)
 	s.Equal(15*time.Second, *call.MemoizeTTL)
 
-	p = NewParserFromString("()!", "test.sentra")
+	p = NewParserFromString("()!", "test.sentrie")
 	expr = parseCallExpression(s.T().Context(), p, left, CALL)
 	s.Require().NotNil(expr)
 	call = expr.(*ast.CallExpression)
 	s.True(call.Memoized)
 	s.Nil(call.MemoizeTTL)
 
-	p = NewParserFromString("()", "test.sentra")
+	p = NewParserFromString("()", "test.sentrie")
 	expr = parseCallExpression(s.T().Context(), p, left, CALL)
 	s.Require().NotNil(expr)
 	call = expr.(*ast.CallExpression)
@@ -137,9 +137,9 @@ func (s *ParserTestSuite) TestParseCallExpressionMemoizationSuffix() {
 }
 
 func (s *ParserTestSuite) TestParseCallExpressionMemoizationSuffixParseFailure() {
-	rng := tokens.BadRange("test.sentra")
+	rng := tokens.BadRange("test.sentrie")
 	left := ast.NewIdentifier("fn", rng)
-	p := NewParserFromString("()!9223372036854775808", "test.sentra")
+	p := NewParserFromString("()!9223372036854775808", "test.sentrie")
 	s.Nil(parseCallExpression(s.T().Context(), p, left, CALL))
 	s.Error(p.err)
 	s.Contains(p.err.Error(), "invalid integer literal")
