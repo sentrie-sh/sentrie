@@ -60,12 +60,15 @@ func newRuleKindCheckCtx(idx *Index, policy *Policy) *kindCheckCtx {
 
 func newDeriveKindCheckCtx(idx *Index, d *Derive) *kindCheckCtx {
 	scope := make(map[string]bindingInfo)
+	// A namespace-level derive has no policy; its shapes resolve in its
+	// namespace, through a policy that holds only that namespace.
+	policy := d.ShapeScope()
 	if d.Lambda != nil {
 		for i, p := range d.Lambda.Params {
 			info := bindingInfo{}
 			if d.Lambda.ParamTypes != nil && i < len(d.Lambda.ParamTypes) && d.Lambda.ParamTypes[i] != nil {
 				info.typeRef = d.Lambda.ParamTypes[i]
-				if k, ok := typeRefKind(idx, d.Policy, d.Lambda.ParamTypes[i]); ok {
+				if k, ok := typeRefKind(idx, policy, d.Lambda.ParamTypes[i]); ok {
 					info.kindKnown = true
 					info.kind = k
 				}
@@ -77,10 +80,6 @@ func newDeriveKindCheckCtx(idx *Index, d *Derive) *kindCheckCtx {
 		for name, derive := range d.DefineShort {
 			scope[name] = bindingInfo{kindKnown: true, kind: box.ValueCallable, derive: derive}
 		}
-	}
-	var policy *Policy
-	if d.Policy != nil {
-		policy = d.Policy
 	}
 	return &kindCheckCtx{idx: idx, policy: policy, derive: d, scope: scope}
 }
@@ -239,39 +238,18 @@ func lookupShapeKind(idx *Index, policy *Policy, tr *ast.ShapeTypeRef) (box.Valu
 	return 0, false
 }
 
+// resolveShapeReadOnly resolves ref the way the runtime does (LookupShape keys
+// on the whole reference), treating a lookup error as an unknown shape.
 func resolveShapeReadOnly(idx *Index, policy *Policy, ref *ast.FQN) *Shape {
-	if ref == nil || ref.IsEmpty() {
+	var ns *Namespace
+	if policy != nil {
+		ns = policy.Namespace
+	}
+	shape, err := idx.LookupShape(policy, ns, ref)
+	if err != nil {
 		return nil
 	}
-	name := ref.LastSegment()
-
-	if policy != nil {
-		if s, ok := policy.Shapes[name]; ok {
-			return s
-		}
-		if policy.Namespace != nil {
-			if s, ok := policy.Namespace.Shapes[name]; ok {
-				return s
-			}
-		}
-	}
-
-	if len(ref.Parts) > 2 {
-		nsFQN := ref.Parent()
-		if namespace, err := idx.ResolveNamespace(nsFQN.String()); err == nil && namespace != nil {
-			if s, ok := namespace.Shapes[name]; ok {
-				return s
-			}
-		}
-		namespace, err := idx.ResolveNamespace(nsFQN.String())
-		if err != nil {
-			return nil
-		}
-		if err := namespace.VerifyShapeExported(name); err != nil {
-			return nil
-		}
-	}
-	return nil
+	return shape
 }
 
 func lookupShapeFieldTypeReadOnly(idx *Index, policy *Policy, shape *Shape, fieldName string) (ast.TypeRef, bool) {

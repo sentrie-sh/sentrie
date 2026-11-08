@@ -5,6 +5,7 @@ package index
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -392,6 +393,7 @@ func TestLookupShapeKindAliasVsComplex(t *testing.T) {
 	aliasShape, err := createShape(ns, nil, ast.NewShapeStatement("LabelAlias", ast.NewStringTypeRef(rng), nil, rng))
 	require.NoError(t, err)
 	ns.Shapes["LabelAlias"] = aliasShape
+	ns.ShapeExports["LabelAlias"] = &ExportedShape{Name: "LabelAlias"}
 
 	kind, ok := lookupShapeKind(idx, nil, ast.NewShapeTypeRef(ast.NewFQN([]string{"com", "ex", "LabelAlias"}, rng).Ptr(), rng))
 	require.True(t, ok)
@@ -555,4 +557,207 @@ policy p {
 }
 `, "f.sentrie")
 	s.Require().NoError(err)
+}
+
+// TestBuiltinCheckNamespaceDeriveShapeParamReject checks that a namespace-level
+// derive, which has no policy, still resolves its parameter's shape in its
+// namespace, so a builtin argument of that shape is kind checked.
+func (s *IndexTestSuite) TestBuiltinCheckNamespaceDeriveShapeParamReject() {
+	src := `namespace com/ex
+shape Name string
+derive n = (t: Name): number => { yield count(filter(t, (x) => { yield true })) }
+policy p {
+  rule allow = { yield n("x") > 0 }
+  export decision of allow
+}
+`
+	err := s.parseAndValidate(src, "f.sentrie")
+	s.Require().Error(err)
+	var kind xerr.BuiltinArgKindError
+	s.Require().ErrorAs(err, &kind)
+	s.Contains(kind.Message, "filter: first argument must be a list")
+	s.Equal(3, kind.At.From.Line)
+	s.Equal(`t`, src[kind.At.From.Offset:kind.At.To.Offset])
+}
+
+func (s *IndexTestSuite) TestBuiltinCheckNamespaceDeriveShapeParamAccept() {
+	err := s.parseAndValidate(`namespace com/ex
+shape Names list[string]
+derive n = (t: Names): number => { yield count(filter(t, (x) => { yield true })) }
+policy p {
+  rule allow = { yield n(["x"]) > 0 }
+  export decision of allow
+}
+`, "f.sentrie")
+	s.Require().NoError(err)
+}
+
+// TestBuiltinCheckPolicyDeriveShapeParam checks that a policy-level derive
+// still resolves its parameter's shape, including a policy-local shape.
+func (s *IndexTestSuite) TestBuiltinCheckPolicyDeriveShapeParam() {
+	err := s.parseAndValidate(`namespace com/ex
+policy p {
+  shape Name string
+  derive n = (t: Name): number => { yield count(filter(t, (x) => { yield true })) }
+  rule allow = { yield n("x") > 0 }
+  export decision of allow
+}
+`, "f.sentrie")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "filter: first argument must be a list")
+
+	err = s.parseAndValidate(`namespace com/ex
+policy p {
+  shape Names list[string]
+  derive n = (t: Names): number => { yield count(filter(t, (x) => { yield true })) }
+  rule allow = { yield n(["x"]) > 0 }
+  export decision of allow
+}
+`, "f.sentrie")
+	s.Require().NoError(err)
+}
+
+// A namespace derive's own namespace decides what its shape names mean, not
+// the namespace of the policy that calls it.
+func (s *IndexTestSuite) TestBuiltinCheckNamespaceDeriveShapeResolvesInDeriveNamespaceNotCaller() {
+	lib := `namespace com/lib
+shape Name string
+derive n = (t: Name): number => { yield count(filter(t, (x) => { yield true })) }
+export derive n
+`
+	// The caller's Name is a list, which would make the derive's filter valid
+	// if the check resolved Name in the caller's namespace.
+	app := `namespace com/app
+shape Name list[string]
+policy p {
+  rule allow = { yield com/lib/n("x") > 0 }
+  export decision of allow
+}
+`
+	_, err := s.validateIsSources(lib, app)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "filter: first argument must be a list")
+}
+
+func (s *IndexTestSuite) TestBuiltinCheckNamespaceDeriveShapeAliasChainReject() {
+	err := s.parseAndValidate(`namespace com/ex
+shape Inner string
+shape Outer Inner
+derive n = (t: Outer): number => { yield count(filter(t, (x) => { yield true })) }
+policy p {
+  rule allow = { yield n("x") > 0 }
+  export decision of allow
+}
+`, "f.sentrie")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "filter: first argument must be a list")
+}
+
+func (s *IndexTestSuite) TestBuiltinCheckNamespaceDeriveTypedLetShapeReject() {
+	err := s.parseAndValidate(`namespace com/ex
+shape Name string
+derive n = (t: string?): number => {
+  let s: Name = t
+  yield count(filter(s, (x) => { yield true }))
+}
+policy p {
+  rule allow = { yield n("x") > 0 }
+  export decision of allow
+}
+`, "f.sentrie")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "filter: first argument must be a list")
+}
+
+func (s *IndexTestSuite) TestBuiltinCheckNamespaceDeriveCastToShapeReject() {
+	err := s.parseAndValidate(`namespace com/ex
+shape Name string
+derive n = (t: string?): number => { yield count(filter(t as Name, (x) => { yield true })) }
+policy p {
+  rule allow = { yield n("x") > 0 }
+  export decision of allow
+}
+`, "f.sentrie")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "filter: first argument must be a list")
+}
+
+func (s *IndexTestSuite) TestBuiltinCheckNamespaceDeriveCannotSeePolicyShape() {
+	// Name here is only a policy shape; a namespace derive does not see it, so
+	// its parameter has no known kind and the check stays silent. A scope that
+	// leaked the calling policy's shapes would reject the filter.
+	err := s.parseAndValidate(`namespace com/ex
+derive n = (t: Name): number => { yield count(filter(t, (x) => { yield true })) }
+policy p {
+  shape Name string
+  rule allow = { yield n("x") > 0 }
+  export decision of allow
+}
+`, "f.sentrie")
+	s.Require().NoError(err)
+}
+
+func (s *IndexTestSuite) TestBuiltinCheckPolicyDerivePolicyShapeShadowsNamespaceShape() {
+	err := s.parseAndValidate(`namespace com/ex
+shape Name string
+policy p {
+  shape Name list[string]
+  derive n = (t: Name): number => { yield count(filter(t, (x) => { yield true })) }
+  rule allow = { yield n(["x"]) > 0 }
+  export decision of allow
+}
+`, "f.sentrie")
+	s.Require().NoError(err)
+}
+
+const qualifiedShapeLibSource = `namespace com/lib
+shape Names list[string]
+export shape Names
+`
+
+// TestBuiltinCheckQualifiedShadowedShapeAccept checks that a qualified shape
+// reference resolves by its whole name, as the runtime does, so a local shape
+// with the same last segment does not stand in for it.
+func (s *IndexTestSuite) TestBuiltinCheckQualifiedShadowedShapeAccept() {
+	_, err := s.validateIsSources(qualifiedShapeLibSource, `namespace com/app
+shape Names string
+derive n = (t: com/lib/Names): number => { yield count(filter(t, (x) => { yield true })) }
+policy p {
+  rule allow = { yield n(["x"]) > 0 }
+  export decision of allow
+}
+`)
+	s.Require().NoError(err)
+
+	_, err = s.validateIsSources(qualifiedShapeLibSource, `namespace com/app
+shape Names string
+policy p {
+  rule allow = {
+    let s: com/lib/Names = ["x"]
+    yield count(filter(s, (x) => { yield true })) > 0
+  }
+  export decision of allow
+}
+`)
+	s.Require().NoError(err)
+}
+
+// TestBuiltinCheckNamespaceDeriveShapeFieldChain checks that a field of a
+// namespace derive's shape parameter is resolved through the derive's namespace.
+func (s *IndexTestSuite) TestBuiltinCheckNamespaceDeriveShapeFieldChain() {
+	const tmpl = `namespace com/ex
+shape U { items: %s }
+derive n = (t: U): number => { yield count(filter(t.items, (x) => { yield true })) }
+policy p {
+  fact u: U as u
+  rule allow = { yield n(u) > 0 }
+  export decision of allow
+}
+`
+	err := s.parseAndValidate(fmt.Sprintf(tmpl, "list[string]"), "f.sentrie")
+	s.Require().NoError(err)
+
+	err = s.parseAndValidate(fmt.Sprintf(tmpl, "string"), "f.sentrie")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "filter: first argument must be a list")
 }
