@@ -27,3 +27,7 @@
 ### 20:19 - Make trailing spaces explicit in the heredoc tests
 - Review: the `second  ` and `TWO  ` lines in `runtime/heredoc_crlf_test.go` now come from string concatenation, so an editor that trims whitespace cannot weaken the test; rewrapped the `TestProgramStatementSpans` doc comment in `parser/span_test.go`.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-08 13:53 - Rebase onto main after #272
+- #272 (merged as #277) renamed the `.sentra` file names in `lexer/coverage_errors_test.go`, and this branch changed the same `readHereDoc` calls to take three results. Kept this branch's side and renamed `.sentra` to `.sentrie` in that file; `go test ./lexer/` passes.
+- _Model: claude-opus-5-5_
