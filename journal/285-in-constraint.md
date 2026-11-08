@@ -31,3 +31,7 @@
 - Graph: `parser.parser` gains the helper; `parser.typeref` and `parser.use` name it.
 - Parser, cmd and lang_test tests, lint and docs-graph pass.
 - _Model: claude-opus-5-5_
+
+### 2026-11-08 14:25 - Rebase onto main after #269
+- #269 (merged as #274) appended a cast cycle test to `cmd/validate_test.go` where this branch appends its `@in` validate tests. Kept both; `go test ./cmd/` passes.
+- _Model: claude-opus-5-5_
