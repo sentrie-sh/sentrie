@@ -9,7 +9,7 @@ tags: type-model, composition, hydration, records
 # Node: index.Shape (Shape Model and Composition)
 
 ## 1. Architectural Role & Intent
-`Shape` models both forms of a shape declaration - a simple type alias (`AliasOf`) and a complex record (`Model` with fields) - and owns the `with` composition algorithm that copies a base shape's fields into a derived one. Composition is performed lazily via `resolveDependency`, guarded by an atomic `hydrated` flag so each shape is flattened exactly once, and it is driven in topological order by [[index.commit]].
+`Shape` models both forms of a shape declaration - a simple type alias (`AliasOf`) and a complex record (`Model` with fields) - and owns the `with` composition algorithm that copies a base shape's fields into a derived one. Composition is performed lazily via `resolveDependency`, guarded by an atomic `hydrated` flag so each shape is flattened exactly once, and it is driven parents-first (any `with` depth) by [[index.commit]].
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -19,7 +19,7 @@ tags: type-model, composition, hydration, records
 | `index.shape` | `DEPENDS_ON` | [[xerr]] | Emits `ErrIndex`-wrapped composition errors and inspects `xerr.NotFoundError` to distinguish a namespace miss from a real failure. |
 | `index.shape` | `CALLS` | [[index.resolve]] | `resolveDependency` falls back to `idx.ResolveShape` across every namespace when a base shape is not local. |
 | `index.shape` | `CALLS` | [[index.namespace]] | Calls `VerifyShapeExported` before composing with a shape from another namespace. |
-| [[index.commit]] | `CALLS` | [[index.shape]] | Invokes `resolveDependency` in shape-DAG topological order. |
+| [[index.commit]] | `CALLS` | [[index.shape]] | Invokes `resolveDependency` parents first, the reverse of the shape-DAG sort order. |
 | [[index.validate]] | `READS_FROM` | [[index.shape]] | Builds the shape DAG from `Model.WithFQN` edges. |
 | [[index.builtin_kind]] | `READS_FROM` | [[index.shape]] | Walks `Model.Fields` to resolve field-access kinds statically. |
 
@@ -48,7 +48,7 @@ tags: type-model, composition, hydration, records
 - **Signature:** `(*Shape).resolveDependency(idx *Index, inPolicy *Policy) -> error`
   - **Behavior:** No-ops if already hydrated, if there is no model, or if there is no `with` clause. Otherwise resolves the base shape by **last segment** - first in the enclosing policy, then the enclosing namespace, then by scanning every namespace in the index - verifies it is exported when it comes from elsewhere, and copies its fields in.
   - **Side Effects:** **Mutates `s.Model.Fields`**; sets `hydrated` in a `defer`, so the flag is set even on the error paths.
-  - **Exceptions:** Base shape not found; composing with an alias shape; duplicate field between base and derived; non-exported base shape.
+  - **Exceptions:** Base shape not found; composing with an alias shape; duplicate field between the derived shape and **any ancestor** in its `with` chain, not only the direct parent (the base's field map already holds every ancestor's fields when it is copied); non-exported base shape.
 
 - **Signature:** `(*Shape).String()` / `Span()`
   - **Behavior:** FQN rendering and span passthrough for DAG diagnostics.
