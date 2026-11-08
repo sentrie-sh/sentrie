@@ -50,8 +50,13 @@ tags: parser-state, token-window, error-accumulation, dispatch-tables
   - **Side Effects:** Consumes a token on success; appends to `p.err` on failure.
   - **Exceptions:** Never returns an error - the boolean is the only failure signal, and **ignoring it silently continues parsing from an unexpected token**.
 
+- **Signature:** `(p *Parser) isNameOnlyKeyword(tok tokens.Instance) -> bool`
+  - **Behavior:** True when `tok` is a keyword token with no entry in `prefixHandlers`, so it can never start an expression. [[parser.infix]] uses it to read such a keyword after `/` as a name segment (#297). The set is derived from the prefix table, so registering a new keyword prefix handler takes that keyword out of name position after `/`.
+  - **Side Effects:** None.
+  - **Exceptions:** None.
+
 - **Signature:** `advanceNameOrKeyword(p, expected string) -> (tokens.Instance, bool)`
-  - **Behavior:** Consumes an `Ident` or any keyword token as a name. Used in the two positions where a keyword is a name: `@scope/name` module path segments ([[parser.use]]) and constraint names after `@` ([[parser.typeref]], #285). On any other token reports `expected <expected>, got <kind> at <range>`; module paths pass `Ident`, constraints pass `constraint name after '@'`.
+  - **Behavior:** Consumes an `Ident` or any keyword token as a name. Used in the positions where a keyword is a name: `@scope/name` module path segments ([[parser.use]]), constraint names after `@` ([[parser.typeref]], #285), and the segments after `/` in a declaration or type name ([[parser.fqn]], #297). On any other token reports `expected <expected>, got <kind> at <range>`; module paths pass `Ident`, constraints pass `constraint name after '@'`.
   - **Side Effects:** Consumes a token on success; appends to `p.err` on failure.
   - **Exceptions:** As `advanceExpected`.
 

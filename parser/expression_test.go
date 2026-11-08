@@ -516,3 +516,25 @@ func (s *ParserTestSuite) TestParseExpressionEdgeCases() {
 		}
 	}
 }
+
+// TestParseExpressionStopsAfterAFailedOperand checks that an operand that fails
+// to parse ends the expression with its error, instead of handing a nil left
+// operand to the next operator or wrapping it in a comment. `a/not/f(x)` used
+// to panic in the call parser: `not` starts an expression, so after `/` it is
+// not a name segment, and `not /` fails.
+func (s *ParserTestSuite) TestParseExpressionStopsAfterAFailedOperand() {
+	for _, src := range []string{
+		"a/not/f(x)",
+		"a/not/b[0]",
+		"a/not/b.c",
+		"a/not/b + 1",
+		"a/true/not/f(x)",
+		"-- note\nnot )", // a failed prefix after a preceding comment
+	} {
+		parser := NewParserFromString(src, "test.sentrie")
+		var expr any
+		s.NotPanics(func() { expr = parser.parseExpression(s.T().Context(), LOWEST) }, "input: %s", src)
+		s.Nil(expr, "input: %s", src)
+		s.Error(parser.err, "input: %s", src)
+	}
+}
