@@ -9,7 +9,7 @@ tags: traversal, visitor, ast-walking, shared-utility
 # Node: index.DeriveExprWalk (Shared Expression Traversal)
 
 ## 1. Architectural Role & Intent
-The package's single generic AST expression traversal: `forEachDeriveExprChild` yields the direct children of any expression, and `walkDeriveExprDFS` builds a depth-first visitor on top of it. Despite the `derive` prefix it is the shared walker for all three analysis passes - derive cycles, derive purity, and builtin kind checking - and its exhaustive switch is the de-facto registry of which expression forms the index understands.
+The derive-analysis AST expression traversal (the reference cycle check uses the general [[index.expr_walk]] instead): `forEachDeriveExprChild` yields the direct children of any expression, and `walkDeriveExprDFS` builds a depth-first visitor on top of it. Despite the `derive` prefix it is the shared walker for three analysis passes - derive cycles, derive purity, and builtin kind checking - and its exhaustive switch is the de-facto registry of which expression forms those passes understand.
 
 ## 2. Graph Edges (Strict Relational Data)
 
