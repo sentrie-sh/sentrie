@@ -29,7 +29,7 @@ tags: block-expression, yield, lambda, speculative-parsing, backtracking
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `parseBlockExpression(ctx, p) -> ast.Expression`
-  - **Behavior:** Consumes `{`, then parses statements **while the head is `let` or a line comment**, then requires the `yield` keyword, one expression, and `}`.
+  - **Behavior:** Consumes `{`, then parses statements **while the head is `let` or a comment** (a trailing comment after `{` is accepted since #172), then requires the `yield` keyword, one expression, and `}`.
   - **Side Effects:** Consumes tokens.
   - **Exceptions:** Returns `nil` on a missing `{`, a failed statement, a missing `yield`, a failed yield expression, or a missing `}`.
 
@@ -45,7 +45,7 @@ tags: block-expression, yield, lambda, speculative-parsing, backtracking
 - **Statefulness:** Stateless functions, but `parseGroupedExpression` reaches around the parser's abstraction and reassigns `p.current`/`p.next` from the lexer directly. It is the only production that does so, and the reason [[lexer]] exposes `PushBack` at all.
 - **Performance/Scale Notes:** The lambda probe can read an arbitrary number of tokens before backtracking, so a long parenthesised expression is scanned twice. Bounded by parameter-list length in practice.
 - **Dependencies Risk:**
-  - **Blocks accept only `let` and line comments as statements.** The loop condition is a two-kind check, so a `fact`, `use`, or trailing comment inside a block does not error as "not allowed here" - it simply ends the statement loop and then fails with `expected yield`. That error message is the single most misleading diagnostic in the parser.
+  - **Blocks accept only `let` and comments as statements.** The loop condition is a kind check, so a `fact` or `use` inside a block does not error as "not allowed here" - it simply ends the statement loop and then fails with `expected yield`. That error message is the single most misleading diagnostic in the parser.
   - **`yield` is mandatory and terminal.** There is no implicit last-expression return, and nothing may follow the yield expression before `}`.
   - **A block spans its braces.** The range runs from `lCurly.Range.From` to `rCurly.Range.To`, just past the closing brace. Rules, derives, lambdas and attachments that end in a block take their end from it (#236; it used to stop at the start of the `}`, one column short).
   - **Parentheses are erased.** Grouping is not represented in the AST, so a formatter cannot reproduce the author's parenthesisation and any AST-equality check treats `(a + b)` and `a + b` as identical.

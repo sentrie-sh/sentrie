@@ -47,7 +47,7 @@ tags: type-system, constraints, parse-time-validation, code-generation
   - **Exceptions:** None; the constructor never validates - validation happens only on `AddConstraint`.
 
 - **Signature:** Scalar refs - `NewStringTypeRef(span)`, `NewNumberTypeRef(span)`, `NewTrinaryTypeRef(span)`, `NewDocumentTypeRef(span)`
-  - **Behavior:** Leaf types. Each wires its own generated constraint table (`genStringConstraints`, `genNumberConstraints`, …). `String()` renders the canonical keyword.
+  - **Behavior:** Leaf types. Each wires its own generated constraint table (`genStringConstraints`, `genNumberConstraints`, …). `String()` renders the canonical keyword. `TrinaryTypeRef.Boolean` records a `boolean` spelling, which [[format]] keeps; the type is the same.
   - **Side Effects:** None.
   - **Exceptions:** None.
 

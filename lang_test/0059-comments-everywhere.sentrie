@@ -1,0 +1,56 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+-- A file header, then a run of
+-- consecutive comment lines.
+
+namespace cmt/everywhere -- after namespace
+
+-- before a shape
+shape Point { -- after shape open
+  -- before first field
+  x: number -- after x
+  -- between fields
+
+  y: number
+  -- before close
+}
+
+-- before a derive
+derive twice = (n: number): number => { yield n * 2 }
+-- after derive
+
+-- before the policy
+policy p { -- after policy open
+  -- before a fact
+  fact n: number -- after fact
+
+  -- before a let
+  let a = 1 -- trailing let
+  let b = [1, -- first item
+    2, 3] -- after list
+  let c = a -- left
+    + -- operator
+    b[0] -- right
+  let d = c > 1
+    ? "big" -- then
+    : "small" -- else
+  let e = n |> twice()
+  let f = {
+    -- inside a block expression
+    let tmp = e + 1 -- tmp
+    yield tmp
+  }
+  let g = <<<TXT
+-- not a comment, heredoc body
+TXT
+
+  -- before a rule
+  rule r = { -- after rule open
+    -- inside rule
+    yield f > 0 and d == "small" -- after yield
+  } -- after rule close
+  export decision of r -- after export
+  -- at the end of the policy
+}
+-- at the end of the file

@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2025 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package ast
 
@@ -22,9 +9,14 @@ import (
 	"github.com/sentrie-sh/sentrie/tokens"
 )
 
+// CommentStatement is a `--` comment in statement position: at the top
+// level, in a policy body, in a block body or in a shape body. Trailing is
+// set when the comment followed other code on its line, so a printer can put
+// it back at the end of that line.
 type CommentStatement struct {
 	*baseNode
-	Content string
+	Content  string
+	Trailing bool
 }
 
 func NewCommentStatement(content string, ssp tokens.Range) *CommentStatement {
@@ -35,6 +27,14 @@ func NewCommentStatement(content string, ssp tokens.Range) *CommentStatement {
 		},
 		Content: content,
 	}
+}
+
+// NewTrailingCommentStatement builds a CommentStatement for a comment that
+// followed other code on its line.
+func NewTrailingCommentStatement(content string, ssp tokens.Range) *CommentStatement {
+	c := NewCommentStatement(content, ssp)
+	c.Trailing = true
+	return c
 }
 
 type TrailingCommentExpression struct {

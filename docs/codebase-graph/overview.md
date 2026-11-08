@@ -126,6 +126,7 @@ graph TD
         PARSER[parser - Pratt + recursive descent]
         AST[ast]
         GRAMMAR[grammar - reference spec]
+        FORMAT[format - canonical printer]
     end
 
     subgraph Middle["Semantic Middle End"]
@@ -162,6 +163,8 @@ graph TD
     PARSER --> LEXER
     PARSER --> AST
     GRAMMAR -.specifies.-> PARSER
+    FORMAT --> PARSER
+    FORMAT --> AST
 
     AST --> INDEX
     INDEX --> DAG
@@ -205,6 +208,7 @@ graph TD
 - [[constraints]] - type refinement predicates
 - [[dag]] - directed acyclic graph and cycle detection
 - [[ext.dependencies]] - third-party dependency manifest
+- [[format]] - canonical source printer
 - [[grammar]] - reference grammar specification
 - [[index]] - semantic model, symbol table, validation
 - [[lexer]] - lexical analysis
