@@ -499,7 +499,7 @@ func (suite *IndexTestSuite) TestAddProgramWithInvalidUseStatementPosition() {
 	err := suite.idx.AddProgram(suite.ctx, program)
 
 	suite.Error(err)
-	suite.Contains(err.Error(), "'use' must appear before rules, exports, lets, and shapes")
+	suite.Contains(err.Error(), "'use' must appear before rules, exports, lets, derives, and shapes")
 }
 
 func (suite *IndexTestSuite) TestAddProgramWithInvalidFactStatementPosition() {
@@ -540,5 +540,5 @@ func (suite *IndexTestSuite) TestAddProgramWithInvalidFactStatementPosition() {
 	err := suite.idx.AddProgram(suite.ctx, program)
 
 	suite.Error(err)
-	suite.Contains(err.Error(), "'fact' must appear before rules, exports, lets, and shapes")
+	suite.Contains(err.Error(), "'fact' must appear before rules, exports, lets, derives, and shapes")
 }

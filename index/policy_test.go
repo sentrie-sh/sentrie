@@ -143,7 +143,7 @@ func (suite *IndexTestSuite) TestCreatePolicyWithInvalidFactPosition() {
 
 	suite.Error(err)
 	suite.Nil(policy)
-	suite.Contains(err.Error(), "'fact' must appear before rules, exports, lets, and shapes")
+	suite.Contains(err.Error(), "'fact' must appear before rules, exports, lets, derives, and shapes")
 }
 
 func (suite *IndexTestSuite) TestCreatePolicyWithInvalidUsePosition() {
@@ -170,7 +170,7 @@ func (suite *IndexTestSuite) TestCreatePolicyWithInvalidUsePosition() {
 
 	suite.Error(err)
 	suite.Nil(policy)
-	suite.Contains(err.Error(), "'use' must appear before rules, exports, lets, and shapes")
+	suite.Contains(err.Error(), "'use' must appear before rules, exports, lets, derives, and shapes")
 }
 
 func (suite *IndexTestSuite) TestCreatePolicyWithUnknownRuleExport() {
@@ -966,7 +966,7 @@ func (suite *IndexTestSuite) TestCreatePolicyShapeBeforeFactErrors() {
 	}
 	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
-	suite.Contains(err.Error(), "'fact' must appear before rules, exports, lets, and shapes")
+	suite.Contains(err.Error(), "'fact' must appear before rules, exports, lets, derives, and shapes")
 }
 
 func (suite *IndexTestSuite) TestCreatePolicyDuplicateTitle() {
@@ -1215,7 +1215,7 @@ func (suite *IndexTestSuite) TestCreatePolicyTitleAfterRuleLateHeader() {
 	}
 	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
-	suite.Contains(err.Error(), "'title' must appear before rules, exports, lets, and shapes")
+	suite.Contains(err.Error(), "'title' must appear before rules, exports, lets, derives, and shapes")
 }
 
 func (suite *IndexTestSuite) TestCreatePolicyDuplicateDescription() {
@@ -1459,7 +1459,7 @@ func (suite *IndexTestSuite) TestCreatePolicyDescriptionAfterRuleLateHeader() {
 	}
 	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
-	suite.Contains(err.Error(), "'description' must appear before rules, exports, lets, and shapes")
+	suite.Contains(err.Error(), "'description' must appear before rules, exports, lets, derives, and shapes")
 }
 
 func (suite *IndexTestSuite) TestCreatePolicyVersionAfterRuleLateHeader() {
@@ -1485,7 +1485,7 @@ func (suite *IndexTestSuite) TestCreatePolicyVersionAfterRuleLateHeader() {
 	}
 	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
-	suite.Contains(err.Error(), "'version' must appear before rules, exports, lets, and shapes")
+	suite.Contains(err.Error(), "'version' must appear before rules, exports, lets, derives, and shapes")
 }
 
 func (suite *IndexTestSuite) TestCreatePolicyTagAfterRuleLateHeader() {
@@ -1511,7 +1511,7 @@ func (suite *IndexTestSuite) TestCreatePolicyTagAfterRuleLateHeader() {
 	}
 	_, err := createPolicy(suite.policyNs, policyStmt, program, nil, nil)
 	suite.Error(err)
-	suite.Contains(err.Error(), "'tag' must appear before rules, exports, lets, and shapes")
+	suite.Contains(err.Error(), "'tag' must appear before rules, exports, lets, derives, and shapes")
 }
 
 func (suite *IndexTestSuite) TestCreatePolicyExportAfterUseBeforeRule() {
