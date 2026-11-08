@@ -33,3 +33,11 @@
 - #273 was rebased onto main after #269 merged (as #274), so this branch moved onto it with `git rebase --onto`.
 - #269 conflicted in two places, both appends: `cmd/validate_test.go` (kept #269's cast cycle test and this branch's missing shape test) and the CALLS rows in `docs/codebase-graph/index.validate.md` (kept both `index.expr_walk` and `index.shape_refs`). `index`, `runtime` and `cmd` tests and `make docs-graph` pass.
 - _Model: claude-opus-5-5_
+
+### 2026-11-08 15:05 - Rebase onto main after #271, #273 and #283
+- #273 merged (as #278) under this branch, so it moved onto main with `git rebase --onto`; no textual conflicts.
+- Combination conflict, not textual: two tests from branches already on main build a derive that names a shape it cannot see and expected `validate` to pass. This branch now rejects them at validation.
+  - #283's `TestBuiltinCheckNamespaceDeriveCannotSeePolicyShape` now expects `shape 'Name' not found` and no `filter` error.
+  - #271's `TestDeriveMissingShapeInDeriveScopeIsAnErrorNotACallerFallback` asserts validation reports `shape 'Nope' not found` four times, then still checks the runtime error on an unvalidated index.
+- `index`, `runtime`, `cmd` and `lang_test` pass.
+- _Model: claude-opus-5-5_
