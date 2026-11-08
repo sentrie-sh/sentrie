@@ -24,7 +24,7 @@ Implements the four prefix operators: logical negation (`!` and `not`, which are
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `evalUnary(ctx, ec, exec, p, u *ast.UnaryExpression) -> (box.Value, *trace.Node, error)`
-  - **Behavior:** Evaluates the operand; an undefined operand short-circuits to `Undefined` before the operator switch, matching [[runtime.eval_infix]].
+  - **Behavior:** Evaluates the operand; an undefined operand short-circuits to `Undefined` before the operator switch, as the non-logic operators in [[runtime.eval_infix]] do.
   - **Side Effects:** Operand evaluation.
   - **Exceptions:** `unary + requires number`; `unary - requires number`; `unsupported unary op: %s`.
 
@@ -44,6 +44,6 @@ Implements the four prefix operators: logical negation (`!` and `not`, which are
 - **Dependencies Risk:**
   - **Negation is total, so it never type-errors.** `not "hello"` coerces the string through truthiness and negates it rather than reporting a type problem. Combined with the absence of static operator type checking, a logic error involving a non-trinary operand is silent.
   - **Unary `+` is preserved through the parser** rather than folded away (see [[parser.unary]]), so it reaches here and acts as a runtime number assertion. That makes `+x` a meaningful - if obscure - way to require numeric-ness, since the failure is an error rather than a coercion.
-  - **Undefined propagation precedes the switch**, so `-undefined` is `Undefined` rather than a type error, and `not undefined` is `Undefined` rather than `Unknown`. As in the infix evaluator, `Undefined` behaves as a fourth state that absorbs the operator.
+  - **Undefined propagation precedes the switch**, so `-undefined` is `Undefined` rather than a type error, and `not undefined` is `Undefined` rather than `Unknown`. `Undefined` behaves as a fourth state that absorbs the operator, as it does for the infix arithmetic and comparison operators; the infix `and`/`or`/`xor` instead read undefined as `Unknown`, so `not` is the one logic operator that still returns `Undefined`.
   - **The error branch returns `box.Value{}`, not `box.Undefined()`.** The zero value and the undefined value are different things; callers that inspect the value on an error path see an invalid box rather than a defined absence. The same inconsistency appears in [[runtime.eval_cast]] and [[runtime.eval_access]].
   - **Error messages omit the source span**, unlike most diagnostics in the package, so `unary - requires number` gives no location.
