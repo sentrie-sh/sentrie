@@ -41,3 +41,7 @@
   - #271's `TestDeriveMissingShapeInDeriveScopeIsAnErrorNotACallerFallback` asserts validation reports `shape 'Nope' not found` four times, then still checks the runtime error on an unvalidated index.
 - `index`, `runtime`, `cmd` and `lang_test` pass.
 - _Model: claude-opus-5-5_
+
+### 2026-11-08 15:25 - Rebase again after #281 and #285
+- #285 (merged as #295) appended its `@in` validate tests in `cmd/validate_test.go` where this branch appends its missing shape test: kept main's file and appended this branch's test from `const missingShapePolicy`. All tests and `make docs-graph` pass.
+- _Model: claude-opus-5-5_
