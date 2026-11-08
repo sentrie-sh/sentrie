@@ -22,7 +22,7 @@ The single entry point for all runtime type checking. It strips nullability, the
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_number]] | Number targets. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_trinary]] | Trinary and bool targets. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_list]] | List targets; recurses per element. |
-| `runtime.typeref` | `CALLS` | [[runtime.typeref_dict]] | Dict targets. |
+| `runtime.typeref` | `CALLS` | [[runtime.typeref_dict]] | Dict targets; recurses per value. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_shape]] | Shape targets; recurses per field. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_document]] | Document targets. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_record]] | Record (positional tuple) targets. |
