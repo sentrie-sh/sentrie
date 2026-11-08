@@ -9,7 +9,7 @@ tags: traversal, ast-walking, reference-cycle, fail-closed
 # Node: index.ExprWalk (General Child Walker for Reference Analysis)
 
 ## 1. Architectural Role & Intent
-`forEachExprChild` yields the direct children of any expression kind, and of the statements a block can hold (let, rule, comment). It exists so the reference cycle check in [[index.validate]] descends into every expression kind instead of keeping its own list of the kinds it remembers. Unlike [[index.derive_expr_walk]] it is not derive-specific: it descends into import clauses and their `with` values, and it accepts any statement a block holds.
+`forEachExprChild` yields the direct children of any expression kind, and of the statements a block can hold (let, rule, comment). It exists so the reference cycle check in [[index.validate]] descends into every expression kind instead of keeping its own list of the kinds it remembers. It is not derive-specific: it descends into import clauses and their `with` values, and it accepts any statement a block holds. [[index.derive_expr_walk]] delegates to it and adds only the derive restrictions.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -17,6 +17,7 @@ tags: traversal, ast-walking, reference-cycle, fail-closed
 | :--- | :--- | :--- | :--- |
 | `index.expr_walk` | `DEPENDS_ON` | [[ast]] | Switches over every expression kind plus the block statement kinds. |
 | [[index.validate]] | `CALLS` | [[index.expr_walk]] | `addNodes` uses it for every node that is not an identifier, rule or let. |
+| [[index.derive_expr_walk]] | `CALLS` | [[index.expr_walk]] | `forEachDeriveExprChild` delegates to `forEachExprChild` for the shape of every expression kind. |
 
 ## 3. Interface Contracts & Public Surface
 
@@ -27,5 +28,5 @@ tags: traversal, ast-walking, reference-cycle, fail-closed
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless and reentrant. It does not recurse itself; the caller recurses through `yield`, and carries any scope or referrer.
-- **Fails closed.** An unknown node is an error, never a silent skip, and `TestForEachExprChildCoversEveryASTNode` reads the `ast` package source and fails when a new expression kind has no case here. A new expression kind therefore needs a case here and one in [[index.derive_expr_walk]].
+- **Fails closed.** An unknown node is an error, never a silent skip, and `TestForEachExprChildCoversEveryASTNode` reads the `ast` package source and fails when a new expression kind has no case here. A new expression kind therefore needs a case here only: [[index.derive_expr_walk]] delegates to this walker, and `TestForEachDeriveExprChildCoversEveryASTNode` checks that both yield the same children for every kind.
 - **No lambda or block scoping.** A lambda parameter or block let that shares a name with a rule still reads as a reference to that rule, as before; the walker only enumerates children.
