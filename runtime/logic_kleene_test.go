@@ -209,6 +209,10 @@ func (s *RuntimeTestSuite) TestUndefinedStillPropagatesOutsideLogicOperators() {
 			out, err := exec.ExecRule(ctx, "logic/kleene", "p", name, kleeneFacts)
 			s.Require().NoError(err)
 			s.Equal(trinary.Unknown, out.Decision.State)
+			if name == "notWrap" {
+				return // an or over it is a logic result: unknown, not undefined
+			}
+			s.True(out.Decision.Value.IsUndefined(), "the raw value stays undefined, got %v", out.Decision.Value.Kind())
 		})
 	}
 }

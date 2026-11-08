@@ -26,3 +26,7 @@
 - Bite proof against `main`'s `runtime/eval_infix.go`: matrix fails for `and false/undefined`, `and undefined/false`, `or true/undefined`, `or undefined/true`; the three repros, the four short-circuit cases and the `or` gate fail. The converse-error group and the undefined-propagation group pass on both, as intended (invariants). The other matrix cells coincide with the old result and pass on both. A `when false and undefined` gate case was dropped because the default masks the old bug.
 - Gate: `make test`, `make lint` (0 issues), `make docs-graph`, gofmt, em dash and attribution scans all clean.
 - _Model: claude-sonnet-5-5_
+
+### 14:25 - Assert undefined propagation by value
+- `TestUndefinedStillPropagatesOutsideLogicOperators` now also asserts the decision value is undefined for `+`, `==`, `<`, `not`, `!` (the `or`-wrapped case yields a trinary unknown and is excluded), so a regression to Unknown is caught.
+- _Model: claude-sonnet-5-5_
