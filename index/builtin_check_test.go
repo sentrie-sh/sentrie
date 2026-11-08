@@ -684,8 +684,8 @@ policy p {
 
 func (s *IndexTestSuite) TestBuiltinCheckNamespaceDeriveCannotSeePolicyShape() {
 	// Name here is only a policy shape; a namespace derive does not see it, so
-	// its parameter has no known kind and the check stays silent. A scope that
-	// leaked the calling policy's shapes would reject the filter.
+	// the shape name check (#282) reports it as missing. A scope that leaked the
+	// calling policy's shapes would instead accept Name and reject the filter.
 	err := s.parseAndValidate(`namespace com/ex
 derive n = (t: Name): number => { yield count(filter(t, (x) => { yield true })) }
 policy p {
@@ -694,7 +694,9 @@ policy p {
   export decision of allow
 }
 `, "f.sentrie")
-	s.Require().NoError(err)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "shape 'Name' not found")
+	s.NotContains(err.Error(), "filter: first argument must be a list")
 }
 
 func (s *IndexTestSuite) TestBuiltinCheckPolicyDerivePolicyShapeShadowsNamespaceShape() {
