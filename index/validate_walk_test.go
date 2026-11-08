@@ -252,7 +252,7 @@ func (suite *IndexTestSuite) TestForEachDeriveExprChildCoversEveryASTNode() {
 	// Kinds a derive body cannot contain: import and attachment clauses are
 	// rule-body forms, and statements are not expressions.
 	rejected := map[string]bool{"ImportClause": true, "WithClause": true, "AttachmentClause": true}
-	// The sample block holds a line comment, which derive rejects; the derive
+	// The sample block holds a line comment, which derive skips; the derive
 	// variant holds a let instead, whose value is yielded.
 	samples["BlockExpression"] = sast.NewBlockExpression(
 		[]sast.Statement{sast.NewVarDeclaration("v", nil, id("val"), r)}, id("y"), r)
@@ -284,11 +284,17 @@ func (suite *IndexTestSuite) TestForEachDeriveExprChildCoversEveryASTNode() {
 		})
 	}
 
-	suite.Run("block rejects a line comment", func() {
+	suite.Run("block skips a line comment", func() {
 		blk := sast.NewBlockExpression([]sast.Statement{sast.NewCommentStatement("c", r)}, id("y"), r)
-		err := forEachDeriveExprChild(blk, func(sast.Expression) error { return nil })
-		suite.Require().Error(err)
-		suite.Contains(err.Error(), "derive walk: unsupported statement")
+		var names []string
+		err := forEachDeriveExprChild(blk, func(c sast.Expression) error {
+			if i, ok := c.(*sast.Identifier); ok {
+				names = append(names, i.Value)
+			}
+			return nil
+		})
+		suite.Require().NoError(err)
+		suite.Equal([]string{"y"}, names)
 	})
 	suite.Run("block rejects a rule statement", func() {
 		blk := sast.NewBlockExpression([]sast.Statement{sast.NewRuleStatement("r", nil, nil, id("b"), r)}, id("y"), r)

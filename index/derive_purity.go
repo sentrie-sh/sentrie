@@ -37,6 +37,9 @@ func walkDeriveBlock(idx *Index, d *Derive, b *ast.BlockExpression, scope map[st
 		return nil
 	}
 	for _, st := range b.Statements {
+		if _, ok := st.(*ast.CommentStatement); ok {
+			continue
+		}
 		vd, ok := st.(*ast.VarDeclaration)
 		if !ok {
 			return fmt.Errorf("derive body may only contain let declarations before yield (got %T)", st)
@@ -108,6 +111,9 @@ func scanLambdasOutsideCalls(e ast.Expression, underCall bool) error {
 		return scanLambdasOutsideCalls(n.ElseBranch, underCall)
 	case *ast.BlockExpression:
 		for _, st := range n.Statements {
+			if _, ok := st.(*ast.CommentStatement); ok {
+				continue
+			}
 			vd, ok := st.(*ast.VarDeclaration)
 			if !ok {
 				return fmt.Errorf("derive walk: unsupported statement %T", st)
