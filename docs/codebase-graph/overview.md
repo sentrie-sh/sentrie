@@ -345,7 +345,7 @@ graph TD
 
 **Where correctness risk concentrates.** [[runtime.executor]] and [[runtime.exec_ctx]] carry the concurrency; [[runtime.modules]] and [[runtime.js]] execute foreign code; [[api.handle_decision]] is the unauthenticated network boundary. Changes in those four areas warrant the most scrutiny.
 
-**Where the language is stricter than it looks.** An undefined operand makes arithmetic and comparisons `Undefined` but reads as unknown in `and`/`or`/`xor` ([[runtime.eval_infix]]), shapes accept undeclared fields ([[runtime.typeref_shape]]), and casts do not currently enforce their target type ([[runtime.eval_cast]]).
+**Where the language is stricter than it looks.** An undefined operand still makes arithmetic and comparisons `Undefined` ([[runtime.eval_infix]]), shapes accept undeclared fields ([[runtime.typeref_shape]]), and casts do not currently enforce their target type ([[runtime.eval_cast]]).
 
 **Where the language is looser than it looks.** Constraint names are not validated until a decision is requested ([[constraints]]), and `transform` parses but is unimplemented ([[runtime.eval_transform]]).
 

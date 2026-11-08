@@ -20,13 +20,23 @@
 - Codebase graph: `runtime.eval_infix.md` sections 1-4 now describe `evalLogical`, short-circuiting and safe guard patterns; `overview.md` no longer says logical operators do not short-circuit; `runtime.eval_ternary.md` no longer claims `?:` is the only short-circuiting guard; `runtime.eval_unary.md` drops the parity claims with infix that are now false for logic operators (unary behaviour itself unchanged). `make docs-graph` passes.
 - _Model: claude-opus-5-5_
 
-### 14:10 - Regression tests for Kleene and short-circuit
+### 13:40 - Regression tests for Kleene and short-circuit
 - Added `runtime/logic_kleene_test.go` (methods on `RuntimeTestSuite`, end-to-end through `ExecRule` over a temp pack with a `document` fact `user` = `{}`): the full `and`/`or`/`xor` matrix over true, false, unknown and undefined (48 subtests, known results asserted as `ValueBool`), short-circuit by trace (the infix node has only the left child) and by a throwing module call that never happens, the converse (`true and`, `false or`, `unknown and`, `undefined or`, `undefined and`, `xor` all still error), undefined propagation through `+`, `==`, `<`, `not`, `!`, the issue's three repros, and a `when` gate.
 - A counting JS module was tried first and dropped: module state does not survive between calls within one rule, so a throwing function is the observation instead.
 - Bite proof against `main`'s `runtime/eval_infix.go`: matrix fails for `and false/undefined`, `and undefined/false`, `or true/undefined`, `or undefined/true`; the three repros, the four short-circuit cases and the `or` gate fail. The converse-error group and the undefined-propagation group pass on both, as intended (invariants). The other matrix cells coincide with the old result and pass on both. A `when false and undefined` gate case was dropped because the default masks the old bug.
 - Gate: `make test`, `make lint` (0 issues), `make docs-graph`, gofmt, em dash and attribution scans all clean.
 - _Model: claude-sonnet-5-5_
 
-### 14:25 - Assert undefined propagation by value
+### 13:43 - Assert undefined propagation by value
 - `TestUndefinedStillPropagatesOutsideLogicOperators` now also asserts the decision value is undefined for `+`, `==`, `<`, `not`, `!` (the `or`-wrapped case yields a trinary unknown and is excluded), so a regression to Unknown is caught.
 - _Model: claude-sonnet-5-5_
+
+### 13:45 - Review round 1: approved, suggestions handled
+- Opus reviewer: `VERDICT: APPROVE`, no Critical or Warning findings. It checked every and/or/xor cell against Kleene logic with undefined read as unknown, confirmed nothing is more permissive, and confirmed short-circuiting, trace handling, `ValueBool` results (#135), unchanged undefined propagation elsewhere, and graph and house-rule compliance.
+- Suggestions taken:
+  - Undefined-propagation tests now also assert the value is undefined, not only that the state is Unknown (13:43 entry).
+  - `overview.md` no longer lists "reads as unknown in `and`/`or`/`xor`" under "stricter than it looks", since that behaviour is looser, not stricter; it now notes only that undefined still propagates through arithmetic and comparisons.
+  - PR description now lists the new test file and every journal entry.
+- Suggestion declined: hard-coding an independent 3x3 Kleene oracle in the matrix test. `trinary_test.go` already pins `And`/`Or`/`Not`, so reusing them as the oracle adds little risk.
+- Corrected the headings of the two regression-test entries from 14:10 and 14:25 to 13:40 and 13:43, their commit times; the agent had mis-stamped them, which broke chronological order.
+- _Model: claude-opus-5-5, subagents: 2x opus (implementer, reviewer), 1x sonnet (test and CI), tokens: implementer ~92k, test ~96k, reviewer ~102k_
