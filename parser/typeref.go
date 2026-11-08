@@ -149,7 +149,10 @@ func parseTypeRefConstraint(ctx context.Context, p *Parser, _ ast.TypeRef) *ast.
 
 	rnge := atToken.Range
 
-	name, found := p.advanceExpected(tokens.Ident)
+	// The name may be a keyword (`@in`): right after `@` a keyword has no other
+	// meaning. Whether it is a constraint of the type is AddConstraint's check,
+	// which reports an unknown keyword and an unknown identifier the same way.
+	name, found := advanceNameOrKeyword(p, "constraint name after '@'")
 	if !found {
 		return nil
 	}

@@ -89,7 +89,7 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 		if !p.expect(tokens.TokenAt) {
 			return nil
 		}
-		fromPackage, found := advanceModulePathSegment(p)
+		fromPackage, found := advanceNameOrKeyword(p, tokens.Ident.String())
 		if !found {
 			return nil
 		}
@@ -98,7 +98,7 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 		from := []string{fromPackage.Value}
 		for p.canExpect(tokens.TokenDiv) {
 			p.advance() // consume '/'
-			fromModule, found := advanceModulePathSegment(p)
+			fromModule, found := advanceNameOrKeyword(p, tokens.Ident.String())
 			if !found {
 				return nil
 			}
@@ -143,15 +143,4 @@ func parseUseStatement(ctx context.Context, p *Parser) ast.Statement {
 	}
 
 	return ast.NewUseStatement(modules, relativeFrom, libFrom, alias, rnge)
-}
-
-// advanceModulePathSegment consumes one segment of an `@scope/name` module
-// path. A segment is an identifier or a keyword, so modules can be named after
-// keywords (`@sentrie/string`). Keywords are accepted only here: everywhere else
-// they keep their keyword meaning.
-func advanceModulePathSegment(p *Parser) (tokens.Instance, bool) {
-	if kind, isKeyword := tokens.IsKeyword(p.head().Value); isKeyword && p.head().IsOfKind(kind) {
-		return p.advance(), true
-	}
-	return p.advanceExpected(tokens.Ident)
 }
