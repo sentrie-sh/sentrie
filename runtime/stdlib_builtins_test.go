@@ -15,7 +15,7 @@ policy pol {
   let cfg = { "a": { "b": 1, "c": 2 }, "z": [10, 20], "k": "v" }
 
   derive pure_glob = (p: string) => { yield glob_match("/repos/*/issues/**", ["/"], p) }
-  derive pure_get = (m: dict[number]) => { yield object_get(m, ["a", "b"], 0) }
+  derive pure_get = (m: dict[dict[number]]) => { yield object_get(m, ["a", "b"], 0) }
 
   rule glob_yes = { yield glob_match("/repos/*/issues/**", ["/"], "/repos/x/issues/1/c") }
   rule glob_no = { yield not glob_match("/repos/*/issues/**", ["/"], "/repos/x/y/issues/1") }
