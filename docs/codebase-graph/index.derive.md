@@ -32,7 +32,7 @@ tags: pure-functions, visibility, scoping, snapshot-semantics
   - **Exceptions:** N/A.
 
 - **Signature:** `(*Derive).ShapeScope() -> *Policy`
-  - **Behavior:** The policy whose shapes the derive body's `x is T` checks resolve against: `Policy`, or for a namespace-scoped derive a `Policy` value holding only `Namespace` (no policy shapes, rules or lets), built once in `newDerive`. Used by [[runtime.eval_is_type]] so a derive called from another namespace keeps its own shapes.
+  - **Behavior:** The policy whose shapes every type check in the derive resolves against (`is`, casts, typed lets, parameter and return types): `Policy`, or for a namespace-scoped derive a `Policy` value holding only `Namespace` (no policy shapes, rules or lets), built once in `newDerive`. Used by `typeCheckScope` in [[runtime.typeref]] and by [[runtime.derive_invoke]], so a derive called from another namespace keeps its own shapes.
   - **Side Effects:** None (a `Derive` built outside `newDerive` gets a fresh scope per call).
   - **Exceptions:** None.
 

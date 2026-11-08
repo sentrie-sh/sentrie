@@ -16,6 +16,8 @@ The single entry point for all runtime type checking. It strips nullability, the
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `runtime.typeref` | `DEPENDS_ON` | [[ast]] | `IsNullableTypeRef`, `UnwrapNullableTypeRef`, and the eight concrete type-ref kinds. |
+| `runtime.typeref` | `READS_FROM` | [[runtime.exec_ctx]] | `typeCheckScope` reads `evalDerive`. |
+| `runtime.typeref` | `CALLS` | [[index.derive]] | `typeCheckScope` takes `(*Derive).ShapeScope()` inside a derive body. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_string]] | String targets. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_number]] | Number targets. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_trinary]] | Trinary and bool targets. |
@@ -27,7 +29,7 @@ The single entry point for all runtime type checking. It strips nullability, the
 | [[runtime.executor]] | `CALLS` | [[runtime.typeref]] | Validates injected fact values against their declared types. |
 | [[runtime.eval_ident]] | `CALLS` | [[runtime.typeref]] | Validates a let's value against its annotation on first read. |
 | [[runtime.derive_invoke]] | `CALLS` | [[runtime.typeref]] | Validates derive parameters and return values. |
-| [[runtime.eval_cast]] | `CALLS` | [[runtime.typeref]] | Intended post-cast validation - currently discarded by that caller. |
+| [[runtime.eval_cast]] | `CALLS` | [[runtime.typeref]] | Post-cast validation of the converted value. |
 | [[runtime.eval_is_type]] | `CALLS` | [[runtime.typeref]] | `x is T`; reads a mismatch as `false` through `isTypeMismatch`. |
 
 ## 3. Interface Contracts & Public Surface
@@ -36,6 +38,11 @@ The single entry point for all runtime type checking. It strips nullability, the
   - **Behavior:** If the type ref is nullable and the value is null, passes immediately; otherwise unwraps the nullable and dispatches on the concrete kind. **An unrecognised type ref returns `nil`** - an unconditional pass.
   - **Side Effects:** None directly, but the per-kind validators evaluate constraint argument expressions, which can call builtins and derives.
   - **Exceptions:** Whatever the delegated validator returns. Errors that say the value does not conform (every kind check, a missing or undefined shape field, a record length mismatch, and `ErrConstraintFailed` unless the checker's error matches `constraints.ErrInvalidArgument`) carry a `typeRefFailure` mismatch marker that leaves the message unchanged; a constraint argument that fails to evaluate is wrapped as a non-mismatch failure; unknown shapes and constraints carry no marker.
+
+- **Signature:** `typeCheckScope(ec, p) -> *index.Policy`
+  - **Behavior:** The policy a type check resolves shapes against: `p` outside a derive; inside a derive body (`ec.evalDerive` set) `(*index.Derive).ShapeScope()`, the derive's own policy or, for a namespace-level derive, a `Policy` holding only its namespace. Every type-check site that can run in a derive body passes this as `p`: casts ([[runtime.eval_cast]]), typed lets ([[runtime.eval_ident]]), `is` ([[runtime.eval_is_type]]), and a lambda's parameter and return types ([[runtime.callable]], from the lambda's capture context). [[runtime.derive_invoke]] uses the invoked derive's `ShapeScope` for its parameter and return types.
+  - **Side Effects:** None; the derive's scope is built once when the derive is indexed.
+  - **Exceptions:** None.
 
 - **Signature:** `isTypeMismatch(err error) -> bool`
   - **Behavior:** True when the outermost `typeRefFailure` in the chain is a mismatch. A nested field or item mismatch is therefore a mismatch of the whole value, while a mismatch raised inside a failed constraint argument is not.
@@ -46,6 +53,7 @@ The single entry point for all runtime type checking. It strips nullability, the
 - **Statefulness:** Stateless.
 - **Performance/Scale Notes:** Recursion depth follows the type's nesting. A list of shapes revalidates every field of every element on every check, and constraint argument expressions are re-evaluated at each level rather than hoisted - so validating a large collection against a constrained element type is proportional to elements times constraints.
 - **Dependencies Risk:**
+  - **Inside a derive, `p` must come from `typeCheckScope`, not from the evaluating policy.** A derive body is evaluated with the calling policy as `p` (so a caller's lambda keeps its policy), which is the wrong scope for the derive's own shape names: a new type-check site that passes `p` directly would resolve a derive's shapes in whichever policy called it ([#271](https://github.com/sentrie-sh/sentrie/issues/271)).
   - **New error sites must choose a marker.** An unmarked error is not a mismatch, so `x is T` ([[runtime.eval_is_type]]) propagates it instead of returning `false`; a new "does not conform" error needs `errMismatch`.
   - **Unknown type refs pass silently.** The switch has no `default`, so a type-ref kind added to [[ast]] without a corresponding validator here is accepted for every value. The failure mode is "no checking at all", which is the least visible one possible.
   - **Null is only permitted through an explicit nullable wrapper.** A bare `string` rejects null with `value <nil> is not a string` rather than a nullability-specific message, which reads as a type error rather than a missing-value error.

@@ -26,7 +26,7 @@ import (
 // paths apply the derive restrictions. Shapes resolve against the derive's own
 // scope, as the index resolved them, not against the calling policy.
 func evalIsType(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, is *ast.IsExpression) (box.Value, *trace.Node, error) {
-	scope := isShapeScope(ec, p)
+	scope := typeCheckScope(ec, p)
 	typ := is.Type
 	if is.Ambiguous() {
 		// The index settles this during validation; an index that was never
@@ -94,20 +94,6 @@ func evalIsEquality(ctx context.Context, ec *ExecutionContext, exec *executorImp
 	}
 	out := box.Bool(box.EqualValues(l, r))
 	return out, node.SetResult(out), nil
-}
-
-// isShapeScope is the policy whose shapes a type check resolves against: the
-// evaluating policy, or inside a derive body the derive's own policy, or for a
-// namespace-level derive a scope holding only the derive's namespace. This is
-// the scope index.resolveIsExpressions resolved the names in; using the
-// caller's policy would fail on, or silently pick, a different shape when the
-// derive is called from another namespace or from a policy that declares a
-// shape of the same name.
-func isShapeScope(ec *ExecutionContext, p *index.Policy) *index.Policy {
-	if d := ec.evalDerive; d != nil {
-		return d.ShapeScope()
-	}
-	return p
 }
 
 // resolveUnvalidatedIsType returns typ when its name is a shape visible from p

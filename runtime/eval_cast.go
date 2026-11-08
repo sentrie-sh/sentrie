@@ -37,7 +37,7 @@ func evalCast(ctx context.Context, ec *ExecutionContext, e *executorImpl, p *ind
 		}
 
 		if result.IsValid() {
-			if validateErr := validateValueAgainstTypeRef(ctx, ec, e, p, result, target, cast.Span()); validateErr != nil {
+			if validateErr := validateValueAgainstTypeRef(ctx, ec, e, typeCheckScope(ec, p), result, target, cast.Span()); validateErr != nil {
 				err = validateErr
 				node.SetErr(validateErr)
 				result = box.Value{}

@@ -38,6 +38,6 @@ Settles what a bare or slash-qualified name means on the right of `x is Name`. T
 - **Performance/Scale Notes:** One more scoped walk over every expression site.
 - **Dependencies Risk:**
   - **Values in scope mirror runtime `evalIdent`**: locals (block lets, lambda parameters), facts, lets, visible derives, and outside a derive body the policy's rules. A runtime binder added without a matching scope entry would make this pass reject valid code.
-  - **In a derive, shapes resolve against the derive's policy or namespace**, and [[runtime.eval_is_type]] validates in that same scope (`isShapeScope`).
+  - **In a derive, shapes resolve against the derive's policy or namespace**, and [[runtime.eval_is_type]] validates in that same scope (`typeCheckScope` in [[runtime.typeref]]). Only `is` sites are checked here: a shape named by a cast, typed let, or parameter or return type is never looked up by the index, so a misspelt one there is still a runtime error.
   - **A two-segment qualified name never resolves to a shape**, matching the runtime, which only looks names of three or more segments up globally.
   - **Ordering matters.** A walk that runs before this pass and treats `IsExpression.Right` as an expression sees a shape name as an identifier; reference-cycle detection and derive purity rely on running after it.
