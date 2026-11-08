@@ -114,18 +114,12 @@ func (s *RuntimeTestSuite) TestEvalIsTypeCheckErrorsPropagate() {
 shape Box { inner: Hidden }
 
 policy pol {
-  rule bad_arg_kind = { yield "ab" is string@minlength("q") }
-  rule bad_regexp = { yield "ab" is not string@regexp("[") }
   rule hidden_field_shape = { yield { "inner": {} } is Box }
-  export decision of bad_arg_kind
-  export decision of bad_regexp
   export decision of hidden_field_shape
 }
 `
 	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "errs.sentrie", src: src})
 	cases := map[string]string{
-		"bad_arg_kind":       "expected number, got string",
-		"bad_regexp":         "invalid regexp pattern",
 		"hidden_field_shape": "Hidden",
 	}
 	for rule, msg := range cases {
@@ -159,6 +153,71 @@ policy pol {
 	_, _, err = eval(ctx, ec, exec, pol, pol.Rules["r"].Body)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "Missing")
+}
+
+// TestEvalIsTypeBrokenConstraintArgumentErrorsForEveryValue is the #273
+// reproduction on the runtime path, for an index that was never validated: a
+// broken constraint argument is an error whatever the value's kind, so
+// `x is not T` never reads it as a mismatch and returns true.
+func (s *RuntimeTestSuite) TestEvalIsTypeBrokenConstraintArgumentErrorsForEveryValue() {
+	ctx := s.T().Context()
+	src := `namespace com/app
+policy pol {
+  rule num_value = { yield 1 is not string@regexp("[") }
+  rule str_value = { yield "a" is not string@regexp("[") }
+  rule null_value = { yield null is not string@regexp("[") }
+  rule null_nullable = { yield null is not string?@regexp("[") }
+  rule list_item = { yield ["a"] is not list[number@multiple_of(0)] }
+  rule trinary_number = { yield 1 is not trinary@eq(1) }
+  rule range_string = { yield "a" is not number@range(5, 1) }
+  rule valid = { yield 1 is not string@regexp("^a") }
+  export decision of num_value
+}
+`
+	idx := s.mustBuildDeriveIndex(ctx, deriveTestProgram{name: "broken_arg.sentrie", src: src})
+	rawExec, err := NewExecutor(idx)
+	s.Require().NoError(err)
+	exec, ok := rawExec.(*executorImpl)
+	s.Require().True(ok)
+	pol, err := idx.ResolvePolicy("com/app", "pol")
+	s.Require().NoError(err)
+
+	cases := map[string]string{
+		"num_value":      "invalid regexp pattern",
+		"str_value":      "invalid regexp pattern",
+		"null_value":     "invalid regexp pattern",
+		"null_nullable":  "invalid regexp pattern",
+		"trinary_number": "eq constraint expects a boolean argument",
+		"range_string":   "range minimum 5 is greater than maximum 1",
+	}
+	for rule, msg := range cases {
+		s.Run(rule, func() {
+			ec := NewExecutionContext(pol, exec)
+			defer ec.Dispose()
+			_, _, err := eval(ctx, ec, exec, pol, pol.Rules[rule].Body)
+			s.Require().Error(err)
+			s.Contains(err.Error(), msg)
+			s.False(isTypeMismatch(err), err.Error())
+		})
+	}
+
+	s.Run("a list item type is checked per item, so a mismatched item reports it", func() {
+		ec := NewExecutionContext(pol, exec)
+		defer ec.Dispose()
+		_, _, err := eval(ctx, ec, exec, pol, pol.Rules["list_item"].Body)
+		s.Require().Error(err)
+		s.Contains(err.Error(), "divisor cannot be zero")
+	})
+
+	s.Run("a valid argument still reads a wrong kind as a mismatch", func() {
+		ec := NewExecutionContext(pol, exec)
+		defer ec.Dispose()
+		got, _, err := eval(ctx, ec, exec, pol, pol.Rules["valid"].Body)
+		s.Require().NoError(err)
+		tv, ok := got.TrinaryValue()
+		s.Require().True(ok)
+		s.Equal(trinary.True, tv)
+	})
 }
 
 // TestEvalIsTypeInDeriveUsesDeriveScope checks that a derive body resolves
@@ -356,26 +415,23 @@ policy pol {
 }
 
 // TestEvalIsTypeDenyRuleDoesNotFailOpen checks `deny = x is not T` where x is
-// empty, undefined, null or of the wrong kind (deny is true), and where the check itself
-// is broken (an error, never a quiet true or false).
+// empty, undefined, null or of the wrong kind (deny is true). A check broken by
+// its constraint arguments is rejected by validation
+// (TestValidateRejectsBrokenConstraintArguments) and is an error at runtime
+// (TestEvalIsTypeBrokenConstraintArgumentErrorsForEveryValue).
 func (s *RuntimeTestSuite) TestEvalIsTypeDenyRuleDoesNotFailOpen() {
 	ctx := s.T().Context()
 	src := `namespace com/app
 shape Allowed { role: string@one_of("admin", "ops") }
-shape BrokenField { name: string@regexp("[") }
 
 policy pol {
   fact x: document
   rule deny = { yield x is not Allowed }
   rule deny_nullable = { yield x.s is not string? }
   rule deny_str = { yield x.s is not string@minlength(2) }
-  rule deny_broken_field = { yield x is not BrokenField }
-  rule deny_broken_arg = { yield x.s is not string@minlength("q") }
   export decision of deny
   export decision of deny_nullable
   export decision of deny_str
-  export decision of deny_broken_field
-  export decision of deny_broken_arg
 }
 `
 	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "deny.sentrie", src: src})
@@ -421,15 +477,6 @@ policy pol {
 		got, err := run("deny_str", map[string]any{"x": map[string]any{"s": "a"}})
 		s.Require().NoError(err)
 		s.Equal(trinary.True, got)
-	})
-	s.Run("a broken regexp inside a field's type errors for a conforming document", func() {
-		_, err := run("deny_broken_field", map[string]any{"x": map[string]any{"name": "a"}})
-		s.Require().Error(err)
-		s.Contains(err.Error(), "invalid regexp pattern")
-	})
-	s.Run("a broken constraint argument errors even when the value is too short", func() {
-		_, err := run("deny_broken_arg", map[string]any{"x": map[string]any{"s": "a"}})
-		s.Require().Error(err)
 	})
 }
 

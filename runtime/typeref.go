@@ -32,10 +32,13 @@ func typeCheckScope(ec *ExecutionContext, p *index.Policy) *index.Policy {
 
 func validateValueAgainstTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef ast.TypeRef, valueRange tokens.Range) error {
 	if ast.IsNullableTypeRef(typeRef) {
-		if v.IsNull() {
-			return nil
-		}
 		typeRef = ast.UnwrapNullableTypeRef(typeRef)
+		if v.IsNull() {
+			// null conforms to T?, but a broken constraint argument on T is
+			// still an error, whatever the value (#273).
+			_, err := bindConstraints(ctx, ec, exec, p, typeRef)
+			return err
+		}
 	}
 
 	switch t := typeRef.(type) {

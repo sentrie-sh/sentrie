@@ -16,14 +16,13 @@ Validates a value against a `record` type - Sentrie's fixed-arity positional tup
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `runtime.typeref_record` | `CALLS` | [[runtime.typeref]] | Recurses per position against the corresponding field type. |
-| `runtime.typeref_record` | `DEPENDS_ON` | [[constraints]] | `constraints.RecordContraintCheckers`. |
-| `runtime.typeref_record` | `CALLS` | [[runtime.eval]] | Evaluates constraint argument expressions. |
+| `runtime.typeref_record` | `CALLS` | [[runtime.typeref_constraints]] | `bindConstraints` before the kind check, `checkConstraints` after it. |
 | [[runtime.typeref]] | `CALLS` | [[runtime.typeref_record]] | Dispatched for `*ast.RecordTypeRef`. |
 
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `validateAgainstRecordTypeRef(ctx, ec, exec Executor, p *index.Policy, v box.Value, typeRef *ast.RecordTypeRef, pos tokens.Range) -> error`
-  - **Behavior:** Requires a list, requires `len(entries) == len(typeRef.Fields)` **exactly**, then validates each entry against the type at the same index, then runs record constraints.
+  - **Behavior:** Binds its constraints first ([[runtime.typeref_constraints]]: arguments evaluated and checked against the definition, so a broken argument errors for any value, #273), then requires a list, requires `len(entries) == len(typeRef.Fields)` **exactly**, then validates each entry against the type at the same index, then runs record constraints.
   - **Side Effects:** Constraint argument evaluation.
   - **Exceptions:** `value %v is not a record`; `fields length mismatch: %v`; `%v is not a valid record field: %w`; constraint errors.
 

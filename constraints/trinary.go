@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"github.com/sentrie-sh/sentrie/box"
-	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
@@ -16,10 +15,10 @@ import (
 // For trinaries, common constraints include eq/neq (compare to true/false/unknown),
 // and truthiness helpers like is_true/is_false.
 var TrinaryConstraintCheckers map[string]ConstraintDefinition = map[string]ConstraintDefinition{
-	"not_unknown": {
+	"not_unknown": define(ConstraintDefinition{
 		Name:    "not_unknown",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			tv, ok := val.TrinaryValue()
 			if !ok {
 				return fmt.Errorf("expected trinary, got %s", val.Kind())
@@ -29,53 +28,43 @@ var TrinaryConstraintCheckers map[string]ConstraintDefinition = map[string]Const
 			}
 			return nil
 		},
-	},
-	"eq": {
+	}),
+	"eq": define(ConstraintDefinition{
 		Name:    "eq",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Arg:     trinaryArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			tv, ok := val.TrinaryValue()
 			if !ok {
 				return fmt.Errorf("expected trinary, got %s", val.Kind())
 			}
-			if len(args) != 1 {
-				return invalidArgf("eq constraint requires 1 argument")
-			}
-			expected, oka := args[0].TrinaryValue()
-			if !oka {
-				return invalidArgf("eq constraint expects a boolean argument")
-			}
+			expected, _ := args[0].TrinaryValue()
 			if tv != expected {
 				return fmt.Errorf("value %v is not equal to %v", tv, expected)
 			}
 			return nil
 		},
-	},
-	"neq": {
+	}),
+	"neq": define(ConstraintDefinition{
 		Name:    "neq",
 		NumArgs: 1,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Arg:     trinaryArg,
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			tv, ok := val.TrinaryValue()
 			if !ok {
 				return fmt.Errorf("expected trinary, got %s", val.Kind())
 			}
-			if len(args) != 1 {
-				return invalidArgf("neq constraint requires 1 argument")
-			}
-			expected, oka := args[0].TrinaryValue()
-			if !oka {
-				return invalidArgf("neq constraint expects a boolean argument")
-			}
+			expected, _ := args[0].TrinaryValue()
 			if tv == expected {
 				return fmt.Errorf("value %v is equal to %v - expected not equal", tv, expected)
 			}
 			return nil
 		},
-	},
-	"is_true": {
+	}),
+	"is_true": define(ConstraintDefinition{
 		Name:    "is_true",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			tv, ok := val.TrinaryValue()
 			if !ok {
 				return fmt.Errorf("expected trinary, got %s", val.Kind())
@@ -85,11 +74,11 @@ var TrinaryConstraintCheckers map[string]ConstraintDefinition = map[string]Const
 			}
 			return nil
 		},
-	},
-	"is_false": {
+	}),
+	"is_false": define(ConstraintDefinition{
 		Name:    "is_false",
 		NumArgs: 0,
-		Checker: func(ctx context.Context, p *index.Policy, val box.Value, args []box.Value) error {
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			tv, ok := val.TrinaryValue()
 			if !ok {
 				return fmt.Errorf("expected trinary, got %s", val.Kind())
@@ -99,5 +88,5 @@ var TrinaryConstraintCheckers map[string]ConstraintDefinition = map[string]Const
 			}
 			return nil
 		},
-	},
+	}),
 }
