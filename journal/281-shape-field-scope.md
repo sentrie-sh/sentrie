@@ -34,3 +34,9 @@
 - Reworded the constraint-argument note: no result can change, since constraint arguments are literals and no checker reads the policy.
 - Declined for now: a shared `(*Shape).ScopeOr` helper for the two "shape scope, else fallback" sites; a small tidy-up that can follow.
 - _Model: claude-opus-5-5_
+
+### 2026-11-08 14:50 - Rebase onto main after #271 and #283
+- #271 merged (as #276) under this branch, so it moved onto main with `git rebase --onto`.
+- #283 (merged as #293) conflicted in two places. `docs/codebase-graph/index.builtin_kind.md`: one Behavior line combining #283's sentence (`resolveShapeReadOnly` delegates to `LookupShape`) and this branch's (field hops carry the declaring shape's scope). `index/builtin_check_test.go`: kept main's file and appended this branch's two tests.
+- `index`, `runtime` and `cmd` tests and `make docs-graph` pass.
+- _Model: claude-opus-5-5_
