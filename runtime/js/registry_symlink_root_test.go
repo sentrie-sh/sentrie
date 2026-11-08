@@ -160,6 +160,14 @@ func (s *JSTestSuite) TestModuleCacheKey_SameFileAcrossRootSpellingsAndSpecifier
 				s.NotContains(key, "..")
 				s.False(filepath.IsAbs(key), key)
 			}
+			// An extensionless specifier is keyed before probing, so it gets
+			// its own key, as on main. Pinned so a change to it is deliberate.
+			for _, spec := range []string{"./lib/b", "@local/lib/b"} {
+				key, path, _, _, err := reg.resolveRequire(from, spec)
+				s.Require().NoError(err, "%s from %s", spec, from)
+				s.Equal("@local/lib/b", key, "%s from %s root %s", spec, from, root)
+				s.Equal("b.ts", filepath.Base(path), spec)
+			}
 		}
 	}
 
