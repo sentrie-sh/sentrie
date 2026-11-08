@@ -22,3 +22,9 @@
 - Ruled out: no implementation bug found; `make test`, lint (Go 1.25 toolchain), docs-graph, gofmt and `go test -race ./index` pass.
 - Queue script gained one commit block for the two new test files, placed before the journal block.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-08 15:20 - Rebase onto main after #284
+- #284 (merged as #294) rewrote `forEachDeriveExprChild` in `index/derive_expr_walk.go` to delegate to the general child walker. Took main's version and re-applied the comment skip there: a `*ast.CommentStatement` case that yields nothing, with the doc comment updated.
+- main's `TestForEachDeriveExprChild` had a "block rejects a line comment" case; it is now "block skips a line comment" and checks only the yield is visited. Updated the `index.derive_expr_walk` node (Behavior, Exceptions and the blocks gotcha).
+- `index`, `runtime` and `cmd` tests and `make docs-graph` pass.
+- _Model: claude-opus-5-5_
