@@ -423,6 +423,11 @@ func (l *Lexer) readComment() (tokens.Kind, string) {
 	l.readRune() // consume second '-'
 
 	for l.current != '\n' && l.current != 0 {
+		// The \r of a CRLF line break is not part of the comment: leave it for
+		// whitespace skipping so the span matches the same line lexed with LF.
+		if l.current == '\r' && l.peekAhead() == '\n' {
+			break
+		}
 		result.WriteRune(l.current)
 		l.readRune()
 	}

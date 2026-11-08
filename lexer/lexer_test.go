@@ -205,3 +205,141 @@ func TestLexerTokenPositions(t *testing.T) {
 		}
 	}
 }
+
+// TestLexerCommentSpanIgnoresCRLF checks that a comment token covers the same
+// line and columns whether its line ends in LF or CRLF, so the \r of a CRLF
+// line break is not part of the span (#279). Offsets differ by the extra \r
+// bytes, so the span length is compared instead.
+func TestLexerCommentSpanIgnoresCRLF(t *testing.T) {
+	type span struct {
+		kind                                tokens.Kind
+		value                               string
+		fromLine, fromCol, toLine, toCol, n int
+	}
+	lex := func(input string) []span {
+		l := NewLexer(strings.NewReader(input), "t.sentrie")
+		var out []span
+		for {
+			tok := l.NextToken()
+			if tok.Kind == tokens.EOF {
+				return out
+			}
+			r := tok.Range
+			out = append(out, span{tok.Kind, tok.Value, r.From.Line, r.From.Column, r.To.Line, r.To.Column, r.To.Offset - r.From.Offset})
+		}
+	}
+	testCases := []struct {
+		name  string
+		input string
+		kind  tokens.Kind
+	}{
+		{"line comment", "-- note\nx\n", tokens.LineComment},
+		{"indented line comment", "  -- note  \nx\n", tokens.LineComment},
+		{"trailing comment", "x -- note\ny\n", tokens.TrailingComment},
+		{"empty comment", "x --\ny\n", tokens.TrailingComment},
+		{"comment between lines", "a\n-- note\nb\n", tokens.LineComment},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			lf := lex(tc.input)
+			crlf := lex(strings.ReplaceAll(tc.input, "\n", "\r\n"))
+			if len(lf) != len(crlf) {
+				t.Fatalf("token count differs: LF %+v, CRLF %+v", lf, crlf)
+			}
+			seen := false
+			for i := range lf {
+				if lf[i] != crlf[i] {
+					t.Fatalf("token %d differs: LF %+v, CRLF %+v", i, lf[i], crlf[i])
+				}
+				if lf[i].kind == tc.kind {
+					seen = true
+				}
+			}
+			if !seen {
+				t.Fatalf("no %s token in %+v", tc.kind, lf)
+			}
+		})
+	}
+
+	// A \r that is not followed by \n is not a line break and stays in the
+	// comment, in the middle of the text.
+	got := lex("-- a\rb\n")
+	if len(got) != 1 || got[0].value != "a\rb" {
+		t.Fatalf("lone \\r inside a comment: got %+v", got)
+	}
+}
+
+// TestLexerCommentEndOfFileAndFollowingTokensIgnoreCRLF checks the places a
+// CRLF comment can end: at the end of the file with and without a final line
+// break, and before more tokens, whose line and column must match the LF file
+// (#279).
+func TestLexerCommentEndOfFileAndFollowingTokensIgnoreCRLF(t *testing.T) {
+	type tok struct {
+		kind                                tokens.Kind
+		value                               string
+		fromLine, fromCol, toLine, toCol, n int
+	}
+	lex := func(input string) []tok {
+		l := NewLexer(strings.NewReader(input), "t.sentrie")
+		var out []tok
+		for {
+			tk := l.NextToken()
+			if tk.Kind == tokens.EOF {
+				return out
+			}
+			r := tk.Range
+			out = append(out, tok{tk.Kind, tk.Value, r.From.Line, r.From.Column, r.To.Line, r.To.Column, r.To.Offset - r.From.Offset})
+		}
+	}
+	testCases := []struct {
+		name  string
+		input string
+		want  int // number of tokens
+	}{
+		{"last line, no final break", "x\n-- note", 2},
+		{"last line, final break", "x\n-- note\n", 2},
+		{"trailing comment on the last line, no final break", "x -- note", 2},
+		{"only a comment, final break", "-- note\n", 1},
+		{"only a comment, no final break", "-- note", 1},
+		{"tokens on the next lines", "x -- one\ny -- two\n\n-- three\nz = 1\n", 8},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			lf := lex(tc.input)
+			crlf := lex(strings.ReplaceAll(tc.input, "\n", "\r\n"))
+			if len(lf) != tc.want {
+				t.Fatalf("LF token count: got %d, want %d: %+v", len(lf), tc.want, lf)
+			}
+			if len(lf) != len(crlf) {
+				t.Fatalf("token count differs: LF %+v, CRLF %+v", lf, crlf)
+			}
+			for i := range lf {
+				if lf[i] != crlf[i] {
+					t.Fatalf("token %d differs: LF %+v, CRLF %+v", i, lf[i], crlf[i])
+				}
+			}
+		})
+	}
+
+	// The next token's position is checked outright, not only against LF: the
+	// token after a CRLF comment starts at line 2, column 1.
+	got := lex("-- note\r\nx\r\n")
+	if len(got) != 2 || got[1].kind != tokens.Ident || got[1].fromLine != 2 || got[1].fromCol != 1 {
+		t.Fatalf("token after a CRLF comment: got %+v", got)
+	}
+
+	// A lone \r at the very end of the file (nothing follows it) is not a
+	// line break either: it stays in the comment's span, trimmed from the text.
+	got = lex("-- note\r")
+	if len(got) != 1 || got[0].value != "note" || got[0].n != len("-- note\r") {
+		t.Fatalf("lone \\r at the end of the comment: got %+v", got)
+	}
+
+	// Only the \r that directly precedes the \n is the line break: in \r\r\n
+	// the first \r is a lone one and stays in the comment's span, and the
+	// following token still lands on the next line.
+	got = lex("-- note\r\r\nx")
+	if len(got) != 2 || got[0].value != "note" || got[0].n != len("-- note\r") || got[1].fromLine != 2 || got[1].fromCol != 1 {
+		t.Fatalf("CR CR LF after a comment: got %+v", got)
+	}
+}
