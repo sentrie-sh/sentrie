@@ -27,7 +27,7 @@ func TestLexerErrorHelpersWrapLexerError(t *testing.T) {
 func TestReadHereDocReportsNewWrappedSyntaxBranches(t *testing.T) {
 	t.Run("missing tag after marker", func(t *testing.T) {
 		lx := NewLexer(strings.NewReader("<<<\n"), "bad.sentrie")
-		_, err := lx.readHereDoc()
+		_, _, err := lx.readHereDoc()
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "heredoc requires identifier tag after <<<")
 		var lexErr *LexerError
@@ -36,14 +36,14 @@ func TestReadHereDocReportsNewWrappedSyntaxBranches(t *testing.T) {
 
 	t.Run("invalid tag characters", func(t *testing.T) {
 		lx := NewLexer(strings.NewReader("<<<1tag\n"), "bad.sentrie")
-		_, err := lx.readHereDoc()
+		_, _, err := lx.readHereDoc()
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "heredoc requires identifier tag after <<<")
 	})
 
 	t.Run("trailing non whitespace after tag", func(t *testing.T) {
 		lx := NewLexer(strings.NewReader("<<<TAG!\nTAG\n"), "bad.sentrie")
-		_, err := lx.readHereDoc()
+		_, _, err := lx.readHereDoc()
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "unexpected characters after heredoc tag")
 		var lexErr *LexerError
@@ -52,7 +52,7 @@ func TestReadHereDocReportsNewWrappedSyntaxBranches(t *testing.T) {
 
 	t.Run("unicode tag fails ASCII identifier regex", func(t *testing.T) {
 		lx := NewLexer(strings.NewReader("<<<café\nbody\ncafé\n"), "uni.sentrie")
-		_, err := lx.readHereDoc()
+		_, _, err := lx.readHereDoc()
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "invalid heredoc tag")
 	})
