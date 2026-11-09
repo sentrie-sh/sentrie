@@ -152,6 +152,9 @@ func isUndefinedV(v box.Value) bool {
 }
 
 func toIntV(v box.Value) (int64, bool) {
+	if i, ok := v.IntValue(); ok {
+		return i, true
+	}
 	n, ok := v.NumberValue()
 	if !ok {
 		return 0, false
@@ -231,9 +234,26 @@ func implError(ctx context.Context, env Env, args ...box.Value) (box.Value, erro
 		if err != nil {
 			return box.Undefined(), fmt.Errorf("error: %w", err)
 		}
+		if i, ok := x.(int64); ok {
+			x = formatInt(i)
+		}
 		rest = append(rest, x)
 	}
 	return box.Undefined(), xerr.ErrInjected(format, rest...)
+}
+
+// formatInt lets an exact integer argument (#166) satisfy both integer and
+// float verbs: before integers were exact every number crossed as a float64,
+// so "%.2f" must keep working, and "%d" now works too.
+type formatInt int64
+
+func (n formatInt) Format(f fmt.State, verb rune) {
+	switch verb {
+	case 'e', 'E', 'f', 'F', 'g', 'G':
+		_, _ = fmt.Fprintf(f, fmt.FormatString(f, verb), float64(n))
+	default:
+		_, _ = fmt.Fprintf(f, fmt.FormatString(f, verb), int64(n))
+	}
 }
 
 func implFlatten(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
@@ -384,10 +404,10 @@ func implNormaliseList(ctx context.Context, env Env, args ...box.Value) (box.Val
 
 // implNow returns the pinned execution start in Unix seconds (#153).
 func implNow(ctx context.Context, env Env, _ ...box.Value) (box.Value, error) {
-	return box.Number(float64(env.ExecutionStart().Unix())), nil
+	return box.Int(env.ExecutionStart().Unix()), nil
 }
 
 // implNowMs returns the pinned execution start in Unix milliseconds.
 func implNowMs(ctx context.Context, env Env, _ ...box.Value) (box.Value, error) {
-	return box.Number(float64(env.ExecutionStart().UnixMilli())), nil
+	return box.Int(env.ExecutionStart().UnixMilli()), nil
 }

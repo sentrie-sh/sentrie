@@ -46,7 +46,10 @@ tags: literals, atoms, prefix-handlers, leaf-expressions
   - **Exceptions:** None - a `#` outside a pipeline parses successfully here and must be rejected downstream.
 
 - **Signature:** `parseIntegerLiteral(ctx, p) -> ast.Expression`
-  - **Behavior:** `strconv.ParseInt(value, 10, 64)` → `IntegerLiteral`.
+  - **Behavior:** `strconv.ParseInt(value, 10, 64)` → `IntegerLiteral`; out of range is a parse error. Used directly only where a real integer is required (the memoization TTL in [[parser.call]]).
+
+- **Signature:** `parseIntegerValueLiteral(ctx, p) -> ast.Expression`
+  - **Behavior:** The prefix function for `tokens.Int` and the integer case of constraint literals. An integer outside int64 becomes a `FloatLiteral` instead of an error, the same fallback JSON facts follow ([#166](https://github.com/sentrie-sh/sentrie/issues/166)); otherwise defers to `parseIntegerLiteral`.
   - **Side Effects:** Consumes a token.
   - **Exceptions:** `invalid integer literal %q at %s: %w` on overflow or malformed input.
 
@@ -65,6 +68,6 @@ tags: literals, atoms, prefix-handlers, leaf-expressions
 - **Performance/Scale Notes:** One `strconv` call per numeric literal; nothing else notable.
 - **Dependencies Risk:**
   - **Regression history.** `parseNullLiteral` previously assigned `p.err` directly instead of calling `errorf`, which dropped earlier diagnostics (bypassing `errors.Join`) and omitted the standard position prefix. Fixed; every production in this package must report through `errorf` to preserve the error-accumulation contract described in [[parser.parser]].
-  - **Integer/float distinction is lost downstream.** `IntegerLiteral` carries an `int64`, but [[box.value]] stores all numbers as `float64`, so integers beyond 2^53 silently lose precision at evaluation even though they parsed exactly.
+  - **Integers stay exact downstream.** `IntegerLiteral.Value` is an `int64` and [[runtime.eval]] boxes it as an exact integer, so `9007199254740993` evaluates and serialises exactly. There is no negative literal (see [[parser.unary]]), so `9223372036854775808` alone is an out-of-range float; [[parser.unary]] folds exactly `-9223372036854775808` into an `IntegerLiteral` holding `MinInt64`.
   - **`FromToken` never fails.** A malformed trinary token yields `Unknown` rather than an error, so a lexer change that alters keyword kinds would degrade silently into "unknown" verdicts.
   - **Identifiers are unresolved strings.** Nothing here distinguishes a fact, a `let`, a derive, or a module alias - they are all `Identifier` nodes.

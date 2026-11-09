@@ -6,7 +6,6 @@ package runtime
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/sentrie-sh/sentrie/ast"
@@ -68,47 +67,34 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 			out := box.String(l.String() + rs)
 			return out, node.SetResult(out), nil
 		}
-		ln, rn, err := box.MustNumbers(l, r)
+		out, err := box.Add(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		out := box.Number(ln + rn)
 		return out, node.SetResult(out), nil
 	case "-":
-		ln, rn, err := box.MustNumbers(l, r)
+		out, err := box.Sub(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		out := box.Number(ln - rn)
 		return out, node.SetResult(out), nil
 	case "*":
-		ln, rn, err := box.MustNumbers(l, r)
+		out, err := box.Mul(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		out := box.Number(ln * rn)
 		return out, node.SetResult(out), nil
 	case "/":
-		ln, rn, err := box.MustNumbers(l, r)
+		out, err := box.Div(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		if rn == 0 {
-			err := fmt.Errorf("divide by zero")
-			return box.Undefined(), node.SetErr(err), err
-		}
-		out := box.Number(ln / rn)
 		return out, node.SetResult(out), nil
 	case "%":
-		ln, rn, err := box.MustNumbers(l, r)
+		out, err := box.Mod(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		if rn == 0 {
-			err := fmt.Errorf("divide by zero")
-			return box.Undefined(), node.SetErr(err), err
-		}
-		out := box.Number(math.Mod(ln, rn))
 		return out, node.SetResult(out), nil
 
 	case "==", "is":
@@ -122,44 +108,44 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 			out := box.Bool(c < 0)
 			return out, node.SetResult(out), nil
 		}
-		ln, rn, err := box.MustNumbers(l, r)
+		c, ordered, err := box.CompareNumbers(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		out := box.Bool(ln < rn)
+		out := box.Bool(ordered && c < 0)
 		return out, node.SetResult(out), nil
 	case "<=":
 		if c, ok := compareStrings(l, r); ok {
 			out := box.Bool(c <= 0)
 			return out, node.SetResult(out), nil
 		}
-		ln, rn, err := box.MustNumbers(l, r)
+		c, ordered, err := box.CompareNumbers(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		out := box.Bool(ln <= rn)
+		out := box.Bool(ordered && c <= 0)
 		return out, node.SetResult(out), nil
 	case ">":
 		if c, ok := compareStrings(l, r); ok {
 			out := box.Bool(c > 0)
 			return out, node.SetResult(out), nil
 		}
-		ln, rn, err := box.MustNumbers(l, r)
+		c, ordered, err := box.CompareNumbers(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		out := box.Bool(ln > rn)
+		out := box.Bool(ordered && c > 0)
 		return out, node.SetResult(out), nil
 	case ">=":
 		if c, ok := compareStrings(l, r); ok {
 			out := box.Bool(c >= 0)
 			return out, node.SetResult(out), nil
 		}
-		ln, rn, err := box.MustNumbers(l, r)
+		c, ordered, err := box.CompareNumbers(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
 		}
-		out := box.Bool(ln >= rn)
+		out := box.Bool(ordered && c >= 0)
 		return out, node.SetResult(out), nil
 
 	case "in":

@@ -53,10 +53,10 @@ func (s *RuntimeTestSuite) TestEvalIdentLetLocalAndMissingPaths() {
 	)))
 	letValue, _, err := evalIdent(ctx, ec, &executorImpl{}, p, ast.NewIdentifier("from_let", stubRange()))
 	s.Require().NoError(err)
-	s.Require().Equal(7.0, letValue.Any())
+	s.Require().Equal(int64(7), letValue.Any())
 	cached, ok := ec.GetLocal("from_let")
 	s.Require().True(ok)
-	s.Require().Equal(7.0, cached.Any())
+	s.Require().Equal(int64(7), cached.Any())
 
 	s.Require().NoError(ec.InjectFact(ctx, "x", box.Number(1), false, nil))
 	s.Require().NoError(ec.InjectLet("x", ast.NewVarDeclaration(
@@ -68,7 +68,7 @@ func (s *RuntimeTestSuite) TestEvalIdentLetLocalAndMissingPaths() {
 	ec.SetLocal("x", box.Number(99), true)
 	localFirst, _, err := evalIdent(ctx, ec, &executorImpl{}, p, ast.NewIdentifier("x", stubRange()))
 	s.Require().NoError(err)
-	s.Require().Equal(99.0, localFirst.Any())
+	s.Require().Equal(int64(99), localFirst.Any())
 
 	_, _, err = evalIdent(ctx, ec, &executorImpl{}, p, ast.NewIdentifier("missing_symbol", stubRange()))
 	s.Require().ErrorContains(err, "identifier not found: missing_symbol")
@@ -144,18 +144,18 @@ func (s *RuntimeTestSuite) TestEvalCallMemoizedHitAndMiss() {
 
 	first, _, err := evalCall(ctx, ec, exec, p, memoizedCall)
 	s.Require().NoError(err)
-	s.Require().Equal(1.0, first.Any())
+	s.Require().Equal(int64(1), first.Any())
 	s.Require().Equal(1, callCount)
 
 	second, _, err := evalCall(ctx, ec, exec, p, memoizedCall)
 	s.Require().NoError(err)
-	s.Require().Equal(1.0, second.Any())
+	s.Require().Equal(int64(1), second.Any())
 	s.Require().Equal(1, callCount)
 
 	s.Require().NoError(ec.InjectFact(ctx, "memo_arg", box.Number(2), false, nil))
 	third, _, err := evalCall(ctx, ec, exec, p, memoizedCall)
 	s.Require().NoError(err)
-	s.Require().Equal(2.0, third.Any())
+	s.Require().Equal(int64(2), third.Any())
 	s.Require().Equal(2, callCount)
 }
 
@@ -290,5 +290,5 @@ func (s *RuntimeTestSuite) TestImportDecisionSuccessWithWithInjection() {
 	outMap, ok := out.DictValue()
 	s.Require().True(ok)
 	s.Require().Equal(box.Bool(true), outMap["state"])
-	s.Require().Equal(9.0, outMap["value"].Any())
+	s.Require().Equal(int64(9), outMap["value"].Any())
 }

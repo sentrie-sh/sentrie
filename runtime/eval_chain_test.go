@@ -29,7 +29,7 @@ func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
 		{
 			name:    "preceding comment routes to wrapped literal",
 			expr:    ast.NewPrecedingCommentExpression("comment", ast.NewIntegerLiteral(7, stubRange()), stubRange()),
-			wantAny: 7.0,
+			wantAny: int64(7),
 		},
 		{
 			name:    "trailing comment routes to wrapped literal",
@@ -40,7 +40,7 @@ func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
 			name:    "identifier dispatch",
 			expr:    ast.NewIdentifier("x", stubRange()),
 			setup:   func(ec *ExecutionContext) { s.Require().NoError(ec.InjectFact(ctx, "x", box.Number(11), false, nil)) },
-			wantAny: 11.0,
+			wantAny: int64(11),
 		},
 		{
 			name: "call dispatch for builtin",
@@ -51,7 +51,7 @@ func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
 				nil,
 				stubRange(),
 			),
-			wantAny: []any{5.0},
+			wantAny: []any{int64(5)},
 		},
 		{
 			name: "cast dispatch",
@@ -70,7 +70,7 @@ func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
 				"+",
 				stubRange(),
 			),
-			wantAny: 5.0,
+			wantAny: int64(5),
 		},
 		{
 			name: "unary dispatch",
@@ -89,7 +89,7 @@ func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
 				ast.NewIntegerLiteral(20, stubRange()),
 				stubRange(),
 			),
-			wantAny: 10.0,
+			wantAny: int64(10),
 		},
 		{
 			name: "field access dispatch",
@@ -103,7 +103,7 @@ func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
 				"key",
 				stubRange(),
 			),
-			wantAny: 9.0,
+			wantAny: int64(9),
 		},
 		{
 			name: "index access dispatch",
@@ -126,7 +126,7 @@ func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
 				ast.NewIdentifier("y", stubRange()),
 				stubRange(),
 			),
-			wantAny: 42.0,
+			wantAny: int64(42),
 		},
 		{
 			name: "any builtin dispatch",
@@ -158,7 +158,7 @@ func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
 				}, stubRange()),
 				stubLambda([]string{"v"}, ast.NewInfixExpression(ast.NewIdentifier("v", stubRange()), ast.NewIntegerLiteral(1, stubRange()), ">", stubRange())),
 			}, false, nil, stubRange()),
-			wantAny: 2.0,
+			wantAny: int64(2),
 		},
 		{
 			name: "filter builtin dispatch",
@@ -169,7 +169,7 @@ func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
 				}, stubRange()),
 				stubLambda([]string{"v"}, ast.NewInfixExpression(ast.NewIdentifier("v", stubRange()), ast.NewIntegerLiteral(1, stubRange()), ">", stubRange())),
 			}, false, nil, stubRange()),
-			wantAny: []any{2.0},
+			wantAny: []any{int64(2)},
 		},
 		{
 			name: "reduce builtin dispatch",
@@ -182,7 +182,7 @@ func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
 				ast.NewIntegerLiteral(0, stubRange()),
 				stubLambda([]string{"acc", "v"}, ast.NewInfixExpression(ast.NewIdentifier("acc", stubRange()), ast.NewIdentifier("v", stubRange()), "+", stubRange())),
 			}, false, nil, stubRange()),
-			wantAny: 6.0,
+			wantAny: int64(6),
 		},
 		{
 			name: "map builtin dispatch",
@@ -192,7 +192,7 @@ func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
 				}, stubRange()),
 				stubLambda([]string{"v", "i"}, ast.NewInfixExpression(ast.NewIdentifier("v", stubRange()), ast.NewIdentifier("i", stubRange()), "+", stubRange())),
 			}, false, nil, stubRange()),
-			wantAny: []any{3.0},
+			wantAny: []any{int64(3)},
 		},
 		{
 			name: "distinct builtin dispatch",
@@ -203,7 +203,7 @@ func (s *RuntimeTestSuite) TestEvalDispatchByExpressionKind() {
 					ast.NewIntegerLiteral(2, stubRange()),
 				}, stubRange()),
 			}, false, nil, stubRange()),
-			wantAny: []any{1.0, 2.0},
+			wantAny: []any{int64(1), int64(2)},
 		},
 		{
 			name: "transform dispatch reaches not implemented boundary",

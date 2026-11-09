@@ -16,7 +16,7 @@ Implements `expr as <type>` - the language's only explicit conversion mechanism.
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `runtime.eval_cast` | `DEPENDS_ON` | [[ast]] | Switches on the target `ast.TypeRef` implementation. |
-| `runtime.eval_cast` | `DEPENDS_ON` | [[box]] | `String`, `Number`, `Trinary`, `TrinaryFrom`, `NumberValue`, `StringValue`, `BoolValue`, `Kind`. |
+| `runtime.eval_cast` | `DEPENDS_ON` | [[box]] | `String`, `Number`, `ParseNumber`, `Trinary`, `TrinaryFrom`, `StringValue`, `BoolValue`, `Kind`. |
 | `runtime.eval_cast` | `CALLS` | [[runtime.eval]] | Evaluates the operand expression. |
 | `runtime.eval_cast` | `CALLS` | [[runtime.typeref]] | `validateValueAgainstTypeRef` in `typeCheckScope(ec, p)`. |
 | [[runtime.eval]] | `CALLS` | [[runtime.eval_cast]] | `ast.CastExpression` nodes dispatch here. |
@@ -26,12 +26,12 @@ Implements `expr as <type>` - the language's only explicit conversion mechanism.
 - **Signature:** `evalCast(ctx, ec, e, p, cast *ast.CastExpression) -> (box.Value, *trace.Node, error)`
   - **Behavior:** Evaluates the operand, then dispatches on the target type ref.
   - **Side Effects:** Operand evaluation.
-  - **Exceptions:** `cannot cast %s to number`; `cannot cast %s to list`; `cannot cast %s to dict`; `strconv.ParseFloat` errors.
+  - **Exceptions:** `cannot cast %s to number`; `cannot cast %s to list`; `cannot cast %s to dict`; `box.ParseNumber` (`strconv`) errors.
 
 - **Signature:** Conversion rules by target
   - **Behavior:**
     - **String** - always succeeds via `val.String()`; every value has a string rendering.
-    - **Number** - accepts a number as-is, parses a string with `ParseFloat`, and maps a boolean to `1`/`0`. Everything else errors.
+    - **Number** - accepts a number as-is (keeping an exact integer exact), parses a string with `box.ParseNumber` (an integer that fits int64 is exact, anything else a float), and maps a boolean to `1`/`0`. Everything else errors.
     - **Trinary** - always succeeds via `box.TrinaryFrom`, applying language truthiness; the result is a bool unless it is `Unknown`.
     - **List / Dict** - pure **assertions**: the value must already be that kind, and is returned unchanged.
     - **Shape** - returned unchanged with no structural check at this point.

@@ -4,6 +4,8 @@
 package parser
 
 import (
+	"math"
+
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/trinary"
 )
@@ -44,7 +46,51 @@ func (s *ParserTestSuite) TestParseExpressionIntegerLiteral() {
 
 	intLit, ok := expr.(*ast.IntegerLiteral)
 	s.True(ok)
-	s.Equal(float64(42), intLit.Value)
+	s.Equal(int64(42), intLit.Value)
+}
+
+// TestParseExpressionLargeIntegerLiterals covers #166: an integer that fits
+// int64 is kept exactly, and one beyond int64 becomes a float literal rather
+// than a parse error.
+func (s *ParserTestSuite) TestParseExpressionLargeIntegerLiterals() {
+	expr := NewParserFromString(`9007199254740993`, "test.sentra").parseExpression(s.T().Context(), LOWEST)
+	intLit, ok := expr.(*ast.IntegerLiteral)
+	s.Require().True(ok)
+	s.Equal(int64(9007199254740993), intLit.Value)
+	s.Equal("9007199254740993", intLit.String())
+
+	expr = NewParserFromString(`9223372036854775807`, "test.sentra").parseExpression(s.T().Context(), LOWEST)
+	intLit, ok = expr.(*ast.IntegerLiteral)
+	s.Require().True(ok)
+	s.Equal(int64(9223372036854775807), intLit.Value)
+
+	p := NewParserFromString(`18446744073709551616`, "test.sentra")
+	expr = p.parseExpression(s.T().Context(), LOWEST)
+	s.Require().NoError(p.err)
+	floatLit, ok := expr.(*ast.FloatLiteral)
+	s.Require().True(ok)
+	s.Equal(18446744073709551616.0, floatLit.Value)
+}
+
+// TestParseExpressionMinInt64Literal: 2^63 alone is a float, but directly
+// negated it folds to an exact MinInt64 literal. Nothing else is folded.
+func (s *ParserTestSuite) TestParseExpressionMinInt64Literal() {
+	expr := NewParserFromString(`-9223372036854775808`, "test.sentra").parseExpression(s.T().Context(), LOWEST)
+	intLit, ok := expr.(*ast.IntegerLiteral)
+	s.Require().True(ok, "%T", expr)
+	s.Equal(int64(math.MinInt64), intLit.Value)
+
+	expr = NewParserFromString(`-9223372036854775808 * 2`, "test.sentra").parseExpression(s.T().Context(), LOWEST)
+	infix, ok := expr.(*ast.InfixExpression)
+	s.Require().True(ok, "%T", expr)
+	_, ok = infix.Left.(*ast.IntegerLiteral)
+	s.True(ok, "unary binds tighter than *, so the folded literal is the left operand")
+
+	for _, src := range []string{`-9223372036854775807`, `-9223372036854775808.0`, `-9223372036854775809`, `!9223372036854775808`} {
+		expr = NewParserFromString(src, "test.sentra").parseExpression(s.T().Context(), LOWEST)
+		_, ok = expr.(*ast.UnaryExpression)
+		s.True(ok, "%s stays a unary expression, got %T", src, expr)
+	}
 }
 
 // TestParseExpressionFloatLiteral tests parsing float literal expressions

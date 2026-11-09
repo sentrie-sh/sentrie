@@ -116,7 +116,7 @@ policy pol {
 	s.Require().NoError(err)
 	out, err := target(ctx, box.Number(1))
 	s.Require().NoError(err)
-	s.Equal(2.0, out.Any())
+	s.Equal(int64(2), out.Any())
 
 	rng := stubRange()
 	com := ast.NewIdentifier("com", rng)
@@ -129,7 +129,7 @@ policy pol {
 	s.Require().NoError(err)
 	out, err = target(ctx, box.Number(1))
 	s.Require().NoError(err)
-	s.Equal(2.0, out.Any())
+	s.Equal(int64(2), out.Any())
 }
 
 func (s *RuntimeTestSuite) TestGetTargetRejectsTypeScriptModuleInsideDerive() {

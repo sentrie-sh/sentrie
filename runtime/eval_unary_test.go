@@ -40,11 +40,11 @@ func (s *RuntimeTestSuite) TestEvalUnaryNumberOperatorsAndErrors() {
 
 	plus, _, err := evalUnary(s.T().Context(), ec, &executorImpl{}, p, ast.NewUnaryExpression("+", ast.NewIntegerLiteral(7, stubRange()), stubRange()))
 	s.Require().NoError(err)
-	s.Require().Equal(7.0, plus.Any())
+	s.Require().Equal(int64(7), plus.Any())
 
 	minus, _, err := evalUnary(s.T().Context(), ec, &executorImpl{}, p, ast.NewUnaryExpression("-", ast.NewIntegerLiteral(7, stubRange()), stubRange()))
 	s.Require().NoError(err)
-	s.Require().Equal(-7.0, minus.Any())
+	s.Require().Equal(int64(-7), minus.Any())
 
 	_, _, err = evalUnary(s.T().Context(), ec, &executorImpl{}, p, ast.NewUnaryExpression("+", ast.NewStringLiteral("x", stubRange()), stubRange()))
 	s.Require().ErrorContains(err, "unary + requires number")

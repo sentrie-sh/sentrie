@@ -155,7 +155,7 @@ func (p *printer) expr(e ast.Expression) {
 	case *ast.Identifier:
 		p.write(n.Value)
 	case *ast.IntegerLiteral:
-		p.write(strconv.FormatFloat(n.Value, 'f', -1, 64))
+		p.write(strconv.FormatInt(n.Value, 10))
 	case *ast.FloatLiteral:
 		s := strconv.FormatFloat(n.Value, 'f', -1, 64)
 		if !strings.Contains(s, ".") {

@@ -33,7 +33,7 @@ func (s *RuntimeTestSuite) TestImportWithFactBoundaryPreservesNestedUndefined() 
 	s.Require().True(ok)
 	list, ok := decodedMap["payload"].ListValue()
 	s.Require().True(ok)
-	s.Require().Equal(1.0, list[0].Any())
+	s.Require().Equal(int64(1), list[0].Any())
 	s.Require().True(list[1].IsUndefined())
 }
 
@@ -91,7 +91,7 @@ func (s *RuntimeTestSuite) TestExecutorOutputEnvelopeIncludesDecisionAndAttachme
 	m, ok := envelope.DictValue()
 	s.Require().True(ok)
 	s.Require().Equal(box.Bool(false), m["state"])
-	s.Require().Equal(42.0, m["value"].Any())
+	s.Require().Equal(int64(42), m["value"].Any())
 	s.Require().Equal("policy denied", m["reason"].Any())
 	s.Require().Equal(trinary.False, box.TrinaryFrom(envelope))
 }
