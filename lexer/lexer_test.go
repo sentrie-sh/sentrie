@@ -472,7 +472,6 @@ func TestLexerStringLiteralCRLFPositions(t *testing.T) {
 	})
 }
 
-
 func TestLexerNumberExponent(t *testing.T) {
 	cases := []struct {
 		input string
