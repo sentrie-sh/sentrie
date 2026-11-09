@@ -9,7 +9,7 @@ tags: third-party, dependencies, supply-chain, manifest
 # Node: ext.dependencies (Third-Party Dependency Manifest)
 
 ## 1. Architectural Role & Intent
-The complete external surface of the Sentrie module, declared in `go.mod` against **Go 1.25.0**. The dependency set is deliberately small for a language runtime - 12 direct requirements - and every one of them sits at a specific architectural seam. This node exists so an agent can reason about which third-party failure affects which subsystem without re-reading the manifest.
+The complete external surface of the Sentrie module, declared in `go.mod` against **Go 1.27.0**. The dependency set is deliberately small for a language runtime - 12 direct requirements - and every one of them sits at a specific architectural seam. This node exists so an agent can reason about which third-party failure affects which subsystem without re-reading the manifest.
 
 ## 2. Graph Edges (Strict Relational Data)
 
