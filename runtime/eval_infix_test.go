@@ -224,7 +224,21 @@ func (s *RuntimeTestSuite) TestEvalInfixArithmeticComparisonAndTrinaryMatrix() {
 			want:     false,
 		},
 		{
-			name:        "undefined short-circuits before operator logic",
+			name:     "false and undefined is false",
+			operator: "and",
+			left:     ast.NewTrinaryLiteral(trinary.False, stubRange()),
+			right:    ast.NewFieldAccessExpression(ast.NewMapLiteral([]ast.MapEntry{}, stubRange()), "missing", stubRange()),
+			want:     false,
+		},
+		{
+			name:     "true or skips an erroring right operand",
+			operator: "or",
+			left:     ast.NewTrinaryLiteral(trinary.True, stubRange()),
+			right:    ast.NewInfixExpression(ast.NewStringLiteral("a", stubRange()), ast.NewIntegerLiteral(1, stubRange()), "<", stubRange()),
+			want:     true,
+		},
+		{
+			name:        "undefined propagates through arithmetic",
 			operator:    "+",
 			left:        ast.NewFieldAccessExpression(ast.NewMapLiteral([]ast.MapEntry{}, stubRange()), "missing", stubRange()),
 			right:       ast.NewIntegerLiteral(1, stubRange()),

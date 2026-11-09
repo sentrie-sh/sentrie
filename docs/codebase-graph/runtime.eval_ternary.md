@@ -9,7 +9,7 @@ tags: control-flow, short-circuit, elvis, null-coalescing
 # Node: runtime.evalTernary (Conditional and Elvis)
 
 ## 1. Architectural Role & Intent
-Implements both `cond ? a : b` and the Elvis form `expr ?: fallback`. It is one of the very few genuinely **short-circuiting** constructs in the evaluator: exactly one branch is evaluated, which makes it the idiomatic way to guard an expensive or failure-prone sub-expression, since [[runtime.eval_infix]] evaluates both operands of `and`/`or` unconditionally.
+Implements both `cond ? a : b` and the Elvis form `expr ?: fallback`. It is one of the few genuinely **short-circuiting** constructs in the evaluator: exactly one branch is evaluated, which makes it the idiomatic way to choose between values or guard an expensive or failure-prone sub-expression. The `and`/`or` operators in [[runtime.eval_infix]] also short-circuit, but only produce a truth value.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -38,7 +38,7 @@ Implements both `cond ? a : b` and the Elvis form `expr ?: fallback`. It is one 
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless.
-- **Performance/Scale Notes:** The primary short-circuiting primitive in the language. Guarding with `?:` or `? :` is the only reliable way to avoid evaluating an expensive sub-expression, since logical operators do not short-circuit.
+- **Performance/Scale Notes:** The primary short-circuiting primitive in the language. Guarding with `?:` or `? :` avoids evaluating an expensive sub-expression when a value is needed; for a truth value, `and`/`or` short-circuit as well.
 - **Dependencies Risk:**
   - **`Unknown` takes the else-branch.** Three-valued logic collapses to two at the conditional, so a condition that is genuinely indeterminate produces the same outcome as one that is definitively false. A policy that needs to distinguish them must test with `is defined` or compare against `unknown` explicitly.
   - **The two forms use different absence tests.** Elvis checks `IsUndefined || IsNull` - a structural absence test - while the conditional checks trinary truthiness. So `x ?: y` and `x ? x : y` are **not** equivalent: for `x = false`, Elvis returns `false` while the conditional returns `y`.

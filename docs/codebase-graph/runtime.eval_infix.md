@@ -9,7 +9,7 @@ tags: operators, arithmetic, kleene-logic, comparison, coercion
 # Node: runtime.evalInfix (Binary Operators)
 
 ## 1. Architectural Role & Intent
-Implements every binary operator in one switch: arithmetic, comparison, three-valued logic, membership, and regex matching. It evaluates both operands eagerly and applies a blanket undefined-propagation rule before dispatching, which makes the whole operator surface uniformly tolerant of missing data.
+Implements every binary operator in one switch: arithmetic, comparison, three-valued logic, membership, and regex matching. The logic operators are routed first to `evalLogical`, which applies Kleene three-valued logic with an undefined operand read as unknown, and short-circuits `and`/`or`. Every other operator evaluates both operands eagerly and applies a blanket undefined-propagation rule before dispatching, which makes the rest of the operator surface uniformly tolerant of missing data.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -17,13 +17,13 @@ Implements every binary operator in one switch: arithmetic, comparison, three-va
 | :--- | :--- | :--- | :--- |
 | `runtime.eval_infix` | `DEPENDS_ON` | [[box]] | `MustNumbers`, `EqualValues`, `ContainsValue`, `MatchesValue`, `TrinaryFrom`, and the constructors. |
 | `runtime.eval_infix` | `DEPENDS_ON` | [[trinary]] | `And`, `Or`, `Not` implement Kleene logic; `xor` is composed from them. |
-| `runtime.eval_infix` | `CALLS` | [[runtime.eval]] | Evaluates left then right operand. |
+| `runtime.eval_infix` | `CALLS` | [[runtime.eval]] | Evaluates left then right operand; for `and`/`or` the right only when the left does not decide the result. |
 | [[runtime.eval]] | `CALLS` | [[runtime.eval_infix]] | All `ast.InfixExpression` nodes dispatch here. |
 
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `evalInfix(ctx, ec, exec, p, in *ast.InfixExpression) -> (box.Value, *trace.Node, error)`
-  - **Behavior:** Evaluates both operands, returns `Undefined` if **either** is undefined, then dispatches on the operator string.
+  - **Behavior:** Sends `and`, `or` and `xor` to `evalLogical`. For every other operator it evaluates both operands, returns `Undefined` if **either** is undefined, then dispatches on the operator string.
   - **Side Effects:** Whatever the operands do.
   - **Exceptions:** `divide by zero`; numeric coercion failures from `box.MustNumbers`; regex errors; `unsupported infix op: %s`.
 
@@ -38,9 +38,9 @@ Implements every binary operator in one switch: arithmetic, comparison, three-va
   - **Exceptions:** Coercion failure on the relational forms.
 
 - **Signature:** Logic - `and`, `or`, `xor`
-  - **Behavior:** Coerces both sides with `box.TrinaryFrom` and applies Kleene operators. `xor` is derived as `(l or r) and not (l and r)`. Results re-box with `box.Trinary`, so a known result is a `ValueBool`, the same kind comparisons produce.
-  - **Side Effects:** None.
-  - **Exceptions:** None.
+  - **Behavior:** `evalLogical` evaluates the left side and coerces it with `box.TrinaryFrom`, which maps undefined and null to `Unknown`. If the left decides the result (`False` for `and`, `True` for `or`) it returns that without evaluating the right side at all: no error, no module call, no trace child. Otherwise it evaluates the right side, coerces it the same way, and applies the Kleene operator, so `unknown and false` is `false` and `undefined or true` is `true`. `xor` always evaluates both sides and is derived as `(l or r) and not (l and r)`. These operators never return `Undefined`. Results re-box with `box.Trinary`, so a known result is a `ValueBool`, the same kind comparisons produce.
+  - **Side Effects:** The right operand's, only when it is evaluated.
+  - **Exceptions:** An operand's evaluation error propagates; a right-side error only when the left did not decide the result.
 
 - **Signature:** Membership and matching - `in`, `contains`, `matches`
   - **Behavior:** `in` and `contains` are the same predicate with operands swapped. `matches` applies a regex from the right operand to the left.
@@ -49,10 +49,10 @@ Implements every binary operator in one switch: arithmetic, comparison, three-va
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless.
-- **Performance/Scale Notes:** Both operands are **always evaluated** - there is no short-circuiting for `and` or `or`. An expensive right operand runs even when the left already determines the result, and any side effect it has (a module call, a rule reference) happens regardless.
+- **Performance/Scale Notes:** `and` and `or` short-circuit, so an expensive or failing right operand (a module call, a rule reference) is skipped when the left already determines the result. When the left is `Unknown` or undefined the right still runs, since it can decide the result. Every other operator, `xor` included, evaluates both operands.
 - **Dependencies Risk:**
-  - **Undefined propagation overrides Kleene logic.** The blanket check runs before the switch, so `false and <undefined>` yields `Undefined` rather than `False`, even though Kleene logic defines that case. The three-valued semantics the language advertises are therefore not complete at the operator level - `Undefined` is a fourth state that absorbs everything.
-  - **No short-circuit evaluation** means `a is defined and a.field > 0` still evaluates the right side. Guard patterns that look safe are not.
+  - **Undefined absorbs every operator except the logic ones.** The blanket undefined check runs only on the eager path, so arithmetic, comparison, `in`, `contains` and `matches` still return `Undefined` for an undefined operand, while `and`, `or` and `xor` read it as `Unknown`. A comparison on missing data therefore yields `Undefined`, and that reaches a logic operator as `Unknown`, not as an absorbing fourth state.
+  - **Guard patterns are safe.** `a is defined and a.field > 0` does not evaluate the right side when `a` is undefined, and `false and x` / `true or x` hold for any `x`, including one that errors. The right side runs only when the left is `True` for `and`, `False` for `or`, or `Unknown`.
   - **`+` silently stringifies.** `1 + "a"` produces `"1a"` rather than a type error, because the string branch is checked before the numeric one. Combined with the lack of static type checking on operators, arithmetic typos degrade into concatenation.
   - **`is` is equality only when its right-hand side is a value.** With a type or a shape name on the right it is a conformance check ([[runtime.eval_is_type]]) that returns `false`, not `Undefined`, for an undefined left operand; with a value it keeps the equality semantics here, including undefined propagation.
   - **`%` is floating-point modulo.** Since integers and floats collapse to one numeric kind in [[box]], `%` on values that look like integers still goes through `math.Mod`.
