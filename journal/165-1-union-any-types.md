@@ -28,3 +28,10 @@
 - Finding: `index/builtin_kind.go` listing `AnyTypeRef` and `UnionTypeRef` explicitly is behaviour-neutral (the fall-through already returned unknown), so no test can fail without it.
 - Gate: make test, lint (0 issues, CI-pinned linter), gofmt, docs-graph, race on the touched non-runtime packages, no em dash all pass.
 - _Model: claude-sonnet-5-5, role: test and CI subagent_
+
+### 2026-11-09 18:19 - Rebase onto main and adapt to set[T], index checks and the formatter
+- Rebased onto `main` at d35f785 (set[T] #264, exact integers #261, constraint-argument and shape-name checks at index time #273/#282, dict element checks #299, the formatter #172). Conflicts in `parser/is.go`, `parser/typeref.go`, `index/is_resolve.go`, `runtime/typeref_shape.go` and eight graph nodes kept both sides; `checkIsTypeShapes` now uses main's `forEachNestedTypeRef`, which gained a `UnionTypeRef` case so every index walk reaches union members.
+- Adapt commit: the formatter prints unions and `any`; `outerKindAccepts` treats `set[T]` as a list kind and reads a shape alias in the shape's scope (#281). Bad constraint arguments in a member are now rejected at index time, so the runtime fail-closed cases moved to the unvalidated-index test, and index tests cover unions in lets, casts and `set[...]`. Added `set[string | number]` and `string | set[number]` cases (runtime, facts, fixture, formatter).
+- The earlier `dict[T]` finding is obsolete: main validates dict values since #299, and its graph note was dropped.
+- `make lint` needs a golangci-lint built with the toolchain that runs it: run it with the cached go1.26.1 toolchain first on `PATH` (`GOROOT` set, `GOTOOLCHAIN=local`), since Homebrew's binary is built with go1.26 and local `go` is 1.27.
+- _Model: claude-opus-5-5, role: rebase subagent_

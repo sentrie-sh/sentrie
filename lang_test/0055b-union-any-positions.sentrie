@@ -20,6 +20,9 @@ policy union_positions {
   let c4 = widen([1])
   let c5 = [[1], "a"] is list[list[number] | string]
   let c6 = { "k": 1 } is dict[any] and not ({ "k": 1 } is not dict[number | string])
+  let c7: set[string | number] = [1, "a"]
+  let c8: string | set[number] = [1, 2]
+  let c9 = c7 is set[string | number] and c8 is string | set[number]?
   rule _corpus = { yield true }
   export decision of _corpus
 }

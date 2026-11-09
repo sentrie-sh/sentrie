@@ -60,7 +60,8 @@ func validateAgainstUnionTypeRef(ctx context.Context, ec *ExecutionContext, exec
 
 // outerKindAccepts reports whether v passes t's outermost kind check, before
 // any element, field or constraint is looked at. A shape alias is read
-// through to its target; a shape that cannot be resolved accepts nothing.
+// through to its target, in the shape's own scope; a shape that cannot be
+// resolved accepts nothing.
 func outerKindAccepts(exec Executor, p *index.Policy, v box.Value, t ast.TypeRef) bool {
 	switch tr := t.(type) {
 	case *ast.AnyTypeRef:
@@ -86,7 +87,7 @@ func outerKindAccepts(exec Executor, p *index.Policy, v box.Value, t ast.TypeRef
 		}
 		_, ok := v.DecisionState()
 		return ok
-	case *ast.ListTypeRef, *ast.RecordTypeRef:
+	case *ast.ListTypeRef, *ast.SetTypeRef, *ast.RecordTypeRef:
 		_, ok := v.ListValue()
 		return ok
 	case *ast.DictTypeRef, *ast.DocumentTypeRef:
@@ -98,7 +99,12 @@ func outerKindAccepts(exec Executor, p *index.Policy, v box.Value, t ast.TypeRef
 			return false
 		}
 		if shape.AliasOf != nil {
-			return outerKindAccepts(exec, p, v, shape.AliasOf)
+			// the alias resolves in the shape's own scope (#281)
+			scope := shape.ShapeScope()
+			if scope == nil {
+				scope = p
+			}
+			return outerKindAccepts(exec, scope, v, shape.AliasOf)
 		}
 		_, ok := v.DictValue()
 		return ok

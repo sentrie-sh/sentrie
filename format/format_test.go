@@ -69,6 +69,13 @@ func (s *FormatTestSuite) TestStatements() {
 			"namespace t\nderive d = (a:number, b?:string):boolean => { yield a }\nexport derive d",
 			"namespace t\n\nderive d = (a: number, b?: string): boolean => { yield a }\n\nexport derive d\n",
 		},
+		"unions and any": {
+			"namespace t\npolicy p {\nfact a:string|number?\nlet b: set[string|number] = []\nlet c: number@min(1) | set[number] = 2\nlet d:any = 1\nrule r = when (b is string|any) { yield c is Foo | list[any]? }\nrule s = when (b is string|Foo?) { yield c is any }\n}",
+			inPolicy("fact a: string | number?", "let b: set[string | number] = []", "let c: number @min(1) | set[number] = 2", "let d: any = 1",
+				"rule r = when b is string | any { yield c is Foo | list[any]? }",
+				// a nullable union member is never the ternary: no parentheses
+				"rule s = when b is string | Foo? { yield c is any }"),
+		},
 		"blank lines collapse": {
 			"namespace t\npolicy p {\n\n  let a = 1\n\n\n\n  let b = 2\n  let c = 3\n\n}",
 			inPolicy("let a = 1", "", "let b = 2", "let c = 3"),

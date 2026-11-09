@@ -46,7 +46,6 @@ policy pol {
     let x: string | number = true
     yield x
   }
-  rule broken_member = { yield "ab" is number | string@minlength("q") }
   export decision of got_rhs
   export decision of got_top
   export decision of got_maybe
@@ -67,7 +66,6 @@ policy pol {
   export decision of derive_bad_param
   export decision of derive_any
   export decision of let_union_bad
-  export decision of broken_member
 }
 `
 
@@ -90,8 +88,6 @@ func (s *RuntimeTestSuite) TestUnionAndAnyInExpressions() {
 	errCases := map[string]string{
 		"derive_bad_param": "is not string | number",
 		"let_union_bad":    "is not string | number",
-		// a member whose check cannot be made is an error, not a mismatch
-		"broken_member": "expected number, got string",
 	}
 	for rule, msg := range errCases {
 		s.Run(rule, func() {

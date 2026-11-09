@@ -31,7 +31,7 @@ Validates a value against a union `T1 | T2 | …` and against the top type `any`
   - **Side Effects:** Constraint-argument evaluation in every member tried.
   - **Exceptions:** As above. Both union-level messages carry the mismatch marker.
 - **Signature:** `outerKindAccepts(exec, p, v, t) -> bool`
-  - **Behavior:** Whether `v` passes `t`'s outermost kind check only: string, number, bool or trinary (or a decision envelope), list for `list`/`record`, dict for `dict`/`document`/complex shapes; a shape alias is read through; `T?` also accepts null; `any` accepts any defined value; a union accepts what any member accepts. An unresolvable shape accepts nothing.
+  - **Behavior:** Whether `v` passes `t`'s outermost kind check only: string, number, bool or trinary (or a decision envelope), list for `list`/`set`/`record` (a plain list is a candidate `set[T]`), dict for `dict`/`document`/complex shapes; a shape alias is read through in the shape's own scope (#281); `T?` also accepts null; `any` accepts any defined value; a union accepts what any member accepts. An unresolvable shape accepts nothing.
   - **Side Effects:** Shape lookups.
   - **Exceptions:** None.
 
@@ -39,7 +39,7 @@ Validates a value against a union `T1 | T2 | …` and against the top type `any`
 - **Statefulness:** Stateless.
 - **Performance/Scale Notes:** A failing union validates the value against every member, so a union of large shapes costs the sum of its members; a passing one stops at the first match.
 - **Dependencies Risk:**
-  - **A match beats a broken member.** `Missing | string` passes for `"x"` even though `Missing` cannot be resolved; a broken member only surfaces when nothing matched. [[index.is_resolve]] catches unknown shapes in `x is T` at index time; typed facts and lets are checked only here.
+  - **A match beats a broken member.** `Missing | string` passes for `"x"` even though `Missing` cannot be resolved; a broken member only surfaces when nothing matched. At index time [[index.is_resolve]] rejects unknown shapes in `x is T`, [[index.shape_refs]] in every other type position and [[index.constraint_args]] invalid constraint arguments, all through union members, so this path is reached only through an index that was not validated.
   - **"Closest" is coarse.** Among several members of the right outer kind (two complex shapes for a dict) the first in source order wins, however many fields each matched. Discriminated unions are out of scope.
   - **Member renderings omit constraints**, as every type ref's `String()` does, so `string@minlength(3) | number` prints as `string | number`; the wrapped member error names the failed constraint.
-  - **Truth binding ignores unions.** `bindTruthValue` in [[runtime.typeref_trinary]] turns a decision envelope into its state only for a bare `trinary`/`boolean` type, not for a union with a trinary member.
+  - **Truth binding ignores unions.** `bindTruthValue` in [[runtime.typeref_trinary]] turns a decision envelope into its state only for a bare `trinary`/`boolean` type, not for a union with a trinary member. Likewise `bindSetValue` ([[runtime.typeref_set]]) makes a list a set only for a top-level `set[T]`: a list bound to `string | set[number]` validates against the set member but stays a list.

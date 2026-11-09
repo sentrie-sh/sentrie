@@ -19,7 +19,7 @@ The one walk over every type ref position the index holds, shared by the checks 
 | `index.typeref_walk` | `READS_FROM` | [[index.shape]] | Each `ShapeStatement`'s alias type and field types, once per statement, in the shape's own scope. |
 | `index.typeref_walk` | `READS_FROM` | [[index.derive]] | A derive lambda's parameter and return types, in the derive's scope. |
 | `index.typeref_walk` | `CALLS` | [[index.builtin_check]] | `forEachScopedExpr` (`builtin_calls.go`) visits every expression: block lets, lambda types, casts and `is` types, with the expression's scope. |
-| `index.typeref_walk` | `DEPENDS_ON` | [[ast.typeref]] | Unwraps `NullableTypeRef`; recurses into `ListTypeRef`, `DictTypeRef` and `RecordTypeRef`. |
+| `index.typeref_walk` | `DEPENDS_ON` | [[ast.typeref]] | Unwraps `NullableTypeRef`; recurses into `ListTypeRef`, `SetTypeRef`, `DictTypeRef`, `RecordTypeRef` and the members of a `UnionTypeRef`. |
 | [[index.shape_refs]] | `CALLS` | [[index.typeref_walk]] | Resolves each `ShapeTypeRef` in its site's scope. |
 | [[index.constraint_args]] | `CALLS` | [[index.typeref_walk]] | Checks each type ref's own constraint arguments. |
 | [[index.is_resolve]] | `CALLS` | [[index.typeref_walk]] | `checkIsTypeShapes` expands an `is` type with `forEachNestedTypeRef`. |
@@ -32,7 +32,7 @@ The one walk over every type ref position the index holds, shared by the checks 
   - **Exceptions:** `validation cancelled` on context cancellation (from `forEachScopedExpr`).
 
 - **Signature:** `forEachNestedTypeRef(t ast.TypeRef, visit func(ast.TypeRef))`
-  - **Behavior:** Visits `t` and, in pre-order, every list and set element, dict value and record field type in it. A nullable is never visited itself; its inner type is. A nil type ref is skipped.
+  - **Behavior:** Visits `t` and, in pre-order, every list and set element, dict value, record field and union member type in it, so `set[number | Usr]` and `string | set[Usr]` both reach `Usr`. A union is visited itself (it carries no constraints); a nullable is never visited itself; its inner type is. A nil type ref is skipped.
   - **Side Effects:** None.
   - **Exceptions:** None.
 

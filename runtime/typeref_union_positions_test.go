@@ -26,6 +26,7 @@ policy pol {
   fact tri?: trinary | string
   fact nested?: list[list[number] | string]
   fact required: string | number
+  fact tags?: string | set[number]
   rule got_items = { yield items is defined }
   rule got_table = { yield table is defined }
   rule got_nums = { yield nums is defined }
@@ -34,6 +35,7 @@ policy pol {
   rule got_tri = { yield tri is defined }
   rule got_nested = { yield nested is defined }
   rule got_required = { yield required is defined }
+  rule got_tags = { yield tags is defined }
 
   rule let_ok = {
     let a: string | number = "s"
@@ -64,7 +66,16 @@ policy pol {
   rule is_union_of_any = { yield 1 is any | string }
   rule is_single_member_order = { yield 1 is number | string and 1 is string | number }
   rule is_trinary_member = { yield true is trinary | string and "s" is trinary | string }
-  rule is_not_broken_member = { yield "ab" is not number | string@minlength("q") }
+  rule is_set_of_union = { yield [1, "a"] is set[string | number] and not ([1, 1] is set[string | number]) and not ([true] is set[string | number]) }
+  rule is_set_member = { yield "s" is string | set[number] and [1, 2] is string | set[number] and not ([1, 1] is string | set[number]) }
+  rule let_set_of_union = {
+    let xs: set[string | number] = [2, "a", 1]
+    yield xs is set[string | number] and count(xs) == 3
+  }
+  export decision of got_tags
+  export decision of is_set_of_union
+  export decision of is_set_member
+  export decision of let_set_of_union
   export decision of got_items
   export decision of got_table
   export decision of got_nums
@@ -94,7 +105,6 @@ policy pol {
   export decision of is_union_of_any
   export decision of is_single_member_order
   export decision of is_trinary_member
-  export decision of is_not_broken_member
 }
 `
 
@@ -109,6 +119,7 @@ func (s *RuntimeTestSuite) TestUnionAndAnyInEveryTypePosition() {
 		"derive_optional_given", "is_nested", "is_dict_union", "is_alias_member",
 		"is_any_in_containers", "is_not_union_false", "is_not_union_true", "is_nullable_any",
 		"is_union_of_any", "is_single_member_order", "is_trinary_member",
+		"is_set_of_union", "is_set_member", "let_set_of_union",
 	} {
 		s.Run(rule, func() {
 			out, err := exec.ExecRule(ctx, "com/app", "pol", rule, facts)
@@ -122,8 +133,6 @@ func (s *RuntimeTestSuite) TestUnionAndAnyInEveryTypePosition() {
 		{"cast_bad", "is not string | number"},
 		{"derive_return_bad", "is not string | list[string]"},
 		{"derive_list_bad", "is not string | number"},
-		// the string member's constraint arguments are invalid: an error, never "is not" true
-		{"is_not_broken_member", "expected number, got string"},
 	}
 	for _, tc := range errCases {
 		s.Run(tc.rule, func() {
@@ -157,6 +166,8 @@ func (s *RuntimeTestSuite) TestUnionAndAnyFactsNestedPositions() {
 		{"got_tri", map[string]any{"tri": true}},
 		{"got_tri", map[string]any{"tri": "s"}},
 		{"got_nested", map[string]any{"nested": []any{[]any{float64(1)}, "a"}}},
+		{"got_tags", map[string]any{"tags": []any{float64(1), float64(2)}}},
+		{"got_tags", map[string]any{"tags": "s"}},
 	}
 	for _, tc := range ok {
 		tc.facts["required"] = 1
@@ -181,6 +192,9 @@ func (s *RuntimeTestSuite) TestUnionAndAnyFactsNestedPositions() {
 		{"got_tri", map[string]any{"tri": 5}, []string{"is not trinary | string"}},
 		{"got_nested", map[string]any{"nested": []any{[]any{"x"}}}, []string{"closest member list[number]"}},
 		{"got_nested", map[string]any{"nested": []any{5}}, []string{"is not list[number] | string"}},
+		// a JSON array reaching a set member is validated, never deduplicated
+		{"got_tags", map[string]any{"tags": []any{float64(1), float64(1)}}, []string{"closest member set[number]", "not a valid set"}},
+		{"got_tags", map[string]any{"tags": true}, []string{"is not string | set[number]"}},
 	}
 	for _, tc := range bad {
 		tc.facts["required"] = 1
@@ -221,8 +235,9 @@ func (s *RuntimeTestSuite) TestUnionErrorMessageIsDeterministic() {
 }
 
 // TestUnionBrokenMemberDoesNotFailOpen checks a union whose member cannot be
-// resolved at runtime (index validation skipped) reports an error rather than
-// treating the value as a mismatch, so `is not` cannot pass by accident.
+// resolved at runtime, or whose member's constraint arguments are invalid
+// (index validation skipped, since it rejects both), reports an error rather
+// than treating the value as a mismatch, so `is not` cannot pass by accident.
 func (s *RuntimeTestSuite) TestUnionBrokenMemberDoesNotFailOpen() {
 	ctx := s.T().Context()
 	src := `namespace com/app
@@ -230,9 +245,13 @@ policy pol {
   rule negated = { yield 5 is not Missing | string }
   rule plain = { yield 5 is Missing | string }
   rule matched_first = { yield "s" is string | Missing }
+  rule broken_constraint = { yield "ab" is number | string@minlength("q") }
+  rule not_broken_constraint = { yield "ab" is not number | string@minlength("q") }
   export decision of negated
   export decision of plain
   export decision of matched_first
+  export decision of broken_constraint
+  export decision of not_broken_constraint
 }
 `
 	idx := s.mustBuildDeriveIndex(ctx, deriveTestProgram{name: "broken.sentrie", src: src})
@@ -244,6 +263,13 @@ policy pol {
 			if err == nil {
 				s.Failf("broken member must not yield a decision", "state %v", out.Decision.State)
 			}
+		})
+	}
+	for _, rule := range []string{"broken_constraint", "not_broken_constraint"} {
+		s.Run(rule, func() {
+			_, err := rawExec.ExecRule(ctx, "com/app", "pol", rule, nil)
+			s.Require().Error(err)
+			s.Contains(err.Error(), "expected number, got string")
 		})
 	}
 	s.Run("an earlier matching member wins before the broken one is reached", func() {

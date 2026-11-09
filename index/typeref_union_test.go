@@ -19,6 +19,13 @@ func (s *IndexTestSuite) TestValidateUnionMembers() {
 		"is with known members":                   {body: `rule r = { yield 1 is number | U | com/lib/Account | any }`},
 		"is not with known members":               {body: `rule r = { yield 1 is not string | U }`},
 		"is with union of any and list of unions": {body: `rule r = { yield [1] is any | list[string | number] }`},
+		"is with a set of a union":                {body: `rule r = { yield [1] is set[string | number] }`},
+		"is with a set member":                    {body: `rule r = { yield [1] is string | set[number] }`},
+		"is with an unknown member inside a set":  {body: `rule r = { yield [1] is set[number | Usr] }`, msg: `shape "Usr" is not visible here`},
+		"let with an unknown member":              {body: "rule r = {\n    let x: number | Usr = 1\n    yield x == 1\n  }", msg: "shape 'Usr' not found"},
+		"let with an unknown member inside a set": {body: "rule r = {\n    let x: set[number | Usr] = [1]\n    yield x == [1]\n  }", msg: "shape 'Usr' not found"},
+		"bad constraint argument in a member":     {body: `rule r = { yield "ab" is number | string@minlength("q") }`, msg: "invalid argument to constraint 'minlength'"},
+		"bad constraint argument in a set member": {body: "rule r = {\n    let x: set[number | string@minlength(\"q\")] = []\n    yield x == []\n  }", msg: "invalid argument to constraint 'minlength'"},
 	}
 	for name, tc := range cases {
 		s.Run(name, func() {
