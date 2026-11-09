@@ -23,7 +23,7 @@ Rejects, at index time, a type constraint whose own arguments are broken: an inv
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `(*Index).checkConstraintArgs(ctx) -> error`
-  - **Behavior:** Visits every type ref position through [[index.typeref_walk]] (facts, policy lets, shape aliases and fields, derive and lambda parameter and return types, block lets, casts, `x is T`, and the list and set element, dict value, record field and union member types nested in them, a nullable unwrapped). For each constraint whose name is in the table and whose arguments are all literals, folds the arguments to `box` values as the runtime evaluates them and runs `CheckArgs`. Collects every failure, sorted by message, and returns them joined.
+  - **Behavior:** Visits every type ref position through [[index.typeref_walk]] (facts, policy lets, declared rule types, shape aliases and fields, derive and lambda parameter and return types, block lets, casts, `x is T`, and the list and set element, dict value, record field and union member types nested in them, a nullable unwrapped). For each constraint whose name is in the table and whose arguments are all literals, folds the arguments to `box` values as the runtime evaluates them and runs `CheckArgs`. Collects every failure, sorted by message, and returns them joined.
   - **Side Effects:** None.
   - **Exceptions:** Joined `xerr.ConstraintArgError`, each at the constraint's span with the message `invalid argument to constraint '<name>': <argument failure>`; it matches `xerr.ErrIndex` and `constraints.ErrInvalidArgument` under `errors.Is`. `validation cancelled` on context cancellation.
 

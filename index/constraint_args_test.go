@@ -27,6 +27,8 @@ var constraintArgPositions = map[string]string{
 	"lambda return":     "policy p {\n  rule r = { yield any([1], (a: number): %[1]s => { yield %[2]s }) }\n  export decision of r\n}",
 	"cast":              "policy p {\n  rule r = { yield (%[2]s as %[1]s) is defined }\n  export decision of r\n}",
 	"is":                "policy p {\n  rule r = { yield 1 is not %[1]s }\n  export decision of r\n}",
+	"rule type":         "policy p {\n  rule r: list[%[1]s] = [%[2]s]\n  export decision of r\n}",
+	"contribution body": "policy p {\n  rule r: list[trinary] = []\n  contribute r { yield (%[2]s as %[1]s) is defined }\n  export decision of r\n}",
 	"list element":      "policy p {\n  rule r = { yield [] is list[%[1]s] }\n  export decision of r\n}",
 	"dict value":        "policy p {\n  rule r = { yield {} is dict[%[1]s] }\n  export decision of r\n}",
 	"record field":      "policy p {\n  rule r = { yield [1, %[2]s] is record[number, %[1]s] }\n  export decision of r\n}",

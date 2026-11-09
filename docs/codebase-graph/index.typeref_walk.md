@@ -15,7 +15,7 @@ The one walk over every type ref position the index holds, shared by the checks 
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `index.typeref_walk` | `READS_FROM` | [[index.policy]] | Facts and policy lets carry type refs; their scope is the policy. |
+| `index.typeref_walk` | `READS_FROM` | [[index.policy]] | Facts, policy lets and declared rule types (`rule r: T`, [[index.contribute]]) carry type refs; their scope is the policy. |
 | `index.typeref_walk` | `READS_FROM` | [[index.shape]] | Each `ShapeStatement`'s alias type and field types, once per statement, in the shape's own scope. |
 | `index.typeref_walk` | `READS_FROM` | [[index.derive]] | A derive lambda's parameter and return types, in the derive's scope. |
 | `index.typeref_walk` | `CALLS` | [[index.builtin_check]] | `forEachScopedExpr` (`builtin_calls.go`) visits every expression: block lets, lambda types, casts and `is` types, with the expression's scope. |
@@ -27,7 +27,7 @@ The one walk over every type ref position the index holds, shared by the checks 
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `(*Index).forEachTypeRef(ctx, visit func(site typeRefSite, t ast.TypeRef)) -> error`
-  - **Behavior:** Visits facts, policy lets, shape aliases and fields (deduplicated by statement), derive parameter and return types, and inside expressions block lets, lambda parameter and return types, casts and `x is T`. Each top-level type ref is expanded by `forEachNestedTypeRef`. `typeRefSite` holds the `policy` (nil at namespace scope) and `ns` that `LookupShape` takes, and `isType` for the type of an `is`. Scope: a shape's types resolve in the shape's policy or namespace, a derive's signature and body in its policy or, for a namespace-level derive, its namespace; everything else in the enclosing policy.
+  - **Behavior:** Visits facts, policy lets, declared rule types, shape aliases and fields (deduplicated by statement), derive parameter and return types, and inside expressions block lets, lambda parameter and return types, casts and `x is T`. Each top-level type ref is expanded by `forEachNestedTypeRef`. `typeRefSite` holds the `policy` (nil at namespace scope) and `ns` that `LookupShape` takes, and `isType` for the type of an `is`. Scope: a shape's types resolve in the shape's policy or namespace, a derive's signature and body in its policy or, for a namespace-level derive, its namespace; everything else in the enclosing policy.
   - **Side Effects:** None.
   - **Exceptions:** `validation cancelled` on context cancellation (from `forEachScopedExpr`).
 

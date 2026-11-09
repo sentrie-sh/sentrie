@@ -1,0 +1,33 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+namespace com/example/contribute_types
+
+policy sources {
+  fact subject: document as subject
+
+  -- trinary and nullable rule types take contributions
+  rule review: trinary = false
+  contribute review when subject.flagged { yield unknown }
+
+  rule notes: list[string?] = []
+  contribute notes { yield subject.note }
+  contribute notes when subject.flagged { yield null }
+
+  -- a contribution reads another rule, declared before or after it
+  rule limit = 3
+  rule over: list[string] = []
+  contribute over when subject.count > limit { yield "over limit" }
+  contribute over when subject.count > cap { yield "over cap" }
+  rule cap = 10
+
+  export decision of review
+  export decision of notes
+  export decision of over
+}
+
+policy consumers {
+  fact subject: document as subject
+  rule over = import decision over from com/example/contribute_types/sources with subject as subject
+  export decision of over
+}
