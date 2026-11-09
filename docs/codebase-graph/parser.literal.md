@@ -25,7 +25,7 @@ tags: constraints, compile-time-constants, literal-only, type-system
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `parseConstraintLiteral(ctx, p) -> ast.Expression`
-  - **Behavior:** Switches on the head token and accepts exactly seven forms: string, int, float, the three trinary keywords, null, `[` (literal list), and `{` (literal map). Everything else is rejected.
+  - **Behavior:** Switches on the head token and accepts exactly seven forms: string, int, float (including exponent forms such as `1e-3`, which the lexer emits as `Float`), the three trinary keywords, null, `[` (literal list), and `{` (literal map). A lexer `Error` token (for example a malformed number literal `1e`) is reported with the lexer's own message. Everything else is rejected.
   - **Side Effects:** Consumes tokens.
   - **Exceptions:** `constraint arguments must be literals, got %s at %s` for any other token - the diagnostic that distinguishes "you wrote an expression" from a generic syntax error.
 

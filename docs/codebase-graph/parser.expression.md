@@ -33,7 +33,7 @@ tags: pratt-parser, expression-parsing, comment-attachment, core-loop
 
     Every sub-result - prefix and each infix extension - passes through `wrapWithTrailingComment`, so a trailing comment can attach at any depth of the chain.
   - **Side Effects:** Consumes tokens; may record parse errors; emits two `slog.DebugContext` entries per invocation (entry and deferred exit).
-  - **Exceptions:** Returns `nil` after `noPrefixParseFnError` (`no prefix parse function found for '<value>' at <range>`) when `current` cannot start an expression. Infix handlers may also return `nil`; one guard (`leftExp != nil` in the loop condition, then `return nil` before the preceding-comment wrap) ends the expression, so a handler never receives a nil `leftExp` (`a/not/f(x)` used to reach the call parser with a nil callee and panic) and a nil result is never wrapped in a comment node.
+  - **Exceptions:** Returns `nil` after `noPrefixParseFnError` (`no prefix parse function found for '<value>' at <range>`) when `current` cannot start an expression (a lexer `Error` token is reported with its own message instead). Infix handlers may also return `nil`; one guard (`leftExp != nil` in the loop condition, then `return nil` before the preceding-comment wrap) ends the expression, so a handler never receives a nil `leftExp` (`a/not/f(x)` used to reach the call parser with a nil callee and panic) and a nil result is never wrapped in a comment node.
 
 - **Signature:** `wrapWithTrailingComment(expr: ast.Expression, parser: *Parser) -> ast.Expression`
   - **Behavior:** If the head token is a `TrailingComment`, consumes it and wraps `expr`; otherwise returns `expr` unchanged. Nil-safe: a nil expression passes straight through so a failed parse is not masked by a wrapper.
