@@ -44,3 +44,9 @@
 - No new commit lines: none of the queued commits have run, every touched path is already in one, so the fixes fold into those commits (separate lines would be empty commits).
 - Tests: `go test ./runtime/... ./index/... ./cmd/... ./parser/... ./lang_test/... ./internal/docsgraph/...` pass; `GOTOOLCHAIN=go1.25.0 make lint` with the go1.25 golangci-lint reports 0 issues.
 - _Model: claude-opus-5-5, role: implementer subagent_
+
+### 2026-11-09 18:26 - Rebase onto main at 7c2d749
+- Conflicts: `index/validate.go` (main's `addNodes` now returns an error; contributions are walked with the same error check) and the `ast`, `index.validate`, `lang_test.lang_test` and `parser.policy` graph nodes (facts from both sides merged; `index.validate` now lists eleven checks with the contribution self-reference check second).
+- Adapt commit: the formatter prints `contribute` and a rule's `: type`; `forEachTypeRef` visits declared rule types, so shape names and constraint arguments in them are checked at index time like every other type position; two runtime tests now expect `int64` for integral values (exact integers from main).
+- Gates: make build, test, docs-graph pass; lint passes with `GOTOOLCHAIN=go1.25.0` (the local golangci-lint panics under go1.27).
+- _Model: claude-opus-5-5, role: rebase subagent_

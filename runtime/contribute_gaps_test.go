@@ -217,7 +217,7 @@ func (s *RuntimeTestSuite) TestContributeNullBaseStartsEmpty() {
 func (s *RuntimeTestSuite) TestContributeListOfRecords() {
 	out, err := s.contributeGapsExec().ExecRule(s.T().Context(), "com/ex", "gaps", "pairs", gapsFacts(nil))
 	s.Require().NoError(err)
-	s.Equal([]any{[]any{"a", float64(1)}}, box.ToBoundaryAny(out.Decision.Value))
+	s.Equal([]any{[]any{"a", int64(1)}}, box.ToBoundaryAny(out.Decision.Value))
 }
 
 func (s *RuntimeTestSuite) TestContributionReadsRulesDeclaredBeforeAndAfterIt() {

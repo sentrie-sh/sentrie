@@ -323,6 +323,14 @@ func (p *printer) stmt(s ast.Statement) {
 		p.sub(n.Value, parser.LOWEST, true)
 	case *ast.RuleStatement:
 		p.rule(n)
+	case *ast.ContributeStatement:
+		p.write("contribute " + n.RuleName)
+		if n.When != nil {
+			p.write(" when ")
+			p.guard(n.When)
+		}
+		p.write(" ")
+		p.sub(n.Body, parser.LOWEST, true)
 	case *ast.RuleExportStatement:
 		p.write("export decision of " + n.Of)
 		broken := false
@@ -377,7 +385,12 @@ func (p *printer) use(n *ast.UseStatement) {
 }
 
 func (p *printer) rule(n *ast.RuleStatement) {
-	p.write("rule " + n.RuleName + " =")
+	p.write("rule " + n.RuleName)
+	if n.Type != nil {
+		p.write(": ")
+		p.typeRef(n.Type)
+	}
+	p.write(" =")
 	if n.Default != nil {
 		p.write(" default ")
 		p.guard(n.Default)

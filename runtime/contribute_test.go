@@ -78,7 +78,7 @@ func (s *RuntimeTestSuite) TestContributeListInDeclarationOrder() {
 	// another rule referring to deny reads the combined list
 	out, err = exec.ExecRule(ctx, "com/ex", "pol", "reasons", contributeUser(true, false, "someone"))
 	s.Require().NoError(err)
-	s.Equal(float64(4), out.Decision.Value.Any())
+	s.Equal(int64(4), out.Decision.Value.Any())
 
 	// an attachment on another export reads the combined list
 	out, err = exec.ExecRule(ctx, "com/ex", "pol", "allow", contributeUser(true, false, "someone"))

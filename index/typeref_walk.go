@@ -24,7 +24,7 @@ type typeRefSite struct {
 type typeRefVisitor func(site typeRefSite, t ast.TypeRef)
 
 // forEachTypeRef visits every type ref the index holds: facts, policy lets,
-// shape aliases and fields (once per statement), derive parameter and return
+// declared rule types, shape aliases and fields (once per statement), derive parameter and return
 // types, and inside expressions block lets, lambda parameter and return types,
 // casts and `x is T`. Each top-level type ref is expanded by
 // forEachNestedTypeRef, so a visitor sees list and set element, dict value and
@@ -79,6 +79,11 @@ func (idx *Index) forEachTypeRef(ctx context.Context, visit typeRefVisitor) erro
 			}
 			for _, let := range policy.Lets {
 				each(site, let.Type)
+			}
+			for _, rule := range policy.Rules {
+				if rule.Node != nil {
+					each(site, rule.Node.Type)
+				}
 			}
 		}
 	}

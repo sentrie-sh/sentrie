@@ -53,6 +53,11 @@ func (s *FormatTestSuite) TestStatements() {
 			inPolicy("rule a = default false when x { yield true }", "rule b = import decision r from q/s with x as 1 with y as 2",
 				"rule c = import decision r from s", "  with x as 1"),
 		},
+		"rule types and contributions": {
+			"namespace t\npolicy p {\nrule d :list[string] = []\ncontribute d when ( x ) { yield \"a\" }\ncontribute d { yield y }\nrule a: boolean? = false\ncontribute a when (x is Foo?) { yield true }\n}",
+			inPolicy("rule d: list[string] = []", `contribute d when x { yield "a" }`, "contribute d { yield y }", "rule a: boolean? = false",
+				"contribute a when (x is Foo?) { yield true }"),
+		},
 		"nullable shape guard": {
 			"namespace t\npolicy p {\nrule a = when (x is Foo?) { yield true }\n}",
 			inPolicy("rule a = when (x is Foo?) { yield true }"),
