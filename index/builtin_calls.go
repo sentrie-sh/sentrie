@@ -21,16 +21,15 @@ type builtinCallVisitor func(k *kindCheckCtx, decl *builtins.Decl, call *ast.Cal
 // defaults, policy lets, rule default, when and body slots, export attachments,
 // `import decision ... with x as <expr>` clauses, and derive bodies.
 //
-// Callees resolve exactly as the runtime's getTarget resolves them: a visible
-// derive first, then a builtin. getTarget never resolves a call through a
-// local binding, so a let or lambda parameter named like a builtin does not
-// shadow it: `(now) => { yield now() }` still calls the builtin `now` at
-// runtime and is reported here. (checkBuiltinCalls' isBuiltinCall still
-// treats locals as shadowing, which is a separate, pre-existing difference.)
+// Callees resolve exactly as the runtime's getTarget resolves them
+// (isBuiltinCall): a value binding first, then a visible derive, then a
+// builtin. A let or lambda parameter named like a builtin shadows it, so
+// `(now) => { yield now() }` calls the parameter, not the builtin `now`, and
+// is not reported here (#161).
 func (idx *Index) forEachBuiltinCall(ctx context.Context, visit builtinCallVisitor) error {
 	return idx.forEachScopedExpr(ctx, func(k *kindCheckCtx, e ast.Expression) {
 		if call, ok := e.(*ast.CallExpression); ok {
-			if decl, ok := k.runtimeBuiltinCallee(call); ok {
+			if decl, ok := k.isBuiltinCall(call); ok {
 				visit(k, decl, call)
 			}
 		}
@@ -101,8 +100,8 @@ func (idx *Index) forEachScopedExpr(ctx context.Context, visit scopedExprVisitor
 }
 
 // walkScopedExprs walks e in pre-order, tracking the local bindings: a block
-// binds each let after walking its initializer, and a lambda pushes its
-// parameters. visit runs on a node before its children are walked, so a
+// binds all its lets before walking their initializers, as the runtime does,
+// and a lambda pushes its parameters. visit runs on a node before its children are walked, so a
 // visitor that rewrites a node (resolveIsExpressions) is walked as rewritten.
 func (k *kindCheckCtx) walkScopedExprs(e ast.Expression, visit scopedExprVisitor) {
 	if e == nil {
@@ -115,6 +114,16 @@ func (k *kindCheckCtx) walkScopedExprs(e ast.Expression, visit scopedExprVisitor
 	case *ast.BlockExpression:
 		child := *k
 		child.scope = cloneBindingScope(k.scope)
+		// The runtime injects every let of a block before evaluating any of
+		// them (evalBlock, lazily), so each initializer sees all of the
+		// block's lets, itself and later ones included: a let lambda can call
+		// itself or a later let (#161). Bind the names first, then refine each
+		// binding's kind once its initializer has been walked.
+		for _, st := range n.Statements {
+			if vd, ok := st.(*ast.VarDeclaration); ok {
+				child.scope[vd.Name] = bindingFromLet(child.idx, child.policy, vd)
+			}
+		}
 		for _, st := range n.Statements {
 			vd, ok := st.(*ast.VarDeclaration)
 			if !ok {
@@ -147,21 +156,4 @@ func (k *kindCheckCtx) walkScopedExprs(e ast.Expression, visit scopedExprVisitor
 			return nil
 		})
 	}
-}
-
-// runtimeBuiltinCallee reports the builtin a call dispatches to at runtime,
-// mirroring getTarget in runtime/eval_call.go: an identifier callee that does
-// not name a visible derive (DefineShort inside a derive, otherwise the
-// policy's then the namespace's derives) resolves to builtins.Table. Local
-// bindings are deliberately not consulted, because getTarget does not.
-func (k *kindCheckCtx) runtimeBuiltinCallee(c *ast.CallExpression) (*builtins.Decl, bool) {
-	id, ok := c.Callee.(*ast.Identifier)
-	if !ok {
-		return nil, false
-	}
-	if k.lookupDerive(id.Value) != nil {
-		return nil, false
-	}
-	decl, ok := builtins.Table[id.Value]
-	return decl, ok
 }

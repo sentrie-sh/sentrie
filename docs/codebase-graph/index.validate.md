@@ -9,7 +9,7 @@ tags: validation, cycle-detection, dependency-graph, lifecycle
 # Node: index.Validate (Validation Pipeline)
 
 ## 1. Architectural Role & Intent
-The gate every policy pack must pass before execution. `Validate` first settles the right-hand side of every `x is Name` ([[index.is_resolve]]), then resolves every other shape name in a type ([[index.shape_refs]]), then runs eight checks in a fixed order - identifier reference cycles, rule cycles, unknown `with` fact names on imports, shape cycles, derive cycles, derive purity, builtin call checking, and constraint arguments - then stores the rule and shape DAGs on the index and triggers [[index.commit]]. It is `sync.Once`-guarded, so an index is validated exactly once and the verdict is cached for its lifetime.
+The gate every policy pack must pass before execution. `Validate` first settles the right-hand side of every `x is Name` ([[index.is_resolve]]), then resolves every other shape name in a type ([[index.shape_refs]]), then runs nine checks in a fixed order - identifier reference cycles, rule cycles, unknown `with` fact names on imports, shape cycles, derive cycles, derive purity, call targets, builtin call checking, and constraint arguments - then stores the rule and shape DAGs on the index and triggers [[index.commit]]. It is `sync.Once`-guarded, so an index is validated exactly once and the verdict is cached for its lifetime.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -25,8 +25,9 @@ The gate every policy pack must pass before execution. `Validate` first settles 
 | `index.validate` | `CALLS` | [[index.pack_data]] | Fourth check: every `data` declaration names a loaded `[data]` entry. |
 | `index.validate` | `CALLS` | [[index.derive_cycle]] | Fifth check in the pipeline. |
 | `index.validate` | `CALLS` | [[index.derive_purity]] | Sixth check. |
-| `index.validate` | `CALLS` | [[index.builtin_check]] | Seventh check. |
-| `index.validate` | `CALLS` | [[index.constraint_args]] | Eighth and last check: every constraint's literal arguments against its definition. |
+| `index.validate` | `CALLS` | [[index.call_check]] | Seventh check: unknown callees, calls to non-callable values, let-lambda arity. |
+| `index.validate` | `CALLS` | [[index.builtin_check]] | Eighth check. |
+| `index.validate` | `CALLS` | [[index.constraint_args]] | Ninth and last check: every constraint's literal arguments against its definition. |
 | `index.validate` | `CALLS` | [[index.commit]] | Runs immediately after a successful validation, inside the same `Once`. |
 | `index.validate` | `CALLS` | [[index.resolve]] | Resolves imported policies and base shapes while building edges. |
 | `index.validate` | `MUTATES` | [[index.index]] | Writes `ruleDag`, `shapeDag`, `validated`, and `validationError`. |
@@ -46,12 +47,12 @@ The gate every policy pack must pass before execution. `Validate` first settles 
   - **Exceptions:** Same.
 
 - **Signature:** `(*Index).detectReferenceCycle(ctx) -> error`
-  - **Behavior:** Per policy, builds a graph whose nodes are **bare identifier names** - rules and lets - and adds an edge for every identifier appearing anywhere in a rule's default, guard, or body, or in a let's initializer, including inside index access, casts, transforms, comment wrappers, map keys and `import decision` `with` values. Catches mutual recursion within a single policy.
+  - **Behavior:** Per policy, builds a graph whose nodes are **bare identifier names** - rules and lets - and adds an edge for every identifier appearing in a rule's default, guard, or body, or in a let's initializer, including inside index access, casts, transforms, comment wrappers, map keys and `import decision` `with` values and the body of a lambda passed to a call, but not the body of a lambda that is a let's whole value (`letValueNodes`), which is not evaluated when the let is. Catches mutual recursion between values within a single policy; recursion between let lambdas is allowed (#161) and bounded at runtime by the reference stack and the call and eval depth limits ([[runtime.exec_ctx]]). The graph ignores scope, so a block let still shares a node with a rule or let of the same name.
   - **Side Effects:** None.
   - **Exceptions:** `xerr.ErrInfiniteRecursion` with the cycle path; `validation cancelled` on context cancellation; an `xerr.ErrIndex` error if the walker meets an AST node kind it does not know.
 
 - **Signature:** `addNodes(g, nodes, referedBy, policy) -> error`
-  - **Behavior:** The recursive harvester behind reference-cycle detection. An identifier adds an edge; a rule or let declared in a body adds its node and is walked with itself as referrer; every other node is descended into through [[index.expr_walk]], which fails closed on an unknown kind. A shape operand of `is` is not a reference.
+  - **Behavior:** The recursive harvester behind reference-cycle detection. An identifier adds an edge; a rule or let declared in a body adds its node and is walked with itself as referrer, except that a let bound directly to a lambda contributes no edges; every other node, including a lambda passed to a call, is descended into through [[index.expr_walk]], which fails closed on an unknown kind. A shape operand of `is` is not a reference.
   - **Side Effects:** Mutates the graph.
   - **Exceptions:** The walker's unsupported-node error; edge-add errors are discarded.
 
@@ -72,7 +73,7 @@ The gate every policy pack must pass before execution. `Validate` first settles 
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** **Exactly-once and sticky.** A failed validation is cached permanently; the index cannot be repaired and re-validated. Build a fresh one.
-- **Performance/Scale Notes:** Ten full traversals of the policy set (the `is` resolution pass, the shape name pass, then eight checks), with a fresh graph allocated per policy in `detectReferenceCycle`. Context cancellation is checked at every nesting level, so a long validation aborts promptly. Every cycle detector reports only the **first** cycle found.
+- **Performance/Scale Notes:** Eleven full traversals of the policy set (the `is` resolution pass, the shape name pass, then nine checks), with a fresh graph allocated per policy in `detectReferenceCycle`. Context cancellation is checked at every nesting level, so a long validation aborts promptly. Every cycle detector reports only the **first** cycle found.
 - **Dependencies Risk:**
   - **Reference-cycle detection works on unqualified names.** A rule and a fact in different policies sharing a name are distinct graph nodes only because the graph is rebuilt per policy - but within one policy, a let and a rule with related names can produce edges that do not correspond to real references, and edge-add errors are discarded rather than surfaced.
   - **The two shape-edge paths behave differently.** Namespace shapes resolve by parent-FQN plus last segment; policy shapes index `ns.Shapes` by the **whole `WithFQN` string**, which only matches when the reference is written as a bare name. A policy shape composing with a qualified path fails with `shape not found` even when the target exists.

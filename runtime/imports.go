@@ -88,7 +88,7 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 		injectedFacts[name] = factValue
 	}
 
-	output, err := exec.ExecRule(ctx, ns, pol, rule, injectedFacts)
+	output, err := exec.execRuleFrom(ctx, ns, pol, rule, injectedFacts, ec)
 	if err != nil {
 		if output != nil {
 			n = n.Attach(output.RuleNode)

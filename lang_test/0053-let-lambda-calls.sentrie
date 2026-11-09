@@ -1,0 +1,50 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+namespace let_lambda_calls
+
+derive twice = (n: number): number => { yield n * 2 }
+
+derive scaled = (n: number): number => {
+  let mul = (x) => { yield x * n }
+  let addOne = (x) => { yield mul(x) + 1 }
+  yield addOne(3)
+}
+
+policy calls {
+  fact base?: number as base default 10
+  let f = (x) => { yield x * 2 }
+  let g = (x: number, y?: number) => { yield y is defined ? x + y : x + base }
+  let offset = 7
+  let addOffset = (x) => { yield x + offset }
+  let chained = (x) => { yield addOffset(f(x)) }
+  -- a let named like a builtin shadows it
+  let count = (x) => { yield x + 100 }
+  rule direct = { yield f(2) }
+  rule optional_omitted = { yield g(1) }
+  rule optional_given = { yield g(1, 2) }
+  rule chain = { yield chained(3) }
+  rule shadows_builtin = { yield count(1) }
+  rule block_let = {
+    let h = (x) => { yield x - 1 }
+    yield h(5)
+  }
+  rule shadows_derive = {
+    let twice = (n) => { yield n * 3 }
+    yield twice(2)
+  }
+  rule higher_order = {
+    let apply = (fn, v) => { yield fn(v) }
+    yield apply(f, 4) + apply(twice, 5)
+  }
+  rule in_derive = { yield scaled(2) }
+  export decision of direct
+  export decision of optional_omitted
+  export decision of optional_given
+  export decision of chain
+  export decision of shadows_builtin
+  export decision of block_let
+  export decision of shadows_derive
+  export decision of higher_order
+  export decision of in_derive
+}
