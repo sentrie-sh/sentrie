@@ -64,7 +64,7 @@ func TestObjectGet(t *testing.T) {
 		t.Parallel()
 		v, err := invoke(t, "object_get", env, doc, box.String("zz"), box.Number(7))
 		require.NoError(t, err)
-		require.Equal(t, 7.0, v.Any())
+		require.Equal(t, int64(7), v.Any())
 	})
 	t.Run("undefined path propagates", func(t *testing.T) {
 		t.Parallel()
