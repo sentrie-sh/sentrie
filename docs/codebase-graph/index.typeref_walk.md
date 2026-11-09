@@ -32,7 +32,7 @@ The one walk over every type ref position the index holds, shared by the checks 
   - **Exceptions:** `validation cancelled` on context cancellation (from `forEachScopedExpr`).
 
 - **Signature:** `forEachNestedTypeRef(t ast.TypeRef, visit func(ast.TypeRef))`
-  - **Behavior:** Visits `t` and, in pre-order, every list element, dict value and record field type in it. A nullable is never visited itself; its inner type is. A nil type ref is skipped.
+  - **Behavior:** Visits `t` and, in pre-order, every list and set element, dict value and record field type in it. A nullable is never visited itself; its inner type is. A nil type ref is skipped.
   - **Side Effects:** None.
   - **Exceptions:** None.
 

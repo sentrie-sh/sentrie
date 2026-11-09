@@ -470,6 +470,10 @@ func (p *printer) typeRef(t ast.TypeRef) {
 		p.write("list[")
 		p.typeRef(b.ElemType)
 		p.write("]")
+	case *ast.SetTypeRef:
+		p.write("set[")
+		p.typeRef(b.ElemType)
+		p.write("]")
 	case *ast.DictTypeRef:
 		p.write("dict[")
 		p.typeRef(b.ValueType)

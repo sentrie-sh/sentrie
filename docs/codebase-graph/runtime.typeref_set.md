@@ -17,7 +17,7 @@ Validates a value against `set[T]` ([#162](https://github.com/sentrie-sh/sentrie
 | :--- | :--- | :--- | :--- |
 | `runtime.typeref_set` | `CALLS` | [[runtime.typeref]] | Recurses once per element against `typeRef.ElemType`. |
 | `runtime.typeref_set` | `CALLS` | [[box.set]] | `NewSetUnique` checks a plain list for duplicates and unsupported elements, and builds the bound set. |
-| `runtime.typeref_set` | `DEPENDS_ON` | [[constraints]] | `constraints.ListContraintCheckers`; a set takes the list constraints. |
+| `runtime.typeref_set` | `CALLS` | [[runtime.typeref_constraints]] | `bindConstraints` before the kind check, `checkConstraints` after it; `constraints.ForTypeRef` gives a set the list constraints. |
 | `runtime.typeref_set` | `CALLS` | [[runtime.typeref_trinary]] | `bindTypedValue` composes `bindTruthValue` with `bindSetValue`. |
 | `runtime.typeref_set` | `CALLS` | [[runtime.err_typedef]] | `errMismatch`, constraint error constructors. |
 | [[runtime.typeref]] | `CALLS` | [[runtime.typeref_set]] | Dispatched for `*ast.SetTypeRef`. |
@@ -26,7 +26,7 @@ Validates a value against `set[T]` ([#162](https://github.com/sentrie-sh/sentrie
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `validateAgainstSetTypeRef(ctx, ec, exec Executor, p *index.Policy, v box.Value, typeRef *ast.SetTypeRef, pos tokens.Range) -> error`
-  - **Behavior:** Requires a list; validates each element against `T`; for an untagged list also requires the elements, bound as `T` is, to be distinct and orderable (so `[impT, true]` is a duplicate in a `set[boolean]`); then runs list constraints.
+  - **Behavior:** Binds its constraints first, as [[runtime.typeref_list]] does (#273); requires a list; validates each element against `T`; for an untagged list also requires the elements, bound as `T` is, to be distinct and orderable (so `[impT, true]` is a duplicate in a `set[boolean]`); then runs list constraints.
   - **Side Effects:** Constraint argument evaluation.
   - **Exceptions:** `value %v is not a set at %s - expected set` and `value %v is not a valid set at %s: <duplicate or element error>` are mismatches (so `[1, 1] is set[number]` is false); `item is not valid at %s: %w`; constraint errors.
 

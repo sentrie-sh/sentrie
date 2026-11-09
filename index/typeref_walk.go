@@ -27,8 +27,8 @@ type typeRefVisitor func(site typeRefSite, t ast.TypeRef)
 // shape aliases and fields (once per statement), derive parameter and return
 // types, and inside expressions block lets, lambda parameter and return types,
 // casts and `x is T`. Each top-level type ref is expanded by
-// forEachNestedTypeRef, so a visitor sees list element, dict value and record
-// field types too, and never a nullable wrapper.
+// forEachNestedTypeRef, so a visitor sees list and set element, dict value and
+// record field types too, and never a nullable wrapper.
 //
 // A shape's alias and field types resolve in the shape's own scope, a derive's
 // signature and body in the derive's (its policy, or its namespace for a
@@ -109,7 +109,7 @@ func (idx *Index) forEachTypeRef(ctx context.Context, visit typeRefVisitor) erro
 }
 
 // forEachNestedTypeRef visits t and, in pre-order, every type ref nested in
-// it: list element, dict value and record field types. A nullable is not
+// it: list and set element, dict value and record field types. A nullable is not
 // visited itself; its inner type is.
 func forEachNestedTypeRef(t ast.TypeRef, visit func(ast.TypeRef)) {
 	switch n := t.(type) {
@@ -122,6 +122,8 @@ func forEachNestedTypeRef(t ast.TypeRef, visit func(ast.TypeRef)) {
 	visit(t)
 	switch n := t.(type) {
 	case *ast.ListTypeRef:
+		forEachNestedTypeRef(n.ElemType, visit)
+	case *ast.SetTypeRef:
 		forEachNestedTypeRef(n.ElemType, visit)
 	case *ast.DictTypeRef:
 		forEachNestedTypeRef(n.ValueType, visit)

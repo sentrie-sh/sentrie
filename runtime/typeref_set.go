@@ -9,7 +9,6 @@ import (
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
-	"github.com/sentrie-sh/sentrie/constraints"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/tokens"
 )
@@ -21,6 +20,11 @@ import (
 // mismatch, so `[1, 1] is set[number]` is false. A set[T] position takes the
 // list constraints.
 func validateAgainstSetTypeRef(ctx context.Context, ec *ExecutionContext, exec Executor, p *index.Policy, v box.Value, typeRef *ast.SetTypeRef, pos tokens.Range) error {
+	bound, err := bindConstraints(ctx, ec, exec, p, typeRef)
+	if err != nil {
+		return err
+	}
+
 	items, ok := v.ListValue()
 	if !ok {
 		return errMismatch("value %v is not a set at %s - expected set", v, pos)
@@ -38,26 +42,7 @@ func validateAgainstSetTypeRef(ctx context.Context, ec *ExecutionContext, exec E
 		}
 	}
 
-	for _, constraint := range typeRef.GetConstraints() {
-		args := make([]box.Value, len(constraint.Args))
-		for i, argExpr := range constraint.Args {
-			csArg, _, err := eval(ctx, ec, exec.(*executorImpl), p, argExpr)
-			if err != nil {
-				return errCheckFailed(err)
-			}
-			args[i] = csArg
-		}
-		checker, ok := constraints.ListContraintCheckers[constraint.Name]
-		if !ok {
-			return ErrUnknownConstraint(constraint)
-		}
-
-		if err := checker.Checker(ctx, p, v, args); err != nil {
-			return ErrConstraintFailed(pos, constraint, err)
-		}
-	}
-
-	return nil
+	return checkConstraints(ctx, v, bound, pos)
 }
 
 // bindSetValue returns the value a binding declared as typeRef holds: a list
