@@ -111,20 +111,20 @@ func (s *BoxTestSuite) TestSetOperations() {
 
 	u, err := SetUnion(a, b)
 	s.Require().NoError(err)
-	s.Equal([]any{1.0, 2.0, 3.0, 4.0}, u.Any())
+	s.Equal([]any{int64(1), int64(2), int64(3), int64(4)}, u.Any())
 	s.True(u.IsSet())
 
 	i, err := SetIntersection(a, b)
 	s.Require().NoError(err)
-	s.Equal([]any{2.0}, i.Any())
+	s.Equal([]any{int64(2)}, i.Any())
 
 	d, err := SetDifference(a, b)
 	s.Require().NoError(err)
-	s.Equal([]any{1.0, 3.0}, d.Any())
+	s.Equal([]any{int64(1), int64(3)}, d.Any())
 
 	d, err = SetDifference(b, empty)
 	s.Require().NoError(err)
-	s.Equal([]any{2.0, 4.0}, d.Any())
+	s.Equal([]any{int64(2), int64(4)}, d.Any())
 
 	ok, err := SetIsSubset(mustSet(Number(2)), a)
 	s.Require().NoError(err)
