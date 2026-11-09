@@ -32,5 +32,5 @@ policy pol {
 	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "comments2.sentrie", src: src})
 	out, err := exec.ExecRule(ctx, "com/ex", "pol", "ok", nil)
 	s.Require().NoError(err)
-	s.Equal(22.0, out.Decision.Value.Any())
+	s.Equal(int64(22), out.Decision.Value.Any())
 }

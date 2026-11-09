@@ -110,7 +110,7 @@ policy p {
 		deriveTestProgram{name: "d.sentrie", src: lib},
 		deriveTestProgram{name: "e.sentrie", src: caller},
 	)
-	want := map[string]float64{"byIs": 1, "byParam": 2, "byCast": 3, "byLet": 4}
+	want := map[string]int64{"byIs": 1, "byParam": 2, "byCast": 3, "byLet": 4}
 	for rule, b := range want {
 		out, err := exec.ExecRule(ctx, "t/e", "p", rule, nil)
 		s.Require().NoError(err, rule)
@@ -119,7 +119,7 @@ policy p {
 		s.Require().Len(kept, 1, rule)
 		doc, ok := kept[0].DictValue()
 		s.Require().True(ok, rule)
-		s.Equal(box.Number(b), doc["b"], rule)
+		s.Equal(box.Int(b), doc["b"], rule)
 	}
 }
 
