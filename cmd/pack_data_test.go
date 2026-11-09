@@ -23,7 +23,7 @@ func (s *CmdTestSuite) writeDataPackDir(dataTable string, files map[string]strin
 	return dir
 }
 
-const cmdRolesJSON = `{"admin": ["read", "write"], "viewer": ["read"], "limits": {"max": {"rows": 10}}}`
+const cmdRolesJSON = `{"admin": ["read", "write"], "viewer": ["read"]}`
 
 // execDecision runs `sentrie exec <rule> --output json` and returns the decision
 // value of the single output.
@@ -45,19 +45,21 @@ func (s *CmdTestSuite) execDecision(dir, rule, facts string) any {
 }
 
 func (s *CmdTestSuite) TestExecCmdReadsPackData() {
-	dir := s.writeDataPackDir("roles = \"data/roles.json\"\n", map[string]string{
-		"data/roles.json": cmdRolesJSON,
+	dir := s.writeDataPackDir("roles = \"data/roles.json\"\nlimits = \"data/limits.json\"\n", map[string]string{
+		"data/roles.json":  cmdRolesJSON,
+		"data/limits.json": `{"max": {"rows": 10}}`,
 		"policy.sentrie": `namespace com/ex
 
-shape Roles dict[any]
+shape Roles dict[list[string]]
 
 policy typed {
   fact user: string
   data roles: Roles as table
   data roles as raw
+  data limits
 
   rule canWrite = "write" in table[user]
-  rule maxRows = raw.limits.max.rows
+  rule maxRows = limits.max.rows
   rule readerCount = count(raw["viewer"])
   export decision of canWrite
   export decision of maxRows
@@ -95,7 +97,7 @@ func (s *CmdTestSuite) TestExecCmdDataStaysUsableAsIdentifier() {
 		"cfg.json": `{"limit": 5}`,
 		"policy.sentrie": `namespace com/ex
 policy ids {
-  fact data: dict[any]
+  fact data: document
   data cfg
   rule fieldRead = data.data
   rule bothSources = data.n + cfg.limit
@@ -132,7 +134,7 @@ policy pol {
 			table: "roles = \"roles.json\"\n",
 			files: map[string]string{"roles.json": cmdRolesJSON, "policy.sentrie": `namespace com/ex
 policy pol {
-  data roles: dict[any]
+  data roles: dict[list[string]]
   rule ok = count(roles) > 0
   export decision of ok
 }
@@ -265,7 +267,7 @@ func (s *CmdTestSuite) TestExecCmdPackDataPassedIntoDerive() {
 policy pol {
   data roles
   let z = 1
-  derive has = (m: dict[any], k: string) => { yield m[k] is defined }
+  derive has = (m: document, k: string) => { yield m[k] is defined }
   rule ok = has(roles, "admin")
   export decision of ok
 }
