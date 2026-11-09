@@ -190,9 +190,9 @@ func (s *IndexTestSuite) TestCallCheckBlockLetsSeeEachOther() {
 	s.Require().NoError(err)
 }
 
-// A lambda body is not evaluated when its let or rule is, so the reference
-// cycle check does not walk into it: recursive let lambdas validate, and a
-// body let does not alias a rule of the same name (#161).
+// A let lambda's body is not evaluated when its let is, so the reference cycle
+// check does not walk into it: recursive let lambdas validate, and a body let
+// does not alias a rule of the same name (#161).
 func (s *IndexTestSuite) TestReferenceCycleCheckSkipsLambdaBodies() {
 	err := s.parseAndValidate(`namespace com/ex
 policy p {

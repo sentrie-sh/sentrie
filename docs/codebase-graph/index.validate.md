@@ -47,12 +47,12 @@ The gate every policy pack must pass before execution. `Validate` first settles 
   - **Exceptions:** Same.
 
 - **Signature:** `(*Index).detectReferenceCycle(ctx) -> error`
-  - **Behavior:** Per policy, builds a graph whose nodes are **bare identifier names** - rules and lets - and adds an edge for every identifier appearing in a rule's default, guard, or body, or in a let's initializer, including inside index access, casts, transforms, comment wrappers, map keys and `import decision` `with` values, but not inside a lambda body, which is not evaluated when its let or rule is. Catches mutual recursion between values within a single policy; recursion between let lambdas is allowed (#161) and bounded at runtime by the reference stack and the call and eval depth limits ([[runtime.exec_ctx]]). The graph ignores scope, so a block let still shares a node with a rule or let of the same name.
+  - **Behavior:** Per policy, builds a graph whose nodes are **bare identifier names** - rules and lets - and adds an edge for every identifier appearing in a rule's default, guard, or body, or in a let's initializer, including inside index access, casts, transforms, comment wrappers, map keys and `import decision` `with` values and the body of a lambda passed to a call, but not the body of a lambda that is a let's whole value (`letValueNodes`), which is not evaluated when the let is. Catches mutual recursion between values within a single policy; recursion between let lambdas is allowed (#161) and bounded at runtime by the reference stack and the call and eval depth limits ([[runtime.exec_ctx]]). The graph ignores scope, so a block let still shares a node with a rule or let of the same name.
   - **Side Effects:** None.
   - **Exceptions:** `xerr.ErrInfiniteRecursion` with the cycle path; `validation cancelled` on context cancellation; an `xerr.ErrIndex` error if the walker meets an AST node kind it does not know.
 
 - **Signature:** `addNodes(g, nodes, referedBy, policy) -> error`
-  - **Behavior:** The recursive harvester behind reference-cycle detection. An identifier adds an edge; a rule or let declared in a body adds its node and is walked with itself as referrer; a `LambdaExpression` is not descended into; every other node is descended into through [[index.expr_walk]], which fails closed on an unknown kind. A shape operand of `is` is not a reference.
+  - **Behavior:** The recursive harvester behind reference-cycle detection. An identifier adds an edge; a rule or let declared in a body adds its node and is walked with itself as referrer, except that a let bound directly to a lambda contributes no edges; every other node, including a lambda passed to a call, is descended into through [[index.expr_walk]], which fails closed on an unknown kind. A shape operand of `is` is not a reference.
   - **Side Effects:** Mutates the graph.
   - **Exceptions:** The walker's unsupported-node error; edge-add errors are discarded.
 

@@ -129,7 +129,7 @@ func (idx *Index) detectReferenceCycle(ctx context.Context) error {
 
 			for _, let := range policy.Lets {
 				g.AddNode(String(let.Name))
-				if err := addNodes(g, []ast.Node{let.Value}, String(let.Name), policy); err != nil {
+				if err := addNodes(g, letValueNodes(let.Value), String(let.Name), policy); err != nil {
 					return fmt.Errorf("%s: %w", err, xerr.ErrIndex)
 				}
 			}
@@ -149,10 +149,24 @@ func (idx *Index) detectReferenceCycle(ctx context.Context) error {
 
 // addNodes adds to g an edge from referedBy to every rule or let that the given
 // nodes reference. Identifiers add edges; a rule or let declared inside a body
-// adds its own node and is walked with itself as the referrer. A lambda body is
-// not walked (#161). Every other node is descended into through
-// forEachExprChild, so no other expression kind is skipped.
+// adds its own node and is walked with itself as the referrer, unless its value
+// is a lambda (letValueNodes). Every other node, including a lambda passed to a
+// call, is descended into through forEachExprChild, so no expression kind is
+// skipped.
 // It fails when the walker meets a node kind it does not know.
+// letValueNodes is what the reference cycle check walks for a let's value. A
+// let bound directly to a lambda contributes nothing: its body is not evaluated
+// when the let is, so a let lambda may call itself or another let lambda
+// (#161), and the runtime's reference stack and call depth limits stop a
+// recursion that does not end. A lambda anywhere else, such as one passed to a
+// builtin, runs while its rule or let is evaluated, so its body is walked.
+func letValueNodes(v ast.Expression) []ast.Node {
+	if _, ok := v.(*ast.LambdaExpression); ok {
+		return nil
+	}
+	return []ast.Node{v}
+}
+
 func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Policy) error {
 	for _, node := range nodes {
 		if node == nil {
@@ -171,15 +185,9 @@ func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Polic
 		case *ast.VarDeclaration:
 			g.AddNode(String(n.Name))
 			_ = g.AddEdge(String(referedBy.String()), String(n.Name))
-			if err := addNodes(g, []ast.Node{n.Value}, String(n.Name), policy); err != nil {
+			if err := addNodes(g, letValueNodes(n.Value), String(n.Name), policy); err != nil {
 				return err
 			}
-		case *ast.LambdaExpression:
-			// A lambda body is not evaluated when the let or rule holding the
-			// lambda is, so its references are not edges: a let lambda may
-			// call itself or another let lambda (#161). The runtime's
-			// reference stack and call depth limits stop a recursion that
-			// does not end.
 		default:
 			err := forEachExprChild(node, func(child ast.Node) error {
 				return addNodes(g, []ast.Node{child}, referedBy, policy)

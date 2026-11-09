@@ -52,3 +52,9 @@
 - Tests: `TestHeavyRecursiveLambdaBodyStopsAtEvalDepthLimit` (the reviewer's repro), `TestRecursiveLetLambdas` (replaces the validate-rejection test), `TestImportedDecisionInheritsDepthBudget` and `TestReferenceCycleCheckSkipsLambdaBodies`. Each fails without its fix: the eval limit disabled gives a fatal stack overflow; the lambda-body skip reverted gives "infinite recursion: fac -> v -> fac"; `inheritDepth` removed makes the import test fail.
 - `go test ./runtime/... ./index/... ./lang_test/...` passes, the race run of the new tests passes, lint reports 0 issues, and docs-graph passes.
 - _Model: claude-opus-5-5, role: implementer subagent_
+
+### 2026-11-09 18:18 - Rebase onto main d35f785
+- Rebased onto `main` at d35f785. Conflicts resolved keeping both sides: `enterCall` call depth plus main's `typeCheckScope`/`d.ShapeScope()` type scopes in `runtime/callable.go` and `runtime/derive_invoke.go`; main's comment-statement skip and the `deriveBinding` scope in the derive purity test; `checkCallTargets` before `checkBuiltinCalls`, with `checkConstraintArgs` last, in `index/validate.go`; graph nodes merged.
+- Combination fix: main's #269 walker (`addNodes` through `forEachExprChild`) pins that a cycle through a lambda passed to a builtin (`any([1], (n) => { yield b })`) is reported, while this branch skipped every lambda body. Narrowed the skip to a let bound directly to a lambda (`letValueNodes`): that body is not evaluated when the let is, whereas a lambda passed to a call runs while its rule is. Recursive let lambdas still validate; main's mixed-kind cycle tests pass again. Supersedes the 2026-11-01 note that `addNodes` skips all lambda bodies.
+- Gate: make build, test, docs-graph, and lint (go1.25 golangci-lint v2.4.0) pass.
+- _Model: claude-opus-5-5, role: rebase subagent_
