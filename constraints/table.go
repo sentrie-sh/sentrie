@@ -18,7 +18,7 @@ func ForTypeRef(typeRef ast.TypeRef) map[string]ConstraintDefinition {
 		return NumberContraintCheckers
 	case *ast.TrinaryTypeRef:
 		return TrinaryConstraintCheckers
-	case *ast.ListTypeRef:
+	case *ast.ListTypeRef, *ast.SetTypeRef:
 		return ListContraintCheckers
 	case *ast.DictTypeRef:
 		return DictContraintCheckers

@@ -44,7 +44,7 @@ The registry of predicates that refine a type beyond its kind - `string@email`, 
   - **Exceptions:** An error matching `ErrInvalidArgument`, with the message the checkers have always used (`expected number, got string`, `invalid regexp pattern: ...`, `divisor cannot be zero`, `range minimum 5 is greater than maximum 1`, `<name> constraint requires 1 argument`); a constraint given arguments it does not take says `<name> constraint takes no arguments`.
 
 - **Signature:** `ForTypeRef(typeRef ast.TypeRef) -> map[string]ConstraintDefinition`
-  - **Behavior:** The table for a type ref's own constraints, nil for an unknown kind. Callers unwrap a nullable first.
+  - **Behavior:** The table for a type ref's own constraints, nil for an unknown kind. `set[T]` takes the list table. Callers unwrap a nullable first.
   - **Side Effects:** None.
   - **Exceptions:** None.
 

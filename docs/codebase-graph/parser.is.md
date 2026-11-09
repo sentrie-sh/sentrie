@@ -30,7 +30,7 @@ Parses the `is` family: `x is defined`, `x is empty`, the type check `x is T` (#
   - **Behavior:** Consumes `is`, optionally consumes `not`, then dispatches on the follower:
     - `defined` → `IsDefinedExpression(left)`
     - `empty` → `IsEmptyExpression(left)`
-    - a type keyword (`string`, `number`, `boolean`, `trinary`, `document`, `list`, `dict`, `record`) → a full type reference, built as `IsExpression(left, Type)`
+    - a type keyword (`string`, `number`, `boolean`, `trinary`, `document`, `list`, `dict`, `record`), or the identifier `set` followed by `[` (#162) → a full type reference, built as `IsExpression(left, Type)`. So `x is set[0]` with a value named `set` is no longer an equality: it fails to parse as a type
     - otherwise parses a right operand at `EQUALITY` precedence:
       - a bare or slash-qualified identifier followed by `@` or a nullable `?` → that name as a shape type with its suffixes, `IsExpression(left, Type)`
       - a bare or slash-qualified identifier with no suffix → `IsExpression(left, Right, Type)` carrying both readings for [[index.is_resolve]]

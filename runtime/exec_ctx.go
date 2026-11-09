@@ -133,8 +133,9 @@ func (ec *ExecutionContext) InjectFact(ctx context.Context, name string, v box.V
 
 	ec.facts[name] = injectedFact{
 		// an imported decision bound to a bool or trinary fact, whether
-		// injected or a default, holds its state (#136)
-		value:     bindTruthValue(v, typeRef),
+		// injected or a default, holds its state (#136); a JSON array bound
+		// to a set[T] fact is a set (#162)
+		value:     bindTypedValue(v, typeRef),
 		isDefault: isDefault,
 		typeRef:   typeRef,
 	}

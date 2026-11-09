@@ -15,13 +15,14 @@ The single entry point for all runtime type checking. It strips nullability, the
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `runtime.typeref` | `DEPENDS_ON` | [[ast]] | `IsNullableTypeRef`, `UnwrapNullableTypeRef`, and the eight concrete type-ref kinds. |
+| `runtime.typeref` | `DEPENDS_ON` | [[ast]] | `IsNullableTypeRef`, `UnwrapNullableTypeRef`, and the nine concrete type-ref kinds. |
 | `runtime.typeref` | `READS_FROM` | [[runtime.exec_ctx]] | `typeCheckScope` reads `evalDerive`. |
 | `runtime.typeref` | `CALLS` | [[index.derive]] | `typeCheckScope` takes `(*Derive).ShapeScope()` inside a derive body. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_string]] | String targets. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_number]] | Number targets. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_trinary]] | Trinary and bool targets. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_list]] | List targets; recurses per element. |
+| `runtime.typeref` | `CALLS` | [[runtime.typeref_set]] | Set targets; recurses per element and checks a plain list for duplicates. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_dict]] | Dict targets; recurses per value. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_shape]] | Shape targets; recurses per field. |
 | `runtime.typeref` | `CALLS` | [[runtime.typeref_document]] | Document targets. |
