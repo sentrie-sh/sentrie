@@ -9,7 +9,7 @@ tags: http-server, routing, lifecycle, listeners, problem-details
 # Node: api.HTTPAPI (Server Lifecycle and Routing)
 
 ## 1. Architectural Role & Intent
-Owns the HTTP surface: route registration, multi-address listener setup, server start and stop, the health endpoint, and the shared RFC 9457 error responder. It supports binding several addresses at once - one `http.Server` per listener, all sharing a single mux - so one process can serve both a loopback and a network interface.
+Owns the HTTP surface: route registration, multi-address listener setup, server start and stop, the health endpoints, and the shared RFC 9457 error responder. It supports binding several addresses at once - one `http.Server` per listener, all sharing a single mux - so one process can serve both a loopback and a network interface.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -18,6 +18,7 @@ Owns the HTTP surface: route registration, multi-address listener setup, server 
 | `api.http` | `CALLS` | [[api.net]] | `resolveBindings` turns the port and listen names into concrete addresses. |
 | `api.http` | `CALLS` | [[api.middleware]] | Wraps the decision handler with request-ID assignment. |
 | `api.http` | `CALLS` | [[api.handle_decision]] | The registered POST handler. |
+| `api.http` | `CALLS` | [[api.health]] | Registers the `/health` and `/health/deep` handlers. |
 | `api.http` | `DEPENDS_ON` | [[api.problem_details]] | `writeErrorResponse` builds a `ProblemDetails`. |
 | `api.http` | `MUTATES` | [[infra.network_sockets]] | Binds and closes TCP listeners. |
 | [[cmd]] | `CALLS` | `api.http` | `serve` drives `Setup`, `StartServer`, and `StopServer`. |
@@ -30,7 +31,7 @@ Owns the HTTP surface: route registration, multi-address listener setup, server 
   - **Exceptions:** None.
 
 - **Signature:** `Setup(ctx context.Context, port int, listen []string) -> error`
-  - **Behavior:** Registers `POST /decision/{target...}` (Go 1.22+ pattern routing with a wildcard tail) and `GET /health`, resolves bindings, and opens a listener per address with a 30-second read timeout and a write timeout of `max(30s, ceiling + 5s)` (saturating), where the ceiling is `maxRequestTimeout` or else `requestTimeout`, so a request that asks for the longest allowed deadline can still be answered. With no ceiling and no default the write timeout stays at 30 seconds, which then caps a response. On any bind failure it closes every already-opened listener and clears the slice, so a partial bind never leaves sockets dangling.
+  - **Behavior:** Registers `POST /decision/{target...}` (Go 1.22+ pattern routing with a wildcard tail) `GET /health` and `GET /health/deep` ([[api.health]]), resolves bindings, and opens a listener per address with a 30-second read timeout and a write timeout of `max(30s, ceiling + 5s)` (saturating), where the ceiling is `maxRequestTimeout` or else `requestTimeout`, so a request that asks for the longest allowed deadline can still be answered. With no ceiling and no default the write timeout stays at 30 seconds, which then caps a response. On any bind failure it closes every already-opened listener and clears the slice, so a partial bind never leaves sockets dangling.
   - **Side Effects:** Binds sockets; populates `api.listeners`.
   - **Exceptions:** `failed to listen on %s: %w`; binding-resolution errors.
 
@@ -43,11 +44,6 @@ Owns the HTTP surface: route registration, multi-address listener setup, server 
   - **Behavior:** Gracefully shuts every pair down concurrently with `ListenerServerPair.Shutdown(ctx)` (`http.Server.Shutdown`, then a listener close in case `Serve` never ran) and waits for all of them. It only reads `api.listeners` (it does not clear it), because `StartServer` reads the slice from another goroutine; a second call is harmless since `Shutdown` is idempotent and an already closed listener is ignored. In-flight requests finish until `ctx` is done ([#117](https://github.com/sentrie-sh/sentrie/issues/117)). A pair whose shutdown fails (normally `ctx` ending with requests still running) is logged at WARN, then closed with `http.Server.Close` so the process can exit. `serve` passes a context derived with `context.WithoutCancel` and a timeout of `DefaultShutdownGracePeriod` (10s, a constant, not a flag).
   - **Side Effects:** Stops accepting connections; waits for in-flight requests; drops any still running at the deadline.
   - **Exceptions:** Joined errors, one per pair that did not drain in time (wrapping `context.DeadlineExceeded`), so an unclean shutdown makes `serve` exit 1. Nil on a clean drain.
-
-- **Signature:** `handleHealth(w, r)`
-  - **Behavior:** Returns status and current time with HTTP 200, unconditionally.
-  - **Side Effects:** None.
-  - **Exceptions:** None.
 
 - **Signature:** `writeErrorResponse(w, r, statusCode int, title, detail string)`
   - **Behavior:** Emits `application/problem+json` with the request ID as `instance` and a timestamp extension.

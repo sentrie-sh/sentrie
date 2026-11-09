@@ -19,19 +19,24 @@ import (
 // - Cyclic dependencies
 func (idx *Index) Validate(ctx context.Context) error {
 	idx.validationOnce.Do(func() {
-		idx.validationError = idx.validate(ctx)
-		if idx.validationError != nil {
-			idx.validationError = fmt.Errorf("validation error: %w", idx.validationError)
+		err := idx.validate(ctx)
+		if err != nil {
+			err = fmt.Errorf("validation error: %w", err)
 		}
+		idx.stateMu.Lock()
+		idx.validationError = err
 		idx.validated = 1
+		idx.stateMu.Unlock()
 
-		if idx.validationError != nil {
+		if err != nil {
 			// we couldn't validate the index, so we can't commit
 			return
 		}
 
 		if err := idx.Commit(ctx); err != nil {
+			idx.stateMu.Lock()
 			idx.validationError = err
+			idx.stateMu.Unlock()
 			return
 		}
 	})

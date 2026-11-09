@@ -22,6 +22,7 @@ tags: symbol-table, aggregate-root, concurrency, lifecycle
 | `index.index` | `CALLS` | [[index.namespace]] | `ensureNamespace` creates namespaces and wires parent/child links. |
 | `index.index` | `CALLS` | [[index.policy]] | `createPolicy` for each policy statement. |
 | `index.index` | `CALLS` | [[index.shape]] | `createShape` for namespace-level shapes. |
+| [[index.status]] | `READS_FROM` | `index.index` | Reads the lifecycle fields and definition maps under `stateMu` and `theLock`. |
 | `index.index` | `CALLS` | [[index.derive]] | `ns.addDerive` and `registerDeriveFQN` for namespace derives. |
 | [[loader]] | `CALLS` | [[index.index]] | Supplies programs one at a time. |
 | [[runtime]] | `READS_FROM` | [[index.index]] | Reads `Namespaces` and `DerivesByFQN` during evaluation. |
@@ -59,5 +60,5 @@ tags: symbol-table, aggregate-root, concurrency, lifecycle
 - **Dependencies Risk:**
   - **Statement iteration starts at index 0** and skips comment statements by type. The first namespace statement is consumed by `createProgram`/`ensureNamespace`; a second `NamespaceStatement` is an error (`duplicate namespace statement`).
   - **Locking does not cover reads.** `theLock` is taken by `SetPack` and `AddProgram` only. `Validate`, `Commit`, and all resolution methods read unguarded, so an index must be fully populated before it is shared.
-  - **The `validated`/`committed` flags are not used atomically.** They are plain `uint32` fields written inside the `Once` bodies; the real exactly-once guarantee comes from `sync.Once`, not from these. Do not read them as a concurrency signal.
+  - **The `validated`/`committed` flags are not used atomically.** They are plain `uint32` fields written inside the `Once` bodies; the real exactly-once guarantee comes from `sync.Once`, not from these. They are plain `uint32` fields, now written (with `validationError` and `commitError`) under `stateMu` so [[index.status]] can read them safely during a run; the exactly-once guarantee still comes from the `Once`. Code that reads the raw fields directly gets no such protection.
   - **Derive visibility snapshots are taken here.** `cloneDeriveMap(ns.Derives)` captures what is visible *at that moment*, which is the mechanism behind the file-ordering constraint documented in [[index.derive]].

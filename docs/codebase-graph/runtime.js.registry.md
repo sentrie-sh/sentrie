@@ -60,6 +60,11 @@ Owns module identity and compilation for the whole engine. It resolves `use` ref
   - **Side Effects:** None.
   - **Exceptions:** None.
 
+- **Signature:** `(*Registry).BuiltinModules() -> []string`
+  - **Behavior:** The sorted keys of every registered Go and TypeScript built-in (`@sentrie/<name>`).
+  - **Side Effects:** None.
+  - **Exceptions:** None.
+
 - **Signature:** `(*Registry).CompiledPrograms() -> int64`
   - **Behavior:** How many module programs this registry has compiled; one per module for the registry's lifetime.
   - **Side Effects:** None.
