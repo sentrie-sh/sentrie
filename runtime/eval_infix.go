@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
@@ -14,6 +15,22 @@ import (
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 	"github.com/sentrie-sh/sentrie/trinary"
 )
+
+// compareStrings orders two string operands by byte order (strings.Compare),
+// which is not locale-aware: "B" < "a" and "Z" < "a". ok is false unless both
+// operands are strings, so the relational operators fall through to the
+// numeric path and a mixed string/number pair keeps its operand error.
+func compareStrings(l, r box.Value) (c int, ok bool) {
+	ls, ok := l.StringValue()
+	if !ok {
+		return 0, false
+	}
+	rs, ok := r.StringValue()
+	if !ok {
+		return 0, false
+	}
+	return strings.Compare(ls, rs), true
+}
 
 func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p *index.Policy, in *ast.InfixExpression) (box.Value, *trace.Node, error) {
 	ctx, node, done := trace.New(ctx, in, "infix", map[string]any{
@@ -101,6 +118,10 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		out := box.Bool(!box.EqualValues(l, r))
 		return out, node.SetResult(out), nil
 	case "<":
+		if c, ok := compareStrings(l, r); ok {
+			out := box.Bool(c < 0)
+			return out, node.SetResult(out), nil
+		}
 		ln, rn, err := box.MustNumbers(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
@@ -108,6 +129,10 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		out := box.Bool(ln < rn)
 		return out, node.SetResult(out), nil
 	case "<=":
+		if c, ok := compareStrings(l, r); ok {
+			out := box.Bool(c <= 0)
+			return out, node.SetResult(out), nil
+		}
 		ln, rn, err := box.MustNumbers(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
@@ -115,6 +140,10 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		out := box.Bool(ln <= rn)
 		return out, node.SetResult(out), nil
 	case ">":
+		if c, ok := compareStrings(l, r); ok {
+			out := box.Bool(c > 0)
+			return out, node.SetResult(out), nil
+		}
 		ln, rn, err := box.MustNumbers(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
@@ -122,6 +151,10 @@ func evalInfix(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		out := box.Bool(ln > rn)
 		return out, node.SetResult(out), nil
 	case ">=":
+		if c, ok := compareStrings(l, r); ok {
+			out := box.Bool(c >= 0)
+			return out, node.SetResult(out), nil
+		}
 		ln, rn, err := box.MustNumbers(l, r)
 		if err != nil {
 			return box.Undefined(), node.SetErr(err), err
