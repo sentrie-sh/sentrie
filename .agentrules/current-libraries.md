@@ -1,6 +1,6 @@
 # Prefer the current standard library and up-to-date SDKs
 
-Before adding a dependency or writing against an older API, use what the pinned toolchain ships (Go 1.25, per `go.mod`). Take dependencies and SDKs at their current version.
+Before adding a dependency or writing against an older API, use what the pinned toolchain ships (Go 1.27, per `go.mod`). Take dependencies and SDKs at their current version.
 
 **Why:** Every third-party package or superseded API is code we will migrate later. The newer standard library usually removes a dependency and brings stricter, better-maintained defaults. Precedents: #72 (#75) replaced `github.com/pkg/errors` with the standard `errors` package and typed wrappers, and #184 (#188) replaced `golang.org/x/exp` with the standard `maps` and `slices`. Writing new code against the old API only makes the eventual migration bigger.
 
@@ -14,4 +14,4 @@ Before adding a dependency or writing against an older API, use what the pinned 
 
 Related: [Build and test](build-and-test.md), [PR conventions](pr-conventions.md)
 
-Relevant keywords: standard library, stdlib, Go 1.25, toolchain, go.mod, dependency, third-party package, THIRD_PARTY_POLICY, licence, SDK, up to date, current version, upgrade, deprecated API, migration, pkg/errors, golang.org/x/exp.
+Relevant keywords: standard library, stdlib, Go 1.27, toolchain, go.mod, dependency, third-party package, THIRD_PARTY_POLICY, licence, SDK, up to date, current version, upgrade, deprecated API, migration, pkg/errors, golang.org/x/exp.

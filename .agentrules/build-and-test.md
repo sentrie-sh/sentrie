@@ -4,9 +4,9 @@ Everything builds from the repository root with no per-package tooling knowledge
 
 ## Prerequisites
 
-- **Go:** the version in `go.mod` (`go 1.25.0`). With `GOTOOLCHAIN=auto`, the default, an older local Go fetches it automatically.
+- **Go:** the version in `go.mod` (`go 1.27.0`). With `GOTOOLCHAIN=auto`, the default, an older local Go fetches it automatically.
 - **GNU Make.**
-- **golangci-lint** for linting. CI pins `v2.4.0` in `ci.yml`, with no repo config file, so the default linters apply. A local binary must be built with a Go at least as new as your local `go`. Otherwise it panics with "file requires newer Go version" while loading the standard library. Point `make lint` at a different binary with `GOLANGCI_LINT=/path/to/golangci-lint`.
+- **golangci-lint** for linting. CI pins `v2.15.0` in `ci.yml`, with no repo config file, so the default linters apply. A local binary must be built with a Go at least as new as your local `go`. Otherwise it panics with "file requires newer Go version" while loading the standard library. Point `make lint` at a different binary with `GOLANGCI_LINT=/path/to/golangci-lint`.
 - **`GOWORK=off`** on every `go` invocation when a `go.work` file sits above the checkout (for example in your home directory). An ambient workspace that lists the primary checkout joins the module graph, and inside `worktrees/<branch>` it makes `go test ./...` fail with "main module does not contain package", or worse, build the primary checkout's packages instead of the worktree's. The Makefile exports `GOWORK=off`, so `make` targets are already safe; plain `go` commands need the prefix.
 - Nothing else. The JavaScript and TypeScript support (`runtime/js`) runs on Go libraries (`goja`, `esbuild`), so no Node toolchain is needed.
 
