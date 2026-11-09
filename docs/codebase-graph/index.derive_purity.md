@@ -50,9 +50,9 @@ The static gate that makes `derive` genuinely pure. It walks every derive body w
   - **Exceptions:** `derive purity: cyclic expression graph`; `derive purity: unsupported expression %T`.
 
 - **Signature:** `checkDeriveIdentifier(d, name, scope) -> error`
-  - **Behavior:** Accepts only names in lexical scope. Produces **targeted diagnostics**: a visible derive used bare says "must be called as name(...)"; a fact says "facts are not available inside a derive"; a rule says "rules cannot be referenced inside a derive"; anything else gets the general message.
+  - **Behavior:** Accepts only names in lexical scope. Produces **targeted diagnostics**: a visible derive used bare says "must be called as name(...)"; a fact says "facts are not available inside a derive"; a pack `data` alias says "pack data is not available inside a derive; pass it as an argument" (paired with the runtime guard in [[runtime.eval_ident]]); a rule says "rules cannot be referenced inside a derive"; anything else gets the general message.
   - **Side Effects:** None.
-  - **Exceptions:** One of the four messages above.
+  - **Exceptions:** One of the five messages above.
 
 - **Signature:** `checkDeriveCall(idx, d, c, scope, seen) -> error`
   - **Behavior:** Rejects field-access callees outright (that is the TypeScript module call form). Resolves slash-qualified callees of **three or more segments** through the snapshots then the global registry, enforcing visibility. Otherwise accepts in-scope callables, visible short-name derives, and derive-safe builtins (`Decl.PermittedInDerive`). A builtin marked `Nondeterministic` (such as `now`) is refused with its own message, mirroring the runtime guard in [[runtime.eval_call]]. Because the runtime never resolves a call through a local binding, a builtin that is not `PermittedInDerive` is refused even when a parameter or `let` of the same name is in scope (unless a `DefineShort` derive has the name). Everything else fails.

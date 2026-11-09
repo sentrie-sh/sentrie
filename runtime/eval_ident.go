@@ -29,6 +29,24 @@ func evalIdent(ctx context.Context, ec *ExecutionContext, exec *executorImpl, p 
 		}
 	}
 
+	// Pack data declared with `data <name>`. Like a fact it is policy-scoped,
+	// so a derive body is refused it explicitly (mirroring
+	// index.checkDeriveIdentifier) and receives it only as an argument. The
+	// static index rejects an alias that clashes with a fact, let or rule.
+	if p != nil && p.Data != nil {
+		if d, ok := p.Data[i.Value]; ok {
+			if ec.evalDerive != nil {
+				err := fmt.Errorf("pack data is not available inside a derive (%q); pass it as an argument", i.Value)
+				return box.Undefined(), n.SetErr(err), err
+			}
+			v, err := packDataValue(exec, d)
+			if err != nil {
+				return box.Undefined(), n.SetErr(err), err
+			}
+			return v, n.SetResult(v), nil
+		}
+	}
+
 	// check whether this has been passed in as a FACT
 	if v, ok := ec.GetFact(i.Value); ok {
 		return v, n.SetResult(v), nil

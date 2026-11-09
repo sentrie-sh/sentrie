@@ -3,19 +3,20 @@ id: pack
 type: System / Package
 language: Go
 file_path: pack/
-tags: manifest, packaging, permissions, semver, configuration
+tags: manifest, packaging, permissions, semver, configuration, static-data
 ---
 
 # Node: Pack (Policy Pack Manifest Model)
 
 ## 1. Architectural Role & Intent
-`pack` is the pure data model for a Sentrie policy pack: the `sentrie.pack.toml` manifest (`PackFile`) and the in-memory pairing of that manifest with its parsed programs (`Pack`). It defines the pack's identity and version, the engine version constraint it requires, and - critically - the **permission grants** (filesystem read, network, environment variables) that bound what JavaScript modules invoked from a policy are allowed to touch. It contains no I/O: discovery, decoding, and schema validation all live in [[loader]].
+`pack` is the pure data model for a Sentrie policy pack: the `sentrie.pack.toml` manifest (`PackFile`) and the in-memory pairing of that manifest with its parsed programs (`Pack`). It defines the pack's identity and version, the engine version constraint it requires, the static reference data it ships (`[data]`, #169), and - critically - the **permission grants** (filesystem read, network, environment variables) that bound what JavaScript modules invoked from a policy are allowed to touch. It contains no I/O: discovery, decoding, and schema validation all live in [[loader]].
 
 ## 2. Graph Edges (Strict Relational Data)
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `pack` | `LAYERED_ON` | [[ast]] | `Pack.Programs` is `[]*ast.Program` - the parsed policy sources belonging to this manifest. |
+| `pack` | `LAYERED_ON` | [[box]] | `PackFile.DataValues` holds each `[data]` entry as a boxed value. |
 | `pack` | `IMPORTS` | `ext.masterminds.semver` | `PackInformation.Version` is a `*semver.Version`; `Engine.Sentrie` is a `*semver.Constraints`. |
 | `pack` | `IMPORTS` | `std.encoding/json`, `std.slices` | Custom JSON codec for the semver constraint; membership check for env permissions. |
 | [[loader]] | `MUTATES` | [[pack]] | `LoadPack` decodes TOML into a `PackFile` and sets `Location` to the manifest's directory. |
@@ -31,8 +32,8 @@ tags: manifest, packaging, permissions, semver, configuration
   - **Side Effects:** None.
   - **Exceptions:** None.
 
-- **Signature:** `PackFile` struct - `{ SchemaVersion *SentrieSchema, Pack *PackInformation, Permissions *Permissions, Engine *Engine, Metadata map[string]any, Location string }`
-  - **Behavior:** Direct TOML/JSON mapping of `sentrie.pack.toml`. `Location` is tagged `toml:"-"`/`json:"-"` - it is **not** a manifest field but a runtime-populated absolute directory path, injected by [[loader]] and used as the root for source discovery and relative `use` resolution.
+- **Signature:** `PackFile` struct - `{ SchemaVersion *SentrieSchema, Pack *PackInformation, Permissions *Permissions, Engine *Engine, Metadata map[string]any, Data map[string]string, Location string, DataValues map[string]box.Value }`
+  - **Behavior:** Direct TOML/JSON mapping of `sentrie.pack.toml`. `Data` is the `[data]` table: identifier-shaped names mapped to JSON file paths relative to the pack root. `Location` and `DataValues` are tagged `toml:"-"`/`json:"-"` - they are **not** manifest fields but runtime-populated by [[loader]]: `Location` is the absolute directory used as the root for source discovery, relative `use` resolution and data files; `DataValues` is each `Data` entry decoded and boxed once at pack load.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -69,4 +70,5 @@ tags: manifest, packaging, permissions, semver, configuration
   - **Permissions are the pack's request; [[capabilities]] is the operator's grant.** The two use opposite nil conventions (nil permissions deny, a nil grant allows), and the grant is not yet intersected with these declarations (#157).
   - **Enforcement lives elsewhere.** This package only *declares* permissions. Auditing what a pack can actually reach means reading [[runtime.js]], not this node.
   - **`Location` is trusted.** It is populated from disk by [[loader]] and used as a filesystem root; anything that constructs a `PackFile` by hand must set it deliberately, since an empty `Location` makes program discovery walk the process working directory.
+  - **`DataValues` is shared and must stay immutable.** One boxed value per entry is read by every concurrent evaluation ([[runtime.pack_data]]); a hand-built `PackFile` with `Data` but no `DataValues` fails index validation.
   - **Engine constraint is advisory here.** `Engine.Sentrie` is parsed and stored but not checked against the running binary in this package.

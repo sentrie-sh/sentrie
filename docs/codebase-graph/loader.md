@@ -9,7 +9,7 @@ tags: filesystem, manifest-discovery, schema-validation, bootstrap, toml
 # Node: Loader (Pack Discovery and Manifest Ingestion)
 
 ## 1. Architectural Role & Intent
-`loader` is the filesystem boundary of Sentrie: it locates a `sentrie.pack.toml` by walking up from a supplied path, decodes and validates it into a [[pack]] `PackFile`, and then walks the pack root to parse every `.sentrie` source into an `ast.Program`. It exists so that every entrypoint - CLI [[cmd]] and HTTP [[api]] alike - resolves "which pack am I running?" through one deterministic algorithm. It is the only package that performs both TOML decoding and JSON-Schema validation of the manifest.
+`loader` is the filesystem boundary of Sentrie: it locates a `sentrie.pack.toml` by walking up from a supplied path, decodes and validates it into a [[pack]] `PackFile`, reads the pack's static `[data]` files, and then walks the pack root to parse every `.sentrie` source into an `ast.Program`. It exists so that every entrypoint - CLI [[cmd]] and HTTP [[api]] alike - resolves "which pack am I running?" through one deterministic algorithm. It is the only package that performs both TOML decoding and JSON-Schema validation of the manifest.
 
 ## 2. Graph Edges (Strict Relational Data)
 
@@ -21,16 +21,18 @@ tags: filesystem, manifest-discovery, schema-validation, bootstrap, toml
 | `loader` | `LAYERED_ON` | [[ast]] | Returns `[]*ast.Program`. |
 | `loader` | `IMPORTS` | `ext.pelletier.go-toml` | Manifest decoding, performed twice: once into a raw map for unknown-key detection, once into the typed struct. |
 | `loader` | `IMPORTS` | `ext.xeipuuv.gojsonschema` | Compiles the embedded Draft-7 `schema.json` at package init and validates the marshalled manifest. |
-| `loader` | `READS_FROM` | [[infra.filesystem]] | `os.Stat`, `os.ReadFile`, and `fs.WalkDir` over the pack directory tree. |
+| `loader` | `READS_FROM` | [[infra.filesystem]] | `os.Stat`, `os.ReadFile`, and `fs.WalkDir` over the pack directory tree; `os.OpenRoot` for `[data]` files. |
+| `loader` | `CALLS` | [[box]] | `box.FromBoundaryAny` boxes each decoded `[data]` document, the same conversion request facts get. |
+| `loader` | `DEPENDS_ON` | [[tokens]] | `tokens.IsKeyword` rejects a `[data]` name a `data` declaration could not spell. |
 | [[cmd]] | `CALLS` | [[loader]] | `exec`, `init`, `serve`, and `validate` all bootstrap through `LoadPack`/`LoadPrograms`. |
 | [[index]] | `LAYERED_ON` | [[loader]] | Consumes the programs produced here as its indexing input. |
 
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `LoadPack(ctx: context.Context, root: string) -> (*pack.PackFile, error)`
-  - **Behavior:** The pack bootstrap. Locates the manifest (see below), rejects an empty file, decodes the TOML into a raw map to reject **unknown top-level tables** (only `schema`, `pack`, `engine`, `permissions`, `metadata` are allowed), pre-checks that an `[engine]` table carries a non-empty `sentrie` field, decodes into `pack.PackFile`, enforces that `schema` and `pack.name` are present and that the name matches the dotted-identifier regex, runs JSON-Schema validation, and finally sets `Location` to the manifest's directory.
-  - **Side Effects:** Reads the filesystem; **mutates** the returned `PackFile.Location`.
-  - **Exceptions:** `ctx.Err()` if already cancelled; `locate pack file: …` wrapping `ErrPackFileNotFound`; `pack file is empty`; `failed to parse pack file` for malformed TOML; `unknown top-level table '[x]'`; `engine table exists but 'sentrie' field is required`; `schema version is required`; `name is required`; `name must be a valid identity`; `schema validation failed: …` with per-field descriptions.
+  - **Behavior:** The pack bootstrap. Locates the manifest (see below), rejects an empty file, decodes the TOML into a raw map to reject **unknown top-level tables** (only `schema`, `pack`, `engine`, `permissions`, `metadata`, `data` are allowed), pre-checks that an `[engine]` table carries a non-empty `sentrie` field, decodes into `pack.PackFile`, enforces that `schema` and `pack.name` are present and that the name matches the dotted-identifier regex, runs JSON-Schema validation, sets `Location` to the manifest's directory, and finally loads every `[data]` entry into `DataValues` (`loadPackData`, `loader/data.go`).
+  - **Side Effects:** Reads the filesystem; **mutates** the returned `PackFile.Location` and `PackFile.DataValues`.
+  - **Exceptions:** `ctx.Err()` if already cancelled; `locate pack file: …` wrapping `ErrPackFileNotFound`; `pack file is empty`; `failed to parse pack file` for malformed TOML; `unknown top-level table '[x]'`; `engine table exists but 'sentrie' field is required`; `schema version is required`; `name is required`; `name must be a valid identity`; `schema validation failed: …` with per-field descriptions; `load pack data: data "<name>" (<file>): …` for a data entry that is absolute, escapes the root (`..` or a symlink resolving outside it), is not a regular file, exceeds `MaxDataFileSize`, is not valid JSON or has trailing content, or whose name is a keyword.
 
 - **Signature:** `LoadPrograms(ctx: context.Context, packFile: *pack.PackFile) -> ([]*ast.Program, error)`
   - **Behavior:** Recursively walks `packFile.Location`, parsing every file whose extension matches the policy extension into an `ast.Program`. Programs are accumulated in walk order.
@@ -41,6 +43,11 @@ tags: filesystem, manifest-discovery, schema-validation, bootstrap, toml
   - **Behavior:** Marshals the manifest to JSON and validates it against the embedded Draft-7 schema, flattening all violations into a single multi-line error with `field: description` per line (the root is rendered as `root`). Exported so callers can validate a synthesized manifest without touching disk.
   - **Side Effects:** None.
   - **Exceptions:** JSON marshal failure; schema evaluation failure; the aggregated validation error.
+
+- **Signature:** `loadPackData(ctx, p *pack.PackFile) -> error` / `MaxDataFileSize` (16 MiB)
+  - **Behavior:** For each `[data]` entry, in sorted order: rejects keyword names, rejects absolute and non-local paths (`filepath.IsLocal`), opens the file through an `os.Root` on `Location` (so symlinks are confined to the pack), requires a regular file, bounds the size by stat and by a limited read, decodes one JSON document with `encoding/json` and boxes it with `box.FromBoundaryAny`.
+  - **Side Effects:** Reads files; sets `p.DataValues`.
+  - **Exceptions:** Errors name the entry and its path, as listed under `LoadPack`.
 
 - **Signature:** `IsValidPackName(name: string) -> bool`
   - **Behavior:** Matches `^([a-zA-Z][a-zA-Z0-9_-]*)(\.[a-zA-Z][a-zA-Z0-9_-]*)*$` - dot-separated segments, each starting with a letter, allowing hyphens and underscores.
@@ -56,6 +63,7 @@ tags: filesystem, manifest-discovery, schema-validation, bootstrap, toml
 - **Statefulness:** Stateless functions over package-level singletons. The compiled JSON schema and its loader are process-wide, built once in `init()`.
 - **Performance/Scale Notes:** The manifest is decoded **twice** (raw map, then struct) and marshalled to JSON a third time for schema validation - irrelevant for a one-shot CLI run, worth knowing for a long-lived [[api]] server that reloads packs per request. `LoadPrograms` parses files **sequentially**; parse time scales linearly with pack size.
 - **Dependencies Risk:**
+  - **Data decoding mirrors fact decoding.** `decodeDataJSON` uses the same `encoding/json` into Go values plus `box.FromBoundaryAny` as request facts, so number handling matches; a change to fact decoding (#166, `UseNumber`) must be made here too.
   - **`init()` panics.** If the embedded `schema.json` fails to compile, the package panics at import time, taking down the binary before `main` runs. Any edit to `schema.json` must be exercised by simply running the binary.
   - **File-handle leak.** `LoadPrograms` calls `os.Open` per policy file and never closes the handle - the parser holds the reader and nothing releases it. On a large pack or a long-lived server this exhausts descriptors.
   - **Upward search can escape the intended pack.** `locatePackFile` walks parent directories until it hits `/` (or a Windows drive root), so running from a subdirectory of an *unrelated* project can silently bind to an ancestor's manifest. It refuses to start from `/` or an empty path, but there is no other containment.

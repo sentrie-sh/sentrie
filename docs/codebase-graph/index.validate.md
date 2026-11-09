@@ -22,6 +22,7 @@ The gate every policy pack must pass before execution. `Validate` first settles 
 | `index.validate` | `CALLS` | [[index.expr_walk]] | `addNodes` descends into every expression kind through `forEachExprChild`, so a cycle cannot hide behind a kind the harvester forgot. |
 | `index.validate` | `CALLS` | [[index.shape_refs]] | Right after `is` resolution: every shape named in a fact, let, shape, derive or lambda signature, or cast must be visible from its site. |
 | `index.validate` | `CALLS` | [[index.import_withs]] | Third check, right after `detectRuleCycle` has resolved every imported policy. |
+| `index.validate` | `CALLS` | [[index.pack_data]] | Fourth check: every `data` declaration names a loaded `[data]` entry. |
 | `index.validate` | `CALLS` | [[index.derive_cycle]] | Fifth check in the pipeline. |
 | `index.validate` | `CALLS` | [[index.derive_purity]] | Sixth check. |
 | `index.validate` | `CALLS` | [[index.builtin_check]] | Seventh check. |

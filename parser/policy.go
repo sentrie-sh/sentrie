@@ -59,6 +59,12 @@ func parseThePolicyStatement(ctx context.Context, p *Parser) ast.Statement {
 }
 
 func parsePolicyStatement(ctx context.Context, p *Parser) ast.Statement {
+	// `data` is a contextual keyword: it starts a declaration only at the head
+	// of a policy statement, where a bare identifier is otherwise never valid,
+	// so `data` stays usable as a fact, let, field or parameter name.
+	if p.head().IsOfKind(tokens.Ident) && p.head().Value == dataKeyword {
+		return parseDataStatement(ctx, p)
+	}
 	if handler, ok := p.policyStatementHandlers[p.head().Kind]; ok {
 		return handler(ctx, p)
 	}
