@@ -29,7 +29,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  GO_VERSION: "1.25"
+  GO_VERSION: "1.27"
 
 jobs:
   lint:
@@ -50,8 +50,8 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
-          # Pin to a v2.x that supports Go 1.25 (>= v2.4.0)
-          version: v2.4.0
+          # Pin to a v2.x that supports Go 1.27 (>= v2.13.0)
+          version: v2.15.0
           args: >
             --timeout=5m
             --output.text.path=stdout

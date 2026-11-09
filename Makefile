@@ -18,7 +18,7 @@ build: ## Build the sentrie binary into $(OUTPUT_DIR)
 test: ## Run every test, including lang_test fixtures and the graph check
 	go test ./...
 
-lint: ## Run go vet and golangci-lint (CI pins v2.4.0)
+lint: ## Run go vet and golangci-lint (CI pins v2.15.0)
 	go vet ./...
 	$(GOLANGCI_LINT) run --timeout=5m
 

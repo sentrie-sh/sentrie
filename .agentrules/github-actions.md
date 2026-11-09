@@ -7,7 +7,7 @@ Workflows live under `.github/workflows/`:
 - `cla-check.yml`, `deps-policy-check.yml`, `protected-files-maintainers.yml`: PR gates.
 - `release.yml`: GoReleaser on a pushed `v*.*.*` tag.
 
-Pin `uses:` to a major tag (`@v4`, `@v5`), not a patch or a commit SHA. A tool version passed as an input (such as golangci-lint's `version: v2.4.0`) is pinned exactly.
+Pin `uses:` to a major tag (`@v4`, `@v5`), not a patch or a commit SHA. A tool version passed as an input (such as golangci-lint's `version: v2.15.0`) is pinned exactly.
 
 Changes to these files are `[Workflow]` PRs ([PR conventions](pr-conventions.md)), and only maintainers may make them (`protected-files-maintainers.yml` guards `.github/**`, `AGENTS.md`, `.agentrules/**` and `.cursor/**`).
 
