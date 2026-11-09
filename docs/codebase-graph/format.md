@@ -31,6 +31,7 @@ tags: formatter, printer, pretty-printer, comments, front-end, tooling
   - **Behavior:** Prints `prg`. `src` is the text it came from and is read for blank lines between statements, heredoc tags and the exact text of comments; positions decide whether a list, call, pipeline, binary expression or clause list stays on one line.
   - **Side Effects:** None.
   - **Exceptions:** `cannot print statement|expression|type|operator ...` for anything unknown - it never drops a node silently.
+  - **Types:** a union prints its members joined by ` | `, each with its own `?` and constraints (the union carries neither); the top type prints as `any`.
 
 - **Signature:** `Equal(a, b *ast.Program) -> error`
   - **Behavior:** Field-by-field reflective comparison ignoring every `tokens.Range` and the file name; comments count, including their order among shape fields; a nil slice equals an empty one. Returns an error naming the path of the first difference.

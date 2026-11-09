@@ -1,0 +1,24 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+namespace unions/types
+shape Item { sku: string  qty: number | list[number] }
+shape Scalar string | number?
+export shape Item
+
+derive pick = (v: string@minlength(1) | number@min(0)): any => { yield v }
+
+policy union_checks {
+  fact payload?: Item | list[Item]
+  fact extra?: any
+  let n: number | string = 5
+  let a1 = n is string | number
+  let a2 = [1] is number | list[number]
+  let a3 = null is any
+  let a4 = { "sku": "a", "qty": 1 } is Item | Scalar
+  let a5 = any([1, 2], (x) => { yield x is number | string })
+  let a6 = n is unions/types/Item | number ? 1 : 2
+  let a7 = pick(n)
+  rule _corpus = { yield true }
+  export decision of _corpus
+}

@@ -487,6 +487,17 @@ func (p *printer) typeRef(t ast.TypeRef) {
 			p.typeRef(f)
 		}
 		p.write("]")
+	case *ast.AnyTypeRef:
+		p.write(ast.AnyTypeName)
+	case *ast.UnionTypeRef:
+		// Each member prints with its own `?` and constraints; the union
+		// itself carries neither.
+		for i, m := range b.Members {
+			if i > 0 {
+				p.write(" | ")
+			}
+			p.typeRef(m)
+		}
 	default:
 		p.fail("cannot print type %T at %s", base, base.Span())
 		return
