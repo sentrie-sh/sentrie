@@ -249,3 +249,34 @@ policy pol {
 	s.Contains(err.Error(), "policy.sentrie:3:35-38")
 	s.NotContains(err.Error(), "no prefix parse function")
 }
+
+func (s *CmdTestSuite) TestValidateCmdRejectsListFormOfIn() {
+	dir := s.writeTestPack(`namespace com/ex
+policy pol {
+  rule r = { yield 1 is number @in([1, 2]) }
+  export decision of r
+}
+`)
+	var runErr error
+	_ = s.captureStderr(func() {
+		runErr = runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+	})
+	s.Require().Error(runErr)
+	s.Contains(runErr.Error(), "in constraint takes each value as its own argument, as in @in(1, 2), not a list")
+}
+
+func (s *CmdTestSuite) TestValidateCmdReportsConstraintParseErrorPosition() {
+	dir := s.writeTestPack(`namespace com/ex
+policy pol {
+  rule r = { yield 1 is number @min(-x) }
+  export decision of r
+}
+`)
+	var runErr error
+	_ = s.captureStderr(func() {
+		runErr = runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+	})
+	s.Require().Error(runErr)
+	s.Contains(runErr.Error(), "policy.sentrie:3:")
+	s.NotContains(runErr.Error(), "%!")
+}
