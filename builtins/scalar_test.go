@@ -549,6 +549,22 @@ func TestCount_Bool(t *testing.T) {
 	require.ErrorContains(t, err, "count expects a list, dict or string")
 }
 
+func TestCount_NullErrors(t *testing.T) {
+	t.Parallel()
+	env := noopEnv()
+	// null is not countable: an error, not a silent undefined.
+	_, err := invoke(t, "count", env, box.Null())
+	require.ErrorContains(t, err, "count expects a list, dict or string")
+}
+
+func TestCount_UndefinedStaysUndefined(t *testing.T) {
+	t.Parallel()
+	env := noopEnv()
+	result, err := invoke(t, "count", env, box.Undefined())
+	require.NoError(t, err)
+	require.True(t, result.IsUndefined())
+}
+
 func TestCount_ErrorWrongArgCount(t *testing.T) {
 	t.Parallel()
 	env := noopEnv()
