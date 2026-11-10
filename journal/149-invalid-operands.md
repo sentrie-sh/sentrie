@@ -35,3 +35,10 @@
 - Findings: `count(null)` is not rejected at load (only at runtime); `count(u)` for a typed optional number fact is rejected at load, so undefined-through-count is tested via a lambda parameter. `lang_test` fixtures are parse fixtures, so language-visible behaviour went into the runtime suite instead.
 - Bite proof: swapping `runtime/eval_access.go`, `runtime/eval_infix.go`, `builtins/scalar.go` and `index/builtin_check.go` back to main fails the new tests; the "stays the same" rows pass on both by design.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 16:45 - Docs for #149 (website#78)
+- Pages: `reference/arithmetic-operations.md` (string concatenation section), `reference/types-and-values.md` and `language-concepts/type-system-shapes.md` (list index rules), `reference/built-in-functions.md` (`count`), `reference/errors.md`, `troubleshooting/common-errors.md`. Breaking changes are stated on the pages.
+- Ran all new snippets against the branch binary: indexes, count, ten `+` examples, errors and string+undefined (unknown) all match. Records follow the list rules.
+- Found, not fixed (candidates): `10 / count(xs)` parses as a call of `(10 / count)`; policy-level `let t = reduce(...)` yields a callable; the arithmetic page's `total / count scores` is a parse error; docs use `bool` where the binary wants `boolean`.
+- Website build passes.
+- _Model: claude-sonnet-5-5_
