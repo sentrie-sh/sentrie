@@ -40,3 +40,9 @@
 - Updated `runtime.executor` graph node (check moved from `execRule` to `ExecRule`/`execRuleFrom`); `make docs-graph` passes. Refreshed the PR description (tests by package, journal entries, review note on the placement).
 - Website: `reference/index.md` says a rule whose whole value is a lambda is its error without saying this is only when the rule is reported; an unreported helper rule now works as a callback. Left for the docs writer.
 - _Model: claude-opus-5-5_
+
+### 2026-11-10 18:01 - Round 2 re-test
+- Bite proof: with `runtime/executor.go` from 2c657d4~1 only `TestLambdaHelperRuleIsCallableFromAnotherRule` fails. With main's copy (plus a temporary sentinel var, removed) `TestImportDecisionOfLambdaRuleFails` and `TestRuleWholeValueLambdaIsRuleError` fail in runtime, `TestExecWholeValueLambdaIsRuleError` in cmd and `TestDecisionWholeValueLambdaIsRuleError` in api. Tree restored.
+- Coverage already present for `import decision` of a lambda rule and for a helper rule used as a callback (runtime level); no new tests needed.
+- Local CI gate passes: make test, make lint, gofmt, make docs-graph, race on api/box/cmd, no em dash, no attribution, all commits signed.
+- _Model: claude-sonnet-5-5_
