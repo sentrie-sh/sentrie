@@ -130,9 +130,10 @@ func (s *Shape) resolveDependency(idx *Index) error {
 //
 // A qualified base (two or more segments) resolves only in the namespace its
 // leading segments name, which must export it, unless that namespace is the
-// shape's own, which is exempt from the export check. An unqualified base resolves in the shape's policy, then its
-// namespace, and the first match wins. An unqualified base that only another
-// namespace's exports hold is an error that asks for the qualified name.
+// shape's own, which is exempt from the export check. An unqualified base
+// resolves in the shape's policy, then its namespace, and the first match
+// wins. An unqualified base that only another namespace's exports hold is an
+// error that asks for the qualified name.
 func (idx *Index) resolveWithBase(s *Shape) (*Shape, error) {
 	if s.Model == nil || s.Model.WithFQN == nil || s.Model.WithFQN.IsEmpty() {
 		return nil, nil
