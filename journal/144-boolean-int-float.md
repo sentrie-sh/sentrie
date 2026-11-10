@@ -7,7 +7,7 @@
   - `bool`, `float` and `int` are all parse errors with a "did you mean boolean/number" hint (user overrode the recommendations).
   - `boolean` is essentially a `trinary @not(unknown)`: strictly true or false, modelled as a trinary that rejects unknown.
 - Branch cut from `main`.
-- Docs PR: recorded once opened.
+- Docs PR: sentrie-sh/website#85 (draft, base `next`); Sentrie PR #325.
 - _Model: claude-opus-5-5_
 
 ### 2026-11-10 23:05 - Implement #144
