@@ -95,6 +95,12 @@ type Executor interface {
 // ErrExecutorClosed is returned when an evaluation needs a module after Close.
 var ErrExecutorClosed = stdErr.New("executor is closed")
 
+// ErrCallableDecision is the error of a rule whose whole value is a callable
+// (#141). A lambda is not a decision: there is nothing to report, so the rule
+// fails rather than encoding a placeholder. A callable nested inside a rule's
+// value is fine and encodes as {"kind":"callable"} (see box.Value.MarshalJSON).
+var ErrCallableDecision = stdErr.New("a rule's value cannot be a callable")
+
 // moduleLoad is one module's entry in the executor's lifetime module map. done
 // is closed once module and err are set, so concurrent first users wait on a
 // single load (singleflight) rather than each loading the module.
@@ -424,6 +430,13 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 	ruleNode.SetErr(err)
 	if err != nil {
 		return d, nil, ruleNode, err
+	}
+	// A rule whose whole value is a lambda is that rule's error. No decision
+	// is returned, so the caller reports the rule as unknown.
+	if d != nil && d.reported().Value.IsCallable() {
+		err := fmt.Errorf("rule %s: %w", theRule.FQN, ErrCallableDecision)
+		ruleNode.SetErr(err)
+		return nil, nil, ruleNode, err
 	}
 
 	// Compute attachment values if exported
