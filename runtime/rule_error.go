@@ -1,0 +1,96 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+// SPDX-License-Identifier: Apache-2.0
+
+package runtime
+
+import (
+	"context"
+	stdErr "errors"
+	"net/http"
+	"strings"
+
+	"github.com/sentrie-sh/sentrie/box"
+	"github.com/sentrie-sh/sentrie/trinary"
+	"github.com/sentrie-sh/sentrie/xerr"
+)
+
+// RuleError is one rule's failure, carried in that rule's ExecutorOutput as
+// its "error" field (#143). It reads like an RFC 9457 problem document so a
+// client can treat a failed rule the way it treats a failed request: Status is
+// the HTTP status the failure maps to (see ErrorStatus) and Detail is the
+// error message. The underlying error is kept for errors.Is and errors.As.
+type RuleError struct {
+	Title  string `json:"title"`
+	Status int    `json:"status"`
+	Detail string `json:"detail"`
+	err    error
+}
+
+// ruleErrorTitle is the title of every rule error, matching the problem
+// document serve returns for a failed evaluation.
+const ruleErrorTitle = "Evaluation Failed"
+
+func newRuleError(err error) *RuleError {
+	return &RuleError{Title: ruleErrorTitle, Status: ErrorStatus(err), Detail: err.Error(), err: err}
+}
+
+func (e *RuleError) Error() string { return e.Detail }
+
+func (e *RuleError) Unwrap() error { return e.err }
+
+// RuleErrors is the error ExecPolicy returns when at least one rule failed and
+// the policy itself resolved. Every rule still has an output, and each failing
+// one carries its RuleError, so a caller that wants partial results checks for
+// this type with errors.As rather than discarding the outputs. Its message is
+// the rule messages, one per line, in no particular order.
+type RuleErrors []*RuleError
+
+func (e RuleErrors) Error() string {
+	msgs := make([]string, len(e))
+	for i, re := range e {
+		msgs[i] = re.Error()
+	}
+	return strings.Join(msgs, "\n")
+}
+
+func (e RuleErrors) Unwrap() []error {
+	errs := make([]error, len(e))
+	for i, re := range e {
+		errs[i] = re
+	}
+	return errs
+}
+
+// ErrorStatus maps an evaluation error to the HTTP status serve reports for
+// it: 400 for an invalid invocation (a missing or ill-typed fact), 503 when the
+// evaluation deadline passed, and 500 for anything else.
+func ErrorStatus(err error) int {
+	var invErr xerr.InvalidInvocationError
+	switch {
+	case stdErr.As(err, &invErr):
+		return http.StatusBadRequest
+	case stdErr.Is(err, context.DeadlineExceeded):
+		return http.StatusServiceUnavailable
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
+// withRuleError makes sure a failed rule has an output carrying its error.
+// A rule that failed before it was evaluated (an unexported rule, a missing
+// fact) has no output yet, so it gets one reporting unknown.
+func withRuleError(output *ExecutorOutput, namespace, policy, rule string, err error) *ExecutorOutput {
+	if err == nil {
+		return output
+	}
+	if output == nil {
+		output = &ExecutorOutput{
+			PolicyName: policy,
+			Namespace:  namespace,
+			RuleName:   rule,
+			Decision:   DecisionOf(box.Trinary(trinary.Unknown)).reported(),
+		}
+	}
+	output.Error = newRuleError(err)
+	return output
+}

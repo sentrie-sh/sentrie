@@ -37,12 +37,17 @@ tags: evaluation, execution, sandboxing, javascript, concurrency, back-end
   - **Exceptions:** **Panics** if `idx.Pack` is nil - it dereferences `idx.Pack.Location` before any nil check.
 
 - **Signature:** `Executor` interface - `ExecPolicy(ctx, namespace, policy, facts) -> ([]*ExecutorOutput, error)`, `ExecRule(ctx, namespace, policy, rule, facts) -> (*ExecutorOutput, error)`, `Index() -> *index.Index`, `Close() -> error`
-  - **Behavior:** The public entrypoints. `ExecPolicy` fans out over every exported rule **concurrently**; `ExecRule` runs one.
+  - **Behavior:** The public entrypoints. `ExecPolicy` fans out over every exported rule **concurrently** and returns an output per rule even when some fail ([#143](https://github.com/sentrie-sh/sentrie/issues/143)); `ExecRule` runs one. See [[runtime.executor]].
   - **Side Effects:** Executes JavaScript, populates caches, builds trace trees.
-  - **Exceptions:** Missing required facts, unexported rules, evaluation errors, recursion errors.
+  - **Exceptions:** Missing required facts, unexported rules, evaluation errors, recursion errors. From `ExecPolicy`, rule failures arrive together as a `RuleErrors` next to the full outputs.
 
-- **Signature:** `ExecutorOutput` - `{ PolicyName, Namespace, RuleName, Decision *Decision, Attachments DecisionAttachments, RuleNode *trace.Node }`
-  - **Behavior:** The result envelope, JSON-serializable for CLI and API consumers.
+- **Signature:** `ExecutorOutput` - `{ PolicyName, Namespace, RuleName, Decision *Decision, Attachments DecisionAttachments, RuleNode *trace.Node, Error *RuleError }`
+  - **Behavior:** The result envelope, JSON-serializable for CLI and API consumers. `Error` (JSON `error`, omitted on success) is set when the rule failed, and the decision is then unknown.
+
+- **Signature:** `RuleError` - `{ Title, Status int, Detail }` / `RuleErrors []*RuleError` / `ErrorStatus(err) -> int` (in `runtime/rule_error.go`)
+  - **Behavior:** One rule's failure ([#143](https://github.com/sentrie-sh/sentrie/issues/143)), shaped like an RFC 9457 problem document: title `Evaluation Failed`, `Status` from `ErrorStatus` (400 invalid invocation, 503 deadline, 500 otherwise), `Detail` the error message. It unwraps to the underlying error. `RuleErrors` is `ExecPolicy`'s error when any rule failed; its message is the rule messages one per line, in no fixed order, and it unwraps to each. [[api.handle_decision]] uses `ErrorStatus` for its problem documents too.
+  - **Side Effects:** N/A.
+  - **Exceptions:** N/A.
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 
