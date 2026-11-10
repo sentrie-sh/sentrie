@@ -27,12 +27,12 @@ tags: constraints, compile-time-constants, literal-only, type-system
 - **Signature:** `parseConstraintLiteral(ctx, p) -> ast.Expression`
   - **Behavior:** Switches on the head token and accepts exactly eight forms: string, int, float (including exponent forms such as `1e-3`, which the lexer emits as `Float`), a unary minus followed by an int or float (`parseConstraintNegativeLiteral`, #146), the three trinary keywords, null, `[` (literal list), and `{` (literal map). A lexer `Error` token (for example a malformed number literal `1e`) is reported with the lexer's own message. Everything else is rejected.
   - **Side Effects:** Consumes tokens.
-  - **Exceptions:** `constraint arguments must be literals, got %s at %s` for any other token - the diagnostic that distinguishes "you wrote an expression" from a generic syntax error. The position is the token's `Range` (`file:line:col-col`); it used to format `Range.From` with `%s`, which printed `%!s(int=…)` (#146).
+  - **Exceptions:** `constraint arguments must be literals, got %s` for any other token - the diagnostic that distinguishes "you wrote an expression" from a generic syntax error. The position (`file:line:col-col`) comes once, from the `parsing error at` prefix `errorf` adds; the message used to repeat it, formatting `Range.From` with `%s`, which printed `%!s(int=…)` (#146).
 
 - **Signature:** `parseConstraintNegativeLiteral(ctx, p) -> ast.Expression`
   - **Behavior:** Consumes `-` and the number token after it and returns one negative `IntegerLiteral` or `FloatLiteral` spanning both, so the index's argument folding ([[index.constraint_args]]), the runtime and [[format]] see an ordinary literal. An integer below the int64 range becomes a float, as for a positive one (#166); `-9223372036854775808` is an exact `MinInt64`.
   - **Side Effects:** Consumes tokens.
-  - **Exceptions:** `a minus in a constraint argument must be followed by a number literal, got %s at %s` for `-x`, `-"a"`, `-(1)` or `-[1]`.
+  - **Exceptions:** `a minus in a constraint argument must be followed by a number literal, got %s` for `-x`, `-"a"`, `-(1)` or `-[1]`.
 
 - **Signature:** `parseConstraintListLiteral(ctx, p) -> ast.Expression`
   - **Behavior:** Parses `[ lit, lit, … ]` where every element recurses through `parseConstraintLiteral`, so nesting stays literal-only. Requires a comma between elements and permits a closing bracket immediately after any element.
@@ -42,7 +42,7 @@ tags: constraints, compile-time-constants, literal-only, type-system
 - **Signature:** `parseConstraintMapLiteral(ctx, p) -> ast.Expression`
   - **Behavior:** Parses `{ "key": lit, … }`. Keys must be **string literals** - unlike the general map literal in [[parser.collection]], computed `[expr]` keys are not accepted here. Values recurse through `parseConstraintLiteral`.
   - **Side Effects:** Consumes tokens.
-  - **Exceptions:** `map keys must be string literals, got %s at %s`; returns `nil` on a missing brace, colon, comma, or a non-literal value.
+  - **Exceptions:** `map keys must be string literals, got %s`; returns `nil` on a missing brace, colon, comma, or a non-literal value.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless.

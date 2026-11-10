@@ -4,6 +4,8 @@
 package parser
 
 import (
+	"strings"
+
 	"github.com/sentrie-sh/sentrie/ast"
 )
 
@@ -76,7 +78,7 @@ func (s *ParserTestSuite) TestConstraintMinusMustPrecedeNumberLiteral() {
 		s.Require().Error(p.err, input)
 		msg := p.err.Error()
 		s.Contains(msg, "followed by a number literal", input)
-		s.Contains(msg, "test.sentrie:1:", input)
+		s.Equal(1, strings.Count(msg, "test.sentrie:1:"), "position printed once: %s", msg)
 		s.NotContains(msg, "%!", input)
 	}
 }
@@ -93,7 +95,7 @@ func (s *ParserTestSuite) TestConstraintArgumentErrorShowsPosition() {
 		msg := p.err.Error()
 		s.NotContains(msg, "%!", input)
 		s.NotContains(msg, "{%", input)
-		s.Contains(msg, "test.sentrie:1:", input)
+		s.Equal(1, strings.Count(msg, "test.sentrie:1:"), "position printed once: %s", msg)
 	}
 }
 

@@ -38,7 +38,7 @@ func parseConstraintLiteral(ctx context.Context, p *Parser) ast.Expression {
 		p.errorf("%s", p.current.Value)
 		return nil
 	default:
-		p.errorf("constraint arguments must be literals, got %s at %s", p.current.Kind, p.current.Range)
+		p.errorf("constraint arguments must be literals, got %s", p.current.Kind)
 		return nil
 	}
 }
@@ -74,7 +74,7 @@ func parseConstraintNegativeLiteral(ctx context.Context, p *Parser) ast.Expressi
 		}
 		return ast.NewFloatLiteral(value, rnge)
 	default:
-		p.errorf("a minus in a constraint argument must be followed by a number literal, got %s at %s", number.Kind, number.Range)
+		p.errorf("a minus in a constraint argument must be followed by a number literal, got %s", number.Kind)
 		return nil
 	}
 }
@@ -131,7 +131,7 @@ func parseConstraintMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 	for p.hasTokens() && p.current.Kind != tokens.PunctRightCurly {
 		// Parse key (must be string literal)
 		if !p.canExpect(tokens.String) {
-			p.errorf("map keys must be string literals, got %s at %s", p.current.Kind, p.current.Range)
+			p.errorf("map keys must be string literals, got %s", p.current.Kind)
 			return nil
 		}
 		keyToken, found := p.advanceExpected(tokens.String)
