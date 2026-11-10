@@ -32,9 +32,9 @@ Parses `shape <ident>` in its two mutually exclusive forms: a **simple** alias t
   - **Exceptions:** Returns `nil` for a missing keyword or name, or when both forms fail to produce a value.
 
 - **Signature:** `parseComplexShape(ctx: context.Context, p: *Parser) -> *ast.Cmplx`
-  - **Behavior:** Optionally consumes `with <fqn>` as the composition base, then a required `{ … }` field block. Fields are collected into a **map keyed by field name**, with comments between fields (including one right after `{`) parsed by [[parser.comment]] into `Cmplx.Comments` in source order, so a printer can merge them back by position. The range is extended to the closing brace.
+  - **Behavior:** Optionally consumes `with <fqn>` as the composition base, then a required `{ … }` field block. Fields are collected into a **map keyed by field name**; a second field of the same name is a parse error naming both spans (#145). A `...` token (`tokens.TokenDotDotDot`) sets `Cmplx.Open` and `Cmplx.OpenRange`; only comments may follow it, so a field or a second `...` after it is a parse error (#145). Comments between fields (including one right after `{`) are parsed by [[parser.comment]] into `Cmplx.Comments` in source order, so a printer can merge them back by position. The range is extended to the closing brace.
   - **Side Effects:** Consumes tokens; may record errors.
-  - **Exceptions:** Returns `nil` on a failed base FQN, a missing `{` or `}`, or a failed field.
+  - **Exceptions:** Returns `nil` on a failed base FQN, a missing `{` or `}`, a failed field, a duplicate field (`duplicate shape field '%s': first declared at %s`, reported at the second), or an entry after `...` (`the open-shape marker '...' at %s must be the last entry in the shape body`).
 
 - **Signature:** `parseShapeField(ctx: context.Context, p: *Parser) -> *ast.ShapeField`
   - **Behavior:** Parses `name['?'] : <type>`. The name is an identifier or any keyword (`version: string`, `default?: number`, #159); at the start of a field a keyword has no other meaning. The `?` marks presence-optionality, mirroring the fact syntax. Carries three targeted migration errors that reject the retired `!` forms (`name!: T`, `name?!: T`, `name!?: T`) with the modern replacement spelled out.
@@ -46,7 +46,7 @@ Parses `shape <ident>` in its two mutually exclusive forms: a **simple** alias t
 - **Statefulness:** Stateless functions; the `Cmplx` value accumulates fields during the parse.
 - **Performance/Scale Notes:** Two debug logs per field. Nothing else notable.
 - **Dependencies Risk:**
-  - **Fields are a map, so source order is lost and duplicates are silently overwritten.** `shape S { a: string, a: number }` parses without complaint and keeps only the last `a`. Any duplicate-field diagnostic must be added in [[index.shape]] - it cannot be recovered from the AST.
+  - **Fields are a map, so source order is lost.** Duplicates are caught here, while both fields are in hand (#145): the AST cannot hold two of one name, so the duplicate check in [[index.shape]] `createShape` cannot fire for a parsed shape. Printers recover order from `ShapeField.Range` offsets.
   - **Unterminated field blocks can run away.** The field loop tests only for `}`, not EOF, so a missing closing brace produces an error from deep inside field parsing rather than at the shape header.
   - **Field type errors are detected via `p.err`, not a nil check.** `parseShapeField` assigns `field.Type` and then checks the parser error; if a future change let `parseTypeRef` return nil without recording an error, the subsequent `field.Type.Span()` would panic.
   - **Composition is unresolved here.** `with <fqn>` is stored raw; whether the base exists, is visible, and whether fields conflict is entirely [[index.shape]]'s responsibility.

@@ -6,6 +6,8 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
@@ -64,6 +66,18 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 		// A field composed in through `with` resolves in its declaring shape.
 		if err := validateValueAgainstTypeRef(ctx, ec, exec, field.TypeScope(scope), fieldValue, field.TypeRef, pos); err != nil {
 			return fmt.Errorf("field '%s' is not valid: %w", field.Name, err)
+		}
+	}
+
+	// A closed shape rejects a field it does not declare (its `with` bases'
+	// fields count as declared). This runs after the declared fields, so a
+	// missing or wrongly typed field is reported first, and in sorted key
+	// order so the reported field is the same on every run.
+	if !shape.Model.Open {
+		for _, key := range slices.Sorted(maps.Keys(vm)) {
+			if _, declared := shape.Model.Fields[key]; !declared {
+				return errMismatch("field %s is not declared in shape %s at %s - the shape is closed; end its body with '...' to allow undeclared fields", key, shape.FQN.String(), pos)
+			}
 		}
 	}
 

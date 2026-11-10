@@ -147,7 +147,10 @@ MapEntry = STRING ":" Expr
 
 /* Type System */
 ShapeDecl = "shape" IDENT (TypeRef / ComplexShape)
-ComplexShape = ("with" TypeName)? "{" ShapeElement+ "}"
+/* A shape is closed: a value with a field it does not declare fails the check. A "..." marker as the
+   last entry opens it; only comments may follow the marker. A field name may be declared once. A "with"
+   base's openness is not inherited. */
+ComplexShape = ("with" TypeName)? "{" ShapeElement* "..."? "}"
 ShapeElement = FieldName ("?")? ":" TypeRef
 /* A union matches when any member matches. `|` binds looser than a member's `?` and constraints and
    than brackets: `string | number?` is `string | (number?)`, and constraints bind to the member they

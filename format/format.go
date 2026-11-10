@@ -433,7 +433,7 @@ func (p *printer) shape(n *ast.ShapeStatement) {
 		offset int
 		e      entry
 	}
-	members := make([]member, 0, len(c.Fields)+len(c.Comments))
+	members := make([]member, 0, len(c.Fields)+len(c.Comments)+1)
 	for _, f := range c.Fields {
 		members = append(members, member{f.Range.From.Offset, entry{start: f.Range.From.Line, print: func() {
 			p.write(f.Name)
@@ -446,6 +446,11 @@ func (p *printer) shape(n *ast.ShapeStatement) {
 	}
 	for _, cm := range c.Comments {
 		members = append(members, member{cm.Span().From.Offset, entry{start: cm.Span().From.Line, comment: cm}})
+	}
+	if c.Open {
+		// The parser accepts only comments after the marker, so ordering by
+		// offset keeps it after every field.
+		members = append(members, member{c.OpenRange.From.Offset, entry{start: c.OpenRange.From.Line, print: func() { p.write("...") }}})
 	}
 	sort.SliceStable(members, func(i, j int) bool { return members[i].offset < members[j].offset })
 	es := make([]entry, len(members))
