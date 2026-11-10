@@ -7,5 +7,5 @@
   - A lambda nested in output encodes as `{"kind":"callable"}`.
   - A rule whose whole value is a lambda is that rule's error.
   - Any other JSON encode failure: `exec --output json` reports it and exits non-zero; `serve` buffers the body and returns a 500 problem document instead of an empty 200.
-- Docs PR: recorded once opened.
+- Docs PR: sentrie-sh/website#81 (branch `141-lambda-output` on `next`). Sentrie PR: #321.
 - _Model: claude-opus-5-5, subagents: 1x sonnet (design questions)_
