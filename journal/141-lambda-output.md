@@ -64,3 +64,9 @@
 - `GOWORK=off go test ./runtime/... ./api/... ./cmd/...` passes, log `/tmp/sentrie-141-lambda-output-round3.log`. gofmt clean, no em dash.
 - Commit: 9319b54 "Let the callable rule error win over an attachment error" (signed). PR description updated (runtime changes, codebase graph, review note on the no-join choice, testing notes, journal bullet). Not pushed.
 - _Model: claude-opus-5-5_
+
+### 2026-11-10 18:17 - Round 3 re-test
+- Reviewed 9319b54: `TestRuleWholeValueLambdaWinsOverAttachmentError` already checked the callable error, rule node error, unknown state and nil attachments. Added: the reported value is not callable, the error does not mention divide by zero, and new `TestAttachmentErrorOnPlainRuleStillSurfaces` (fixture rule `plainBadAttach`) for an attachment error alone on a non-callable rule.
+- Bite proof: with `runtime/executor.go` from 9319b54^ the WinsOver test fails; restored. The plain-rule test passes on both versions (it guards unchanged behaviour).
+- Local CI gate passes (test, lint, gofmt, docs-graph, race on api/box/cmd, no em dash, no attribution, all signed).
+- _Model: claude-sonnet-5-5_
