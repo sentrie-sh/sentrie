@@ -48,3 +48,11 @@
 - Bite proof: with `runtime/eval_infix.go` swapped to main, all four unknown rows (string/undefined, undefined/string, string/unknown, unknown/string) fail; they pass on HEAD.
 - Added a callable row (`"a" + ((x) => { yield x })`) confirming a callable beside a string errors; documents hit the same default branch in `concatOperand`.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 18:20 - Docs round 2: fence fixes and broken-snippet list
+
+- Switched the two String concatenation listings in website `reference/arithmetic-operations.md` to `text` fences, because they are expression listings, not packs.
+- Moved the broken Statistical Operations snippet (`total / count scores`) into a "Pre-existing broken snippets (follow-up issue)" section of the website PR description.
+- Ran `validate` on every `sentrie` fence of the four changed pages and listed the failing ones by page:line. These are untouched, mostly bare fragments, and not fixed here.
+- Website build passes. Website commit b75a18f.
+- _Model: claude-sonnet-5-5_
