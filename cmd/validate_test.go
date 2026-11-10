@@ -129,7 +129,7 @@ func (s *CmdTestSuite) TestValidateCmdRejectsReferenceCycleThroughCastAndIndex()
 
 const inConstraintPolicy = `namespace com/ex
 policy pol {
-  let v: number @in([1, 2]) = 1
+  let v: number @in(1, 2) = 1
   rule ok = { yield v == 1 }
   export decision of ok
 }

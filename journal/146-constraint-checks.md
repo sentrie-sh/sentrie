@@ -12,3 +12,13 @@
   - Constraint arguments accept unary minus on numeric literals only.
 - Docs PR: sentrie-sh/website#80 (branch `146-constraint-checks` on `next`). Sentrie PR: #320.
 - _Model: claude-opus-5-5, subagents: 1x sonnet (design questions)_
+
+### 2026-11-10 15:56 - Implement constraint fixes
+- Re-reproduced every symptom on the branch with a one-rule pack per case: `@min(-5)` parse error with `{%!s(int=4) ...}`, `@in(1, 2, 3)` wrong arity, `string @in(...)` not found, `@url()` false for `http://localhost:8080/x`, `"é"` passing `@length(2)`, `-3.5` passing `@multiple_of(2)`.
+- Keyword constraint names after `@` were already accepted on main (#285, `advanceNameOrKeyword` in `parser/typeref.go`), so the parser needed no change there and does not touch the paths #159 changes.
+- Negative arguments: `parseConstraintNegativeLiteral` in `parser/literal.go` folds `-` and the number token into one negative `IntegerLiteral` / `FloatLiteral`, so the index folding, runtime and formatter need no change. `-x`, `-"a"`, `-(1)` get "a minus in a constraint argument must be followed by a number literal". The non-literal and map-key errors print the token `Range` (the garbled `%!s(int=…)` came from `Range.From`).
+- `@in` / `@not_in`: variadic on numbers (`NumArgs: -1`) and added to the string table (equality with a listed string). The old list form `@in([1, 2])` is an invalid argument, `in constraint takes each value as its own argument, as in @in(1, 2), not a list`, reported by `sentrie validate` and at runtime; it no longer compares against the list.
+- `@url`: `net/url`, scheme and non-empty hostname required; http/https by default; each argument adds a scheme, case-insensitively, so `@url("ftp")` accepts http, https and ftp ("widen" read as adding to the default set). Arguments are checked against the RFC 3986 scheme syntax, so `@url("ftp://")` is an invalid argument. This needed a new arity, `NumArgs: -2` (zero or more), in `constraints` and `ast.validateConstraint`; `make gen` regenerated the table.
+- Also from the issue text: `@length` / `@minlength` / `@maxlength` count runes; `@multiple_of` compares the float remainder's magnitude; the email regexp is compiled once at package level.
+- Existing tests that encoded the old list form were rewritten to the variadic form (constraints, index, runtime, cmd, lang_test fixtures 0050-in-constraint and 0050-exponent-literals); parse-only parser tests keep the list form since it still parses. `make test`, `make lint`, `make docs-graph` pass.
+- _Model: claude-opus-5-5_

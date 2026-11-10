@@ -6,10 +6,13 @@ package constraints
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/sentrie-sh/sentrie/box"
@@ -26,8 +29,8 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
 			expectedLen, _ := args[0].NumberValue()
-			if len(s) != int(expectedLen) {
-				return fmt.Errorf("string length %d is not equal to %g", len(s), expectedLen)
+			if n := utf8.RuneCountInString(s); n != int(expectedLen) {
+				return fmt.Errorf("string length %d is not equal to %g", n, expectedLen)
 			}
 			return nil
 		},
@@ -42,8 +45,8 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
 			expectedLen, _ := args[0].NumberValue()
-			if len(s) < int(expectedLen) {
-				return fmt.Errorf("string length %d is not greater than or equal to %g", len(s), expectedLen)
+			if n := utf8.RuneCountInString(s); n < int(expectedLen) {
+				return fmt.Errorf("string length %d is not greater than or equal to %g", n, expectedLen)
 			}
 			return nil
 		},
@@ -58,8 +61,8 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
 			expectedLen, _ := args[0].NumberValue()
-			if len(s) > int(expectedLen) {
-				return fmt.Errorf("string length %d is not less than or equal to %g", len(s), expectedLen)
+			if n := utf8.RuneCountInString(s); n > int(expectedLen) {
+				return fmt.Errorf("string length %d is not less than or equal to %g", n, expectedLen)
 			}
 			return nil
 		},
@@ -157,8 +160,7 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
-			emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-			if !emailRegex.MatchString(s) {
+			if !emailPattern.MatchString(s) {
 				return fmt.Errorf("string %q is not a valid email", s)
 			}
 			return nil
@@ -166,15 +168,28 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 	}),
 	"url": define(ConstraintDefinition{
 		Name:    "url",
-		NumArgs: 0,
+		NumArgs: -2,
+		Arg:     schemeArg,
 		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			s, ok := val.StringValue()
 			if !ok {
 				return fmt.Errorf("expected string, got %s", val.Kind())
 			}
-			urlRegex := regexp.MustCompile(`^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/.*)?$`)
-			if !urlRegex.MatchString(s) {
+			u, err := url.Parse(s)
+			if err != nil || u.Scheme == "" || u.Hostname() == "" {
 				return fmt.Errorf("string %q is not a valid URL", s)
+			}
+			allowed := defaultURLSchemes
+			if len(args) > 0 {
+				allowed = slices.Clone(defaultURLSchemes)
+				for _, arg := range args {
+					scheme, _ := arg.StringValue()
+					allowed = append(allowed, strings.ToLower(scheme))
+				}
+			}
+			// url.Parse lower-cases the scheme.
+			if !slices.Contains(allowed, u.Scheme) {
+				return fmt.Errorf("URL %q has scheme %q, expected one of %s", s, u.Scheme, strings.Join(allowed, ", "))
 			}
 			return nil
 		},
@@ -298,6 +313,36 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			return nil
 		},
 	}),
+	"in": define(ConstraintDefinition{
+		Name:    "in",
+		NumArgs: -1,
+		Arg:     memberArg(stringArg, `"a", "b"`),
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
+			s, ok := val.StringValue()
+			if !ok {
+				return fmt.Errorf("expected string, got %s", val.Kind())
+			}
+			if !isMember(val, args) {
+				return fmt.Errorf("string %q is not in the set", s)
+			}
+			return nil
+		},
+	}),
+	"not_in": define(ConstraintDefinition{
+		Name:    "not_in",
+		NumArgs: -1,
+		Arg:     memberArg(stringArg, `"a", "b"`),
+		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
+			s, ok := val.StringValue()
+			if !ok {
+				return fmt.Errorf("expected string, got %s", val.Kind())
+			}
+			if isMember(val, args) {
+				return fmt.Errorf("string %q is in the set", s)
+			}
+			return nil
+		},
+	}),
 	"one_of": define(ConstraintDefinition{
 		Name:    "one_of",
 		NumArgs: -1,
@@ -335,4 +380,27 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			return nil
 		},
 	}),
+}
+
+// emailPattern is compiled once, not on every check.
+var emailPattern = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+
+// defaultURLSchemes are the schemes `@url()` accepts with no arguments; each
+// argument adds one more.
+var defaultURLSchemes = []string{"http", "https"}
+
+// urlSchemePattern is the RFC 3986 scheme syntax.
+var urlSchemePattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*$`)
+
+// schemeArg requires a string that is a URL scheme, such as "ftp". A value
+// such as "ftp://" could never match, so it is rejected here.
+func schemeArg(name string, arg box.Value) error {
+	if err := stringArg(name, arg); err != nil {
+		return err
+	}
+	scheme, _ := arg.StringValue()
+	if !urlSchemePattern.MatchString(scheme) {
+		return invalidArgf("invalid URL scheme %q", scheme)
+	}
+	return nil
 }

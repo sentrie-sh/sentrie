@@ -34,7 +34,7 @@ The registry of predicates that refine a type beyond its kind - `string@email`, 
   - **Exceptions:** None.
 
 - **Signature:** `ConstraintDefinition` - `{Name, NumArgs, Arg, Args, Checker}`
-  - **Behavior:** The argument metadata. `NumArgs` is the exact count, or `-1` for one or more. `Arg` checks each argument (number, string, boolean, a regexp that compiles, a non-zero divisor, a number or list of numbers) and is nil exactly when the constraint takes no arguments. `Args`, when set, checks rules across arguments (`range`: minimum not above maximum).
+  - **Behavior:** The argument metadata. `NumArgs` is the exact count, `-1` for one or more, or `-2` for any number including none (`url`). `Arg` checks each argument (number, string, boolean, a regexp that compiles, a non-zero divisor, a URL scheme, a membership value that is not a list) and is nil exactly when the constraint takes no arguments. `Args`, when set, checks rules across arguments (`range`: minimum not above maximum).
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -48,13 +48,13 @@ The registry of predicates that refine a type beyond its kind - `string@email`, 
   - **Side Effects:** None.
   - **Exceptions:** None.
 
-- **Signature:** `StringContraintCheckers` - 20 constraints
-  - **Behavior:** Length (`length`, `minlength`, `maxlength`), pattern (`regexp`, `starts_with`, `ends_with`, `has_substring`, `not_has_substring`), format (`email`, `url`, `uuid`), character class (`alphanumeric`, `alpha`, `numeric`, `lowercase`, `uppercase`), and set membership (`trimmed`, `not_empty`, `one_of`, `not_one_of`).
+- **Signature:** `StringContraintCheckers` - 22 constraints
+  - **Behavior:** Length (`length`, `minlength`, `maxlength`, counted in Unicode code points, #146), pattern (`regexp`, `starts_with`, `ends_with`, `has_substring`, `not_has_substring`), format (`email`, `url`, `uuid`), character class (`alphanumeric`, `alpha`, `numeric`, `lowercase`, `uppercase`), and set membership (`trimmed`, `not_empty`, `in`, `not_in`, `one_of`, `not_one_of`). `in` / `not_in` take each allowed string as its own argument and match on equality, the same as `one_of` / `not_one_of`. `url` parses with `net/url` and needs a scheme and a host (ports, IP literals, userinfo and `localhost` pass); with no arguments only `http` and `https` pass, and each argument adds a scheme (`@url("ftp")` accepts http, https and ftp). `email` and the scheme syntax use package-level compiled regexps.
   - **Side Effects:** None.
   - **Exceptions:** Kind errors, argument-count errors, violation errors.
 
 - **Signature:** `NumberContraintCheckers` - 19 constraints
-  - **Behavior:** Bounds (`min`, `max`, `gt`, `lt`, `range`), equality (`eq`, `neq`), membership (`in`, `not_in`; `in` is a keyword, and [[parser.typeref]] accepts a keyword as a constraint name so `@in` can be written, #285), parity and divisibility (`even`, `odd`, `multiple_of`), sign (`positive`, `negative`, `non_negative`, `non_positive`), and float classification (`finite`, `infinite`, `nan`). Bounds, equality and membership compare through `box.CompareNumbers` / `box.EqualValues`, and `even`, `odd` and `multiple_of` use integer arithmetic when the operands are exact integers, so integers above 2^53 are checked exactly ([#166](https://github.com/sentrie-sh/sentrie/issues/166)); a float operand keeps the float path (`multiple_of` with its `1e-10` epsilon).
+  - **Behavior:** Bounds (`min`, `max`, `gt`, `lt`, `range`), equality (`eq`, `neq`), membership (`in`, `not_in`, variadic: `@in(1, 2, 3)`; `in` is a keyword, and [[parser.typeref]] accepts a keyword as a constraint name so `@in` can be written, #285), parity and divisibility (`even`, `odd`, `multiple_of`), sign (`positive`, `negative`, `non_negative`, `non_positive`), and float classification (`finite`, `infinite`, `nan`). Bounds, equality and membership compare through `box.CompareNumbers` / `box.EqualValues`, and `even`, `odd` and `multiple_of` use integer arithmetic when the operands are exact integers, so integers above 2^53 are checked exactly ([#166](https://github.com/sentrie-sh/sentrie/issues/166)); a float operand keeps the float path (`multiple_of` with its `1e-10` epsilon, comparing the remainder's magnitude so a negative value such as `-3.5` is checked like `3.5`, #146).
   - **Side Effects:** None.
   - **Exceptions:** As above.
 
@@ -75,9 +75,9 @@ The registry of predicates that refine a type beyond its kind - `string@email`, 
   - **Four of the eight tables are empty.** `dict`, `document`, `record`, and `shape` have no constraints at all. Because [[runtime.err_typedef]] turns an unrecognised constraint into a **runtime** error, and nothing validates constraint names at index time, any constraint written on one of these types passes `sentrie validate` and then fails at decision time with `unknown constraint`. Filed as [#113](https://github.com/sentrie-sh/sentrie/issues/113).
   - **`list` has only `not_empty`.** There is no size, min-length, or unique constraint, so list contracts must be expressed as rule logic instead.
   - **Constraint names are not validated statically.** A typo like `string@emial` is indistinguishable from a constraint that has not been implemented yet - both surface only when a decision is requested. This is the single highest-value fix in the constraint pipeline.
-  - **String length constraints count bytes, not runes.** `len(s)` on a Go string is its byte length, so a `length(5)` constraint rejects a five-character string containing any multi-byte character. For a policy engine handling international identifiers this is a correctness issue, not a nit.
+  - **String length is code points, not graphemes.** `length`, `minlength` and `maxlength` count runes (#146), so `"é"` is 1 but a decomposed `e` plus combining accent is 2, and an emoji with modifiers counts each code point.
+  - **Membership takes values, not a list.** `@in([1, 2])` is an invalid argument (`in constraint takes each value as its own argument, as in @in(1, 2), not a list`), reported by `sentrie validate` and at runtime, rather than comparing the value with the list (#146).
   - **New argument checks must use `invalidArgf`.** An argument failure built with plain `fmt.Errorf` reads as a value mismatch, so `x is not T` with that broken constraint would be `true`.
   - **New argument rules belong in `Arg` or `Args`, not in a checker body.** That is what keeps the static check, the runtime and a direct `Checker` call in agreement (#273); a checker body may assume its arguments passed `CheckArgs`.
   - **`NumArgs` is enforced twice from one value.** `CheckArgs` checks it, and the parser checks it earlier through [[ast]]'s generated tables, which `go generate` copies from `NumArgs`; a stale generated file is the only way the two can disagree.
-  - **The `in` constraint cannot be written in source.** `in` lexes as a keyword and the parser expects an identifier after `@`, so `number@in(...)` is a parse error; `not_in` is unaffected.
   - **A checker has no policy context.** The `*index.Policy` parameter, unused by every checker, was dropped so [[index]] can import this package for the static argument check.
