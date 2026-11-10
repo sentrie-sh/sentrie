@@ -1,0 +1,57 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+// SPDX-License-Identifier: Apache-2.0
+
+package runtime
+
+import (
+	"github.com/sentrie-sh/sentrie/trinary"
+)
+
+// What #148 leaves strict: `is` and casts on a bare undefined, a typed lambda
+// parameter given undefined, an absent required shape field, and a default
+// that must not mask a body error.
+
+const typedUndefinedBoundarySrc = `namespace com/ex
+
+policy pol {
+  let doc = { "present": 1 }
+  shape Holder { n: number }
+  rule isShape = { yield doc.missing is Holder }
+  rule castNumber = { yield doc.missing as number }
+  rule lambdaParam = {
+    let f = (n: number): number => { yield 1 }
+    yield f(doc.missing)
+  }
+  rule absentField = {
+    let h: Holder = { "other": 1 }
+    yield h
+  }
+  rule defaultNoMask = default false when true { yield 1 / 0 }
+  export decision of isShape
+  export decision of castNumber
+  export decision of lambdaParam
+  export decision of absentField
+  export decision of defaultNoMask
+}
+`
+
+func (s *RuntimeTestSuite) TestTypedUndefinedStaysStrictAtBoundaries() {
+	ctx := s.T().Context()
+
+	out, err := s.execRuleUnvalidated(ctx, typedUndefinedBoundarySrc, "isShape")
+	if s.NoError(err, "isShape") {
+		s.NotEqual(trinary.True, out.Decision.State, "undefined is not a Holder")
+	}
+
+	_, err = s.execRuleUnvalidated(ctx, typedUndefinedBoundarySrc, "castNumber")
+	s.Error(err, "castNumber: a cast rejects undefined")
+
+	_, err = s.execRuleUnvalidated(ctx, typedUndefinedBoundarySrc, "lambdaParam")
+	s.Error(err, "lambdaParam: a required typed parameter given undefined still errors")
+
+	_, err = s.execRuleUnvalidated(ctx, typedUndefinedBoundarySrc, "absentField")
+	s.Error(err, "absentField: an absent required shape field still fails")
+
+	_, err = s.execRuleUnvalidated(ctx, typedUndefinedBoundarySrc, "defaultNoMask")
+	s.Error(err, "defaultNoMask: default never masks a body error")
+}
