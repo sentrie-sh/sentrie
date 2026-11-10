@@ -55,12 +55,13 @@ func ImportDecision(ctx context.Context, exec *executorImpl, ec *ExecutionContex
 		}
 
 		for _, with := range t.Withs {
-			// The target must declare the fact, keyed exactly as the index check
-			// (checkImportWiths) and ExecRule key it. An unknown name is an
-			// error, never skipped: a typo would otherwise run the target on
-			// its default (#151). Reached only when the index check did not run.
-			if _, ok := p.Facts[with.Name]; !ok {
-				err := xerr.ImportUnknownFactError{At: with.Span(), Message: xerr.ImportUnknownFactMessage(with.Name, ns+ast.FQNSeparator+pol, p.FactNamesByAlias())}
+			// The target must declare the fact under this name, the key the
+			// index check (checkImportWiths) and ExecRule use (#147). An
+			// unknown name is an error, never skipped: a typo would otherwise
+			// run the target on its default (#151). Reached only when the
+			// index check did not run.
+			if p.FactByName(with.Name) == nil {
+				err := xerr.ImportUnknownFactError{At: with.Span(), Message: xerr.ImportUnknownFactMessage(with.Name, ns+ast.FQNSeparator+pol, p.FactAliasesByName())}
 				return box.Null(), n.SetErr(err), err
 			}
 

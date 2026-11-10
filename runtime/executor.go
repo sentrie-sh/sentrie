@@ -337,7 +337,10 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 		}
 	}()
 
-	for factName, factStatement := range p.Facts {
+	// A caller supplies a fact under its declared name; the fact is bound
+	// under its alias, the identifier the policy reads (#147).
+	for alias, factStatement := range p.Facts {
+		factName := factStatement.Name
 		// look for a value for this fact in the passed in facts map
 		factValue, ok := injectedFacts[factName]
 
@@ -351,7 +354,7 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 			if decodedFactValue.IsNull() && !ast.AcceptsNull(factStatement.Type) {
 				return nil, fmt.Errorf("fact '%s' cannot be null: %w", factName, xerr.ErrInvalidInvocation(""))
 			}
-			err := ec.InjectFact(ctx, factName, decodedFactValue, false, factStatement.Type)
+			err := ec.InjectFact(ctx, alias, decodedFactValue, false, factStatement.Type)
 			if err != nil {
 				return nil, err
 			}
@@ -378,7 +381,7 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 			}
 
 			// inject the default value
-			if err := ec.InjectFact(ctx, factName, val, true, factStatement.Type); err != nil {
+			if err := ec.InjectFact(ctx, alias, val, true, factStatement.Type); err != nil {
 				return nil, err
 			}
 		}
@@ -462,7 +465,7 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 		stmt := thePolicy.Facts[name]
 		// validate the value against the type
 		if err := validateValueAgainstTypeRef(ctx, ec, e, thePolicy, fact.value, fact.typeRef, stmt.Span()); err != nil {
-			return nil, nil, nil, &factError{ec: ec, err: err}
+			return nil, nil, nil, &factError{ec: ec, name: stmt.Name, isDefault: fact.isDefault, err: err}
 		}
 	}
 

@@ -6,6 +6,7 @@ package runtime
 import (
 	"context"
 	stdErr "errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -96,13 +97,22 @@ func withRuleError(output *ExecutorOutput, namespace, policy, rule string, err e
 }
 
 // factError is a fact that failed its declared type, found by execRule for
-// the execution context ec before the rule evaluates.
+// the execution context ec before the rule evaluates. name is the fact's
+// declared name, the key the caller supplied it under, and isDefault says the
+// failing value is the policy's own default rather than a supplied one.
 type factError struct {
-	ec  *ExecutionContext
-	err error
+	ec        *ExecutionContext
+	name      string
+	isDefault bool
+	err       error
 }
 
-func (e *factError) Error() string { return e.err.Error() }
+func (e *factError) Error() string {
+	if e.isDefault {
+		return fmt.Sprintf("default value of fact '%s': %s", e.name, e.err.Error())
+	}
+	return fmt.Sprintf("fact '%s': %s", e.name, e.err.Error())
+}
 
 func (e *factError) Unwrap() error { return e.err }
 
@@ -119,12 +129,22 @@ func (e *requestError) Unwrap() error { return e.err }
 // facts of ec (bindingFacts) or validating them (a factError for ec, not for
 // an imported policy's context). A context error stays a rule failure: a
 // deadline is evaluation time, whatever it interrupted.
+//
+// A supplied fact that fails its type is the caller's mistake, so it is an
+// invalid invocation (400 on serve, #147). A default that fails its type is the
+// policy's, so it stays a 500; the index rejects the statically wrong ones.
 func asRequestError(ec *ExecutionContext, bindingFacts bool, err error) error {
 	if err == nil || stdErr.Is(err, context.DeadlineExceeded) || stdErr.Is(err, context.Canceled) {
 		return err
 	}
 	var fe *factError
-	if bindingFacts || (stdErr.As(err, &fe) && fe.ec == ec) {
+	if stdErr.As(err, &fe) && fe.ec == ec {
+		if !fe.isDefault {
+			err = fmt.Errorf("%w: %w", err, xerr.ErrInvalidInvocation(""))
+		}
+		return &requestError{err: err}
+	}
+	if bindingFacts {
 		return &requestError{err: err}
 	}
 	return err
