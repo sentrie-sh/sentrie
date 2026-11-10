@@ -8,3 +8,17 @@
   - Keywords are not accepted as bare dict keys.
 - Docs PR: sentrie-sh/website#82 (branch `159-keyword-field-names` on `next`). Sentrie PR: #322.
 - _Model: claude-opus-5-5, subagents: 1x sonnet (design questions)_
+
+### 2026-11-10 16:39 - Accept keywords as field, shape field and attachment names
+- Reproduced on b846674 with a scratch pack: `shape S { version: string }` failed with `expected Ident, got version`, and `d.title` failed the same way.
+- Reused `advanceNameOrKeyword` (parser/parser.go, already serving module paths, `@` constraint names and FQN segments) at the three positions: the name after `.` (parser/access.go), a shape field name (parser/shape.go) and the name after `attach` (parser/export_rule.go). The error label stays `Ident`, so `x.1` still reports `expected Ident, got Int`. Did not touch parser/literal.go, unary.go or primary.go (branch 146 edits them).
+- Ambiguities checked, all resolve to the name reading because right after `.`, at the start of a shape field and after `attach` a keyword was always a parse error, so no valid program changes meaning:
+  - `x.in`, `x.not`, `x.is`, `x.true.null` are field accesses; `x.is is defined` reads field `is` then tests it; `2 in [x.in]` and `x.contains contains 7` keep the operators outside the access.
+  - `alias.contains(...)` parses as a field access then a call, the same path as `alias.fn(...)`.
+  - `attach as as 1` names the attachment `as`. `attach as 1` now reports `expected 'as', got Int` instead of `expected Ident, got as`.
+- Bare dict keys unchanged: `{title: 1}` is still rejected (`expected 'yield', got title`), as decided.
+- `sentrie fmt` round-trips keyword field, shape field and attach names unchanged.
+- Grammar: added `FieldName = IDENT / KEYWORD` (PEG) and `fieldName ::= IDENT | KEYWORD` (EBNF), used in field access, the method part of a function call, shape elements and attach clauses.
+- Graph: updated parser.access (the "field names are identifiers only" gotcha was now false), parser.shape, parser.export_rule, parser.parser and grammar. `make docs-graph` passes.
+- `go test ./...` green with no test changes; no existing test encoded the old behaviour. Regression tests are left to the test agent.
+- _Model: claude-opus-5-5_
