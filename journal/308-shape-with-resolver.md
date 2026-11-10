@@ -40,3 +40,12 @@
 - Edited `reference/shapes.md` (new "How a base is resolved" section, breaking-change caution, rules table, cross-namespace text), plus short notes in `reference/namespaces.md`, `reference/index.md`, `language-concepts/type-system-shapes.md`.
 - Built the branch binary and checked: the new example (validate and exec), the Base/Extended snippets (wrapped), and the three error messages. Fragment snippets without `with` were not runnable standalone and are unchanged. `npm run build` passes.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 17:59 - Review round 1 fixes: kind check uses the shared resolver
+- The opus reviewer (round 1, VERDICT: CHANGES) found a third `with` resolver: `lookupShapeFieldTypeReadOnly` (index/builtin_kind.go) found a parent through `resolveShapeReadOnly` and `LookupShape`, keyed on the whole reference, so a qualified own-namespace base (`with t/a/Base` in `t/a`) or a two-segment base (`with t/Base` in `t`) had no parent and `merge(x.n, {})` on an inherited number field validated. It now calls `idx.resolveWithBase(shape)`, treating an error as unknown. Safe before commit: the resolver only reads the index, and `detectShapeCycle` runs before `checkBuiltinCalls`, so it cannot recurse around a cycle.
+- `resolveShapeReadOnly` still resolves field and alias type names through `LookupShape`, matching the runtime's `validateAgainstShapeTypeRef`; only the `with` parent moved. This drops the "resolveShapeReadOnly last-segment match" candidate issue: the old graph gotcha was stale (it keys on the whole reference) and is rewritten in `index.builtin_kind`.
+- Test `TestBuiltinCheckInheritedFieldThroughQualifiedWithBase` (index/builtin_check_test.go): the own-namespace and two-segment cases failed before the fix ("An error is expected but got nil"), the unqualified control passed; all pass after.
+- Reviewer suggestions taken: reflowed the `resolveWithBase` doc comment, renamed the subtest to "policy chain onto an unshadowed namespace base is no cycle", added a child-namespace (`t/a/b` with unexported `t/a/A`) "not exported" case. The 260cd44 subject typo ("a own-namespace") is left: it is not HEAD, and rewording it would rewrite history past HEAD.
+- PR description: review note on `resolveShapeReadOnly` corrected, Index, Tests, graph and Journal bullets refreshed.
+- `GOWORK=off go test ./index/... ./runtime/...` green (/tmp/sentrie-308-shape-with-resolver-r2.log); `make docs-graph` passes.
+- _Model: claude-opus-5-5_
