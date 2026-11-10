@@ -61,3 +61,9 @@
 - Re-ran the membership, negative, URL, string length and `reference/index.md` User snippets (validate plus exec): all pass. `npm run build` passes (`/tmp/website-146-constraint-checks-build.log`).
 - Committed website `7271931`; updated the website PR description's pre-existing-broken-snippets entry to name the untouched Syntax `text` fence.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 18:20 - Re-test after review round 1
+
+- Bite proofs: restoring `parser/literal.go` to 9d256c7^ fails `TestConstraintArgumentErrorShowsPosition` and `TestConstraintMinusMustPrecedeNumberLiteral` (position printed twice); restored. 8afff61 is a no-behaviour refactor, so no test can bite it.
+- Added `TestStringURLSchemesAndHosts/failure messages`: default list message and lowered scheme list for scheme arguments (existing cases already cover mixed-case, `@url("ftp")` rejecting http, and the no-argument default).
+- _Model: claude-sonnet-5-5_
