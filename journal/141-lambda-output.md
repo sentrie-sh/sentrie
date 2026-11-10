@@ -19,3 +19,10 @@
 - Updated `box.value` and `runtime.executor` graph nodes; `make docs-graph` passes.
 - `make build` installs to `~/.local/bin/sentrie`; built repro binaries with `go build -o` into the scratchpad instead after the first run.
 - _Model: claude-opus-5-5_
+
+### 2026-11-10 16:40 - Regression tests for #141
+- Added tests for each decision: nested lambda in list, dict, deep dict and attachment encodes as the placeholder (box, runtime); a lambda only in the trace (a filter argument) no longer fails exec or serve; a rule whose whole value is a lambda errors in runtime (ErrCallableDecision), exec (non-zero, names the rule) and serve (500 problem document, detail names the rule); import decision of a lambda rule fails.
+- The non-callable encode failure (number overflow) is already covered on main by TestExecJSONOutputSurfacesEncodingErrors and TestDecisionEncodingFailureIsAnError, so no new test there.
+- Bite proof: with main's box/value.go the box, runtime, cmd and api placeholder tests fail; with main's runtime/executor.go (plus the sentinel var so it compiles) the whole-value and import tests fail in runtime, cmd and api.
+- Dropped lang_test fixtures: those are parser-only fixtures, and runtime behaviour is covered by the suites.
+- _Model: claude-sonnet-5-5_
