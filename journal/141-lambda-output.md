@@ -46,3 +46,11 @@
 - Coverage already present for `import decision` of a lambda rule and for a helper rule used as a callback (runtime level); no new tests needed.
 - Local CI gate passes: make test, make lint, gofmt, make docs-graph, race on api/box/cmd, no em dash, no attribution, all commits signed.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 18:10 - Docs round 2: unexported lambda rules
+
+- Narrowed website `reference/index.md` ("Lambdas in decision output") so the whole-value-lambda error applies only to reported rules (exported and run with exec/serve, or imported with `import decision`).
+- Added a runnable snippet for an unexported helper rule used as a callback (`filter([1, 2, 3], helper)` gives `[2, 3]`); exporting the helper fails with the documented error.
+- Checked `cli-reference/exec.md` and `running-sentrie/serving-policies.md`: still accurate, unchanged. Validated and executed all snippets on the section against the branch binary; website build passes.
+- Listed pre-existing broken snippets (`policy-composition.md` `import decision of`, bare typed-parameters fragment) in the website PR description. Website commit 4a698d9.
+- _Model: claude-sonnet-5-5_
