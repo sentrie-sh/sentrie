@@ -54,3 +54,13 @@
 - Checked `cli-reference/exec.md` and `running-sentrie/serving-policies.md`: still accurate, unchanged. Validated and executed all snippets on the section against the branch binary; website build passes.
 - Listed pre-existing broken snippets (`policy-composition.md` `import decision of`, bare typed-parameters fragment) in the website PR description. Website commit 4a698d9.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 18:09 - Round 3 fix: callable error wins over an attachment error
+- The round-2 opus re-review approved but found that the guard in `execRuleFrom` (`runtime/executor.go`) ran only when `err == nil`. `execRule` evaluates attachments after the value and returns the partial attachments with an attachment error, so `rule withBadAttach = { yield (x) => { yield x } }` exported with `attach boom as 1 / 0` reported "divide by zero", decision = the callable, partial attachments, and no error on the rule node.
+- Fix: dropped `err == nil` from the guard. A callable reported value now always gives `rule <fqn>: a rule's value cannot be a callable` (wraps `ErrCallableDecision`), decision `unknown`, attachments nil, error set on the rule node.
+- Choice: the callable error replaces the attachment error; no `errors.Join`. The attachments are dropped anyway, and a joined error would also match the attachment error under `errors.Is`/`errors.As`, so callers classifying errors could report the attachment failure instead.
+- Test: `TestRuleWholeValueLambdaWinsOverAttachmentError` in `runtime/lambda_output_test.go` (new `withBadAttach` rule in the fixture policy). Bite proof: run against HEAD's unfixed `executor.go` before the edit, it failed (error was divide by zero, attachments non-nil, rule node error empty); passes after.
+- Updated `docs/codebase-graph/runtime.executor.md` (`ExecRule` behaviour: the callable error replaces any attachment error); `make docs-graph` passes.
+- `GOWORK=off go test ./runtime/... ./api/... ./cmd/...` passes, log `/tmp/sentrie-141-lambda-output-round3.log`. gofmt clean, no em dash.
+- Commit: 9319b54 "Let the callable rule error win over an attachment error" (signed). PR description updated (runtime changes, codebase graph, review note on the no-join choice, testing notes, journal bullet). Not pushed.
+- _Model: claude-opus-5-5_
