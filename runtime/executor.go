@@ -371,8 +371,10 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 	// A reported rule whose whole value is a lambda is that rule's error, with
 	// no decision or attachments, so it is reported as unknown. The check sits
 	// here rather than in execRule because a rule referenced from inside the
-	// policy may be a lambda helper, as in filter(xs, helper).
-	if err == nil && decision != nil && decision.reported().Value.IsCallable() {
+	// policy may be a lambda helper, as in filter(xs, helper). It wins over an
+	// attachment error: execRule evaluates attachments after the value, and
+	// they are dropped here anyway.
+	if decision != nil && decision.reported().Value.IsCallable() {
 		err = fmt.Errorf("rule %s: %w", index.RuleFQN(namespace, policy, rule), ErrCallableDecision)
 		ruleNode.SetErr(err)
 		decision, attachments = nil, nil

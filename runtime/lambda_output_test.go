@@ -12,7 +12,7 @@ import (
 // lambdaOutputPolicy exercises a lambda at every position output can hold one
 // (#141): nested in a list or dict, as an attachment, in the trace through a
 // filter argument, and as a rule's whole value (from the body or from a
-// default branch). helper is an unreported rule whose value is a lambda, used
+// default branch, or alongside a failing attachment). helper is an unreported rule whose value is a lambda, used
 // as a callback by usesHelper.
 const lambdaOutputPolicy = `namespace com/ex
 
@@ -28,6 +28,7 @@ policy pol {
   rule fromDefault = default id when false { yield true }
   rule helper = (x) => { yield x > 1 }
   rule usesHelper = { yield filter([1, 2, 3], helper) }
+  rule withBadAttach = { yield (x) => { yield x } }
   export decision of inList
   export decision of inDict
   export decision of deep
@@ -37,6 +38,7 @@ policy pol {
   export decision of viaImport
   export decision of fromDefault
   export decision of usesHelper
+  export decision of withBadAttach attach boom as 1 / 0
 }
 `
 
@@ -97,6 +99,20 @@ func (s *RuntimeTestSuite) TestRuleWholeValueLambdaIsRuleError() {
 		s.Require().NotNil(out.RuleNode, rule)
 		s.Contains(out.RuleNode.Err, ErrCallableDecision.Error(), rule)
 	}
+}
+
+// The callable error wins over an attachment error: the attachments are
+// dropped anyway, so their failure must not mask why the rule failed.
+func (s *RuntimeTestSuite) TestRuleWholeValueLambdaWinsOverAttachmentError() {
+	out, err := s.execLambdaOutput("withBadAttach")
+	s.Require().Error(err)
+	s.ErrorIs(err, ErrCallableDecision)
+	s.Equal("rule com/ex/pol/withBadAttach: "+ErrCallableDecision.Error(), err.Error())
+	s.Require().NotNil(out)
+	s.Equal(trinary.Unknown, out.Decision.State)
+	s.Nil(out.Attachments)
+	s.Require().NotNil(out.RuleNode)
+	s.Contains(out.RuleNode.Err, ErrCallableDecision.Error())
 }
 
 // An unreported rule whose value is a lambda is a helper: referenced from
