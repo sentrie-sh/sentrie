@@ -9,5 +9,5 @@
   - `count` on anything but a list, dict or string is an error; `count(undefined)` stays undefined.
   - Only `count` is fixed here; a follow-up issue is filed to audit the other builtins for the same problem.
   - `+` with a string follows JavaScript for scalars: string + number or bool concatenates in either order (`"a" + 1` is `"a1"`); undefined propagates as undefined; a list or dict with a string is an error.
-- Docs PR: recorded once opened.
+- Docs PR: sentrie-sh/website#78 (branch `149-invalid-operands` on `next`). Sentrie PR: #318.
 - _Model: claude-opus-5-5, subagents: 1x sonnet (design questions)_
