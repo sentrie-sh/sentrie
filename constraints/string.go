@@ -179,20 +179,26 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			if err != nil || u.Scheme == "" || u.Hostname() == "" {
 				return fmt.Errorf("string %q is not a valid URL", s)
 			}
-			allowed := defaultURLSchemes
-			if len(args) > 0 {
-				// Scheme arguments replace the default set.
-				allowed = make([]string, 0, len(args))
-				for _, arg := range args {
-					scheme, _ := arg.StringValue()
-					allowed = append(allowed, strings.ToLower(scheme))
+			// url.Parse lower-cases the scheme.
+			if len(args) == 0 {
+				if slices.Contains(defaultURLSchemes, u.Scheme) {
+					return nil
+				}
+				return fmt.Errorf("URL %q has scheme %q, expected one of %s", s, u.Scheme, strings.Join(defaultURLSchemes, ", "))
+			}
+			// Scheme arguments replace the default set and compare
+			// case-insensitively.
+			for _, arg := range args {
+				if scheme, _ := arg.StringValue(); strings.EqualFold(scheme, u.Scheme) {
+					return nil
 				}
 			}
-			// url.Parse lower-cases the scheme.
-			if !slices.Contains(allowed, u.Scheme) {
-				return fmt.Errorf("URL %q has scheme %q, expected one of %s", s, u.Scheme, strings.Join(allowed, ", "))
+			allowed := make([]string, 0, len(args))
+			for _, arg := range args {
+				scheme, _ := arg.StringValue()
+				allowed = append(allowed, strings.ToLower(scheme))
 			}
-			return nil
+			return fmt.Errorf("URL %q has scheme %q, expected one of %s", s, u.Scheme, strings.Join(allowed, ", "))
 		},
 	}),
 	"uuid": define(ConstraintDefinition{
