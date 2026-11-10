@@ -72,6 +72,15 @@ shape B with t/a/A { fb: number }
 `)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "shape 't/a/A' not exported")
+
+	// So does a child namespace: only the shape's own namespace is exempt.
+	_, err = s.validateIsSources(`namespace t/a
+shape A { fa: number }
+`, `namespace t/a/b
+shape B with t/a/A { fb: number }
+`)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "shape 't/a/A' not exported")
 }
 
 // An unqualified base resolves in the policy, then the namespace; the first
@@ -196,7 +205,7 @@ func (s *IndexTestSuite) TestShapeWithCycleDetection() {
 		s.Contains(err.Error(), "self-loop")
 	})
 
-	s.Run("policy shape with the namespace shape of its own name is no cycle", func() {
+	s.Run("policy chain onto an unshadowed namespace base is no cycle", func() {
 		idx, err := s.validateIsSources(withBaseLib, `namespace com/ex
 shape A { a: number }
 policy pol {
