@@ -38,3 +38,9 @@
 - Found: map literals in constraint arguments never parse (parser/literal.go uses canExpect for the colon, which does not consume it); present on main, not fixed here.
 - Gate: make test, make lint, make docs-graph, gofmt, race on touched packages all pass.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 18:06 - Docs for the constraint checks (website branch 146-constraint-checks)
+- Confirmed against a branch binary with one-rule packs: variadic `@in` / `@not_in` on numbers and strings, `@min(-5)`, `@url()` (ports, IPs, localhost pass; `localhost:8080`, `/path`, `http://` fail), `@url("ftp", "ssh")` replaces the default, `@length` counts code points, list form is an invalid argument at validate and exec, `-x` gives a readable position. No disagreement with the recorded decisions.
+- Website pages: `reference/constraints.md` (tables, new Membership / Negative arguments / URLs / String length sections, breaking-change note), `troubleshooting/common-errors.md` (4 rows), `reference/index.md` (constraints example made runnable). Three signed commits; `npm run build` passes.
+- Found, not fixed: a bare constraint (`@email`, `@url`) fails to parse with "expected 'LeftParen'" on main and here, while the docs show bare forms widely; pre-existing broken snippets are listed in the website PR description.
+- _Model: claude-sonnet-5-5_
