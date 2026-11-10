@@ -31,3 +31,10 @@
 ### 2026-11-10 16:37 - Model deviation in round 2
 - The round-2 `@url` replace-the-default change (a1e0096) was implemented by a sonnet agent after the opus implementer reached its context cap. Constraint checking is an opus area under `.agentrules/parallelize-with-subagents.md`, and a capped agent should be replaced on the same model, so this was a deviation. The commit stays; the opus reviewer checks it with extra care, and any further fix round on this branch goes to opus.
 - _Model: claude-opus-5-5 (orchestrator)_
+
+### 2026-11-10 16:48 - Regression tests for the constraint checks
+- Added tests in constraints, parser, index, runtime and cmd plus lang_test fixture 0057-constraint-checks (validate); commit a396223. Covers variadic and list-form in/not_in (number and string), url schemes/hosts/invalid scheme argument, rune lengths, negative arguments, multiple_of with negatives, parse error position, keyword constraint names.
+- Bite proof against main's production files (literal.go; constraints contraint/number/string; ast typeref and gen) done per file group; every new test fails except where noted in the report.
+- Found: map literals in constraint arguments never parse (parser/literal.go uses canExpect for the colon, which does not consume it); present on main, not fixed here.
+- Gate: make test, make lint, make docs-graph, gofmt, race on touched packages all pass.
+- _Model: claude-sonnet-5-5_
