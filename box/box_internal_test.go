@@ -164,6 +164,29 @@ func (s *BoxTestSuite) TestCallableRenderingAndMarshalBehavior() {
 	s.JSONEq(`{"kind":"callable"}`, string(raw))
 }
 
+// A callable encodes as {"kind":"callable"} at any depth, and the rest of the
+// value is encoded as before (#141).
+func (s *BoxTestSuite) TestMarshalJSON_CallableNestedAtAnyDepth() {
+	fn := Callable(nil)
+	cases := []struct {
+		name string
+		v    Value
+		want string
+	}{
+		{"list", List([]Value{Number(1), fn}), `[1,{"kind":"callable"}]`},
+		{"dict", Dict(map[string]Value{"f": fn, "n": String("x")}), `{"f":{"kind":"callable"},"n":"x"}`},
+		{"deep", Dict(map[string]Value{"xs": List([]Value{Dict(map[string]Value{"f": fn})})}), `{"xs":[{"f":{"kind":"callable"}}]}`},
+		{"undefined in list", List([]Value{Undefined(), fn}), `[null,{"kind":"callable"}]`},
+	}
+	for _, tc := range cases {
+		raw, err := tc.v.MarshalJSON()
+		s.Require().NoError(err, tc.name)
+		s.JSONEq(tc.want, string(raw), tc.name)
+	}
+	// Any keeps the string placeholder; only JSON encoding changes.
+	s.Equal("<callable>", fn.Any())
+}
+
 func (s *BoxTestSuite) TestEqualValues_InvalidKindFallsBackToFalse() {
 	s.False(EqualValues(Value{kind: ValueInvalid}, Value{kind: ValueInvalid}))
 	s.False(EqualValues(List([]Value{Number(1)}), List([]Value{Number(1), Number(2)})))
