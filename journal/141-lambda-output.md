@@ -32,3 +32,11 @@
 - Checked against the branch binary: nested lambda value and filter-argument trace encode as the placeholder, whole-value lambda errors in exec (exit 1, single rule and whole policy), serve (500 problem+json "Evaluation Failed") and import decision. All validating snippets on reference/index.md pass; the calling example yields 10 and 11 for n=5. `npm run build` passes.
 - Found: the website's policy-composition page writes `import decision of X from ...`, which the parser rejects (valid form is `import decision X from ...`). Not fixed here.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 17:59 - Review round 1 fix: callable check at the reporting boundary
+- The round-1 reviewer found the whole-value callable check in `execRule`, which also serves in-policy rule references (`runtime/eval_ident.go`), so an unreported helper `rule helper = (x) => { yield x > 1 }` used as `filter([1, 2, 3], helper)` failed.
+- Moved the check into `execRuleFrom`, after `execRule` returns: it covers `ExecRule` (and so `ExecPolicy`) and `import decision`. The output reports `unknown` with no attachments and the error on the rule node. Attachments are now evaluated before the check and then dropped; the decision only said the rule reports no attachments.
+- Tests: `TestLambdaHelperRuleIsCallableFromAnotherRule` (fails with the round-1 check, passes now); `TestRuleWholeValueLambdaIsRuleError` also covers a lambda from a `default` branch and asserts decision `unknown`, no attachments and `RuleNode.Err`.
+- Updated `runtime.executor` graph node (check moved from `execRule` to `ExecRule`/`execRuleFrom`); `make docs-graph` passes. Refreshed the PR description (tests by package, journal entries, review note on the placement).
+- Website: `reference/index.md` says a rule whose whole value is a lambda is its error without saying this is only when the rule is reported; an unreported helper rule now works as a callback. Left for the docs writer.
+- _Model: claude-opus-5-5_
