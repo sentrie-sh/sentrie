@@ -49,3 +49,11 @@
 - PR description: review note on `resolveShapeReadOnly` corrected, Index, Tests, graph and Journal bullets refreshed.
 - `GOWORK=off go test ./index/... ./runtime/...` green (/tmp/sentrie-308-shape-with-resolver-r2.log); `make docs-graph` passes.
 - _Model: claude-opus-5-5_
+
+### 2026-11-10 17:59 - Docs round 2 for shape with base resolution
+
+- Fixed the runnable-snippet findings on the website branch: added the exporting `com/base` block, a namespace on the composition snippet, a rule on the Exporting Shapes snippet, and a namespace, policy and quoted keys on the type-system-shapes `Extended` example.
+- Ran each edited snippet through `validate` and `exec` on the branch binary: pass (true and false cases for `Extended`). Did not re-run the error messages.
+- Replaced the PR description claim that other snippets are fine with a pre-existing broken snippets list for the follow-up issue.
+- `npm run build` passes; website commit ec6a29c.
+- _Model: claude-sonnet-5-5_
