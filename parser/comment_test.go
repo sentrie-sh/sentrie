@@ -524,7 +524,7 @@ namespace com/example;
 -- Shape comment
 shape User {
     name: string -- Field comment
-    age: int -- Another field comment
+    age: number -- Another field comment
 }
 `
 	parser := NewParserFromString(input, "test.sentrie")

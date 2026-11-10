@@ -94,6 +94,9 @@ func parseBaseTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 		if fqn == nil {
 			return nil
 		}
+		if !checkNotATypeName(p, fqn) {
+			return nil
+		}
 		ref = namedTypeRef(fqn)
 	case tokens.KeywordList:
 		ref = ast.NewListTypeRef(nil, p.advance().Range) // elemType will be set later
@@ -257,6 +260,21 @@ func parseSetTypeRef(ctx context.Context, p *Parser) ast.TypeRef {
 	rnge := start.Range
 	rnge.To = rBracket.Range.To
 	return ast.NewSetTypeRef(elemType, rnge)
+}
+
+// checkNotATypeName records an error and returns false when fqn is a bare
+// `bool`, `int` or `float` in a type position: they are not Sentrie types,
+// so the error names the type to use instead (#144).
+func checkNotATypeName(p *Parser, fqn *ast.FQN) bool {
+	if len(fqn.Parts) != 1 {
+		return true
+	}
+	hint, ok := ast.NotATypeHint(fqn.Parts[0])
+	if !ok {
+		return true
+	}
+	p.errorAtf(fqn.Rnge, "unknown type %q: did you mean %q?", fqn.Parts[0], hint)
+	return false
 }
 
 // namedTypeRef is the type a name denotes in a type position: the top type
