@@ -177,14 +177,14 @@ policy p {
 	s.Require().NoError(err)
 }
 
-func (s *IndexTestSuite) TestBuiltinCheckCountMismatchUndefinedAccept() {
+func (s *IndexTestSuite) TestBuiltinCheckCountWrongKindReject() {
 	err := s.parseAndValidate(`namespace com/ex
 policy p {
   rule allow = { yield count(5) }
   export decision of allow
 }
 `, "f.sentrie")
-	s.Require().NoError(err)
+	s.Require().ErrorContains(err, "count expects a list, dict or string")
 }
 
 func (s *IndexTestSuite) TestBuiltinCheckBuiltinShadowedByLetAccept() {
