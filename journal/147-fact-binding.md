@@ -10,7 +10,7 @@
   - A wrongly typed fact is a 400.
   - CLI `--fact-file` plus `--facts`: deep merge, `--facts` wins, lists are replaced.
 - PROVISIONAL (user AFK), needs confirmation: branch stacked on `143-per-rule-errors`, because #143 (a0b04cb) made fact errors of a top-level policy request a request-level error (interim 500) that this fix turns into a 400. PR base `143-per-rule-errors` until #143 merges.
-- Docs PR: recorded once opened.
+- Docs PR: sentrie-sh/website#84 (draft, base `next`); Sentrie PR #324.
 - _Model: claude-opus-5-5_
 
 ### 2026-11-10 23:11 - Implement #147
