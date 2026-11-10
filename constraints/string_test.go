@@ -89,6 +89,16 @@ func (s *ConstraintsTestSuite) TestStringEmailURLUUID() {
 		s.runChecker(c, box.String("https://example.com/foo"), nil, false)
 		s.runChecker(c, box.String("ftp://example.com/foo"), nil, true)
 		s.runChecker(c, box.String("not a url"), nil, true)
+		ftp := []box.Value{box.String("ftp")}
+		s.runChecker(c, box.String("ftp://example.com/foo"), ftp, false)
+		s.runChecker(c, box.String("https://example.com/foo"), ftp, true)
+		s.runChecker(c, box.String("FTP://example.com/foo"), []box.Value{box.String("FTP")}, false)
+		https := []box.Value{box.String("https")}
+		s.runChecker(c, box.String("http://example.com/foo"), https, true)
+		s.runChecker(c, box.String("https://example.com/foo"), https, false)
+		three := []box.Value{box.String("http"), box.String("https"), box.String("ftp")}
+		s.runChecker(c, box.String("ftp://example.com/foo"), three, false)
+		s.runChecker(c, box.String("s3://bucket/key"), three, true)
 	})
 	s.Run("uuid", func() {
 		c := constraints.StringContraintCheckers["uuid"]

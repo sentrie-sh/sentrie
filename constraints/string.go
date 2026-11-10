@@ -181,7 +181,8 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			}
 			allowed := defaultURLSchemes
 			if len(args) > 0 {
-				allowed = slices.Clone(defaultURLSchemes)
+				// Scheme arguments replace the default set.
+				allowed = make([]string, 0, len(args))
 				for _, arg := range args {
 					scheme, _ := arg.StringValue()
 					allowed = append(allowed, strings.ToLower(scheme))
@@ -385,8 +386,8 @@ var StringContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 // emailPattern is compiled once, not on every check.
 var emailPattern = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
-// defaultURLSchemes are the schemes `@url()` accepts with no arguments; each
-// argument adds one more.
+// defaultURLSchemes are the schemes `@url()` accepts with no arguments;
+// any scheme arguments replace this set.
 var defaultURLSchemes = []string{"http", "https"}
 
 // urlSchemePattern is the RFC 3986 scheme syntax.

@@ -22,3 +22,8 @@
 - Also from the issue text: `@length` / `@minlength` / `@maxlength` count runes; `@multiple_of` compares the float remainder's magnitude; the email regexp is compiled once at package level.
 - Existing tests that encoded the old list form were rewritten to the variadic form (constraints, index, runtime, cmd, lang_test fixtures 0050-in-constraint and 0050-exponent-literals); parse-only parser tests keep the list form since it still parses. `make test`, `make lint`, `make docs-graph` pass.
 - _Model: claude-opus-5-5_
+
+### 2026-11-10 16:36 - @url scheme arguments replace the default
+- Decision from the user (2026-11-10, supersedes "widen" in the pickup entry): scheme arguments replace the default set. `@url()` accepts http and https; `@url("ftp")` only ftp; `@url("https")` only https; `@url("http", "https", "ftp")` those three. Case-insensitive comparison and the invalid-scheme-argument error are unchanged.
+- Changed the checker in constraints/string.go, added tests in constraints/string_test.go, updated docs/codebase-graph/constraints.md and the PR description (open question removed).
+- _Model: claude-sonnet-5-5_
