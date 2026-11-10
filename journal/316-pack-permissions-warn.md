@@ -6,5 +6,5 @@
 - Decisions recorded with the user on 2026-11-10, which the reviewer judges the change against:
   - Warn at pack load and at `validate` when `fs_read` or `net` is non-empty (the permissions are not enforced yet).
 - Branch cut from `main`.
-- Docs PR: recorded once opened.
+- Docs PR: sentrie-sh/website#91 (draft, base `next`); Sentrie PR #331.
 - _Model: claude-opus-5-5_
