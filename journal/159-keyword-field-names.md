@@ -28,3 +28,9 @@
 - Bite proof: with main's access.go, shape.go and export_rule.go every new positive test fails (parser, cmd, lang_test fixture, format incl. corpus stability); the three unchanged-behaviour guards pass on both.
 - Method call through an alias with a keyword function name is parse-only: no stdlib function is keyword-named.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 16:45 - Docs for keyword names (website#82)
+- Added "Keywords as field names" to reference/identifiers.md (example run against the branch binary: `reads` gives "T/9", attachments {"default":5,"version":"1.2"}); updated shapes, rules, policies, index, policy-metadata, types-and-values and policy-composition pages. Replaced the old "user.contribute is a parse error" notes.
+- Verified against the binary: `d.title`, `obj.true.null`, `d["a-b"]`, `x.is is defined`, `2 in [x.in]`, `x.contains contains 7`; `{title: 1}` and comma-separated shape fields and `rule let` still fail to parse.
+- Website build passes (/tmp/website-159-keyword-field-names-build.log). Website commit 53ef399.
+- _Model: claude-sonnet-5-5_
