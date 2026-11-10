@@ -9,7 +9,7 @@
   - A duplicate shape field is an error that shows both spans.
   - A duplicate dict literal key keeps last-one-wins, and the docs say so (user overrode the recommendation).
 - PROVISIONAL (user AFK), needs confirmation: branch stacked on `159-keyword-field-names`, which changes shape field parsing (parser/shape.go). PR base `159-keyword-field-names` until #159 merges.
-- Docs PR: recorded once opened.
+- Docs PR: sentrie-sh/website#87 (draft, base `next`); Sentrie PR #327.
 - _Model: claude-opus-5-5_
 
 ### 2026-11-10 23:01 - Implement closed shapes
