@@ -8,7 +8,7 @@
   - `default` does NOT apply when the body yields undefined: the result stays unknown (user overrode the recommendation). So `default` never masks a body error either.
   - An error raised inside a `default` expression is returned (bug fix, no choice).
 - PROVISIONAL (user AFK), needs confirmation: branch stacked on `143-per-rule-errors` (itself on `141-lambda-output`), because #143 rewrote the executor's rule paths this fix touches. PR base `143-per-rule-errors` until #143 merges.
-- Docs PR: recorded once opened.
+- Docs PR: sentrie-sh/website#83 (draft, base `next`); Sentrie PR #323.
 - _Model: claude-opus-5-5_
 
 ### 2026-11-10 22:59 - Implement #148
