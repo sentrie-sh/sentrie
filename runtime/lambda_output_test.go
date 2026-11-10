@@ -28,6 +28,7 @@ policy pol {
   rule fromDefault = default id when false { yield true }
   rule helper = (x) => { yield x > 1 }
   rule usesHelper = { yield filter([1, 2, 3], helper) }
+  rule plainBadAttach = { yield 1 }
   rule withBadAttach = { yield (x) => { yield x } }
   export decision of inList
   export decision of inDict
@@ -39,6 +40,7 @@ policy pol {
   export decision of fromDefault
   export decision of usesHelper
   export decision of withBadAttach attach boom as 1 / 0
+  export decision of plainBadAttach attach boom as 1 / 0
 }
 `
 
@@ -110,9 +112,19 @@ func (s *RuntimeTestSuite) TestRuleWholeValueLambdaWinsOverAttachmentError() {
 	s.Equal("rule com/ex/pol/withBadAttach: "+ErrCallableDecision.Error(), err.Error())
 	s.Require().NotNil(out)
 	s.Equal(trinary.Unknown, out.Decision.State)
+	s.False(out.Decision.reported().Value.IsCallable())
+	s.NotContains(err.Error(), "divide by zero")
 	s.Nil(out.Attachments)
 	s.Require().NotNil(out.RuleNode)
 	s.Contains(out.RuleNode.Err, ErrCallableDecision.Error())
+}
+
+// An attachment error on a rule whose value is not a callable still surfaces as the rule's error.
+func (s *RuntimeTestSuite) TestAttachmentErrorOnPlainRuleStillSurfaces() {
+	_, err := s.execLambdaOutput("plainBadAttach")
+	s.Require().Error(err)
+	s.NotErrorIs(err, ErrCallableDecision)
+	s.ErrorContains(err, "divide by zero")
 }
 
 // An unreported rule whose value is a lambda is a helper: referenced from
