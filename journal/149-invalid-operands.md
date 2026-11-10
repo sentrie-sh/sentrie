@@ -42,3 +42,9 @@
 - Found, not fixed (candidates): `10 / count(xs)` parses as a call of `(10 / count)`; policy-level `let t = reduce(...)` yields a callable; the arithmetic page's `total / count scores` is a parse error; docs use `bool` where the binary wants `boolean`.
 - Website build passes.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 18:01 - Test round 2: strengthen the unknown rows
+- Reviewer found the rows "string plus undefined" and "undefined plus string" passed on main because `DecisionOf(undefined)` already sets State Unknown, so the earlier bite-proof claim for those rows was wrong. The `wantUnknown` branch now also asserts `Value.Kind() == box.ValueTrinary`.
+- Bite proof: with `runtime/eval_infix.go` swapped to main, all four unknown rows (string/undefined, undefined/string, string/unknown, unknown/string) fail; they pass on HEAD.
+- Added a callable row (`"a" + ((x) => { yield x })`) confirming a callable beside a string errors; documents hit the same default branch in `concatOperand`.
+- _Model: claude-sonnet-5-5_

@@ -8,6 +8,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
@@ -62,6 +63,8 @@ func (s *RuntimeTestSuite) runInvalidOperandCases(cases []invalidOperandCase) {
 			case tc.wantUndef:
 				s.True(out.Decision.Value.IsUndefined(), "%s: got %v", tc.expr, out.Decision.Value)
 			case tc.wantUnknown:
+				// DecisionOf(undefined) also reports State Unknown, so check the value itself.
+				s.Equal(box.ValueTrinary, out.Decision.Value.Kind(), tc.expr)
 				s.Equal(trinary.Unknown, out.Decision.State, tc.expr)
 			default:
 				s.Equal(tc.want, out.Decision.Value.Any(), tc.expr)
@@ -149,5 +152,6 @@ func (s *RuntimeTestSuite) TestStringPlusFollowsJavaScriptEndToEnd() {
 		{name: "list plus string", expr: `[1] + "a"`, wantErr: "+ cannot join a string with a list"},
 		{name: "string plus dict", expr: `"a" + {"k": 1}`, wantErr: "+ cannot join a string with a dict"},
 		{name: "dict plus string", expr: `{"k": 1} + "a"`, wantErr: "+ cannot join a string with a dict"},
+		{name: "string plus callable", expr: `"a" + ((x) => { yield x })`, wantErr: "+ cannot join a string with a"},
 	})
 }
