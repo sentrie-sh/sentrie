@@ -29,3 +29,9 @@
 - Updated `runtime.eval_infix` and the PR description. `go test ./runtime/... ./builtins/ ./index/ ./lang_test/` passes.
 - Signing works again (4af9fdb landed), so the queued commits are made now.
 - _Model: claude-opus-5-5_
+
+### 2026-11-10 16:40 - Regression tests for #149
+- Added `runtime/eval_invalid_operands_test.go` (end-to-end through a temp pack: list index on boxed and boundary `[]any` lists, count at runtime, string `+`), `builtins/scalar_test.go` (count null errors, count undefined stays undefined) and `index/builtin_check_test.go` (count rejected at load for bool and typed facts, countable kinds accepted).
+- Findings: `count(null)` is not rejected at load (only at runtime); `count(u)` for a typed optional number fact is rejected at load, so undefined-through-count is tested via a lambda parameter. `lang_test` fixtures are parse fixtures, so language-visible behaviour went into the runtime suite instead.
+- Bite proof: swapping `runtime/eval_access.go`, `runtime/eval_infix.go`, `builtins/scalar.go` and `index/builtin_check.go` back to main fails the new tests; the "stays the same" rows pass on both by design.
+- _Model: claude-sonnet-5-5_
