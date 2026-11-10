@@ -25,3 +25,7 @@
 - Change: `resolveWithBase` (index/shape.go) skips `VerifyShapeExported` when the target namespace is `s.Namespace`. Cycle detection already calls the same resolver, so it follows it. Graph node `index.shape` and the PR description updated.
 - `GOWORK=off go test ./index/... ./runtime/... ./lang_test/...` green; no existing test needed changing.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 16:36 - Model deviation in round 2
+- The round-2 own-namespace exemption (260cd44) was implemented by a sonnet agent after the opus implementer reached its context cap. Shape `with` resolution is an opus area under `.agentrules/parallelize-with-subagents.md`, and a capped agent should be replaced on the same model, so this was a deviation. The commit stays; the opus reviewer checks it with extra care, and any further fix round on this branch goes to opus.
+- _Model: claude-opus-5-5 (orchestrator)_
