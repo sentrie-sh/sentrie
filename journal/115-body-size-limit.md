@@ -7,5 +7,5 @@
   - Wrap the body in `http.MaxBytesReader`. Default limit 1 MiB, overridable on `serve` with `--http-max-body-bytes` (plain integer bytes); 0 means unlimited (user overrode the recommendation).
   - A body over the limit returns 413 with a problem document.
 - Branch cut from `main`.
-- Docs PR: recorded once opened.
+- Docs PR: sentrie-sh/website#88 (draft, base `next`); Sentrie PR #328.
 - _Model: claude-opus-5-5_
