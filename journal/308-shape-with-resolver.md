@@ -35,3 +35,8 @@
 - Bite proof against main: runtime tests and the fixture fail with main's index/shape.go, validate.go, commit.go; the index tests fail with those plus the five test files that call the old `resolveDependency` signature (needed to compile).
 - Gate: make test, make lint, make docs-graph, race on index and lang_test, gofmt all pass. No implementation bugs found.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 16:43 - Docs for with-base resolution (website#77)
+- Edited `reference/shapes.md` (new "How a base is resolved" section, breaking-change caution, rules table, cross-namespace text), plus short notes in `reference/namespaces.md`, `reference/index.md`, `language-concepts/type-system-shapes.md`.
+- Built the branch binary and checked: the new example (validate and exec), the Base/Extended snippets (wrapped), and the three error messages. Fragment snippets without `with` were not runnable standalone and are unchanged. `npm run build` passes.
+- _Model: claude-sonnet-5-5_
