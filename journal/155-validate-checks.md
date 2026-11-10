@@ -8,7 +8,7 @@
   - Static literal type checks (`1 + true`) are deferred: a NEW issue is filed for them (no milestone or labels), and this PR says `Closes #155`.
   - Remove `validate`'s ignored rule target argument and `--facts` flag.
 - PROVISIONAL (user AFK), needs confirmation: branch stacked on `308-shape-with-resolver`, which reworks shape base resolution in index/validate.go. PR base `308-shape-with-resolver` until #307/#308 merge. #144 should merge before this one too.
-- Docs PR: recorded once opened.
+- Docs PR: sentrie-sh/website#86 (draft, base `next`); Sentrie PR #326.
 - _Model: claude-opus-5-5_
 
 ### 2026-11-10 23:10 - Implement the self-reference and identifier checks
