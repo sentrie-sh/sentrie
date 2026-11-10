@@ -326,8 +326,11 @@ func lookupShapeFieldTypeReadOnly(idx *Index, policy *Policy, shape *Shape, fiel
 			return f.TypeRef, f.TypeScope(scope), true
 		}
 		if shape.Model.WithFQN != nil {
-			parent := resolveShapeReadOnly(idx, scope, shape.Model.WithFQN)
-			if parent != nil {
+			// The same with-base resolution hydration uses, so the check
+			// and the runtime inherit from the same parent (#308). It only
+			// reads the index, so it is safe before commit.
+			parent, err := idx.resolveWithBase(shape)
+			if err == nil && parent != nil {
 				return lookupShapeFieldTypeReadOnly(idx, scope, parent, fieldName)
 			}
 		}

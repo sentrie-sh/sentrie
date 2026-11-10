@@ -21,6 +21,7 @@ tags: type-model, composition, hydration, records
 | `index.shape` | `READS_FROM` | [[index.namespace]] | `resolveWithBase` reads `Shapes` and `ShapeExports` of the shape's own namespace, the namespace a qualified base names, and every other namespace when an unqualified base is not local. |
 | [[index.commit]] | `CALLS` | [[index.shape]] | Invokes `resolveDependency` parents first, the reverse of the shape-DAG sort order. |
 | [[index.validate]] | `CALLS` | [[index.shape]] | `detectShapeCycle` adds each shape's `with` edge from `resolveWithBase`, so the cycle check and hydration agree on every parent. |
+| [[index.builtin_kind]] | `CALLS` | [[index.shape]] | `lookupShapeFieldTypeReadOnly` takes a `with` parent from `resolveWithBase`, so the static kind check sees the fields hydration will copy in. |
 | [[index.builtin_kind]] | `READS_FROM` | [[index.shape]] | Walks `Model.Fields` to resolve field-access kinds statically. |
 
 ## 3. Interface Contracts & Public Surface
@@ -65,6 +66,6 @@ tags: type-model, composition, hydration, records
 - **Performance/Scale Notes:** Resolution is map lookups, except an unqualified base that is not local, which scans every namespace once (only on the way to an error).
 - **Dependencies Risk:**
   - **`hydrated` is set in a `defer`, including on failure.** A shape whose composition errored is still marked hydrated, so a retry would silently no-op. Since commit aborts on the first error this is currently benign, but it makes partial recovery impossible.
-  - **Hydration and the cycle check share `resolveWithBase`.** Any second resolver for a `with` base (for example in [[index.builtin_kind]]) can disagree with them, which is how #307 and #308 arose.
+  - **Hydration and the cycle check share `resolveWithBase`.** The static kind check in [[index.builtin_kind]] uses it too. Any second resolver for a `with` base can disagree with them, which is how #307 and #308 arose.
   - **Topological ordering is assumed, not enforced here.** The field copy assumes the base shape is already hydrated. That assumption holds only because [[index.commit]] walks the DAG in order; calling `resolveDependency` directly can copy a half-flattened base.
   - **Aliases cannot be composed with**, and the error points at the *base* shape's span rather than the offending `with` clause.
