@@ -4,8 +4,9 @@
 package index
 
 import (
-	"errors"
 	"fmt"
+	"slices"
+	"strings"
 	"sync/atomic"
 
 	"github.com/sentrie-sh/sentrie/ast"
@@ -83,7 +84,10 @@ func (f *ShapeModelField) TypeScope(fallback *Policy) *Policy {
 	return fallback
 }
 
-func (s *Shape) resolveDependency(idx *Index, inPolicy *Policy) error {
+// resolveDependency copies the fields of the shape s composes with into s.
+// The base comes from resolveWithBase, the same resolution the shape cycle
+// check uses, so hydration and the cycle check agree on every parent.
+func (s *Shape) resolveDependency(idx *Index) error {
 	if atomic.LoadUint32(&s.hydrated) == 1 {
 		return nil
 	}
@@ -92,61 +96,13 @@ func (s *Shape) resolveDependency(idx *Index, inPolicy *Policy) error {
 		atomic.StoreUint32(&s.hydrated, 1)
 	}()
 
-	if s.Model == nil {
-		// nothing to do
-		return nil
+	withShape, err := idx.resolveWithBase(s)
+	if err != nil {
+		return err
 	}
-
-	if s.Model.WithFQN == nil || s.Model.WithFQN.IsEmpty() {
-		// nothing to do
-		return nil
-	}
-
-	var withShape *Shape
-	withName := s.Model.WithFQN.LastSegment()
-
-	// if we have a policy, look for it in the policy's shapes
-	if inPolicy != nil {
-		// check the policy's shapes
-		if shape, ok := inPolicy.Shapes[withName]; ok {
-			withShape = shape
-		}
-	}
-
-	// check if we have the shape in the containing namespace
-	if shape, ok := s.Namespace.Shapes[withName]; ok {
-		withShape = shape
-	}
-
 	if withShape == nil {
-		// now we need to check whether this is exported by some other namespaces in the index
-		for _, ns := range idx.Namespaces {
-			// check in exported shapes
-			s, err := idx.ResolveShape(ns.FQN.String(), withName)
-			if err != nil {
-				if isShapeDependencyNamespaceMiss(err) {
-					continue
-				}
-				return err
-			}
-
-			if s != nil {
-				if ns.FQN.String() != s.Namespace.FQN.String() {
-					// we have the shape, but we need to verify it's exported
-					if err := ns.VerifyShapeExported(withName); err != nil {
-						return fmt.Errorf("shape '%s' not exported at %s: %w", withName, ns.Statement.Span(), xerr.ErrIndex)
-					}
-				}
-
-				withShape = s
-				break
-			}
-		}
-	}
-
-	// if by this point we don't have a shape, we need to error
-	if withShape == nil {
-		return fmt.Errorf("shape '%s' not found at %s: %w", s.Model.WithFQN.String(), s.Statement.Span(), xerr.ErrIndex)
+		// no model or no with clause: nothing to do
+		return nil
 	}
 
 	if withShape.AliasOf != nil {
@@ -167,9 +123,69 @@ func (s *Shape) resolveDependency(idx *Index, inPolicy *Policy) error {
 	return nil
 }
 
-func isShapeDependencyNamespaceMiss(err error) bool {
-	var notFoundErr xerr.NotFoundError
-	return errors.As(err, &notFoundErr)
+// resolveWithBase returns the shape s composes with through its `with`
+// clause, or nil and no error when s has no model or no `with` clause. It is
+// the one resolution both hydration (resolveDependency) and the shape cycle
+// check (detectShapeCycle) use (#307, #308).
+//
+// A qualified base (two or more segments) resolves only in the namespace its
+// leading segments name, which must export it; that holds for the shape's own
+// namespace too. An unqualified base resolves in the shape's policy, then its
+// namespace, and the first match wins. An unqualified base that only another
+// namespace's exports hold is an error that asks for the qualified name.
+func (idx *Index) resolveWithBase(s *Shape) (*Shape, error) {
+	if s.Model == nil || s.Model.WithFQN == nil || s.Model.WithFQN.IsEmpty() {
+		return nil, nil
+	}
+	ref := s.Model.WithFQN
+	at := s.Statement.Span()
+	name := ref.LastSegment()
+
+	if len(ref.Parts) > 1 {
+		target, ok := idx.Namespaces[ref.Parent().String()]
+		if !ok || target == nil {
+			return nil, fmt.Errorf("shape '%s' not found at %s: %w", ref.String(), at, xerr.ErrIndex)
+		}
+		base, ok := target.Shapes[name]
+		if !ok {
+			return nil, fmt.Errorf("shape '%s' not found at %s: %w", ref.String(), at, xerr.ErrIndex)
+		}
+		if err := target.VerifyShapeExported(name); err != nil {
+			return nil, fmt.Errorf("shape '%s' not exported at %s: %w", ref.String(), at, xerr.ErrIndex)
+		}
+		return base, nil
+	}
+
+	if s.Policy != nil {
+		if base, ok := s.Policy.Shapes[name]; ok {
+			return base, nil
+		}
+	}
+	if s.Namespace != nil {
+		if base, ok := s.Namespace.Shapes[name]; ok {
+			return base, nil
+		}
+	}
+
+	// Only another namespace's exports can still hold the name. Those are
+	// reachable by their qualified name alone, so name them in the error.
+	var qualified []string
+	for nsName, ns := range idx.Namespaces {
+		if ns == nil || ns == s.Namespace {
+			continue
+		}
+		if _, ok := ns.Shapes[name]; !ok {
+			continue
+		}
+		if ns.VerifyShapeExported(name) == nil {
+			qualified = append(qualified, ShapeFQN(nsName, name))
+		}
+	}
+	if len(qualified) > 0 {
+		slices.Sort(qualified)
+		return nil, fmt.Errorf("shape '%s' at %s is exported by another namespace and must be qualified: use %s: %w", ref.String(), at, strings.Join(qualified, " or "), xerr.ErrIndex)
+	}
+	return nil, fmt.Errorf("shape '%s' not found at %s: %w", ref.String(), at, xerr.ErrIndex)
 }
 
 func (s *Shape) Span() tokens.Range {
