@@ -47,7 +47,7 @@ tags: type-system, constraints, parse-time-validation, code-generation
   - **Exceptions:** None; the constructor never validates - validation happens only on `AddConstraint`.
 
 - **Signature:** Scalar refs - `NewStringTypeRef(span)`, `NewNumberTypeRef(span)`, `NewTrinaryTypeRef(span)`, `NewDocumentTypeRef(span)`
-  - **Behavior:** Leaf types. Each wires its own generated constraint table (`genStringConstraints`, `genNumberConstraints`, …). `String()` renders the canonical keyword. `TrinaryTypeRef.Boolean` records a `boolean` spelling, which [[format]] keeps; the type is the same.
+  - **Behavior:** Leaf types. Each wires its own generated constraint table (`genStringConstraints`, `genNumberConstraints`, …). `String()` renders the canonical keyword. `TrinaryTypeRef.Boolean` marks the `boolean` type, a trinary that rejects `unknown` (like `trinary @not_unknown()`, #144): [[format]] keeps the spelling, `String()` renders `boolean`, and [[runtime.typeref_trinary]] and [[index.builtin_kind]] read it.
   - **Side Effects:** None.
   - **Exceptions:** None.
 
@@ -62,7 +62,7 @@ tags: type-system, constraints, parse-time-validation, code-generation
   - **Exceptions:** Propagates the inner type's errors unchanged.
 
 - **Signature:** `NewAnyTypeRef(span)` + `AnyTypeName`
-  - **Behavior:** The top type `any`: accepts every defined value, scalars and null included. Empty constraint table, so any constraint is rejected. `AnyTypeName` (`"any"`) is the name the parser maps to it; it is not a lexer keyword.
+  - **Behavior:** The top type `any`: accepts every defined value, scalars and null included. Empty constraint table, so any constraint is rejected. `AnyTypeName` (`"any"`) is the name the parser maps to it; it is not a lexer keyword. Beside it, `NotATypeHint(name) -> (hint, ok)` names the Sentrie type for `bool` (`boolean`), `int` and `float` (`number`), which are not types (#144); [[parser.typeref]], [[parser.shape]] and [[index.is_resolve]] use it for their errors. Those names are not keywords, so they stay ordinary identifiers and field names.
   - **Side Effects:** None.
   - **Exceptions:** None.
 - **Signature:** `NewUnionTypeRef(members, span)` + `UnionTypeRef.Members`
