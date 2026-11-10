@@ -22,3 +22,9 @@
 - Graph: updated parser.access (the "field names are identifiers only" gotcha was now false), parser.shape, parser.export_rule, parser.parser and grammar. `make docs-graph` passes.
 - `go test ./...` green with no test changes; no existing test encoded the old behaviour. Regression tests are left to the test agent.
 - _Model: claude-opus-5-5_
+
+### 2026-11-10 16:42 - Regression tests for keyword names
+- Added parser suite tests (parser/keyword_field_names_test.go), cmd exec tests for evaluation, attachments and fact validation (cmd/exec_keyword_field_names_test.go), a format round-trip test, and lang_test fixture 0060-keyword-field-names.sentrie.
+- Bite proof: with main's access.go, shape.go and export_rule.go every new positive test fails (parser, cmd, lang_test fixture, format incl. corpus stability); the three unchanged-behaviour guards pass on both.
+- Method call through an alias with a keyword function name is parse-only: no stdlib function is keyword-named.
+- _Model: claude-sonnet-5-5_
