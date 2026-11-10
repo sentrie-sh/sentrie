@@ -76,6 +76,14 @@ func (s *ConstraintsTestSuite) TestStringURLSchemesAndHosts() {
 		s.runChecker(c, box.String("ftp://example.com"), []box.Value{box.String("FTP")}, false)
 		s.runChecker(c, box.String("FTP://example.com"), ftp, false)
 	})
+	s.Run("failure messages", func() {
+		err := c.Checker(s.T().Context(), box.String("ftp://a.co"), nil)
+		s.Require().Error(err)
+		s.Contains(err.Error(), `has scheme "ftp", expected one of http, https`)
+		err = c.Checker(s.T().Context(), box.String("http://a.co"), []box.Value{box.String("FTP"), box.String("S3")})
+		s.Require().Error(err)
+		s.Contains(err.Error(), `has scheme "http", expected one of ftp, s3`)
+	})
 	s.Run("invalid scheme argument", func() {
 		for _, arg := range []box.Value{box.String("ftp://"), box.String(""), box.String("1ftp"), box.String("a b"), box.Number(1)} {
 			err := c.Checker(s.T().Context(), box.String("ftp://example.com"), []box.Value{arg})
