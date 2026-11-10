@@ -34,3 +34,9 @@
 - Verified against the binary: `d.title`, `obj.true.null`, `d["a-b"]`, `x.is is defined`, `2 in [x.in]`, `x.contains contains 7`; `{title: 1}` and comma-separated shape fields and `rule let` still fail to parse.
 - Website build passes (/tmp/website-159-keyword-field-names-build.log). Website commit 53ef399.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 18:05 - Docs round 2 (website#82)
+- Fixed the reviewer findings: identifiers.md example now states the `obj` fact (rerun with exec: `reads` gives "T/9", attachments default 5 and version "1.2"); index, policies and rules say `contribute` is rejected as a rule, fact, policy, shape or let name or as the first namespace segment (`namespace a/contribute` is accepted); shape fields are "separated by whitespace or newlines, not commas" in identifiers.md and shapes.md.
+- Only the identifiers.md snippet was added; every other edit is prose. Ran every snippet on the changed pages through `validate`: 43 untouched ones fail (listed in the website PR description under "Pre-existing broken snippets (follow-up issue)").
+- Sentrie PR description: new title, comma removed from the shape example, Journal bullet lists all entries. Website build passes (/tmp/website-159-build.log).
+- _Model: claude-sonnet-5-5_
