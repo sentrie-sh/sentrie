@@ -19,3 +19,9 @@
 - Graph: `index.shape`, `index.validate`, `index.resolve`, `index.commit` updated; `make docs-graph` passes.
 - `GOWORK=off go test ./index/... ./runtime/... ./lang_test/... ./cmd/... ./loader/...` green. Regression tests and the full gate are the test agent's.
 - _Model: claude-opus-5-5_
+
+### 2026-11-10 16:36 - Own-namespace qualified base is exempt from the export check
+- New user decision (2026-11-10): a qualified `with` base naming the shape's own namespace (`with t/a/A` in `t/a`) needs no `export shape`. Qualified bases naming another namespace still must be exported; unqualified rules unchanged. This supersedes the earlier "own namespace included" note.
+- Change: `resolveWithBase` (index/shape.go) skips `VerifyShapeExported` when the target namespace is `s.Namespace`. Cycle detection already calls the same resolver, so it follows it. Graph node `index.shape` and the PR description updated.
+- `GOWORK=off go test ./index/... ./runtime/... ./lang_test/...` green; no existing test needed changing.
+- _Model: claude-sonnet-5-5_

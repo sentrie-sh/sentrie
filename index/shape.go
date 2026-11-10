@@ -129,8 +129,8 @@ func (s *Shape) resolveDependency(idx *Index) error {
 // check (detectShapeCycle) use (#307, #308).
 //
 // A qualified base (two or more segments) resolves only in the namespace its
-// leading segments name, which must export it; that holds for the shape's own
-// namespace too. An unqualified base resolves in the shape's policy, then its
+// leading segments name, which must export it, unless that namespace is the
+// shape's own, which is exempt from the export check. An unqualified base resolves in the shape's policy, then its
 // namespace, and the first match wins. An unqualified base that only another
 // namespace's exports hold is an error that asks for the qualified name.
 func (idx *Index) resolveWithBase(s *Shape) (*Shape, error) {
@@ -150,8 +150,10 @@ func (idx *Index) resolveWithBase(s *Shape) (*Shape, error) {
 		if !ok {
 			return nil, fmt.Errorf("shape '%s' not found at %s: %w", ref.String(), at, xerr.ErrIndex)
 		}
-		if err := target.VerifyShapeExported(name); err != nil {
-			return nil, fmt.Errorf("shape '%s' not exported at %s: %w", ref.String(), at, xerr.ErrIndex)
+		if target != s.Namespace {
+			if err := target.VerifyShapeExported(name); err != nil {
+				return nil, fmt.Errorf("shape '%s' not exported at %s: %w", ref.String(), at, xerr.ErrIndex)
+			}
 		}
 		return base, nil
 	}
