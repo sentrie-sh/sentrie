@@ -26,3 +26,9 @@
 - Bite proof: with main's box/value.go the box, runtime, cmd and api placeholder tests fail; with main's runtime/executor.go (plus the sentinel var so it compiles) the whole-value and import tests fail in runtime, cmd and api.
 - Dropped lang_test fixtures: those are parser-only fixtures, and runtime behaviour is covered by the suites.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 16:43 - Docs for #141
+- Website branch 141-lambda-output (sentrie-sh/website#81): new "Lambdas in decision output" section in `reference/index.md`, plus notes in `cli-reference/exec.md` and `running-sentrie/serving-policies.md`. One commit, "Document lambdas in decision output".
+- Checked against the branch binary: nested lambda value and filter-argument trace encode as the placeholder, whole-value lambda errors in exec (exit 1, single rule and whole policy), serve (500 problem+json "Evaluation Failed") and import decision. All validating snippets on reference/index.md pass; the calling example yields 10 and 11 for n=5. `npm run build` passes.
+- Found: the website's policy-composition page writes `import decision of X from ...`, which the parser rejects (valid form is `import decision X from ...`). Not fixed here.
+- _Model: claude-sonnet-5-5_
