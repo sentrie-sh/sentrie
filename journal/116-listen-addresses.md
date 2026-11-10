@@ -6,5 +6,5 @@
 - Decisions recorded with the user on 2026-11-10, which the reviewer judges the change against:
   - No design decision needed: use the issue's fix (bare `::1` and `::` so host:port joining brackets them once; an empty listen list is an error, not a panic).
 - Branch cut from `main`.
-- Docs PR: recorded once opened.
+- Docs PR: sentrie-sh/website#89 (draft, base `next`); Sentrie PR #329.
 - _Model: claude-opus-5-5_
