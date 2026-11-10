@@ -159,9 +159,9 @@ func (s *BoxTestSuite) TestCallableRenderingAndMarshalBehavior() {
 	s.Equal("<callable>", v.Any())
 	s.Equal("<callable>", v.String())
 
-	_, err := v.MarshalJSON()
-	s.Require().Error(err)
-	s.Require().ErrorContains(err, "cannot marshal callable")
+	raw, err := v.MarshalJSON()
+	s.Require().NoError(err)
+	s.JSONEq(`{"kind":"callable"}`, string(raw))
 }
 
 func (s *BoxTestSuite) TestEqualValues_InvalidKindFallsBackToFalse() {
