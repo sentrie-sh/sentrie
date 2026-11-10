@@ -57,3 +57,9 @@
 - Replaced the PR description claim that other snippets are fine with a pre-existing broken snippets list for the follow-up issue.
 - `npm run build` passes; website commit ec6a29c.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 18:01 - Round 2 re-test and gate
+- Bite proof: TestBuiltinCheckInheritedFieldThroughQualifiedWithBase fails with index/builtin_kind.go from 7ba4e75~1 (own-namespace and two-segment cases: "An error is expected but got nil"). The child-namespace case (shape_with_resolve_test.go:82) fails when the export exemption is widened to child namespaces (temporary probe in index/shape.go, restored); with main production files plus the old-signature test files, TestShapeWithQualifiedOwnNamespaceNeedsNoExport fails.
+- No new tests: the index-level validate check already covers merge on an inherited field through a qualified base, and lang_test fixtures are exec-only.
+- Gate green: make test, make lint, make docs-graph, race on index and lang_test, gofmt, no em dash, no attribution, all commits signed.
+- _Model: claude-sonnet-5-5_
