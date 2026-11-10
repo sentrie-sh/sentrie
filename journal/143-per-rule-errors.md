@@ -26,3 +26,13 @@
 - Graph: runtime, runtime.executor, api.handle_decision, cmd, main nodes; `make docs-graph` passes. `make test`, `make lint` pass (`/tmp/sentrie-143-per-rule-errors-test.log`).
 - Open for the user: whether a named-rule request (`/decision/ns/p/rule`, `exec ns/p/rule`) should also answer 207 / print the output with its error; implemented as unchanged problem document / error only.
 - _Model: claude-opus-5-5_
+
+### 2026-11-10 18:34 - Fact errors are request errors
+- PROVISIONAL (user AFK) decisions from the orchestrator, to be confirmed:
+  - PROVISIONAL (user AFK): a failing named rule (`/decision/ns/p/rule`, `exec ns/p/rule`) gives a problem document or an error, not a 207.
+  - PROVISIONAL (user AFK): fact errors are request errors, not per-rule failures. A missing required fact, or any other fact validation error found before rules evaluate, returns a 400 problem document for a policy request, as before (consistent with #147's "wrongly typed fact -> 400"). A deadline or any other evaluation-time failure stays per rule and counts toward the 207.
+- Chose classification over hoisting: fact binding and type validation stay per rule (each rule has its own execution context, and hoisting would evaluate fact defaults twice or move validation out of the rule's trace node). `execRuleFrom` marks a top-level call's error as an unexported `requestError` when it came from the fact-binding loop (`bindingFacts`) or from a `factError` that `execRule`'s type validation raised for that same context. An imported policy's fact error has a different context, so it stays the importing rule's failure. A context error is never a request error. `ExecPolicy` returns the first request error alone, with nil outputs; facts are the policy's, so every rule has the same one.
+- Today the type-validation error maps to 500 (not invalid invocation) until #147 changes it; it is a problem document either way.
+- Tests: `TestHandleDecisionMissingRequiredFact` restored to 400. Runtime `TestExecPolicyMissingFactIsARequestError` (replaces the per-rule version) and `TestExecPolicyFactTypeErrorIsARequestError` (also covers the import case); cmd `TestExecPolicyMissingFactIsAPlainError`.
+- Commit a0b04cb. `make test`, `make lint`, `make docs-graph`, race on runtime, api and cmd pass (`/tmp/sentrie-143-per-rule-errors-test2.log`).
+- _Model: claude-opus-5-5_
