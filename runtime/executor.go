@@ -368,6 +368,15 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 	}
 
 	decision, attachments, ruleNode, err := e.execRule(ctx, ec, namespace, policy, rule)
+	// A reported rule whose whole value is a lambda is that rule's error, with
+	// no decision or attachments, so it is reported as unknown. The check sits
+	// here rather than in execRule because a rule referenced from inside the
+	// policy may be a lambda helper, as in filter(xs, helper).
+	if err == nil && decision != nil && decision.reported().Value.IsCallable() {
+		err = fmt.Errorf("rule %s: %w", index.RuleFQN(namespace, policy, rule), ErrCallableDecision)
+		ruleNode.SetErr(err)
+		decision, attachments = nil, nil
+	}
 	if err != nil && decision == nil {
 		decision = DecisionOf(box.Trinary(trinary.Unknown))
 	}
@@ -430,13 +439,6 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 	ruleNode.SetErr(err)
 	if err != nil {
 		return d, nil, ruleNode, err
-	}
-	// A rule whose whole value is a lambda is that rule's error. No decision
-	// is returned, so the caller reports the rule as unknown.
-	if d != nil && d.reported().Value.IsCallable() {
-		err := fmt.Errorf("rule %s: %w", theRule.FQN, ErrCallableDecision)
-		ruleNode.SetErr(err)
-		return nil, nil, ruleNode, err
 	}
 
 	// Compute attachment values if exported

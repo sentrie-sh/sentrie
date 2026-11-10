@@ -3,11 +3,17 @@
 
 package runtime
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/sentrie-sh/sentrie/trinary"
+)
 
 // lambdaOutputPolicy exercises a lambda at every position output can hold one
 // (#141): nested in a list or dict, as an attachment, in the trace through a
-// filter argument, and as a rule's whole value.
+// filter argument, and as a rule's whole value (from the body or from a
+// default branch). helper is an unreported rule whose value is a lambda, used
+// as a callback by usesHelper.
 const lambdaOutputPolicy = `namespace com/ex
 
 policy pol {
@@ -19,6 +25,9 @@ policy pol {
   rule withAttach = { yield true }
   rule whole = { yield id }
   rule viaImport = import decision whole from com/ex/pol
+  rule fromDefault = default id when false { yield true }
+  rule helper = (x) => { yield x > 1 }
+  rule usesHelper = { yield filter([1, 2, 3], helper) }
   export decision of inList
   export decision of inDict
   export decision of deep
@@ -26,6 +35,8 @@ policy pol {
   export decision of withAttach attach fn as id
   export decision of whole
   export decision of viaImport
+  export decision of fromDefault
+  export decision of usesHelper
 }
 `
 
@@ -75,10 +86,27 @@ func (s *RuntimeTestSuite) TestLambdaInTraceEncodes() {
 
 // A rule whose whole value is a lambda is that rule's error, with no decision.
 func (s *RuntimeTestSuite) TestRuleWholeValueLambdaIsRuleError() {
-	_, err := s.execLambdaOutput("whole")
-	s.Require().Error(err)
-	s.ErrorIs(err, ErrCallableDecision)
-	s.ErrorContains(err, "com/ex/pol/whole")
+	for _, rule := range []string{"whole", "fromDefault"} {
+		out, err := s.execLambdaOutput(rule)
+		s.Require().Error(err, rule)
+		s.ErrorIs(err, ErrCallableDecision, rule)
+		s.ErrorContains(err, "com/ex/pol/"+rule, rule)
+		s.Require().NotNil(out, rule)
+		s.Equal(trinary.Unknown, out.Decision.State, rule)
+		s.Empty(out.Attachments, rule)
+		s.Require().NotNil(out.RuleNode, rule)
+		s.Contains(out.RuleNode.Err, ErrCallableDecision.Error(), rule)
+	}
+}
+
+// An unreported rule whose value is a lambda is a helper: referenced from
+// another rule it is a callback, not an error.
+func (s *RuntimeTestSuite) TestLambdaHelperRuleIsCallableFromAnotherRule() {
+	out, err := s.execLambdaOutput("usesHelper")
+	s.Require().NoError(err)
+	raw, err := json.Marshal(out.Decision.reported().Value)
+	s.Require().NoError(err)
+	s.JSONEq(`[2,3]`, string(raw))
 }
 
 // The same lambda-valued rule reached through import decision fails the importing rule.
