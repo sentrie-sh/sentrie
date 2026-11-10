@@ -60,6 +60,15 @@ func (s *ParserTestSuite) TestConstraintNegativeNumberArguments() {
 		sp := args[0].Span()
 		s.Equal("-5", input[sp.From.Offset:sp.To.Offset])
 	})
+	s.Run("space between minus and number", func() {
+		input := "number @min(- 5)"
+		args := s.constraintArgs(input)
+		i, ok := args[0].(*ast.IntegerLiteral)
+		s.Require().True(ok, "%T", args[0])
+		s.Equal(int64(-5), i.Value)
+		sp := args[0].Span()
+		s.Equal("- 5", input[sp.From.Offset:sp.To.Offset])
+	})
 	s.Run("positive literals unchanged", func() {
 		args := s.constraintArgs("number @min(5)")
 		i, ok := args[0].(*ast.IntegerLiteral)
