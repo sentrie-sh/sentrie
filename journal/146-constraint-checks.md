@@ -27,3 +27,7 @@
 - Decision from the user (2026-11-10, supersedes "widen" in the pickup entry): scheme arguments replace the default set. `@url()` accepts http and https; `@url("ftp")` only ftp; `@url("https")` only https; `@url("http", "https", "ftp")` those three. Case-insensitive comparison and the invalid-scheme-argument error are unchanged.
 - Changed the checker in constraints/string.go, added tests in constraints/string_test.go, updated docs/codebase-graph/constraints.md and the PR description (open question removed).
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 16:37 - Model deviation in round 2
+- The round-2 `@url` replace-the-default change (a1e0096) was implemented by a sonnet agent after the opus implementer reached its context cap. Constraint checking is an opus area under `.agentrules/parallelize-with-subagents.md`, and a capped agent should be replaced on the same model, so this was a deviation. The commit stays; the opus reviewer checks it with extra care, and any further fix round on this branch goes to opus.
+- _Model: claude-opus-5-5 (orchestrator)_
