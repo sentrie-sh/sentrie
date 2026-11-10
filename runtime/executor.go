@@ -242,7 +242,8 @@ func (e *executorImpl) withEvalDeadline(parent context.Context) (_ context.Conte
 // others: its output reports unknown and carries the failure in Error. When any
 // rule failed the returned error is a RuleErrors holding those failures, so a
 // caller that wants the partial results checks for it with errors.As. Any other
-// error means the policy did not resolve, and the outputs are nil.
+// error, with nil outputs, is a request error: the policy did not resolve, or
+// its facts did not bind or validate (a missing required fact, say).
 func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) ([]*ExecutorOutput, error) {
 	ctx, cancel, annotate := e.withEvalDeadline(ctx)
 	defer cancel()
@@ -284,6 +285,13 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 	}
 	wg.Wait()
 
+	// Facts are the policy's, so a fact error is the same for every rule and
+	// is the request's error (#143).
+	for _, re := range ruleErrs {
+		if reqErr := (*requestError)(nil); stdErr.As(re, &reqErr) {
+			return nil, re.err
+		}
+	}
 	if len(ruleErrs) > 0 {
 		return outputs, ruleErrs
 	}
@@ -319,6 +327,15 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 	ec := NewExecutionContext(p, e)
 	ec.inheritDepth(caller)
 	defer ec.Dispose()
+
+	// A fact error of a top-level call is a request error, not a rule failure
+	// (#143): ExecPolicy returns it alone instead of one per rule.
+	bindingFacts := true
+	defer func() {
+		if caller == nil {
+			err = asRequestError(ec, bindingFacts, err)
+		}
+	}()
 
 	for factName, factStatement := range p.Facts {
 		// look for a value for this fact in the passed in facts map
@@ -366,6 +383,8 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 			}
 		}
 	}
+
+	bindingFacts = false
 
 	// bind lets
 	for k, v := range p.Lets {
@@ -443,7 +462,7 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 		stmt := thePolicy.Facts[name]
 		// validate the value against the type
 		if err := validateValueAgainstTypeRef(ctx, ec, e, thePolicy, fact.value, fact.typeRef, stmt.Span()); err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, &factError{ec: ec, err: err}
 		}
 	}
 

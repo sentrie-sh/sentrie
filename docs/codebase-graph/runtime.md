@@ -39,7 +39,7 @@ tags: evaluation, execution, sandboxing, javascript, concurrency, back-end
 - **Signature:** `Executor` interface - `ExecPolicy(ctx, namespace, policy, facts) -> ([]*ExecutorOutput, error)`, `ExecRule(ctx, namespace, policy, rule, facts) -> (*ExecutorOutput, error)`, `Index() -> *index.Index`, `Close() -> error`
   - **Behavior:** The public entrypoints. `ExecPolicy` fans out over every exported rule **concurrently** and returns an output per rule even when some fail ([#143](https://github.com/sentrie-sh/sentrie/issues/143)); `ExecRule` runs one. See [[runtime.executor]].
   - **Side Effects:** Executes JavaScript, populates caches, builds trace trees.
-  - **Exceptions:** Missing required facts, unexported rules, evaluation errors, recursion errors. From `ExecPolicy`, rule failures arrive together as a `RuleErrors` next to the full outputs.
+  - **Exceptions:** Missing required facts, unexported rules, evaluation errors, recursion errors. From `ExecPolicy`, rule failures arrive together as a `RuleErrors` next to the full outputs; a fact error is a request error, returned alone.
 
 - **Signature:** `ExecutorOutput` - `{ PolicyName, Namespace, RuleName, Decision *Decision, Attachments DecisionAttachments, RuleNode *trace.Node, Error *RuleError }`
   - **Behavior:** The result envelope, JSON-serializable for CLI and API consumers. `Error` (JSON `error`, omitted on success) is set when the rule failed, and the decision is then unknown.

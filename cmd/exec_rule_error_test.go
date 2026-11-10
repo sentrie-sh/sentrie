@@ -50,3 +50,24 @@ func (s *CmdTestSuite) TestExecPolicyTableShowsRuleErrors() {
 	s.Contains(out, "! whole: rule com/lam/pol/whole: a rule's value cannot be a callable")
 	s.Contains(out, "nested:")
 }
+
+// A missing required fact on a policy is a plain error: no per-rule output.
+func (s *CmdTestSuite) TestExecPolicyMissingFactIsAPlainError() {
+	dir := s.writeTestPack(`namespace com/ex
+policy pol {
+  fact user: any
+  rule a = { yield true }
+  rule b = { yield 1 / 0 }
+  export decision of a
+  export decision of b
+}
+`)
+	var err error
+	out := s.captureStdout(func() {
+		err = runExecCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+	})
+	s.Require().Error(err)
+	s.Contains(err.Error(), "required fact not found: user")
+	s.NotContains(err.Error(), "rules failed")
+	s.Empty(out)
+}

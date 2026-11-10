@@ -100,23 +100,53 @@ func (s *RuntimeTestSuite) TestRuleErrorJSONShape() {
 	s.NotNil(failed.Decision)
 }
 
-// A missing required fact fails every rule, each with an invalid-invocation
-// error (status 400), and the policy still returns an output per rule.
-func (s *RuntimeTestSuite) TestExecPolicyMissingFactIsAnErrorOnEveryRule() {
+// A missing required fact is the request's error, not a failure of each rule
+// (#143): ExecPolicy returns it alone, with no outputs.
+func (s *RuntimeTestSuite) TestExecPolicyMissingFactIsARequestError() {
 	byName, err := s.execRuleErrorPolicy(nil)
 
+	s.Require().Error(err)
 	var ruleErrs RuleErrors
-	s.Require().True(stdErr.As(err, &ruleErrs), "error is RuleErrors: %v", err)
-	s.Len(ruleErrs, 5)
+	s.False(stdErr.As(err, &ruleErrs), "error is not RuleErrors: %v", err)
 	var invErr xerr.InvalidInvocationError
 	s.ErrorAs(err, &invErr)
-	s.Require().Len(byName, 5)
-	for rule, out := range byName {
-		s.Require().NotNil(out.Error, rule)
-		s.Equal(http.StatusBadRequest, out.Error.Status, rule)
-		s.Contains(out.Error.Detail, "required fact not found: user", rule)
-		s.Equal(trinary.Unknown, out.Decision.State, rule)
-	}
+	s.Equal(http.StatusBadRequest, ErrorStatus(err))
+	s.Contains(err.Error(), "required fact not found: user")
+	s.Empty(byName)
+}
+
+// A fact that fails its declared type is a request error too, while an
+// imported policy's fact error stays the importing rule's failure.
+func (s *RuntimeTestSuite) TestExecPolicyFactTypeErrorIsARequestError() {
+	ctx := s.T().Context()
+	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "fact_type.sentrie", src: `namespace com/ex
+
+policy typed {
+  fact n: number
+  rule ok = { yield n > 0 }
+  export decision of ok
+}
+
+policy importer {
+  rule fine = { yield true }
+  rule viaImport = import decision ok from com/ex/typed with n as "x"
+  export decision of fine
+  export decision of viaImport
+}
+`})
+
+	outputs, err := exec.ExecPolicy(ctx, "com/ex", "typed", map[string]any{"n": "x"})
+	s.Require().Error(err)
+	var ruleErrs RuleErrors
+	s.False(stdErr.As(err, &ruleErrs), "error is not RuleErrors: %v", err)
+	s.Nil(outputs)
+	s.Contains(err.Error(), "is not a number")
+
+	outputs, err = exec.ExecPolicy(ctx, "com/ex", "importer", nil)
+	s.Require().True(stdErr.As(err, &ruleErrs), "error is RuleErrors: %v", err)
+	s.Len(ruleErrs, 1)
+	s.Len(outputs, 2)
+	s.Contains(ruleErrs[0].Detail, "is not a number")
 }
 
 // The evaluation deadline fails only the rules it stops, each with its own

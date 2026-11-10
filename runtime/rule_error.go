@@ -94,3 +94,38 @@ func withRuleError(output *ExecutorOutput, namespace, policy, rule string, err e
 	output.Error = newRuleError(err)
 	return output
 }
+
+// factError is a fact that failed its declared type, found by execRule for
+// the execution context ec before the rule evaluates.
+type factError struct {
+	ec  *ExecutionContext
+	err error
+}
+
+func (e *factError) Error() string { return e.err.Error() }
+
+func (e *factError) Unwrap() error { return e.err }
+
+// requestError marks the error of a top-level call whose facts did not bind or
+// validate. It is the request's error rather than one rule's (#143), so
+// ExecPolicy returns it alone. It adds nothing to the message.
+type requestError struct{ err error }
+
+func (e *requestError) Error() string { return e.err.Error() }
+
+func (e *requestError) Unwrap() error { return e.err }
+
+// asRequestError marks err as a request error when it arose while binding the
+// facts of ec (bindingFacts) or validating them (a factError for ec, not for
+// an imported policy's context). A context error stays a rule failure: a
+// deadline is evaluation time, whatever it interrupted.
+func asRequestError(ec *ExecutionContext, bindingFacts bool, err error) error {
+	if err == nil || stdErr.Is(err, context.DeadlineExceeded) || stdErr.Is(err, context.Canceled) {
+		return err
+	}
+	var fe *factError
+	if bindingFacts || (stdErr.As(err, &fe) && fe.ec == ec) {
+		return &requestError{err: err}
+	}
+	return err
+}
