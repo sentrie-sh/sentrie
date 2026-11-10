@@ -53,3 +53,11 @@
 - PR description: tests section lists the regression tests, the docs note says only `what-is-policy-as-code.md` is unchanged, the Journal bullet lists every entry.
 - Tests: `GOWORK=off go test ./constraints/ ./parser/ ./index/ ./runtime/ ./cmd/ ./lang_test/...` and `make docs-graph` pass.
 - _Model: claude-opus-5-5_
+
+### 2026-11-10 18:18 - Docs review round 2 for website#80
+
+- Fixed the bare `string @email` in the Syntax paragraph of `reference/constraints.md` to `string @email()`; no other added or edited line used a bare constraint.
+- Added a URLs note that schemes without a host (`mailto:`, `urn:`) never pass `@url`, even when listed as arguments; confirmed with the branch binary (`@url("mailto")` rejects `mailto:a@b.c`).
+- Re-ran the membership, negative, URL, string length and `reference/index.md` User snippets (validate plus exec): all pass. `npm run build` passes (`/tmp/website-146-constraint-checks-build.log`).
+- Committed website `7271931`; updated the website PR description's pre-existing-broken-snippets entry to name the untouched Syntax `text` fence.
+- _Model: claude-sonnet-5-5_
