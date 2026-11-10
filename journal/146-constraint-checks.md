@@ -44,3 +44,12 @@
 - Website pages: `reference/constraints.md` (tables, new Membership / Negative arguments / URLs / String length sections, breaking-change note), `troubleshooting/common-errors.md` (4 rows), `reference/index.md` (constraints example made runnable). Three signed commits; `npm run build` passes.
 - Found, not fixed: a bare constraint (`@email`, `@url`) fails to parse with "expected 'LeftParen'" on main and here, while the docs show bare forms widely; pre-existing broken snippets are listed in the website PR description.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 18:18 - Review round 1 fixes
+- `constraints/string_test.go`: legacy 15-line license header rewritten to the two-line SPDX form (91bac97).
+- Suggestion taken: `@url` compares schemes with `strings.EqualFold` and builds the lower-cased scheme list only on the failure path, so a passing check allocates nothing (8afff61). The error text is unchanged.
+- Suggestion taken: the non-literal, minus and map-key errors in `parser/literal.go` dropped their " at %s", since `errorf` already prefixes the same range; the parser tests now assert the position is printed exactly once (they fail against the old messages), and `docs/codebase-graph/parser.literal.md` is updated (9d256c7). No fixture or other test matched the old text.
+- Suggestion taken: parser test for `@min(- 5)`, which parses as -5 spanning `- 5` (0da050e).
+- PR description: tests section lists the regression tests, the docs note says only `what-is-policy-as-code.md` is unchanged, the Journal bullet lists every entry.
+- Tests: `GOWORK=off go test ./constraints/ ./parser/ ./index/ ./runtime/ ./cmd/ ./lang_test/...` and `make docs-graph` pass.
+- _Model: claude-opus-5-5_
