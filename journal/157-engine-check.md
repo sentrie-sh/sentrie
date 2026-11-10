@@ -9,5 +9,5 @@
   - Prereleases use STRICT semver: `0.0.5-rc1` fails `>=0.0.5` (user overrode the recommendation).
   - A mismatch under `validate` is an error.
 - Branch cut from `main`.
-- Docs PR: recorded once opened.
+- Docs PR: sentrie-sh/website#90 (draft, base `next`); Sentrie PR #330.
 - _Model: claude-opus-5-5_
