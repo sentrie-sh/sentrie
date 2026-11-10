@@ -8,5 +8,5 @@
   - `serve` returns 207 Multi-Status when any rule failed (including all of them), and 200 otherwise.
   - Output and error order stays nondeterministic: the user declined a total order, so that part of the issue is closed as won't fix.
   - `exec` exits non-zero when any rule errored; its output still carries every rule's result.
-- Docs PR: recorded once opened.
+- Docs PR: sentrie-sh/website#79 (branch `143-per-rule-errors` on `next`). Sentrie PR: #319.
 - _Model: claude-opus-5-5, subagents: 1x sonnet (design questions)_
