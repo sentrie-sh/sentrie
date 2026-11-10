@@ -5,6 +5,8 @@ package parser
 
 import (
 	"context"
+	"errors"
+	"strconv"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/tokens"
@@ -24,6 +26,8 @@ func parseConstraintLiteral(ctx context.Context, p *Parser) ast.Expression {
 		return parseTrinaryLiteral(ctx, p)
 	case tokens.KeywordNull:
 		return parseNullLiteral(ctx, p)
+	case tokens.TokenMinus:
+		return parseConstraintNegativeLiteral(ctx, p)
 	case tokens.PunctLeftBracket:
 		return parseConstraintListLiteral(ctx, p)
 	case tokens.PunctLeftCurly:
@@ -34,7 +38,43 @@ func parseConstraintLiteral(ctx context.Context, p *Parser) ast.Expression {
 		p.errorf("%s", p.current.Value)
 		return nil
 	default:
-		p.errorf("constraint arguments must be literals, got %s at %s", p.current.Kind, p.current.Range.From)
+		p.errorf("constraint arguments must be literals, got %s at %s", p.current.Kind, p.current.Range)
+		return nil
+	}
+}
+
+// parseConstraintNegativeLiteral parses a unary minus followed by a number
+// literal (`@min(-5)`, `@gt(-0.5)`) into one negative literal spanning both
+// tokens. The minus applies to number literals only: `-x`, `-"a"` and
+// `-(1)` stay errors, so constraint arguments remain literals.
+func parseConstraintNegativeLiteral(ctx context.Context, p *Parser) ast.Expression {
+	minus := p.advance()
+	number := p.current
+	rnge := tokens.Range{File: minus.Range.File, From: minus.Range.From, To: number.Range.To}
+	switch number.Kind {
+	case tokens.Int:
+		p.advance()
+		text := "-" + number.Value
+		value, err := strconv.ParseInt(text, 10, 64)
+		if err == nil {
+			return ast.NewIntegerLiteral(value, rnge)
+		}
+		// Below the int64 range: a float, as for a positive literal (#166).
+		if f, ferr := strconv.ParseFloat(text, 64); errors.Is(err, strconv.ErrRange) && ferr == nil {
+			return ast.NewFloatLiteral(f, rnge)
+		}
+		p.errorAtf(number.Range, "invalid integer literal %q: %w", number.Value, err)
+		return nil
+	case tokens.Float:
+		p.advance()
+		value, err := strconv.ParseFloat("-"+number.Value, 64)
+		if err != nil {
+			p.errorAtf(number.Range, "invalid float literal %q: %w", number.Value, err)
+			return nil
+		}
+		return ast.NewFloatLiteral(value, rnge)
+	default:
+		p.errorf("a minus in a constraint argument must be followed by a number literal, got %s at %s", number.Kind, number.Range)
 		return nil
 	}
 }
@@ -91,7 +131,7 @@ func parseConstraintMapLiteral(ctx context.Context, p *Parser) ast.Expression {
 	for p.hasTokens() && p.current.Kind != tokens.PunctRightCurly {
 		// Parse key (must be string literal)
 		if !p.canExpect(tokens.String) {
-			p.errorf("map keys must be string literals, got %s at %s", p.current.Kind, p.current.Range.From)
+			p.errorf("map keys must be string literals, got %s at %s", p.current.Kind, p.current.Range)
 			return nil
 		}
 		keyToken, found := p.advanceExpected(tokens.String)

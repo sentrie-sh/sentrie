@@ -25,9 +25,14 @@ tags: constraints, compile-time-constants, literal-only, type-system
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `parseConstraintLiteral(ctx, p) -> ast.Expression`
-  - **Behavior:** Switches on the head token and accepts exactly seven forms: string, int, float (including exponent forms such as `1e-3`, which the lexer emits as `Float`), the three trinary keywords, null, `[` (literal list), and `{` (literal map). A lexer `Error` token (for example a malformed number literal `1e`) is reported with the lexer's own message. Everything else is rejected.
+  - **Behavior:** Switches on the head token and accepts exactly eight forms: string, int, float (including exponent forms such as `1e-3`, which the lexer emits as `Float`), a unary minus followed by an int or float (`parseConstraintNegativeLiteral`, #146), the three trinary keywords, null, `[` (literal list), and `{` (literal map). A lexer `Error` token (for example a malformed number literal `1e`) is reported with the lexer's own message. Everything else is rejected.
   - **Side Effects:** Consumes tokens.
-  - **Exceptions:** `constraint arguments must be literals, got %s at %s` for any other token - the diagnostic that distinguishes "you wrote an expression" from a generic syntax error.
+  - **Exceptions:** `constraint arguments must be literals, got %s at %s` for any other token - the diagnostic that distinguishes "you wrote an expression" from a generic syntax error. The position is the token's `Range` (`file:line:col-col`); it used to format `Range.From` with `%s`, which printed `%!s(int=…)` (#146).
+
+- **Signature:** `parseConstraintNegativeLiteral(ctx, p) -> ast.Expression`
+  - **Behavior:** Consumes `-` and the number token after it and returns one negative `IntegerLiteral` or `FloatLiteral` spanning both, so the index's argument folding ([[index.constraint_args]]), the runtime and [[format]] see an ordinary literal. An integer below the int64 range becomes a float, as for a positive one (#166); `-9223372036854775808` is an exact `MinInt64`.
+  - **Side Effects:** Consumes tokens.
+  - **Exceptions:** `a minus in a constraint argument must be followed by a number literal, got %s at %s` for `-x`, `-"a"`, `-(1)` or `-[1]`.
 
 - **Signature:** `parseConstraintListLiteral(ctx, p) -> ast.Expression`
   - **Behavior:** Parses `[ lit, lit, … ]` where every element recurses through `parseConstraintLiteral`, so nesting stays literal-only. Requires a comma between elements and permits a closing bracket immediately after any element.
@@ -45,5 +50,5 @@ tags: constraints, compile-time-constants, literal-only, type-system
 - **Dependencies Risk:**
   - **The colon check does not consume.** In the map parser, a missing `:` is detected with `canExpect` and returns `nil` **without calling `errorf`**, so the parse aborts with no diagnostic recorded - the caller then reports something generic and misleading. This is the one silent-failure path in the file.
   - **A parallel grammar that can drift.** Two literal syntaxes now exist: this one and the general one in [[parser.collection]]. Adding a literal form to the language means updating both, and forgetting this file makes the new form unusable in constraints for no obvious reason.
-  - **Negative numbers are not literals here.** Unary minus is an *expression*, not a literal token, so `number.min(-1)` is rejected as "constraint arguments must be literals". Any negative bound must be expressed another way.
+  - **Negative numbers are folded here, not in general expressions.** Elsewhere `-1` is a `UnaryExpression` ([[parser.unary]]); in a constraint argument it is a negative literal, and only directly before a number. The map-key path still rejects anything but a string key.
   - **Trailing commas are accepted in lists** (the loop breaks on the closing bracket after consuming a comma) but the behaviour differs subtly between the list and map paths - do not assume symmetry.
