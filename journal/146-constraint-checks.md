@@ -10,5 +10,5 @@
   - `@url` parses with net/url and needs a scheme and a host; ports, IPs and localhost are fine; with no arguments only http and https pass, and variadic scheme arguments widen it (`@url("ftp", "s3")`).
   - `@length` counts Unicode code points.
   - Constraint arguments accept unary minus on numeric literals only.
-- Docs PR: recorded once opened.
+- Docs PR: sentrie-sh/website#80 (branch `146-constraint-checks` on `next`). Sentrie PR: #320.
 - _Model: claude-opus-5-5, subagents: 1x sonnet (design questions)_
