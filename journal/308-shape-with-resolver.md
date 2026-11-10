@@ -63,3 +63,9 @@
 - No new tests: the index-level validate check already covers merge on an inherited field through a qualified base, and lang_test fixtures are exec-only.
 - Gate green: make test, make lint, make docs-graph, race on index and lang_test, gofmt, no em dash, no attribution, all commits signed.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-10 18:04 - Review round 2 approved
+
+- Opus re-review returned VERDICT: APPROVE: the kind check now uses the shared resolver, no fourth with-base resolver exists, and every touched website snippet and quoted error message matches the branch binary.
+- Correction to the round 2 re-test entry: `lang_test` fixtures are not exec-only; each one also goes through `idx.Validate` (`lang_test/*_test.go:39`), as the PR description says.
+- _Model: claude-opus-5-5_
