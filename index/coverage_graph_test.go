@@ -189,9 +189,19 @@ func programWithRichRuleGraph(selfCycle bool) *ast.Program {
 	)
 	complexBody = ast.NewInfixExpression(complexBody, lambdaInRule, "and", pr(103))
 
+	// Every name the body reads must be defined: validate rejects an
+	// unknown identifier (#155).
+	var readFacts []ast.Statement
+	for _, name := range []string{
+		"chainC", "chainD", "argA", "argB", "le1", "le2", "mapVal", "objZ",
+		"u1", "cond1", "then1", "else1", "leftI", "rightI",
+	} {
+		readFacts = append(readFacts, ast.NewFactStatement(name, ast.NewStringTypeRef(pr(2)), name, nil, true, pr(2)))
+	}
+
 	pol := ast.NewPolicyStatement(
 		"GraphPol",
-		[]ast.Statement{
+		append(readFacts,
 			ast.NewFactStatement(
 				"user",
 				ast.NewStringTypeRef(pr(2)),
@@ -233,7 +243,7 @@ func programWithRichRuleGraph(selfCycle bool) *ast.Program {
 				pr(5),
 			),
 			ast.NewRuleExportStatement("chainA", nil, pr(6)),
-		},
+		),
 		pr(1),
 	)
 	return &ast.Program{

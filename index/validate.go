@@ -60,6 +60,12 @@ func (idx *Index) validate(ctx context.Context) error {
 	if err := idx.detectReferenceCycle(ctx); err != nil {
 		return err
 	}
+	if err := idx.detectSelfReference(ctx); err != nil {
+		return err
+	}
+	if err := idx.checkIdentifiers(ctx); err != nil {
+		return err
+	}
 	if err := idx.detectContributionSelfReference(ctx); err != nil {
 		return err
 	}
@@ -182,6 +188,10 @@ func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Polic
 
 		switch n := node.(type) {
 		case *ast.Identifier:
+			// A self edge is refused (dag.ErrSelfLoop) and dropped: the graph
+			// ignores scope, so `rule x = { let x = 1 yield x }` would read as
+			// x referencing itself. detectSelfReference resolves names by
+			// scope and reports real self-references.
 			_ = g.AddEdge(String(referedBy.String()), String(n.Value))
 		case *ast.RuleStatement:
 			g.AddNode(String(n.RuleName))
