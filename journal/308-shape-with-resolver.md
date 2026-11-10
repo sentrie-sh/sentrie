@@ -29,3 +29,9 @@
 ### 2026-11-10 16:36 - Model deviation in round 2
 - The round-2 own-namespace exemption (260cd44) was implemented by a sonnet agent after the opus implementer reached its context cap. Shape `with` resolution is an opus area under `.agentrules/parallelize-with-subagents.md`, and a capped agent should be replaced on the same model, so this was a deviation. The commit stays; the opus reviewer checks it with extra care, and any further fix round on this branch goes to opus.
 - _Model: claude-opus-5-5 (orchestrator)_
+
+### 2026-11-10 16:40 - Regression tests for with-base resolution
+- Added `index/shape_with_resolve_test.go` (qualified base needs export, own-namespace exemption, policy-then-namespace shadowing, unqualified base elsewhere must be qualified or is not found, #307 and #308 hydration, cycle detection agreeing with hydration), `runtime/shape_with_base_test.go` (evaluated #307 and #308 repros), and fixture `lang_test/0060-shape-with-bases.sentrie`.
+- Bite proof against main: runtime tests and the fixture fail with main's index/shape.go, validate.go, commit.go; the index tests fail with those plus the five test files that call the old `resolveDependency` signature (needed to compile).
+- Gate: make test, make lint, make docs-graph, race on index and lang_test, gofmt all pass. No implementation bugs found.
+- _Model: claude-sonnet-5-5_
