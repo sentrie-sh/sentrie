@@ -57,8 +57,10 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 			return errMismatch("field %s is required at %s - expected field", field.Name, pos)
 		}
 
+		// A field given undefined (missing data) passes through, as an
+		// untyped value does (#148). An absent required field still fails.
 		if fieldValue.IsUndefined() {
-			return errMismatch("field %s cannot be undefined at %s - expected field value", field.Name, pos)
+			continue
 		}
 
 		// A field composed in through `with` resolves in its declaring shape.
