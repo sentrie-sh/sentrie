@@ -60,3 +60,26 @@
 - Next: the test agent adds regression tests; then docs (website lines on imported `with` fact type errors to 400), re-review, combined check re-run.
 - Open findings: a missing required `with` fact for an imported policy is not caught at index build (runtime per-rule 400 inside a 207); `api/fact_binding_test.go` comment on `TestDecisionWronglyTypedNonLiteralDefaultIs500` still says PROVISIONAL although user decision 12 confirmed it.
 - _Model: claude-opus-5-5_
+
+### 2026-11-11 14:45 - Tests for the imported fact 400 (round 2)
+- Reviewed the implementer's tests for decision 11 (runtime, rule_error, api, cmd) and added only the missing api cases in `api/fact_binding_test.go`: `TestDecisionImportedNullFactIs400` (null `with` value for a non-nullable fact: one 400 problem document naming `imported policy fb/test/target`, no `decisions`), `TestDecisionImportedOtherFailuresStayPerRule` (a missing required `with` fact and a runtime error in the imported rule body are a 207 with the importing rule's error and the other rule intact), `TestDecisionTransitiveImportedWronglyTypedFactIs400` (A imports B imports C: one 400; it passes, no bug).
+- A caller-supplied fact type error stays covered by `TestDecisionWronglyTypedFactIs400` (unchanged, passes).
+- Reworded the stale PROVISIONAL comment on `TestDecisionWronglyTypedNonLiteralDefaultIs500` (user decision 12 confirmed it).
+- Bite proof: `runtime/executor.go` and `runtime/rule_error.go` restored from 82938ca~1: the three new 400 tests, `TestDecisionImportedWronglyTypedFactIs400`, `TestImportedWronglyTypedFactIsARequestError`, `TestExecPolicyFactTypeErrorIsARequestError` and `TestExecImportedWronglyTypedFactIsAnError` all fail; the 207 test passes in both (it pins unchanged behaviour). Restored with `git checkout HEAD`.
+- _Model: claude-sonnet-5-5_
+
+### 2026-11-11 14:55 - Docs round 2 for #147 (imported wrongly typed fact is a 400)
+- Replaced every "per-rule 500" sentence for an imported wrongly typed `with` fact (only `reference/facts.md` had one) with the user decision 11 behaviour: one 400, no decisions, message names the imported policy; added a runnable snippet there and short notes in `serving-policies.md`, `exec.md`, `errors.md` and `policy-composition.md`. Website PR description updated, PROVISIONAL wording dropped for this item.
+- Verified with the branch binary: `serve` 400 for the whole policy and the single rule, 200 for the unaffected rule; `exec` exits 1 with the same message. Website build passes.
+- Found: the docs' `import decision of X from ...` form does not parse (the parser wants `import decision X from ...`); other pages still use the wrong form (follow-up).
+- Nothing committed (signing refused).
+- _Model: claude-sonnet-5-5_
+
+### 2026-11-11 14:55 - Review round 3 fixes: missing `with` fact and deterministic 400
+- PROVISIONAL (orchestrator extension of user decisions 2 and 11), needs confirmation: a required fact an import leaves out of its `with` clauses is now a whole-request 400 (`imported policy ns/target: required fact not found: req`), like a caller's missing required fact, instead of a 207 with a per-rule 400. `execRuleFrom`: `nullSupplied` renamed `withFactError` and set on the `ErrRequiredFact` return too, so `asImportedFactError` marks it.
+- W2: `ExecPolicy` returned the first request error in goroutine completion order, so two rules with different imported fact errors gave a nondeterministic 400 body. It now keeps each rule's request error by rule name and `firstDeclaredError` returns the one of the rule declared earliest in `Policy.Statements` (then by name), consistent with #143's declaration order.
+- Tests: api `TestDecisionImportedOtherFailuresStayPerRule` split into `TestDecisionImportedMissingFactIs400` (policy and rule) and `TestDecisionImportedBodyFailureStaysPerRule`; added `TestDecisionImportedFactErrorIsDeterministic`, runtime `TestImportedMissingRequiredFactIsARequestError` and `TestImportedFactErrorChoiceIsDeterministic` (50 runs each), cmd `TestExecImportedMissingFactIsAnError`. The determinism fixtures declare the rule `second` first, so they check declaration order, not name order.
+- Bite proof: with `git show HEAD:runtime/executor.go` swapped in (copy/restore via /tmp), all five new tests fail; restored.
+- Graph: runtime.executor, runtime.imports, api.handle_decision. Website: facts.md (missing `with` fact is a 400, deterministic choice, remaining per-rule failures are a 207 entry only for a whole-policy request), exec.md, errors.md, serving-policies.md, policy-composition.md. Both PR descriptions updated; the stacking line lost its PROVISIONAL tag (user decision 18 kept the stacks).
+- Gates: `make test`, `make lint` (0 issues), `make docs-graph`, race on api, cmd and the runtime import/fact tests, website build (76 pages) pass. Logs /tmp/sentrie-147-fact-binding-r3-*.log, /tmp/website-147-fact-binding-build-r3.log. Nothing committed: signing refused.
+- _Model: claude-opus-5-5_
