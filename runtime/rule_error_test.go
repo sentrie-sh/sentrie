@@ -284,3 +284,39 @@ func (s *RuntimeTestSuite) TestAttachmentFailureReportsUnknown() {
 	s.Equal(trinary.Unknown, out.Decision.State)
 	s.Nil(out.Attachments)
 }
+
+// A rule whose body fails, with an attachment declared, is unknown with no
+// attachments: the attachment is never computed, and the earlier behaviour
+// for body failures is unchanged by the attachment fix (#143 review).
+func (s *RuntimeTestSuite) TestBodyFailureWithAttachmentReportsUnknown() {
+	ctx := s.T().Context()
+	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "body_fail.sentrie", src: `namespace com/ex
+
+policy pol {
+  rule bad = { yield 1 / 0 }
+  rule fine = { yield true }
+  export decision of bad attach note as "x"
+  export decision of fine attach note as "kept"
+}
+`})
+	outputs, err := exec.ExecPolicy(ctx, "com/ex", "pol", nil)
+	var ruleErrs RuleErrors
+	s.Require().True(stdErr.As(err, &ruleErrs), "error is RuleErrors: %v", err)
+	s.Len(ruleErrs, 1)
+	s.Require().Len(outputs, 2)
+	byRule := map[string]*ExecutorOutput{}
+	for _, o := range outputs {
+		byRule[o.RuleName] = o
+	}
+	bad := byRule["bad"]
+	s.Require().NotNil(bad)
+	s.Require().NotNil(bad.Error)
+	s.Contains(bad.Error.Detail, "divide by zero")
+	s.Equal(trinary.Unknown, bad.Decision.State)
+	s.Nil(bad.Attachments)
+	fine := byRule["fine"]
+	s.Require().NotNil(fine)
+	s.Nil(fine.Error)
+	s.Equal(trinary.True, fine.Decision.State)
+	s.Contains(fine.Attachments, "note")
+}
