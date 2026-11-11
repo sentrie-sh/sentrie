@@ -65,3 +65,11 @@
 - The milestone combined check (all 15 branches merged in a throwaway clone) failed in `cmd/engine_test.go`: the validate subtests passed the positional `com/ex/pol`, which #155 now rejects ("validate takes no arguments", user decision 10).
 - Dropped the argument, the same fix #146 and #147 already carry (user decision 19). `go test ./cmd/...` passes on this branch with and without #155 (`/tmp/s11-157-engine-check-cmd.log`).
 - _Model: claude-fable-5-2_
+
+### 2026-11-12 02:29 - Review comment: a non-semver binary version panicked at startup
+
+- Review comment (repo owner, website#90 `packfile.md:103`): `checkEngine` handles an unparseable version, but `main` calls `versionOnce().String()` first, which hit `semver.MustParse` in `version/version.go` and panicked. Reproduced: a build with `-ldflags '-X main.version=not-semver'` panicked (`invalid semantic version`, exit 2) on `validate`, `exec` and `--version` before any pack check. There is no `version` subcommand.
+- The comment confirms USER DECISION 14 ("an unparseable binary version warns and loads"); took its first option, so the docs guarantee stands. `version.Info.String()` now uses `semver.NewVersion` and prints a non-semver version as given (`Sentrie not-semver`); a semver one still prints `Sentrie v0.0.5` (for `0.0.5` and `v0.0.5`). No other path parses the binary version (`cmd/engine.go` already uses `NewVersion`; `pack/pack.go` `MustParse("0.0.1")` is a constant). `main.go` is unchanged.
+- Tests: `version/version_test.go` (new `VersionTestSuite`) and `main_test.go` (new `MainTestSuite`, builds the real binary into `t.TempDir()`, about 3s, skipped under `-short`; `validate` and `exec` exit 0 with the not-semver warning on stderr, `--version` prints the raw version). Both fail against the previous `version.go` (`/tmp/sentrie-157-engine-check-c1-bite.log`).
+- Graph `version.md` (no more panic gotcha) and `main.md` updated. Website: page wording already matches; the real warning is quoted in the website PR description only. Gate: make test, lint, docs-graph (`/tmp/sentrie-157-engine-check-c1-*.log`), website `npm run build` (`/tmp/website-157-engine-check-build-c1.log`) pass.
+- _Model: claude-opus-5-5_
