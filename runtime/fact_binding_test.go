@@ -254,8 +254,8 @@ policy two {
 `
 
 // A missing required `with` fact is a request error and a 400, like a
-// caller's missing required fact (#147, PROVISIONAL extension of user
-// decisions 2 and 11), for the whole policy and for the importing rule.
+// caller's missing required fact (#147, confirmed by the user as an
+// extension of decisions 2 and 11), for the whole policy and for the importing rule.
 func (s *RuntimeTestSuite) TestImportedMissingRequiredFactIsARequestError() {
 	ctx := s.T().Context()
 	exec := s.factBindingExec(importedFactErrorsPolicy)

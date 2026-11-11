@@ -161,7 +161,7 @@ func asRequestError(ec *ExecutionContext, bindingFacts bool, err error) error {
 // (withFactError) of a required fact with no `with` or a null for a fact that
 // does not accept null. Like a caller's fact error it is an invalid
 // invocation, so the whole request fails with a 400 (#147, user decision 11;
-// the missing fact is a PROVISIONAL extension of it). The imported policy's
+// the user confirmed the same for the missing fact). The imported policy's
 // own default failing its type and every other error stay the importing
 // rule's failure.
 func asImportedFactError(ec *ExecutionContext, withFactError bool, err error) error {

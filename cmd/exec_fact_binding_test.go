@@ -110,7 +110,7 @@ policy importer {
 }
 
 // A missing required `with` fact is an error on exec too, like a caller's
-// missing required fact (#147, PROVISIONAL extension of user decision 11).
+// missing required fact (#147, confirmed by the user as an extension of decision 11).
 func (s *CmdTestSuite) TestExecImportedMissingFactIsAnError() {
 	dir := s.writeTestPack(`namespace com/ex
 policy target {

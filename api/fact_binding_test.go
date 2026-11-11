@@ -202,7 +202,7 @@ func (s *APITestSuite) TestDecisionImportedNullFactIs400() {
 }
 
 // A missing required `with` fact is one 400, like a caller's missing required
-// fact (#147, PROVISIONAL extension of user decisions 2 and 11): for the
+// fact (#147, confirmed by the user as an extension of decisions 2 and 11): for the
 // policy and for the importing rule alone.
 func (s *APITestSuite) TestDecisionImportedMissingFactIs400() {
 	api := s.factPackAPI(importedFactAPIPolicy)
