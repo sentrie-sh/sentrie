@@ -7,8 +7,8 @@ import (
 	"github.com/sentrie-sh/sentrie/trinary"
 )
 
-// A typed let, a derive return, a lambda return and a shape field given
-// undefined pass it through, as an untyped one does; a rule `default` does
+// A typed let, a derive return, a lambda return and an optional shape field
+// given undefined pass it through, as an untyped one does; a rule `default` does
 // not cover a body that yields undefined, and an error raised in a `default`
 // expression is the rule's error (#148).
 
@@ -18,7 +18,10 @@ derive missingNum = (d: document): number => { yield d.missing }
 
 policy pol {
   let doc = { "present": 1 }
-  shape Holder { n: number }
+  shape Holder {
+    n: number
+    o?: number
+  }
   rule typedLet = {
     let x: number = doc.missing
     yield x
@@ -33,8 +36,8 @@ policy pol {
     yield f(doc)
   }
   rule shapeField = {
-    let h: Holder = { "n": doc.missing }
-    yield h.n
+    let h: Holder = { "n": 1, "o": doc.missing }
+    yield h.o
   }
   rule defaultBodyUndefined = default false when true { yield doc.missing }
   rule defaultGateFalse = default false when false { yield true }

@@ -8,8 +8,9 @@ import (
 )
 
 // What #148 leaves strict: `is` and casts on a bare undefined, a typed lambda
-// parameter given undefined, an absent required shape field, and a default
-// that must not mask a body error.
+// parameter given undefined, an absent required shape field, a required shape
+// field holding undefined (undefined is not a value, so it counts as missing),
+// and a default that must not mask a body error.
 
 const typedUndefinedBoundarySrc = `namespace com/ex
 
@@ -26,11 +27,18 @@ policy pol {
     let h: Holder = { "other": 1 }
     yield h
   }
+  rule undefinedField = {
+    let h: Holder = { "n": doc.missing }
+    yield h
+  }
+  rule isShapeUndefinedField = { yield { "n": doc.missing } is Holder }
   rule defaultNoMask = default false when true { yield 1 / 0 }
   export decision of isShape
   export decision of castNumber
   export decision of lambdaParam
   export decision of absentField
+  export decision of undefinedField
+  export decision of isShapeUndefinedField
   export decision of defaultNoMask
 }
 `
@@ -51,6 +59,16 @@ func (s *RuntimeTestSuite) TestTypedUndefinedStaysStrictAtBoundaries() {
 
 	_, err = s.execRuleUnvalidated(ctx, typedUndefinedBoundarySrc, "absentField")
 	s.Error(err, "absentField: an absent required shape field still fails")
+
+	_, err = s.execRuleUnvalidated(ctx, typedUndefinedBoundarySrc, "undefinedField")
+	if s.Error(err, "undefinedField: a required shape field holding undefined is missing") {
+		s.Contains(err.Error(), "field n is required")
+	}
+
+	out, err = s.execRuleUnvalidated(ctx, typedUndefinedBoundarySrc, "isShapeUndefinedField")
+	if s.NoError(err, "isShapeUndefinedField") {
+		s.Equal(trinary.False, out.Decision.State, "a required field holding undefined is not a Holder")
+	}
 
 	_, err = s.execRuleUnvalidated(ctx, typedUndefinedBoundarySrc, "defaultNoMask")
 	s.Error(err, "defaultNoMask: default never masks a body error")
