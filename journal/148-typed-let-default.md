@@ -35,3 +35,12 @@
 - Each added snippet was validated and executed against the branch binary; results match the text. `npm run build` passes (/tmp/website-148-typed-let-default-build.log). Old snippets on the changed pages were not run. PR description PR_DESCRIPTION_148-typed-let-default.md written, link to sentrie PR is #TBD.
 - Open point: the wording "reported as that rule's error" assumes #143's docs; recheck when stacking.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 10:24 - Round 2: a shape field holding undefined is missing
+- User decision (2026-11-11, "nope - undefined is not a value."), replacing the earlier PROVISIONAL pass-through that made `x is S` true when a required field was present but undefined. A shape field holding undefined now takes the absent-field path in `validateAgainstShapeTypeRef` (`runtime/typeref_shape.go`): an optional one is skipped, a required one fails with the same `field <name> is required` error, so `x is S` is false and a typed check against `S` fails. A whole value that is undefined still passes through a typed let, derive return or lambda return, unchanged.
+- Before #148 both optional and required fields holding undefined failed with `cannot be undefined`; the optional case stays fine as decided in round 1.
+- Tests updated: matrix case `present_undefined_is_valid` (an optional field) renamed `optional_present_undefined_is_valid`, plus a new `required_present_undefined_is_missing` case; `TestValidateAgainstShapeTypeRefFieldErrorBranches` expects `field name is required` again; `TestTypedUndefinedPassesThrough`'s `shapeField` rule now uses an optional field (`o?: number`); `TestTypedUndefinedStaysStrictAtBoundaries` adds `undefinedField` (typed let, required field holding undefined, expects the absent-field error) and `isShapeUndefinedField` (`is` answers false). Bite: with round 1's `typeref_shape.go` restored, the boundaries test and both shape-validation tests fail.
+- lang_test fixtures: none use undefined shape fields; nothing to change.
+- Codebase graph: runtime.typeref_shape (field walk and gotcha rewritten), runtime.typeref (caller-skip list). PR description: provisional item removed, decision stated.
+- `go test ./runtime/... ./lang_test/...` passes; `make test` passes (`/tmp/sentrie-148-typed-let-default-round2-test.log`); `make docs-graph` passes. Website not touched (docs agent follows).
+- _Model: claude-opus-5-5_
