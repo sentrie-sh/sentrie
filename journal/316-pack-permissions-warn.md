@@ -29,3 +29,9 @@
 - Snippets run against the branch binary: complete pack file example, security page examples, guide example (validate and exec exit 0, warnings on stderr); a non-URI `net` is rejected. No pre-existing broken snippets found; untouched TOML fragments on packfile.md were not run.
 - Website build passes (`/tmp/website-316-pack-permissions-warn-build.log`). Website commits 5ee99f2, 6da75d5, 7faf538, 6ef6ef6, all signed.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 21:02 - Combined check: stop passing a rule argument to validate in tests
+
+- The milestone combined check (all 15 branches merged in a throwaway clone) failed in `cmd/pack_permissions_warning_test.go`: the validate subtests passed the positional `com/ex/pol`, which #155 now rejects ("validate takes no arguments", user decision 10).
+- Dropped the argument, the same fix #146 and #147 already carry (user decision 19). `go test ./cmd/...` passes on this branch with and without #155 (`/tmp/s11-316-pack-permissions-warn-cmd.log`).
+- _Model: claude-fable-5-2_
