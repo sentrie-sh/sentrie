@@ -6,6 +6,7 @@ package cmd
 import (
 	"context"
 	"log/slog"
+	"os"
 
 	"github.com/binaek/cling"
 	"github.com/sentrie-sh/sentrie/api"
@@ -37,17 +38,19 @@ func addServeCmd(cli *cling.CLI) {
 			).
 			WithFlag(evalTimeoutFlag()).
 			WithFlag(evalMaxTimeoutFlag()).
-			WithFlag(capabilitiesFlag()),
+			WithFlag(capabilitiesFlag()).
+			WithFlag(skipEngineCheckFlag()),
 	)
 }
 
 type serveCmdArgs struct {
-	Port           int      `cling-name:"http-port"`
-	PackLocation   string   `cling-name:"pack-location"`
-	Listen         []string `cling-name:"http-listen"`
-	EvalTimeout    string   `cling-name:"eval-timeout"`
-	EvalMaxTimeout string   `cling-name:"eval-max-timeout"`
-	Capabilities   string   `cling-name:"capabilities"`
+	Port            int      `cling-name:"http-port"`
+	PackLocation    string   `cling-name:"pack-location"`
+	Listen          []string `cling-name:"http-listen"`
+	EvalTimeout     string   `cling-name:"eval-timeout"`
+	EvalMaxTimeout  string   `cling-name:"eval-max-timeout"`
+	Capabilities    string   `cling-name:"capabilities"`
+	SkipEngineCheck bool     `cling-name:"skip-engine-check"`
 }
 
 func serveCmd(ctx context.Context, args []string) error {
@@ -58,6 +61,9 @@ func serveCmd(ctx context.Context, args []string) error {
 
 	pack, err := loader.LoadPack(ctx, input.PackLocation)
 	if err != nil {
+		return err
+	}
+	if err := checkEngine(pack, input.SkipEngineCheck, os.Stderr); err != nil {
 		return err
 	}
 

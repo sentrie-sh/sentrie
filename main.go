@@ -74,6 +74,7 @@ func main() {
 	// set an exit code
 	exitCode := 0
 
+	cmd.SetEngineVersion(versionOnce().GitVersion)
 	vers := versionOnce().String()
 	logger := setupDefaultLogger(vers)
 	slog.SetDefault(logger)

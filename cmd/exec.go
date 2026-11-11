@@ -53,18 +53,20 @@ func addExecCmd(cli *cling.CLI) {
 				AsFlag(),
 			).
 			WithFlag(evalTimeoutFlag()).
-			WithFlag(capabilitiesFlag()),
+			WithFlag(capabilitiesFlag()).
+			WithFlag(skipEngineCheckFlag()),
 	)
 }
 
 type execCmdArgs struct {
-	PackLocation string `cling-name:"pack-location"`
-	Rule         string `cling-name:"rule"`
-	Facts        string `cling-name:"facts"`
-	FactFile     string `cling-name:"fact-file"`
-	Output       string `cling-name:"output"`
-	EvalTimeout  string `cling-name:"eval-timeout"`
-	Capabilities string `cling-name:"capabilities"`
+	PackLocation    string `cling-name:"pack-location"`
+	Rule            string `cling-name:"rule"`
+	Facts           string `cling-name:"facts"`
+	FactFile        string `cling-name:"fact-file"`
+	Output          string `cling-name:"output"`
+	EvalTimeout     string `cling-name:"eval-timeout"`
+	Capabilities    string `cling-name:"capabilities"`
+	SkipEngineCheck bool   `cling-name:"skip-engine-check"`
 }
 
 func execCmd(ctx context.Context, args []string) error {
@@ -92,6 +94,9 @@ func execCmd(ctx context.Context, args []string) error {
 
 	pack, err := loader.LoadPack(ctx, input.PackLocation)
 	if err != nil {
+		return err
+	}
+	if err := checkEngine(pack, input.SkipEngineCheck, os.Stderr); err != nil {
 		return err
 	}
 
