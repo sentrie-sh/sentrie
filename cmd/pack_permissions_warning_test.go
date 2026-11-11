@@ -56,7 +56,7 @@ func (s *CmdTestSuite) TestPackPermissionWarningsAtCLI() {
 		run    func(dir string) error
 	}{
 		{"validate", permissionsWarnPolicy, func(dir string) error {
-			return runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+			return runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 		}},
 		{"exec", permissionsWarnPolicy, func(dir string) error {
 			return runExecCLI(s.T().Context(), []string{"com/ex/pol/ok", "--pack-location", dir})
