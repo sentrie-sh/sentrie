@@ -32,3 +32,10 @@ func (s *VersionTestSuite) TestStringSemverVersion() {
 		s.Contains(out, "Sentrie v0.0.5\n", v)
 	}
 }
+
+// An empty GitVersion prints only the name.
+func (s *VersionTestSuite) TestStringEmptyVersion() {
+	out := Info{Name: "Sentrie"}.String()
+	s.Contains(out, "Sentrie\n")
+	s.NotContains(out, "Sentrie v")
+}
