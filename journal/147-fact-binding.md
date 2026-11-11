@@ -83,3 +83,10 @@
 - Graph: runtime.executor, runtime.imports, api.handle_decision. Website: facts.md (missing `with` fact is a 400, deterministic choice, remaining per-rule failures are a 207 entry only for a whole-policy request), exec.md, errors.md, serving-policies.md, policy-composition.md. Both PR descriptions updated; the stacking line lost its PROVISIONAL tag (user decision 18 kept the stacks).
 - Gates: `make test`, `make lint` (0 issues), `make docs-graph`, race on api, cmd and the runtime import/fact tests, website build (76 pages) pass. Logs /tmp/sentrie-147-fact-binding-r3-*.log, /tmp/website-147-fact-binding-build-r3.log. Nothing committed: signing refused.
 - _Model: claude-opus-5-5_
+
+### 2026-11-11 21:01 - Combined check: catch up with #143 and fix its imported fact test
+
+- The milestone combined check (all 15 branches merged in a throwaway clone) failed on `api/rule_error_test.go` `TestDecisionFactErrorsAreRequestLevel`: it came from the two newest #143 commits, which this branch did not have yet, and it expected a 207 for an imported policy's wrongly typed `with` fact.
+- Merged `143-per-rule-errors` (42e1cad) into this branch (a merge, not a rebase, so no force push is needed) and changed the imported half of that test to expect one 400 with no decisions, per user decision 11.
+- `go test ./api/... ./runtime/... ./cmd/...` passes after the change (`/tmp/s11-147-merge-test.log`).
+- _Model: claude-fable-5-2_
