@@ -43,6 +43,11 @@ Defines the five user-facing commands and wires the loading pipeline behind each
   - **Side Effects:** Reads the file.
   - **Exceptions:** Capabilities parse errors; joined capability denials.
 
+- **Signature:** `--skip-engine-check` on `serve`, `exec` and `validate` ([#157](https://github.com/sentrie-sh/sentrie/issues/157))
+  - **Behavior:** After `LoadPack`, `checkEngine` (`cmd/engine.go`) compares the pack's `[engine] sentrie` constraint with the running binary's version, which `main` hands over with `SetEngineVersion`. Comparison is strict semver, so `0.0.5-rc1` does not satisfy `>=0.0.5`. A mismatch is an error naming the constraint and the binary version, under `validate` too. A dev or unversioned binary, one whose version is not semver, and one built from source (a Go pseudo-version or `+dirty` stamp) pass with a `warning:` line on stderr. A pack with no `[engine]` table passes silently. The flag skips the check. `bench` does not check.
+  - **Side Effects:** Writes the warning to stderr.
+  - **Exceptions:** The constraint mismatch error.
+
 - **Signature:** `sentrie serve [--http-port 7529] [--pack-location ./] [--http-listen local] [--eval-timeout 10s] [--eval-max-timeout <d>]`
   - **Behavior:** Runs the full load-and-validate pipeline, constructs the executor, sets up listeners, starts serving in a goroutine, and blocks on context cancellation before stopping. The default port `7529` spells "PLCY" on a phone keypad.
   - **Side Effects:** Binds sockets; serves decisions; closes the executor after the servers stop. On a shutdown signal it calls `StopServer` with a context from `context.WithoutCancel(ctx)` bounded by `api.DefaultShutdownGracePeriod` (10s; no flag), so in-flight requests finish, and returns its error: nil (exit 0) on a clean drain.

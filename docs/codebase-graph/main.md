@@ -16,6 +16,7 @@ The process bootstrap: installs signal handling, resolves build-time version inf
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `main` | `CALLS` | [[cmd]] | `cmd.Setup` builds the CLI, `cmd.Execute` runs it with `os.Args`. |
+| `main` | `CALLS` | [[cmd]] | `cmd.SetEngineVersion` passes the resolved version for the pack `[engine]` check (#157). |
 | `main` | `CALLS` | [[version]] | `GetVersionInfo` assembles the version string from ldflags and build info. |
 | `main` | `DEPENDS_ON` | [[constants]] | `EnvDebug` and `EnvLogLevel` control logging. |
 | `main` | `IMPORTS` | `ext.google.uuid` | Generates a per-process instance identifier for log correlation. |
