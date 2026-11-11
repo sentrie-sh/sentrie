@@ -35,3 +35,13 @@
 - Ran every added snippet against the branch binary (validate plus exec with facts); all behaved as shown. Pre-existing broken snippets (unquoted map keys, policy with no export, two-file example, fragments) recorded in the website PR description, not fixed.
 - Build: npm run build passes.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 10:32 - Round 2: a key holding undefined is not an undeclared field
+
+- User decision on #148 (2026-11-11): "undefined is not a value", a key holding undefined counts as absent. PROVISIONAL extension to #145 (orchestrator), needs confirmation: the closed check in `runtime/typeref_shape.go` now skips keys whose value is undefined, so `{ "id": "a", "extra": payload.missing } is Item` is true against a closed `Item { id: string }`, and a typed `let` accepts it.
+- Not ported: `148-typed-let-default` separately makes a required field holding undefined count as missing; this branch still reports `field %s cannot be undefined` for that case, unchanged.
+- Regression test `TestClosedShapeUndefinedKeyCountsAsAbsent` in `runtime/closed_shapes_test.go` (typed `let`, `is`, and a defined extra that keeps `is` false), written first and proved to fail without the fix: the typed case errored with `field extra is not declared in shape t/Item`, the `is` case was false (`/tmp/sentrie-145-closed-shapes-r2-red.log`).
+- Codebase graph: `runtime.typeref_shape` closed check phase updated.
+- Website: one sentence in the "Closed and open shapes" section of `reference/shapes.md`, verified against the branch binary as a pack (typed `let` and `is User` true with `role` absent from facts; `is User` false with `role` set). Website build passes (`/tmp/website-145-closed-shapes-build.log`).
+- Gate: `make test` PASS (`/tmp/sentrie-145-closed-shapes-r2-test.log`), `make lint` 0 (`/tmp/sentrie-145-closed-shapes-r2-lint.log`), `make docs-graph` PASS, gofmt clean.
+- _Model: claude-opus-5-5_
