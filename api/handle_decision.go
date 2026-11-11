@@ -104,6 +104,8 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 		api.writeErrorResponse(w, r, http.StatusBadRequest, "Invalid JSON", "The request body could not be parsed as valid JSON")
 		return
 	}
+	// Only an over-limit drain matters: any other read error (such as a client
+	// reset during trailing bytes) is ignored because the value is already decoded.
 	if err := api.drainBody(r); bodyTooLarge(err) {
 		api.writeBodyTooLarge(w, r)
 		return
