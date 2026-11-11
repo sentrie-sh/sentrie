@@ -70,11 +70,16 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 	}
 
 	// A closed shape rejects a field it does not declare (its `with` bases'
-	// fields count as declared). This runs after the declared fields, so a
-	// missing or wrongly typed field is reported first, and in sorted key
-	// order so the reported field is the same on every run.
+	// fields count as declared). A key holding undefined counts as absent,
+	// since undefined is not a value, so it is never an undeclared field.
+	// This runs after the declared fields, so a missing or wrongly typed field
+	// is reported first, and in sorted key order so the reported field is the
+	// same on every run.
 	if !shape.Model.Open {
 		for _, key := range slices.Sorted(maps.Keys(vm)) {
+			if vm[key].IsUndefined() {
+				continue
+			}
 			if _, declared := shape.Model.Fields[key]; !declared {
 				return errMismatch("field %s is not declared in shape %s at %s - the shape is closed; end its body with '...' to allow undeclared fields", key, shape.FQN.String(), pos)
 			}

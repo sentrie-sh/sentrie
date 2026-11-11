@@ -156,3 +156,37 @@ func (s *RuntimeTestSuite) TestDuplicateDictLiteralKeyLastWins() {
 	s.Require().NoError(err)
 	s.Equal(trinary.True, out.Decision.State)
 }
+
+// TestClosedShapeUndefinedKeyCountsAsAbsent pins that a key holding undefined
+// is not an undeclared field of a closed shape: undefined is not a value, so
+// the key counts as absent (#145, extended by the #148 decision). Both the
+// typed binding and `is` accept it; a defined extra is still rejected.
+func (s *RuntimeTestSuite) TestClosedShapeUndefinedKeyCountsAsAbsent() {
+	ctx := s.T().Context()
+	src := `namespace t
+shape Item { id: string }
+policy p {
+  fact payload: document
+  let withUndefined = { "id": "a", "extra": payload.missing }
+  rule typed = { let v: Item = withUndefined  yield v.id == "a" }
+  rule is_check = { yield { "id": "a", "extra": payload.missing } is Item }
+  rule is_defined_extra = { yield { "id": "a", "extra": 1 } is Item }
+  export decision of typed
+  export decision of is_check
+  export decision of is_defined_extra
+}
+`
+	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "undefined_key.sentrie", src: src})
+	facts := map[string]any{"payload": map[string]any{}}
+	for rule, want := range map[string]trinary.Value{
+		"typed":            trinary.True,
+		"is_check":         trinary.True,
+		"is_defined_extra": trinary.False,
+	} {
+		s.Run(rule, func() {
+			out, err := exec.ExecRule(ctx, "t", "p", rule, facts)
+			s.Require().NoError(err)
+			s.Equal(want, out.Decision.State)
+		})
+	}
+}
