@@ -44,3 +44,13 @@
 ### 2026-11-11 10:22 - Validate test fix for #155
 - Dropped the positional rule argument from the `runValidateCLI` calls in the validate tests, because #155 makes `sentrie validate` reject a rule target. The tests pass alone and merged with #155.
 - _Model: claude-sonnet-5-5, subagents: none, tokens: ~30k_
+
+### 2026-11-11 10:51 - Imported wrongly typed fact is a 400 (user decision 11)
+- USER DECISION 11 (2026-11-11, "Make it a 400") supersedes the PROVISIONAL choice of the 2026-11-10 23:11 entry: an imported policy's wrongly typed `with` fact now fails the whole request with a 400, the same as a caller-supplied fact error (consistent with #143's user decision 2, one 400 for fact errors).
+- Reuses #143's request-error path: `execRuleFrom` with a caller now runs `asImportedFactError` (`runtime/rule_error.go`), which marks a non-default `factError` of the imported context, or a null supplied for a fact that does not accept null, as a `requestError` wrapping `xerr.ErrInvalidInvocation`. `asRequestError` passes an existing `requestError` through, so the top-level call returns it alone (nil outputs) and `ErrorStatus` gives 400. Nested imports carry it up the same way.
+- The message names the imported policy, since the caller did not supply the fact: `imported policy com/ex/target: fact 'n': value x is not a number: invalid invocation`.
+- Checked: whole-policy and named-rule requests on serve (400 problem document, no `decisions`), `ExecPolicy`/`ExecRule`, and `sentrie exec` for a rule and a policy (an error, no "rules failed", nothing on stdout, as for a caller's wrongly typed fact). The importing policy's other rule requested alone is still 200.
+- Unchanged and still per-rule: a missing required `with` fact (no index check; `ErrRequiredFact` is an invalid invocation, so it is a per-rule 400 inside a 207), an imported default failing its type, and any evaluation error of the imported rule.
+- Tests updated (they pinned the per-rule 500): `TestImportedWronglyTypedFactIsPerRule500` became `TestImportedWronglyTypedFactIsARequestError` (policy and rule), `api` `TestDecisionImportedWronglyTypedFactIsPerRule500` became `TestDecisionImportedWronglyTypedFactIs400` (both paths), and `TestExecPolicyFactTypeErrorIsARequestError` expects the importer's request error. Added `TestExecImportedWronglyTypedFactIsAnError` (cmd); it fails with the runtime change reverted.
+- Graph: runtime.executor, runtime.imports, api.handle_decision. PR description updated. `make test`, `make lint` (0 issues), `make docs-graph` pass (`/tmp/sentrie-147-fact-binding-r2-test.log`).
+- _Model: claude-opus-5-5_
