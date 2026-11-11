@@ -109,6 +109,34 @@ policy importer {
 	}
 }
 
+// A missing required `with` fact is an error on exec too, like a caller's
+// missing required fact (#147, PROVISIONAL extension of user decision 11).
+func (s *CmdTestSuite) TestExecImportedMissingFactIsAnError() {
+	dir := s.writeTestPack(`namespace com/ex
+policy target {
+  fact req: number
+  rule ok = { yield req == 1 }
+  export decision of ok
+}
+policy importer {
+  rule fine = { yield true }
+  rule viaImport = import decision ok from com/ex/target
+  export decision of fine
+  export decision of viaImport
+}
+`)
+	for _, target := range []string{"com/ex/importer/viaImport", "com/ex/importer"} {
+		var err error
+		out := s.captureStdout(func() {
+			err = runExecCLI(s.T().Context(), []string{target, "--pack-location", dir})
+		})
+		s.Require().Error(err, target)
+		s.Contains(err.Error(), "imported policy com/ex/target: required fact not found: req", target)
+		s.NotContains(err.Error(), "rules failed", target)
+		s.Empty(out, target)
+	}
+}
+
 // --facts is merged over --fact-file: objects deeply, anything else replaced.
 func (s *CmdTestSuite) TestExecFactFileAndFactsMergeDeeply() {
 	file := s.writeFactFile(`{"user": 1, "opts": {"a": {"x": 1, "y": 0}, "b": 3, "items": [1, 2, 3]}}`)

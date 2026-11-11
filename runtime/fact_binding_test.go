@@ -221,3 +221,67 @@ func (s *RuntimeTestSuite) TestImportedWronglyTypedFactIsARequestError() {
 	s.Equal(http.StatusBadRequest, ErrorStatus(err))
 	s.Contains(err.Error(), "imported policy com/ex/target: fact 'n': ")
 }
+
+// importedFactErrorsPolicy has importing rules that leave out a required
+// `with` fact or hit different `with` fact errors.
+const importedFactErrorsPolicy = `namespace com/ex
+
+policy target {
+  fact req: number
+  rule ok = { yield req == 1 }
+  export decision of ok
+}
+
+policy other {
+  fact o: number
+  rule ok = { yield o == 1 }
+  export decision of ok
+}
+
+policy missingWith {
+  rule fine = { yield true }
+  rule viaImport = import decision ok from com/ex/target
+  export decision of fine
+  export decision of viaImport
+}
+
+policy two {
+  rule second = import decision ok from com/ex/target with req as "y"
+  rule first = import decision ok from com/ex/other with o as "x"
+  export decision of first
+  export decision of second
+}
+`
+
+// A missing required `with` fact is a request error and a 400, like a
+// caller's missing required fact (#147, PROVISIONAL extension of user
+// decisions 2 and 11), for the whole policy and for the importing rule.
+func (s *RuntimeTestSuite) TestImportedMissingRequiredFactIsARequestError() {
+	ctx := s.T().Context()
+	exec := s.factBindingExec(importedFactErrorsPolicy)
+
+	outputs, err := exec.ExecPolicy(ctx, "com/ex", "missingWith", nil)
+	s.Require().Error(err)
+	s.Nil(outputs)
+	var ruleErrs RuleErrors
+	s.False(stdErr.As(err, &ruleErrs), "not per-rule errors: %v", err)
+	s.Equal(http.StatusBadRequest, ErrorStatus(err))
+	s.Contains(err.Error(), "imported policy com/ex/target: required fact not found: req")
+
+	_, err = exec.ExecRule(ctx, "com/ex", "missingWith", "viaImport", nil)
+	s.Require().Error(err)
+	s.Equal(http.StatusBadRequest, ErrorStatus(err))
+	s.Contains(err.Error(), "imported policy com/ex/target: required fact not found: req")
+}
+
+// When importing rules hit different `with` fact errors, ExecPolicy returns
+// the earliest declared rule's every time, not the first rule to finish.
+func (s *RuntimeTestSuite) TestImportedFactErrorChoiceIsDeterministic() {
+	ctx := s.T().Context()
+	exec := s.factBindingExec(importedFactErrorsPolicy)
+	for range 50 {
+		_, err := exec.ExecPolicy(ctx, "com/ex", "two", nil)
+		s.Require().Error(err)
+		s.Contains(err.Error(), "imported policy com/ex/target: fact 'req'")
+	}
+}

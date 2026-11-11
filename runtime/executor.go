@@ -4,9 +4,11 @@
 package runtime
 
 import (
+	"cmp"
 	"context"
 	stdErr "errors"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"slices"
 	"sync"
@@ -257,6 +259,7 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 	// under theLock, with one append per rule, panic or not.
 	theLock := &sync.Mutex{}
 	var ruleErrs RuleErrors
+	reqErrs := map[string]error{} // rule name -> its request error
 	outputs := make([]*ExecutorOutput, 0, len(p.RuleExports))
 	wg := &sync.WaitGroup{}
 	for exportedName, ruleExport := range p.RuleExports {
@@ -271,6 +274,9 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 				defer theLock.Unlock()
 				if output.Error != nil {
 					ruleErrs = append(ruleErrs, output.Error)
+					if reqErr := (*requestError)(nil); stdErr.As(output.Error, &reqErr) {
+						reqErrs[ruleName] = output.Error.err
+					}
 				}
 				outputs = append(outputs, output)
 			}
@@ -286,11 +292,11 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 	wg.Wait()
 
 	// Facts are the policy's, so a fact error is the same for every rule and
-	// is the request's error (#143).
-	for _, re := range ruleErrs {
-		if reqErr := (*requestError)(nil); stdErr.As(re, &reqErr) {
-			return nil, re.err
-		}
+	// is the request's error (#143). Rules importing other policies can hit
+	// different fact errors (#147), so the earliest declared rule's is
+	// returned, whatever order the rules finished in.
+	if len(reqErrs) > 0 {
+		return nil, firstDeclaredError(p, reqErrs)
 	}
 	if len(ruleErrs) > 0 {
 		return outputs, ruleErrs
@@ -330,16 +336,16 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 
 	// A fact error of a top-level call is a request error, not a rule failure
 	// (#143): ExecPolicy returns it alone instead of one per rule. A wrongly
-	// typed fact an importing policy supplied with `with` is one too, a 400
-	// like a caller's (#147); the rest of an imported rule's errors stay the
-	// importing rule's failure.
+	// typed or missing required fact of an imported policy's `with` is one
+	// too, a 400 like a caller's (#147); the rest of an imported rule's errors
+	// stay the importing rule's failure.
 	bindingFacts := true
-	nullSupplied := false
+	withFactError := false
 	defer func() {
 		if caller == nil {
 			err = asRequestError(ec, bindingFacts, err)
 		} else {
-			err = asImportedFactError(ec, nullSupplied, err)
+			err = asImportedFactError(ec, withFactError, err)
 		}
 	}()
 
@@ -352,13 +358,14 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 
 		// we do not have a value for this fact, and it is required - error
 		if !ok && !factStatement.Optional {
+			withFactError = true
 			return nil, xerr.ErrRequiredFact(factName)
 		}
 
 		if ok {
 			decodedFactValue := box.FromBoundaryAny(factValue)
 			if decodedFactValue.IsNull() && !ast.AcceptsNull(factStatement.Type) {
-				nullSupplied = true
+				withFactError = true
 				return nil, fmt.Errorf("fact '%s' cannot be null: %w", factName, xerr.ErrInvalidInvocation(""))
 			}
 			err := ec.InjectFact(ctx, alias, decodedFactValue, false, factStatement.Type)
@@ -734,4 +741,34 @@ func evaluateRuleBase(ctx context.Context, ec *ExecutionContext, e *executorImpl
 
 	// Coerce to a *Decision using tristate.From(val)
 	return DecisionOf(val), err
+}
+
+// firstDeclaredError returns the error, of errs keyed by rule name, of the
+// rule declared earliest in p; rules not found among the statements come
+// after, by name. The choice does not depend on goroutine completion order.
+func firstDeclaredError(p *index.Policy, errs map[string]error) error {
+	order := make(map[string]int, len(p.Statements))
+	for i, stmt := range p.Statements {
+		if rule, ok := stmt.(*ast.RuleStatement); ok {
+			if _, seen := order[rule.RuleName]; !seen {
+				order[rule.RuleName] = i
+			}
+		}
+	}
+	names := slices.Collect(maps.Keys(errs))
+	slices.SortFunc(names, func(a, b string) int {
+		ia, aok := order[a]
+		ib, bok := order[b]
+		switch {
+		case aok && bok && ia != ib:
+			return cmp.Compare(ia, ib)
+		case aok != bok:
+			if aok {
+				return -1
+			}
+			return 1
+		}
+		return cmp.Compare(a, b)
+	})
+	return errs[names[0]]
 }

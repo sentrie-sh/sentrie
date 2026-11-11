@@ -97,8 +97,8 @@ func (s *APITestSuite) TestDecisionWronglyTypedFactIs400() {
 	s.requireProblem(http.StatusBadRequest, rec.Body.Bytes(), rec.Header().Get("Content-Type"), "fact 'level'")
 }
 
-// PROVISIONAL (#147): a non-literal wrong default is the policy's fault, a
-// 500 problem document, until a caller supplies the fact.
+// A non-literal wrong default is the policy's fault, a 500 problem document,
+// until a caller supplies the fact (#147, user decision 12: literals only).
 func (s *APITestSuite) TestDecisionWronglyTypedNonLiteralDefaultIs500() {
 	api := s.factPackAPI(`namespace fb/test
 
@@ -145,4 +145,116 @@ policy p {
 	// the importing policy's other rule alone is unaffected
 	rec := s.postDecision(api, "/decision/fb/test/p/fine", `{"facts": {}}`)
 	s.Equal(http.StatusOK, rec.Code, rec.Body.String())
+}
+
+const importedFactAPIPolicy = `namespace fb/test
+
+policy target {
+  fact n?: number
+  fact req: number
+  rule ok = { yield req == 1 }
+  rule boom = { yield 1 / 0 }
+  export decision of ok
+  export decision of boom
+}
+
+policy nullWith {
+  rule viaImport = import decision ok from fb/test/target with n as null with req as 1
+  export decision of viaImport
+}
+
+policy missingWith {
+  rule fine = { yield true }
+  rule viaImport = import decision ok from fb/test/target with n as 1
+  export decision of fine
+  export decision of viaImport
+}
+
+policy bodyFails {
+  rule fine = { yield true }
+  rule viaImport = import decision boom from fb/test/target with req as 1
+  export decision of fine
+  export decision of viaImport
+}
+
+policy mid {
+  fact m?: number
+  rule ok = import decision ok from fb/test/target with req as 1 with n as "x"
+  export decision of ok
+}
+
+policy top {
+  rule viaMid = import decision ok from fb/test/mid
+  export decision of viaMid
+}
+`
+
+// A null `with` value for a non-nullable fact is one 400, and the problem
+// document names the imported policy and carries no decisions.
+func (s *APITestSuite) TestDecisionImportedNullFactIs400() {
+	api := s.factPackAPI(importedFactAPIPolicy)
+	for _, path := range []string{"/decision/fb/test/nullWith", "/decision/fb/test/nullWith/viaImport"} {
+		rec := s.postDecision(api, path, `{"facts": {}}`)
+		s.Require().Equal(http.StatusBadRequest, rec.Code, path+" "+rec.Body.String())
+		s.requireProblem(http.StatusBadRequest, rec.Body.Bytes(), rec.Header().Get("Content-Type"), "imported policy fb/test/target", "fact 'n'", "cannot be null")
+		s.NotContains(rec.Body.String(), `"decisions"`)
+	}
+}
+
+// A missing required `with` fact is one 400, like a caller's missing required
+// fact (#147, PROVISIONAL extension of user decisions 2 and 11): for the
+// policy and for the importing rule alone.
+func (s *APITestSuite) TestDecisionImportedMissingFactIs400() {
+	api := s.factPackAPI(importedFactAPIPolicy)
+	for _, path := range []string{"/decision/fb/test/missingWith", "/decision/fb/test/missingWith/viaImport"} {
+		rec := s.postDecision(api, path, `{"facts": {}}`)
+		s.Require().Equal(http.StatusBadRequest, rec.Code, path+" "+rec.Body.String())
+		s.requireProblem(http.StatusBadRequest, rec.Body.Bytes(), rec.Header().Get("Content-Type"), "imported policy fb/test/target", "required fact not found: req")
+		s.NotContains(rec.Body.String(), `"decisions"`)
+	}
+}
+
+// A failure in the imported rule's body stays a per-rule error: a 207 where
+// the other rule still has its result.
+func (s *APITestSuite) TestDecisionImportedBodyFailureStaysPerRule() {
+	api := s.factPackAPI(importedFactAPIPolicy)
+	rec := s.postDecision(api, "/decision/fb/test/bodyFails", `{"facts": {}}`)
+	s.Require().Equal(http.StatusMultiStatus, rec.Code, rec.Body.String())
+	decisions := s.decisionsWithErrors(rec.Body.Bytes())
+	s.Require().Len(decisions, 2)
+	s.Nil(decisions["fine"])
+	s.Require().NotNil(decisions["viaImport"])
+}
+
+// Two importing rules hitting different `with` fact errors: the 400 names the
+// earliest declared rule's error every time, whatever order the rules finish.
+func (s *APITestSuite) TestDecisionImportedFactErrorIsDeterministic() {
+	api := s.factPackAPI(importedFactAPIPolicy + `
+policy two {
+  rule second = import decision ok from fb/test/target with req as "y"
+  rule first = import decision ok from fb/test/other with o as "x"
+  export decision of first
+  export decision of second
+}
+
+policy other {
+  fact o: number
+  rule ok = { yield o == 1 }
+  export decision of ok
+}
+`)
+	for range 50 {
+		rec := s.postDecision(api, "/decision/fb/test/two", `{"facts": {}}`)
+		s.Require().Equal(http.StatusBadRequest, rec.Code, rec.Body.String())
+		s.requireProblem(http.StatusBadRequest, rec.Body.Bytes(), rec.Header().Get("Content-Type"), "imported policy fb/test/target", "fact 'req'")
+	}
+}
+
+// A wrongly typed `with` fact two imports deep is also one 400.
+func (s *APITestSuite) TestDecisionTransitiveImportedWronglyTypedFactIs400() {
+	api := s.factPackAPI(importedFactAPIPolicy)
+	rec := s.postDecision(api, "/decision/fb/test/top", `{"facts": {}}`)
+	s.Require().Equal(http.StatusBadRequest, rec.Code, rec.Body.String())
+	s.requireProblem(http.StatusBadRequest, rec.Body.Bytes(), rec.Header().Get("Content-Type"), "imported policy fb/test/target", "fact 'n'", "is not a number")
+	s.NotContains(rec.Body.String(), `"decisions"`)
 }
