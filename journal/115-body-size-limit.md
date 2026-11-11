@@ -27,3 +27,10 @@
 - `cmd/serve_test.go`: help lists the flag with default 1048576, `validateMaxBodyBytes` table, negative flag rejected before pack load (the pack location does not exist and the error still names the flag). New `cmd/serve_body_limit_test.go` drives the real binary: default 1 MiB, `--http-max-body-bytes 100`, and `0` (2 MiB body accepted). `startServe` now takes optional extra args.
 - Bite proofs: drain disabled, `limitBody` removed, default removed, clamp removed, validator disabled, `WithMaxBodyBytes` dropped from serve, default changed in the flag: each fails the matching tests. Production `handle_decision.go` from `main` fails five tests. Disabling only the `bodyOverLimit` pre-read check changes nothing visible, since the reader yields the same 413; it is an early-out, not a decision.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 10:23 - Docs for #115 (sentrie-sh/website branch 115-body-size-limit)
+- Documented the 1 MiB default body limit, `--http-max-body-bytes` (plain integer bytes, 0 unlimited, negative rejected at startup) and the 413 problem document on `cli-reference/serve.md`, `running-sentrie/serving-policies.md`, `guides/deployment-and-security.md`, plus a 413 mention in `deployment-operations/running-as-service.md` found by grep. Trailing data within the limit is stated as still ignored (PROVISIONAL).
+- Verified against the branch binary with a limit of 100: small body 200, larger body 413 with the exact document quoted on the page; `-1` prints the startup error quoted on the page. No `sentrie` snippets added or edited.
+- Pre-existing broken snippet recorded in the website PR description: the "Complete Example" pack on the serve page (old `schema_version`/`[engines]` keys, undeclared `user` fact).
+- Website build passes (`/tmp/website-115-body-size-limit-build.log`). Four signed commits on the website branch.
+- _Model: claude-sonnet-5-5_
