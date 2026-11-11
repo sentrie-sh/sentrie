@@ -72,3 +72,9 @@
 - Gate run and passing: make test, make lint, make docs-graph, gofmt, em dash and attribution checks, signatures all G.
 - Not run: `go test -race` on non-runtime packages (the branch touches only runtime, so none apply).
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 11:30 - Docs for #148 round 3: dict entry holding undefined
+
+- Website `reference/types-and-values.md` (Declaring a Collection Type) now says a `dict[T]` entry holding undefined counts as absent (decision 22, commit 8847b8b), a wrong-typed real value and a `list[T]` element holding undefined still fail, and JSON writes the entry as `null`. One runnable snippet (`entryIsAbsent` true, `wrongValue` false, `typedLet` `{"a":null,"b":2}`), validated and executed against the branch binary. `shapes.md` gained one linking sentence. No existing sentence became false. Website PR_DESCRIPTION updated. Build passes (`/tmp/website-148-typed-let-default-build.log`).
+- Signing agent refused twice, so the website change is left uncommitted and this entry is uncommitted too.
+- _Model: claude-sonnet-5-5_
