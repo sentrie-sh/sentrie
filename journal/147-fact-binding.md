@@ -40,3 +40,7 @@
 - Follow-up: import examples in exporting-and-importing-rules.md and policy-composition.md key `with` by alias and a body inconsistent with the alias; need rewriting for declared names.
 - Signing refused, nothing committed in either repo (website changes staged).
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 10:22 - Validate test fix for #155
+- Dropped the positional rule argument from the `runValidateCLI` calls in the validate tests, because #155 makes `sentrie validate` reject a rule target. The tests pass alone and merged with #155.
+- _Model: claude-sonnet-5-5, subagents: none, tokens: ~30k_
