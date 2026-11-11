@@ -65,3 +65,9 @@
 - Website (read only): reference/rules.md, reference/errors.md and serving-policies.md already state a failed rule's decision is unknown, and their examples show `"attachments": null`; none mention attachment failures, so nothing there becomes false.
 - `make test`, `make lint`, `make docs-graph` pass (`/tmp/sentrie-143-per-rule-errors-c1-*.log`).
 - _Model: claude-opus-5-5_
+
+### 2026-11-12 02:29 - Tests for the attachment failure fix
+
+- Read the implementer's three tests (runtime, api, cmd). They already cover: two attachments where the second fails (neither appears, all three layers), a failing rule next to a sibling with a good attachment (sibling keeps decision and attachment), and a named-rule HTTP request whose attachment fails (problem document, no decisions or attachments). Added nothing for those.
+- Added runtime `TestBodyFailureWithAttachmentReportsUnknown`: a rule body failure with an attachment declared is still unknown with no attachments and the sibling is intact. It passes against the old `rule_error.go` too, by design: it pins unchanged behaviour. The three implementer tests fail against the old file (checked).
+- _Model: claude-sonnet-5-5_
