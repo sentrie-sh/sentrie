@@ -69,19 +69,21 @@ func addBenchCmd(cli *cling.CLI) {
 				AsFlag(),
 			).
 			WithFlag(evalTimeoutFlag()).
-			WithFlag(capabilitiesFlag()),
+			WithFlag(capabilitiesFlag()).
+			WithFlag(skipEngineCheckFlag()),
 	)
 }
 
 type benchCmdArgs struct {
-	PackLocation string `cling-name:"pack-location"`
-	Target       string `cling-name:"target"`
-	Facts        string `cling-name:"facts"`
-	FactFile     string `cling-name:"fact-file"`
-	Benchtime    string `cling-name:"benchtime"`
-	Count        int    `cling-name:"count"`
-	EvalTimeout  string `cling-name:"eval-timeout"`
-	Capabilities string `cling-name:"capabilities"`
+	PackLocation    string `cling-name:"pack-location"`
+	Target          string `cling-name:"target"`
+	Facts           string `cling-name:"facts"`
+	FactFile        string `cling-name:"fact-file"`
+	Benchtime       string `cling-name:"benchtime"`
+	Count           int    `cling-name:"count"`
+	EvalTimeout     string `cling-name:"eval-timeout"`
+	Capabilities    string `cling-name:"capabilities"`
+	SkipEngineCheck bool   `cling-name:"skip-engine-check"`
 }
 
 func benchCmd(ctx context.Context, args []string) error {
@@ -107,7 +109,7 @@ func benchCmd(ctx context.Context, args []string) error {
 	}
 
 	// Load, index and validate once; none of it is inside the timed loop.
-	idx, err := loadBenchIndex(ctx, input.PackLocation)
+	idx, err := loadBenchIndex(ctx, input.PackLocation, input.SkipEngineCheck)
 	if err != nil {
 		return err
 	}
@@ -173,11 +175,14 @@ func loadBenchFacts(factFile, factsJSON string) (map[string]any, error) {
 	return facts, nil
 }
 
-// loadBenchIndex runs the load, index and validate steps that `exec` runs,
-// for `bench`.
-func loadBenchIndex(ctx context.Context, packLocation string) (*index.Index, error) {
+// loadBenchIndex runs the load, engine check, index and validate steps that
+// `exec` runs, for `bench`.
+func loadBenchIndex(ctx context.Context, packLocation string, skipEngineCheck bool) (*index.Index, error) {
 	pack, err := loader.LoadPack(ctx, packLocation)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkEngine(pack, skipEngineCheck, os.Stderr); err != nil {
 		return nil, err
 	}
 	idx := index.CreateIndex()

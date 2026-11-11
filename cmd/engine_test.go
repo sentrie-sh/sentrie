@@ -180,10 +180,13 @@ func (s *CmdTestSuite) TestEngineCheckWiredIntoExecServeValidate() {
 	})
 }
 
-func (s *CmdTestSuite) TestBenchDoesNotCheckEngine() {
+func (s *CmdTestSuite) TestBenchChecksEngine() {
 	s.T().Cleanup(func() { SetEngineVersion("") })
 	SetEngineVersion("0.0.4")
 	dir := s.writeEnginePack(">=0.0.5", engineTestPolicy)
 	err := runBenchCLI(s.T().Context(), []string{"com/ex/pol/ok", "--pack-location", dir, "--benchtime", "1x"})
+	s.Require().Error(err)
+	s.Contains(err.Error(), "(use --skip-engine-check to load it anyway)")
+	err = runBenchCLI(s.T().Context(), []string{"com/ex/pol/ok", "--pack-location", dir, "--benchtime", "1x", "--skip-engine-check"})
 	s.Require().NoError(err)
 }

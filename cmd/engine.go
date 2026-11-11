@@ -35,7 +35,8 @@ func runningEngineVersion() string {
 	return v
 }
 
-// skipEngineCheckFlag is the --skip-engine-check flag shared by exec, serve and validate.
+// skipEngineCheckFlag is the --skip-engine-check flag shared by exec, serve,
+// validate and bench.
 func skipEngineCheckFlag() cling.CmdFlag {
 	return cling.NewBoolCmdInput(skipEngineCheckFlagName).
 		WithDefault(false).
