@@ -1,22 +1,15 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package cmd
 
-import "context"
+import (
+	"context"
+	"net"
+	"os"
+	"path/filepath"
+	"strconv"
+)
 
 func runServeCLI(ctx context.Context, args []string) error {
 	cli := Setup(ctx, "test")
@@ -45,4 +38,26 @@ func (s *CmdTestSuite) TestServeCmdRejectsLegacyListenFlag() {
 	err := runServeCLI(s.T().Context(), []string{"--listen", "0.0.0.0"})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "flag '--listen' is not defined for command 'serve'")
+}
+
+// A listen address the process cannot bind is reported with the flag name.
+func (s *CmdTestSuite) TestServeCmdWrapsUnusableListenAddress() {
+	packDir := s.T().TempDir()
+	s.Require().NoError(os.WriteFile(filepath.Join(packDir, "sentrie.pack.toml"), []byte(signalTestPack), 0o600))
+	s.Require().NoError(os.WriteFile(filepath.Join(packDir, "signal.sentrie"), []byte(signalTestPolicy), 0o600))
+
+	// Hold a free localhost port so the bind in serve fails.
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	s.Require().NoError(err)
+	defer func() { _ = ln.Close() }()
+	port := strconv.Itoa(ln.Addr().(*net.TCPAddr).Port)
+
+	err = runServeCLI(s.T().Context(), []string{
+		"--pack-location", packDir,
+		"--http-port", port,
+		"--http-listen", "127.0.0.1",
+	})
+	s.Require().Error(err)
+	s.Contains(err.Error(), "invalid or unusable --http-listen: ")
+	s.Contains(err.Error(), "failed to listen on 127.0.0.1:"+port)
 }
