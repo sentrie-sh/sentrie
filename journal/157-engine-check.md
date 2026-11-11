@@ -18,3 +18,9 @@
 - Added `cmd/engine_test.go` (table test). Updated `docs/codebase-graph/cmd.md` and `main.md`.
 - `make test` passes (log /tmp/sentrie-157-engine-check-impl-test.log).
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 09:46 - Test the engine check end to end
+- Extended `cmd/engine_test.go` (kept the implementer's `TestCheckEngine`): `TestEngineCheckWiredIntoExecServeValidate` drives the real CLI for `exec` and `validate` (satisfied, unsatisfied with the "(use --skip-engine-check to load it anyway)" suffix, strict `0.0.5-rc1`, `--skip-engine-check`, dev build, pseudo-version and unparseable version warn and pass) and for `serve` (blocks on success, so a broken policy is used: engine error first, skip lets the load error through). `TestBenchDoesNotCheckEngine` pins that `bench` is not checked (PROVISIONAL decision).
+- Bite proof: `main`'s `exec.go`, `serve.go`, `validate.go` each make their wiring subtests fail; restored with `git checkout HEAD --`.
+- Gate: make test, make lint (0 issues), make docs-graph, race on cmd and root all pass.
+- _Model: claude-sonnet-5-5_
