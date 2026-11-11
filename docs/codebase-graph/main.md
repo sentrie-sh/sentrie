@@ -35,7 +35,7 @@ The process bootstrap: installs signal handling, resolves build-time version inf
   - **Exceptions:** None.
 
 - **Signature:** Build-time variables - `version`, `commit`, `treeState`, `date`, `builtBy`
-  - **Behavior:** Overridden via `-ldflags "-X main.version=…"`. Each is applied only when non-empty, so an unstamped build falls back to whatever [[version]] derives from Go build info.
+  - **Behavior:** Overridden via `-ldflags "-X main.version=…"`. Each is applied only when non-empty, so an unstamped build falls back to whatever [[version]] derives from Go build info. `version` need not be semver: startup renders it with `versionOnce().String()`, which prints a non-semver value as given instead of panicking (#157), and the `[engine]` check then warns and passes. `main_test.go` builds the binary with `-X main.version=not-semver` and runs `validate`, `exec` and `--version` against it (skipped under `-short`).
   - **Side Effects:** None.
   - **Exceptions:** None.
 

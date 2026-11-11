@@ -96,8 +96,13 @@ func (i Info) String() string {
 	// App details
 	if i.Name != "" {
 		if i.GitVersion != "" {
-			v := semver.MustParse(i.GitVersion)
-			_, _ = fmt.Fprintf(&b, "%s v%s\n", i.Name, v.String())
+			// A version stamped with -ldflags need not be semver (#157): print
+			// it as given rather than panic before any command runs.
+			if v, err := semver.NewVersion(i.GitVersion); err == nil {
+				_, _ = fmt.Fprintf(&b, "%s v%s\n", i.Name, v.String())
+			} else {
+				_, _ = fmt.Fprintf(&b, "%s %s\n", i.Name, i.GitVersion)
+			}
 		} else {
 			_, _ = fmt.Fprintf(&b, "%s\n", i.Name)
 		}

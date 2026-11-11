@@ -15,7 +15,7 @@ tags: build-metadata, cli-output, observability, release
 
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
-| `version` | `IMPORTS` | `ext.masterminds.semver` | `String()` parses `GitVersion` through `semver.MustParse` before rendering. |
+| `version` | `IMPORTS` | `ext.masterminds.semver` | `String()` parses `GitVersion` with `semver.NewVersion` to normalise the name line; an unparseable version is printed as given. |
 | `version` | `IMPORTS` | `std.runtime/debug`, `std.text/tabwriter`, `std.strings`, `std.fmt` | Reads the build info embedded by the Go toolchain; aligns the build-info block for terminal output. |
 | `version` | `READS_FROM` | [[infra.build_metadata]] | Pulls `vcs.revision`, `vcs.time`, and `vcs.modified` from the module build settings baked in at compile time. |
 | [[main]] | `CALLS` | [[version]] | The single consumer: builds an `Info` with app name/description/website and the ASCII banner, then renders it. |
@@ -43,14 +43,14 @@ tags: build-metadata, cli-output, observability, release
   - **Exceptions:** None.
 
 - **Signature:** `(Info).String() -> string`
-  - **Behavior:** Renders the full block: ASCII banner, `Name vX.Y.Z`, description, website, then a tab-aligned build-info table containing only the non-empty fields. Every section is conditional, so a bare `Info{}` renders as near-empty rather than a skeleton of blank labels.
+  - **Behavior:** Renders the full block: ASCII banner, `Name vX.Y.Z` (or `Name <GitVersion>` verbatim when the version is not semver), description, website, then a tab-aligned build-info table containing only the non-empty fields. Every section is conditional, so a bare `Info{}` renders as near-empty rather than a skeleton of blank labels.
   - **Side Effects:** None.
-  - **Exceptions:** **Panics** when `GitVersion` is non-empty but not valid semver - `semver.MustParse` is called without a guard. See below.
+  - **Exceptions:** None. A non-semver `GitVersion` (for example `-ldflags '-X main.version=not-semver'`) renders as `Name not-semver`; it panicked through `semver.MustParse` before #157, which crashed every command at startup because [[main]] renders the string first. Covered by `version/version_test.go` and the built-binary test in `main_test.go`.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless. `Info` is a value type, safe to copy and share.
 - **Performance/Scale Notes:** `GetVersionInfo` iterates the module build settings once; `String()` allocates a builder and a tabwriter. Both are invoked at most once per process, at CLI startup.
 - **Dependencies Risk:** No runtime failure domain, but two release-engineering hazards:
-  - **`MustParse` panic.** If the module version embedded by the toolchain (or an override) is not parseable semver - for example a raw git describe string like `v0.3.1-4-gabc1234`, or a tag without the expected shape - `String()` panics and `sentrie version` crashes. This is a build-tagging concern, not a code path anyone can defend against at runtime.
+  - **Non-semver versions are printed raw.** If the module version embedded by the toolchain (or an override) is not parseable semver - for example a tag without the expected shape - `String()` prints it unnormalised, without the `v` prefix it adds to a semver version. The `[engine]` check in [[cmd]] warns and passes for such a binary.
   - **`BuiltBy` is never populated.** It is rendered when set but no code or option assigns it, so it only appears if release tooling constructs `Info` literally rather than through `GetVersionInfo`.
   - **Development builds report no version.** `Main.Version` is `"(devel)"` for `go run`/`go build` outside a module release, which is explicitly filtered out, so `GitVersion` is empty and the name line renders without a version - expected, not a bug.
