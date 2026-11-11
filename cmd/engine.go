@@ -45,7 +45,7 @@ func skipEngineCheckFlag() cling.CmdFlag {
 
 // checkEngine compares the pack's `[engine] sentrie` constraint with the
 // running binary. Comparison is strict semver: a prerelease build such as
-// 0.0.5-rc1 does not satisfy ">=0.0.5". A mismatch is an error naming the
+// 0.0.5-rc1 does not satisfy ">=0.0.5" but does satisfy ">=0.0.4". A mismatch is an error naming the
 // constraint and the binary version. A dev or unversioned binary passes with a
 // warning written to w. A pack without an `[engine]` table, and skip, pass
 // silently.
@@ -60,23 +60,28 @@ func checkEngine(p *pack.PackFile, skip bool, w io.Writer) error {
 		return err
 	}
 	running, err := semver.NewVersion(raw)
-	if err == nil && isVCSBuildVersion(running) {
-		_, werr := fmt.Fprintf(w, "warning: pack requires sentrie %s; this binary was built from source (%s), so the engine version is not checked\n", constraint, running)
-		return werr
-	}
 	if err != nil {
 		_, werr := fmt.Fprintf(w, "warning: pack requires sentrie %s; the binary version %q is not a semantic version, so the engine version is not checked\n", constraint, raw)
 		return werr
 	}
-	if !constraint.Check(running) {
+	if isVCSBuildVersion(running) {
+		_, werr := fmt.Fprintf(w, "warning: pack requires sentrie %s; this binary was built from source (%s), so the engine version is not checked\n", constraint, running)
+		return werr
+	}
+	// Masterminds drops a prerelease unless the constraint names one; strict
+	// semver orders 0.0.5-rc1 below 0.0.5 and above 0.0.4, so include them.
+	strict := *constraint
+	strict.IncludePrerelease = true
+	if !strict.Check(running) {
 		return fmt.Errorf("pack requires sentrie %s, running %s (use --%s to load it anyway)", constraint, running, skipEngineCheckFlagName)
 	}
 	return nil
 }
 
 // pseudoVersionPrerelease matches the prerelease of a Go pseudo-version, the
-// version `go build` stamps on a binary built from a VCS checkout.
-var pseudoVersionPrerelease = regexp.MustCompile(`(^|\.)0\.\d{14}-[0-9a-f]{12}$`)
+// version `go build` stamps on a binary built from a VCS checkout, with a
+// reachable tag (vX.Y.Z-0.<time>-<hash>) or without one (v0.0.0-<time>-<hash>).
+var pseudoVersionPrerelease = regexp.MustCompile(`(^|\.)(0\.)?\d{14}-[0-9a-f]{12}$`)
 
 // isVCSBuildVersion reports whether v is a source build rather than a release:
 // a Go pseudo-version, or a version marked "+dirty" by the Go toolchain.

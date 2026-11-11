@@ -30,6 +30,8 @@ func (s *CmdTestSuite) TestCheckEngine() {
 		{name: "satisfied", running: "v0.0.5", constraint: ">=0.0.5"},
 		{name: "mismatch", running: "0.0.4", constraint: ">=0.0.5", wantErr: "pack requires sentrie >=0.0.5, running 0.0.4"},
 		{name: "strict prerelease", running: "0.0.5-rc1", constraint: ">=0.0.5", wantErr: "running 0.0.5-rc1"},
+		{name: "prerelease above lower release", running: "0.0.5-rc1", constraint: ">=0.0.4"},
+		{name: "no-tag pseudo-version warns", running: "v0.0.0-20261110181122-5f9f2a7446cb", constraint: ">=0.0.5", wantWarn: "built from source"},
 		{name: "skip", running: "0.0.4", constraint: ">=0.0.5", skip: true},
 		{name: "dev build warns", running: "", constraint: ">=99.0.0", wantWarn: "dev or unversioned"},
 		{name: "pseudo-version warns", running: "v0.0.5-0.20261110181122-5f9f2a7446cb+dirty", constraint: ">=0.0.5", wantWarn: "built from source"},
@@ -105,6 +107,19 @@ func (s *CmdTestSuite) TestEngineCheckWiredIntoExecServeValidate() {
 			dir := s.writeEnginePack(">=0.0.5", engineTestPolicy)
 			err := fn([]string{"--pack-location", dir})
 			s.Require().ErrorContains(err, "running 0.0.5-rc1")
+		})
+		s.Run(name+" prerelease above lower release", func() {
+			SetEngineVersion("0.0.5-rc1")
+			dir := s.writeEnginePack(">=0.0.4", engineTestPolicy)
+			s.Require().NoError(fn([]string{"--pack-location", dir}))
+		})
+		s.Run(name+" no-tag pseudo-version warns and passes", func() {
+			SetEngineVersion("v0.0.0-20261110181122-5f9f2a7446cb")
+			dir := s.writeEnginePack(">=0.0.5", engineTestPolicy)
+			var err error
+			out := s.captureStderr(func() { err = fn([]string{"--pack-location", dir}) })
+			s.Require().NoError(err)
+			s.Contains(out, "built from source")
 		})
 		s.Run(name+" skip flag", func() {
 			SetEngineVersion("0.0.4")

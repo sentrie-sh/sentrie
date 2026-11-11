@@ -31,3 +31,11 @@
 - Found: pack snippets in `cli-reference/serve.md` and `cli-reference/index.md` use a pre-schema layout and `[engines]`, and fail `validate`. Left alone per the snippet rule and listed in the website PR description.
 - `npm run build` passes (/tmp/website-157-engine-check-build.log). Website commits 4e83060, 2a63e45, 6ec2a4d, all signed.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 10:30 - Round 2 review fixes
+- Fixed `pseudoVersionPrerelease` to also match Go's no-tag pseudo-version `v0.0.0-<time>-<hash>` (such a binary used to fail instead of warn).
+- Strict semver per the user: the constraint is copied with `IncludePrerelease = true` before `Check`, so `0.0.5-rc1` fails `>=0.0.5` and passes `>=0.0.4` (Masterminds otherwise drops prereleases).
+- Checked `err != nil` before `isVCSBuildVersion` for readability.
+- Tests added to `TestCheckEngine` and the wiring test (rc1 vs `>=0.0.4`, no-tag pseudo-version); they failed before the fix (8 subtests) and pass now. Verified on ldflags builds: rc1 passes `>=0.0.4`, fails `>=0.0.5`; the no-tag pseudo-version warns.
+- Website `packfile.md` and `common-errors.md` reworded; graph `cmd.md` updated. Gate: make test, lint, docs-graph, race on ./cmd, gofmt, website build all pass.
+- _Model: claude-sonnet-5-5_
