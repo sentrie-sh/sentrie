@@ -52,6 +52,9 @@ func validateCmd(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	if err := printUnenforcedPermissionWarnings(os.Stderr, pack); err != nil {
+		return err
+	}
 
 	idx := index.CreateIndex()
 

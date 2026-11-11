@@ -6,6 +6,7 @@ package cmd
 import (
 	"context"
 	"log/slog"
+	"os"
 
 	"github.com/binaek/cling"
 	"github.com/sentrie-sh/sentrie/api"
@@ -58,6 +59,9 @@ func serveCmd(ctx context.Context, args []string) error {
 
 	pack, err := loader.LoadPack(ctx, input.PackLocation)
 	if err != nil {
+		return err
+	}
+	if err := printUnenforcedPermissionWarnings(os.Stderr, pack); err != nil {
 		return err
 	}
 

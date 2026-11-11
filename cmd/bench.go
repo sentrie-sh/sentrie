@@ -180,6 +180,9 @@ func loadBenchIndex(ctx context.Context, packLocation string) (*index.Index, err
 	if err != nil {
 		return nil, err
 	}
+	if err := printUnenforcedPermissionWarnings(os.Stderr, pack); err != nil {
+		return nil, err
+	}
 	idx := index.CreateIndex()
 	if err := idx.SetPack(ctx, pack); err != nil {
 		return nil, err
