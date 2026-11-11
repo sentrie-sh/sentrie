@@ -65,3 +65,10 @@
 - Skipped: a dict fact holding undefined (facts come from JSON, so undefined cannot arrive that way).
 - Bite: `typeref_dict.go` from `8847b8b~1` makes every positive case and the output case fail; restored with `git checkout HEAD -- runtime/typeref_dict.go`.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 11:05 - Handoff: round 3 tests
+
+- Tests committed and passing; bite proof done (production file restored, tree clean).
+- Gate run and passing: make test, make lint, make docs-graph, gofmt, em dash and attribution checks, signatures all G.
+- Not run: `go test -race` on non-runtime packages (the branch touches only runtime, so none apply).
+- _Model: claude-sonnet-5-5_
