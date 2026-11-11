@@ -90,3 +90,9 @@
 - Merged `143-per-rule-errors` (42e1cad) into this branch (a merge, not a rebase, so no force push is needed) and changed the imported half of that test to expect one 400 with no decisions, per user decision 11.
 - `go test ./api/... ./runtime/... ./cmd/...` passes after the change (`/tmp/s11-147-merge-test.log`).
 - _Model: claude-fable-5-2_
+
+### 2026-11-11 22:38 - User decision: keep the 400 for a missing imported fact
+
+- The user confirmed the provisional round 3 choice (the user's words: "Keep the 400"): a required fact that an import leaves out of its `with` clauses fails the whole request with one 400, like a caller's missing required fact.
+- Removed the PROVISIONAL wording from the comments in `runtime/rule_error.go` and the three test files, from `docs/codebase-graph/runtime.executor.md` and from the PR description. No behaviour change.
+- _Model: claude-fable-5-2_
