@@ -59,3 +59,9 @@
 - Verified with the branch binary built as 0.0.4: `bench` on a `>=0.0.5` pack exits 1 with the suffix; `bench --skip-engine-check` runs. `npm run build` passes (/tmp/website-157-engine-check-build.log).
 - Signing failed twice (agent refused operation), so nothing was committed.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 21:02 - Combined check: stop passing a rule argument to validate in tests
+
+- The milestone combined check (all 15 branches merged in a throwaway clone) failed in `cmd/engine_test.go`: the validate subtests passed the positional `com/ex/pol`, which #155 now rejects ("validate takes no arguments", user decision 10).
+- Dropped the argument, the same fix #146 and #147 already carry (user decision 19). `go test ./cmd/...` passes on this branch with and without #155 (`/tmp/s11-157-engine-check-cmd.log`).
+- _Model: claude-fable-5-2_
