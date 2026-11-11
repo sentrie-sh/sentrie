@@ -76,9 +76,13 @@ func ErrorStatus(err error) int {
 	}
 }
 
-// withRuleError makes sure a failed rule has an output carrying its error.
-// A rule that failed before it was evaluated (an unexported rule, a missing
-// fact) has no output yet, so it gets one reporting unknown.
+// withRuleError makes sure a failed rule has an output carrying its error
+// and reporting unknown. A rule that failed before it was evaluated (an
+// unexported rule, a missing fact) has no output yet, so it gets one. A rule
+// that failed after its value was computed (an attachment that failed, say)
+// already has an output: its decision is reset to unknown and its attachments
+// are dropped, so a failed rule never reports a decision or attachments that
+// look valid. The trace is kept, as it records where the rule failed.
 func withRuleError(output *ExecutorOutput, namespace, policy, rule string, err error) *ExecutorOutput {
 	if err == nil {
 		return output
@@ -88,9 +92,10 @@ func withRuleError(output *ExecutorOutput, namespace, policy, rule string, err e
 			PolicyName: policy,
 			Namespace:  namespace,
 			RuleName:   rule,
-			Decision:   DecisionOf(box.Trinary(trinary.Unknown)).reported(),
 		}
 	}
+	output.Decision = DecisionOf(box.Trinary(trinary.Unknown)).reported()
+	output.Attachments = nil
 	output.Error = newRuleError(err)
 	return output
 }

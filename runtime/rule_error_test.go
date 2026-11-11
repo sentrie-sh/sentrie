@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/sentrie-sh/sentrie/xerr"
 )
@@ -233,4 +234,53 @@ policy clean {
 	for _, o := range outputs {
 		s.Nil(o.Error, o.RuleName)
 	}
+}
+
+// attachFailPolicy has a rule whose value is true but whose exported
+// attachment fails, next to a healthy sibling with a good attachment.
+const attachFailPolicy = `namespace com/ex
+
+policy pol {
+  rule ok = { yield true }
+  rule fine = { yield true }
+  export decision of ok attach good as 1 attach boom as 1 / 0
+  export decision of fine attach note as "kept"
+}
+`
+
+// A rule whose attachment fails is a failed rule (#143 review): its decision
+// is reset to unknown and its attachments are dropped, so neither ExecPolicy
+// nor ExecRule exposes the true decision computed before the attachment failed.
+func (s *RuntimeTestSuite) TestAttachmentFailureReportsUnknown() {
+	ctx := s.T().Context()
+	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "attach_fail.sentrie", src: attachFailPolicy})
+
+	outputs, err := exec.ExecPolicy(ctx, "com/ex", "pol", nil)
+	var ruleErrs RuleErrors
+	s.Require().True(stdErr.As(err, &ruleErrs), "error is RuleErrors: %v", err)
+	s.Len(ruleErrs, 1)
+	s.Require().Len(outputs, 2)
+	for _, out := range outputs {
+		switch out.RuleName {
+		case "ok":
+			s.Require().NotNil(out.Error)
+			s.Contains(out.Error.Detail, "divide by zero")
+			s.Equal(trinary.Unknown, out.Decision.State)
+			s.Equal(DecisionOf(box.Trinary(trinary.Unknown)).reported(), out.Decision)
+			s.Nil(out.Attachments)
+		case "fine":
+			s.Nil(out.Error)
+			s.Equal(trinary.True, out.Decision.State)
+			s.Contains(out.Attachments, "note")
+		default:
+			s.Failf("unexpected rule", "%s", out.RuleName)
+		}
+	}
+
+	out, err := exec.ExecRule(ctx, "com/ex", "pol", "ok", nil)
+	s.Require().ErrorContains(err, "divide by zero")
+	s.Require().NotNil(out)
+	s.Require().NotNil(out.Error)
+	s.Equal(trinary.Unknown, out.Decision.State)
+	s.Nil(out.Attachments)
 }
