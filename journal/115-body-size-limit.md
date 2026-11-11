@@ -34,3 +34,10 @@
 - Pre-existing broken snippet recorded in the website PR description: the "Complete Example" pack on the serve page (old `schema_version`/`[engines]` keys, undeclared `user` fact).
 - Website build passes (`/tmp/website-115-body-size-limit-build.log`). Four signed commits on the website branch.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 05:10 - Review round 1 fixes
+
+- The opus review returned CHANGES for stale graph text only: infra.network_sockets.md still said there was no body limit and no read timeout, and api.health.md and api.md still pointed auth notes at #115. All now point at #315 and describe the 1 MiB cap.
+- Took both suggestions: a comment on why the body drain ignores errors other than the limit, and the website 413 line moved after 405.
+- PROVISIONAL kept by the reviewer: trailing data within the limit is still ignored. A follow-up issue to reject it with 400 is drafted for the user.
+- _Model: claude-opus-5-5 (orchestrator), subagents: 1 opus reviewer, tokens: ~4k_
