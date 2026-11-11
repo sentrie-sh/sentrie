@@ -26,7 +26,7 @@ The most substantial validator: it resolves a shape reference through a three-ti
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `validateAgainstShapeTypeRef(ctx, ec, exec Executor, p *index.Policy, v box.Value, typeRef *ast.ShapeTypeRef, pos tokens.Range) -> error`
-  - **Behavior:** Binds its own constraints first ([[runtime.typeref_constraints]]: arguments evaluated and checked against the definition, #273), then four phases.
+  - **Behavior:** Binds its own constraints first ([[runtime.typeref_constraints]]: arguments evaluated and checked against the definition, #273), then five phases.
     1. **Resolution** (`resolveShapeTypeRef`, shared with the closest-member choice in [[runtime.typeref_union]]) - policy shapes first (the source comment notes this deliberately overrides the namespace), then namespace shapes, then, only when the reference has **more than two segments**, a cross-namespace lookup guarded by `VerifyShapeExported`.
     2. **Alias short-circuit** - if `shape.AliasOf` is set, revalidate the whole value against that type and return. The alias resolves in the shape's own scope (`Shape.ShapeScope`, see below), not in `p`.
     3. **Field walk** - the value must be a dict; each declared field is looked up, missing optional fields are skipped, missing required fields error, a present-but-undefined field errors, and each present field recurses in its declaring shape's scope (`ShapeModelField.TypeScope`), so a field composed in through `with` resolves where its base shape was declared.
