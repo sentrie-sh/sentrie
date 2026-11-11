@@ -52,3 +52,10 @@
 - Added `TestBenchEngineCheckCases` in `cmd/engine_test.go`: satisfied runs, a pack with no `[engine]` constraint runs, dev build / Go pseudo-version / unparseable version warn on stderr and load, `bench --help` lists `--skip-engine-check`. Mismatch and skip flag stay in `TestBenchChecksEngine`.
 - Bite proof against `cmd/bench.go` from 390a144~1: the three warn cases and the help case fail (plus `TestBenchChecksEngine`); satisfied and no-constraint pass there by design (they guard against over-checking). Restored with `git checkout HEAD -- cmd/bench.go`.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 14:43 - Docs for #157 round 3 (bench checks the engine constraint)
+
+- Website: bench now listed with exec, serve and validate on the packfile `[engine]` section and common-errors; `--skip-engine-check` added to `cli-reference/bench.md` (table, section, exit status note) and the bench table of `cli-reference/index.md`. PR description updated (no "bench unchecked" wording).
+- Verified with the branch binary built as 0.0.4: `bench` on a `>=0.0.5` pack exits 1 with the suffix; `bench --skip-engine-check` runs. `npm run build` passes (/tmp/website-157-engine-check-build.log).
+- Signing failed twice (agent refused operation), so nothing was committed.
+- _Model: claude-sonnet-5-5_
