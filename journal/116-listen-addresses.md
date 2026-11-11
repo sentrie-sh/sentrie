@@ -21,3 +21,10 @@
 - Bite proofs against main's api/net.go and cmd/serve.go: all new tests fail (panic index out of range, double brackets, missing wrap).
 - Local gate passes: make test, make lint, gofmt, docs-graph, race on api and cmd.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 09:49 - Docs for #116
+- Website branch 116-listen-addresses (sentrie-sh/website#89). Pages: cli-reference/serve.md (predefined value table, local6 example, bare IPv6 note, error format, fix note) and running-sentrie/serving-policies.md (local6/network6 binds, error format, example). No other page states the old behaviour.
+- Verified on the branch binary with free localhost ports: local6 binds [::1] and /health answers over it, network6 binds the IPv6 wildcard, "::1,127.0.0.1" binds both, a taken port gives "invalid or unusable --http-listen: failed to listen on ...". The empty-list message is not reachable from the CLI (`--http-listen=` gives one empty address that binds all interfaces), so the docs state it without a trigger command.
+- Candidate issue: an empty `--http-listen` value binds all interfaces. Pre-existing broken docs: running-as-service.md:12 and :128 use removed `--port`/`--listen all`.
+- Website build passes; commit 9bc5ee8 signed.
+- _Model: claude-sonnet-5-5_
