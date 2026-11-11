@@ -73,3 +73,10 @@
 - Tests: `version/version_test.go` (new `VersionTestSuite`) and `main_test.go` (new `MainTestSuite`, builds the real binary into `t.TempDir()`, about 3s, skipped under `-short`; `validate` and `exec` exit 0 with the not-semver warning on stderr, `--version` prints the raw version). Both fail against the previous `version.go` (`/tmp/sentrie-157-engine-check-c1-bite.log`).
 - Graph `version.md` (no more panic gotcha) and `main.md` updated. Website: page wording already matches; the real warning is quoted in the website PR description only. Gate: make test, lint, docs-graph (`/tmp/sentrie-157-engine-check-c1-*.log`), website `npm run build` (`/tmp/website-157-engine-check-build-c1.log`) pass.
 - _Model: claude-opus-5-5_
+
+### 2026-11-12 03:10 - Tests for the non-semver startup fix
+
+- Reviewed `version/version_test.go` and `main_test.go`: SPDX header, `s.T().Context()`, `t.TempDir()`, `testing.Short()` skip, no writes outside the temp dir. `make test` is `go test ./...` with no `-short`, so the real-binary test runs in CI.
+- Added `TestStringEmptyVersion` (empty GitVersion prints only the name). Semver and `v`-prefixed already covered by `TestStringSemverVersion`.
+- Bite proof against `version/version.go` from 364615a~1: the non-semver version test and the real-binary test fail (`/tmp/sentrie-157-engine-check-c3-bite.log`); restored with `git checkout HEAD -- version/version.go`.
+- _Model: claude-sonnet-5-5_
