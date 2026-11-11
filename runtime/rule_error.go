@@ -137,6 +137,11 @@ func asRequestError(ec *ExecutionContext, bindingFacts bool, err error) error {
 	if err == nil || stdErr.Is(err, context.DeadlineExceeded) || stdErr.Is(err, context.Canceled) {
 		return err
 	}
+	// An imported policy's wrongly typed fact, already marked by
+	// asImportedFactError, stays the request's error.
+	if reqErr := (*requestError)(nil); stdErr.As(err, &reqErr) {
+		return err
+	}
 	var fe *factError
 	if stdErr.As(err, &fe) && fe.ec == ec {
 		if !fe.isDefault {
@@ -146,6 +151,28 @@ func asRequestError(ec *ExecutionContext, bindingFacts bool, err error) error {
 	}
 	if bindingFacts {
 		return &requestError{err: err}
+	}
+	return err
+}
+
+// asImportedFactError marks err as a request error when it is a wrongly typed
+// fact the importing policy supplied with `with` to the imported policy's
+// context ec: a value failing its declared type, or a null (nullSupplied) for
+// a fact that does not accept null. Like a caller's wrongly typed fact it is
+// an invalid invocation, so the whole request fails with a 400 (#147, user
+// decision 11). The imported policy's own default failing its type, a missing
+// fact and every other error stay the importing rule's failure.
+func asImportedFactError(ec *ExecutionContext, nullSupplied bool, err error) error {
+	if err == nil || stdErr.Is(err, context.DeadlineExceeded) || stdErr.Is(err, context.Canceled) {
+		return err
+	}
+	// The message names the imported policy: the fact is its, not the caller's.
+	if nullSupplied {
+		return &requestError{err: fmt.Errorf("imported policy %s: %w", ec.policy.FQN, err)}
+	}
+	var fe *factError
+	if stdErr.As(err, &fe) && fe.ec == ec && !fe.isDefault {
+		return &requestError{err: fmt.Errorf("imported policy %s: %w: %w", ec.policy.FQN, err, xerr.ErrInvalidInvocation(""))}
 	}
 	return err
 }

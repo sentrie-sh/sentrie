@@ -79,6 +79,36 @@ func (s *CmdTestSuite) TestExecWronglyTypedFactIsAnError() {
 	s.Empty(out)
 }
 
+// An imported policy's wrongly typed `with` fact is an error on exec too, the
+// same as a caller's wrongly typed fact (#147, user decision 11), for the
+// importing rule and for the whole policy.
+func (s *CmdTestSuite) TestExecImportedWronglyTypedFactIsAnError() {
+	dir := s.writeTestPack(`namespace com/ex
+policy target {
+  fact n?: number
+  rule ok = { yield true }
+  export decision of ok
+}
+policy importer {
+  rule fine = { yield true }
+  rule viaImport = import decision ok from com/ex/target with n as "x"
+  export decision of fine
+  export decision of viaImport
+}
+`)
+	for _, target := range []string{"com/ex/importer/viaImport", "com/ex/importer"} {
+		var err error
+		out := s.captureStdout(func() {
+			err = runExecCLI(s.T().Context(), []string{target, "--pack-location", dir})
+		})
+		s.Require().Error(err, target)
+		s.Contains(err.Error(), "imported policy com/ex/target: fact 'n'", target)
+		s.Contains(err.Error(), "is not a number", target)
+		s.NotContains(err.Error(), "rules failed", target)
+		s.Empty(out, target)
+	}
+}
+
 // --facts is merged over --fact-file: objects deeply, anything else replaced.
 func (s *CmdTestSuite) TestExecFactFileAndFactsMergeDeeply() {
 	file := s.writeFactFile(`{"user": 1, "opts": {"a": {"x": 1, "y": 0}, "b": 3, "items": [1, 2, 3]}}`)

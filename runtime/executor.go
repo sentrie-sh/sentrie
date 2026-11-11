@@ -329,11 +329,17 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 	defer ec.Dispose()
 
 	// A fact error of a top-level call is a request error, not a rule failure
-	// (#143): ExecPolicy returns it alone instead of one per rule.
+	// (#143): ExecPolicy returns it alone instead of one per rule. A wrongly
+	// typed fact an importing policy supplied with `with` is one too, a 400
+	// like a caller's (#147); the rest of an imported rule's errors stay the
+	// importing rule's failure.
 	bindingFacts := true
+	nullSupplied := false
 	defer func() {
 		if caller == nil {
 			err = asRequestError(ec, bindingFacts, err)
+		} else {
+			err = asImportedFactError(ec, nullSupplied, err)
 		}
 	}()
 
@@ -352,6 +358,7 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 		if ok {
 			decodedFactValue := box.FromBoundaryAny(factValue)
 			if decodedFactValue.IsNull() && !ast.AcceptsNull(factStatement.Type) {
+				nullSupplied = true
 				return nil, fmt.Errorf("fact '%s' cannot be null: %w", factName, xerr.ErrInvalidInvocation(""))
 			}
 			err := ec.InjectFact(ctx, alias, decodedFactValue, false, factStatement.Type)

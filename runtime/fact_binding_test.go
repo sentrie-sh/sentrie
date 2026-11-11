@@ -197,23 +197,27 @@ policy byAlias {
 	s.Contains(ruleErrs[0].Detail, "accepts facts: n, subject")
 }
 
-// PROVISIONAL (#147): an imported policy's wrongly typed fact stays the
-// importing rule's own failure, a per-rule 500, not a request-level 400.
-func (s *RuntimeTestSuite) TestImportedWronglyTypedFactIsPerRule500() {
+// An imported policy's wrongly typed `with` fact fails the whole request
+// with a 400, like a caller's wrongly typed fact (#147, user decision 11):
+// for the whole policy and for the importing rule alone.
+func (s *RuntimeTestSuite) TestImportedWronglyTypedFactIsARequestError() {
 	ctx := s.T().Context()
 	exec := s.factBindingExec(factImportPolicy)
 
 	outputs, err := exec.ExecPolicy(ctx, "com/ex", "badType", nil)
+	s.Require().Error(err)
+	s.Nil(outputs)
 	var ruleErrs RuleErrors
-	s.Require().True(stdErr.As(err, &ruleErrs), "error is RuleErrors: %v", err)
-	s.Require().Len(ruleErrs, 1)
-	s.Require().Len(outputs, 2)
-	s.Equal(http.StatusInternalServerError, ruleErrs[0].Status)
-	s.Contains(ruleErrs[0].Detail, "fact 'n'")
-	s.Contains(ruleErrs[0].Detail, "is not a number")
-	for _, o := range outputs {
-		if o.RuleName == "fine" {
-			s.Nil(o.Error)
-		}
-	}
+	s.False(stdErr.As(err, &ruleErrs), "not per-rule errors: %v", err)
+	var invErr xerr.InvalidInvocationError
+	s.ErrorAs(err, &invErr)
+	s.Equal(http.StatusBadRequest, ErrorStatus(err))
+	s.Contains(err.Error(), "imported policy com/ex/target: fact 'n': ")
+	s.Contains(err.Error(), "is not a number")
+
+	_, err = exec.ExecRule(ctx, "com/ex", "badType", "viaImport", nil)
+	s.Require().Error(err)
+	s.ErrorAs(err, &invErr)
+	s.Equal(http.StatusBadRequest, ErrorStatus(err))
+	s.Contains(err.Error(), "imported policy com/ex/target: fact 'n': ")
 }

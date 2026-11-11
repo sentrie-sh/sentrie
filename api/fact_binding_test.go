@@ -116,9 +116,10 @@ policy p {
 	s.Equal(http.StatusOK, rec.Code, rec.Body.String())
 }
 
-// PROVISIONAL (#147): an imported policy's wrongly typed `with` fact is the
-// importing rule's own failure, so the policy is a 207 with that rule's 500.
-func (s *APITestSuite) TestDecisionImportedWronglyTypedFactIsPerRule500() {
+// An imported policy's wrongly typed `with` fact fails the whole request with
+// one 400 problem document, like a caller's wrongly typed fact (#147, user
+// decision 11): for the policy and for the importing rule alone.
+func (s *APITestSuite) TestDecisionImportedWronglyTypedFactIs400() {
 	api := s.factPackAPI(`namespace fb/test
 
 policy target {
@@ -134,12 +135,14 @@ policy p {
   export decision of viaImport
 }
 `)
-	rec := s.postDecision(api, "/decision/fb/test/p", `{"facts": {}}`)
-	s.Require().Equal(http.StatusMultiStatus, rec.Code, rec.Body.String())
-	decisions := s.decisionsWithErrors(rec.Body.Bytes())
-	s.Require().Len(decisions, 2)
-	s.Nil(decisions["fine"])
-	s.Require().NotNil(decisions["viaImport"])
-	s.Equal(http.StatusInternalServerError, decisions["viaImport"].Status)
-	s.Contains(decisions["viaImport"].Detail, "fact 'n'")
+	for _, path := range []string{"/decision/fb/test/p", "/decision/fb/test/p/viaImport"} {
+		rec := s.postDecision(api, path, `{"facts": {}}`)
+		s.Require().Equal(http.StatusBadRequest, rec.Code, path+" "+rec.Body.String())
+		s.requireProblem(http.StatusBadRequest, rec.Body.Bytes(), rec.Header().Get("Content-Type"), "imported policy fb/test/target: fact 'n'", "is not a number")
+		s.NotContains(rec.Body.String(), `"decisions"`)
+	}
+
+	// the importing policy's other rule alone is unaffected
+	rec := s.postDecision(api, "/decision/fb/test/p/fine", `{"facts": {}}`)
+	s.Equal(http.StatusOK, rec.Code, rec.Body.String())
 }
