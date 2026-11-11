@@ -56,3 +56,12 @@
 - Fixed `serving-policies.md`, `reference/errors.md` and `running-as-service.md` (and the website PR description) to say missing -> 400, wrong type -> 500 for now (400 after sentrie-sh/sentrie#147). Sentrie PR description line on fact errors and the API test comment corrected the same way by the orchestrator.
 - Website build passes, no em dash. Left uncommitted (signing is down), one queued website commit.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-12 02:27 - Review fix: a failed attachment leaked the decision
+- Review comment on `runtime/rule_error.go:94` (P2): `withRuleError` only built an unknown decision when the output was nil, so `rule ok = true` exported with `attach boom as 1 / 0` returned `RuleErrors` and an `error` field next to `state: "true"`, `value: true`. Reproduced on ExecPolicy and ExecRule (runtime), the 207 body (api) and `sentrie exec` JSON (cmd); the partial attachment `good` leaked too.
+- Fix: `withRuleError` now sets the unknown decision (`DecisionOf(box.Trinary(trinary.Unknown)).reported()`, as the nil branch did) and nil attachments on every error, existing output or not. Attachments on failure are dropped: a failed output carries identity, the unknown decision, the error and the trace. Follows #141's lambda-valued rule (no attachments) and the website example (`"attachments": null` on a failed rule). The trace is kept as diagnostics, though it records the values computed before the failure.
+- Checked other paths: `withRuleError` is the only place an output's `Error` is set (ExecPolicy's `report` and ExecRule both go through it); `api/health.go` `p.Error` is a health probe, unrelated; `cmd/exec.go` sets nothing. `runtime/imports.go` discards the output on error.
+- Tests: runtime `TestAttachmentFailureReportsUnknown`, api `TestDecisionAttachmentFailureIsUnknown`, cmd `TestExecPolicyAttachmentFailureIsUnknown`; each failed against the old `rule_error.go`. No existing test pinned the leak. Graph: runtime, runtime.executor, api.handle_decision nodes.
+- Website (read only): reference/rules.md, reference/errors.md and serving-policies.md already state a failed rule's decision is unknown, and their examples show `"attachments": null`; none mention attachment failures, so nothing there becomes false.
+- `make test`, `make lint`, `make docs-graph` pass (`/tmp/sentrie-143-per-rule-errors-c1-*.log`).
+- _Model: claude-opus-5-5_
