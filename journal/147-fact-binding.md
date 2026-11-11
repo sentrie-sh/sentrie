@@ -32,3 +32,11 @@
 - Gate: `make test`, `make lint` (0 issues), `make docs-graph`, race on api, cmd, index, xerr and runtime, gofmt, em dash check all pass.
 - Queued commit: the four test files in one commit before the journal commit. Nothing committed (signing down).
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 03:58 - Docs for #147
+- Website branch 147-fact-binding (PR sentrie-sh/website#84): facts.md (breaking-change caution, declared name vs alias, defaults type-checked, supplying facts), serving-policies.md, exec.md (deep merge), errors.md, running-as-service.md, plus alias statements in exporting-and-importing-rules, policies, policy-composition, running-your-policy, quick-start.
+- Verified on the branch binary: declared name binds, alias gives 400 required fact not found, wrong type 400, validate rejects wrong/null default and duplicate names, merge, omitted optional fact undefined. Build passes.
+- Post-#147 wording (wrongly typed fact 400) replaces website#79's "500 until #147" lines; merge #79 first and resolve conflicts to the new wording.
+- Follow-up: import examples in exporting-and-importing-rules.md and policy-composition.md key `with` by alias and a body inconsistent with the alias; need rewriting for declared names.
+- Signing refused, nothing committed in either repo (website changes staged).
+- _Model: claude-sonnet-5-5_
