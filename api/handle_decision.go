@@ -87,12 +87,25 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Parse request body
+	// Parse request body. limitBody caps what can be read (#115); a body
+	// that declares or turns out to be over the limit is a 413, never a 400.
+	if api.bodyOverLimit(r) {
+		api.writeBodyTooLarge(w, r)
+		return
+	}
 	var req DecisionRequest
 	dec := json.NewDecoder(r.Body)
 	dec.UseNumber() // keep integers beyond 2^53 exact (#166)
 	if err := dec.Decode(&req); err != nil {
+		if bodyTooLarge(err) {
+			api.writeBodyTooLarge(w, r)
+			return
+		}
 		api.writeErrorResponse(w, r, http.StatusBadRequest, "Invalid JSON", "The request body could not be parsed as valid JSON")
+		return
+	}
+	if err := api.drainBody(r); bodyTooLarge(err) {
+		api.writeBodyTooLarge(w, r)
 		return
 	}
 	if err := box.CheckJSONNumbers(req.Facts); err != nil {

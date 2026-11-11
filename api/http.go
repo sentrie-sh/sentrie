@@ -61,6 +61,8 @@ type HTTPAPI struct {
 	maxRequestTimeout time.Duration
 	// readHeaderTimeout is serverReadHeaderTimeout; tests shorten it.
 	readHeaderTimeout time.Duration
+	// maxBodyBytes caps every request body (#115); 0 means no limit.
+	maxBodyBytes int64
 }
 
 // HTTPAPIOption configures an HTTPAPI.
@@ -116,6 +118,7 @@ func NewHTTPAPI(executor runtime.Executor, opts ...HTTPAPIOption) *HTTPAPI {
 		logger:            slog.Default(),
 		requestTimeout:    runtime.DefaultEvalTimeout,
 		readHeaderTimeout: serverReadHeaderTimeout,
+		maxBodyBytes:      DefaultMaxBodyBytes,
 	}
 	for _, opt := range opts {
 		opt(api)
@@ -153,7 +156,9 @@ func (api *HTTPAPI) newServer(ctx context.Context, handler http.Handler) *http.S
 	}
 }
 
-func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error {
+// routes builds the handler every listener serves: the decision and health
+// routes behind the request body limit.
+func (api *HTTPAPI) routes() http.Handler {
 	mux := http.NewServeMux()
 
 	// Register the decision endpoint using Go 1.24 syntax
@@ -165,6 +170,12 @@ func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error 
 
 	// Liveness and readiness probes
 	api.registerHealthRoutes(mux)
+
+	return api.limitBody(mux)
+}
+
+func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error {
+	handler := api.routes()
 
 	bindings, err := resolveBindings(port, listen)
 	if err != nil {
@@ -183,7 +194,7 @@ func (api *HTTPAPI) Setup(ctx context.Context, port int, listen []string) error 
 			api.listeners = nil
 			return fmt.Errorf("failed to listen on %s: %w", binding, err)
 		}
-		api.listeners = append(api.listeners, NewListenerServerPair(ln, api.newServer(ctx, mux)))
+		api.listeners = append(api.listeners, NewListenerServerPair(ln, api.newServer(ctx, handler)))
 		api.logger.DebugContext(ctx, "Listening on server", "binding", binding)
 	}
 	return nil
