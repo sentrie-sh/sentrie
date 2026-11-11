@@ -184,8 +184,8 @@ func (s *APITestSuite) TestDecisionNamedRuleFailureIsAProblemDocument() {
 }
 
 // A missing required fact is a 400 problem document for a policy request,
-// not a per-rule error; an imported policy's fact error stays the importing
-// rule's failure inside a 207.
+// not a per-rule error, and so is an imported policy's wrongly typed with
+// fact: one 400 for the whole request, with no decisions.
 func (s *APITestSuite) TestDecisionFactErrorsAreRequestLevel() {
 	api := s.rulePackAPI(ruleErrorAPIPolicy, nil)
 
@@ -195,12 +195,10 @@ func (s *APITestSuite) TestDecisionFactErrorsAreRequestLevel() {
 	s.NotContains(rec.Body.String(), `"decisions"`)
 
 	rec = s.postDecision(api, "/decision/re/test/importer", `{"facts": {}}`)
-	s.Require().Equal(http.StatusMultiStatus, rec.Code, rec.Body.String())
-	decisions := s.decisionsWithErrors(rec.Body.Bytes())
-	s.Require().Len(decisions, 2)
-	s.Nil(decisions["fine"])
-	s.Require().NotNil(decisions["viaImport"])
-	s.Contains(decisions["viaImport"].Detail, "is not a number")
+	s.Require().Equal(http.StatusBadRequest, rec.Code, rec.Body.String())
+	s.Contains(rec.Body.String(), "imported policy re/test/typed")
+	s.Contains(rec.Body.String(), "is not a number")
+	s.NotContains(rec.Body.String(), `"decisions"`)
 }
 
 // A deadline that stops one rule is that rule's 503 inside a 207.
