@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/binaek/cling"
@@ -108,7 +109,7 @@ func serveCmd(ctx context.Context, args []string) error {
 		api.WithMaxRequestTimeout(evalMaxTimeout),
 	)
 	if err := server.Setup(ctx, input.Port, input.Listen); err != nil {
-		return err
+		return fmt.Errorf("invalid or unusable --http-listen: %w", err)
 	}
 
 	go func() {

@@ -49,7 +49,6 @@ The network-facing façade over the policy engine. It translates HTTP requests i
 - **Performance/Scale Notes:** Each decision request carries a deadline (`--eval-timeout`, 10s by default, or the caller's `Sentrie-Timeout` up to `--eval-max-timeout`); the read timeout is fixed at 30 seconds. A caller-chosen deadline lets any client that can reach the port hold an evaluation for up to the ceiling, which is one more reason for [#115](https://github.com/sentrie-sh/sentrie/issues/115). There is **no concurrency limit**, so inbound request concurrency maps directly onto executor concurrency; the per-module limit of 10 live VMs becomes the implicit bottleneck under load, and requests queue on it invisibly.
 - **Dependencies Risk:**
   - **No authentication, no authorization, no rate limiting, wildcard CORS, and no request body limit.** Filed as [#115](https://github.com/sentrie-sh/sentrie/issues/115). The default bind of `local` is the one thing keeping the out-of-the-box posture safe.
-  - **`local6` and `network6` cannot bind** because the addresses are double-bracketed - see [[api.net]].
   - **Responses embed the full trace tree**, which contains evaluated fact values. Any caller that can reach the endpoint can read back the data the policy saw.
   - **`API` and `HTTPAPI` are parallel, unrelated types.** The former looks like the intended abstraction and is entirely unused; a reader looking for the service entry point should go to `HTTPAPI`.
   - **`/health` is a liveness probe only.** Use `/health/deep` as the readiness probe; see [[api.health]].
