@@ -44,3 +44,8 @@
 - Codebase graph: runtime.typeref_shape (field walk and gotcha rewritten), runtime.typeref (caller-skip list). PR description: provisional item removed, decision stated.
 - `go test ./runtime/... ./lang_test/...` passes; `make test` passes (`/tmp/sentrie-148-typed-let-default-round2-test.log`); `make docs-graph` passes. Website not touched (docs agent follows).
 - _Model: claude-opus-5-5_
+
+### 2026-11-11 10:26 - Docs for #148, round 2
+- Website branch 148-typed-let-default: new text in reference/shapes.md (Field modifiers: a required field holding undefined counts as missing, `x is S` false, typed check fails with `field <name> is required`; optional holding undefined is treated as omitted; runnable snippet) and a cross-reference sentence in reference/let.md. Round 1 pages never said a present-but-undefined required field passes (only the PR description did); that text was replaced and the provisional wording removed.
+- Verified on the branch binary (b8b1fad): `is Item` false, typed let errors `field id is required`, optional undefined passes. Build passes (/tmp/website-148-typed-let-default-build.log). 18 untouched shapes.md snippets fail validation (listed in the website PR description).
+- _Model: claude-sonnet-5-5_
