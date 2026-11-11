@@ -37,3 +37,8 @@
 - Website: serve.md table shows bare addresses plus a dual-stack line, real error text checked on the branch binary; serving-policies.md updated and the "network4 for IPv4 only" claim dropped. Build passes (`/tmp/website-116-listen-addresses-build.log`).
 - Gate logs: `/tmp/sentrie-116-r2-test.log`, `-lint.log`, `-dg.log`, `-race.log`, all pass.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 10:35 - Round 3: deadline on the serve test
+
+- TestServeCmdRejectsEmptyListenAddress now runs with a 5s context so a regression fails instead of hanging. Against main's api/net.go it fails in 5.01s. Website PR description now quotes `--http-listen/--http-port`.
+- _Model: claude-sonnet-5-5_
