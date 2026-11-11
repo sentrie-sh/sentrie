@@ -82,7 +82,10 @@ func ErrorStatus(err error) int {
 // that failed after its value was computed (an attachment that failed, say)
 // already has an output: its decision is reset to unknown and its attachments
 // are dropped, so a failed rule never reports a decision or attachments that
-// look valid. The trace is kept, as it records where the rule failed.
+// look valid. The trace is kept, as it records where the rule failed; its
+// root carries the rule's error unless it already has a more specific one. It
+// keeps the values computed before the failure, so a client reads decision
+// and error, not the trace's result.
 func withRuleError(output *ExecutorOutput, namespace, policy, rule string, err error) *ExecutorOutput {
 	if err == nil {
 		return output
@@ -97,6 +100,11 @@ func withRuleError(output *ExecutorOutput, namespace, policy, rule string, err e
 	output.Decision = DecisionOf(box.Trinary(trinary.Unknown)).reported()
 	output.Attachments = nil
 	output.Error = newRuleError(err)
+	// The error passed here may wrap the one on the trace (the policy deadline
+	// annotation); it replaces it then, and never replaces an unrelated one.
+	if n := output.RuleNode; n != nil && (n.Err == "" || strings.Contains(err.Error(), n.Err)) {
+		n.SetErr(err)
+	}
 	return output
 }
 

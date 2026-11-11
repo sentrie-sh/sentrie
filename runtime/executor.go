@@ -486,7 +486,11 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 			v, node, err := eval(ctx, ec, e, thePolicy, attachment.Value)
 			attachmentNode.Attach(node)
 			if err != nil {
+				// The failing attachment and its error stay in the rule's
+				// trace, so the trace shows where the rule failed (#143).
 				attachmentNode.SetErr(err)
+				ruleNode.Attach(attachmentNode)
+				ruleNode.SetErr(err)
 				return d, attachments, ruleNode, err
 			}
 			attachments[attachment.Name] = v

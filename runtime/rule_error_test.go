@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sentrie-sh/sentrie/box"
+	"github.com/sentrie-sh/sentrie/runtime/trace"
 	"github.com/sentrie-sh/sentrie/trinary"
 	"github.com/sentrie-sh/sentrie/xerr"
 )
@@ -268,6 +269,7 @@ func (s *RuntimeTestSuite) TestAttachmentFailureReportsUnknown() {
 			s.Equal(trinary.Unknown, out.Decision.State)
 			s.Equal(DecisionOf(box.Trinary(trinary.Unknown)).reported(), out.Decision)
 			s.Nil(out.Attachments)
+			s.requireAttachmentFailureTrace(out)
 		case "fine":
 			s.Nil(out.Error)
 			s.Equal(trinary.True, out.Decision.State)
@@ -283,6 +285,23 @@ func (s *RuntimeTestSuite) TestAttachmentFailureReportsUnknown() {
 	s.Require().NotNil(out.Error)
 	s.Equal(trinary.Unknown, out.Decision.State)
 	s.Nil(out.Attachments)
+	s.requireAttachmentFailureTrace(out)
+}
+
+// requireAttachmentFailureTrace checks that a rule whose attachment boom
+// failed shows the failure in its trace: the root carries the error and the
+// failing attachment node is there with its own error.
+func (s *RuntimeTestSuite) requireAttachmentFailureTrace(out *ExecutorOutput) {
+	s.Require().NotNil(out.RuleNode)
+	s.Contains(out.RuleNode.Err, "divide by zero")
+	var boom *trace.Node
+	for _, c := range out.RuleNode.Children {
+		if c != nil && c.Op == "attachment" && c.Meta["name"] == "boom" {
+			boom = c
+		}
+	}
+	s.Require().NotNil(boom, "the failing attachment node is in the trace")
+	s.Contains(boom.Err, "divide by zero")
 }
 
 // A rule whose body fails, with an attachment declared, is unknown with no
