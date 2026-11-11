@@ -36,3 +36,23 @@
 - Tests: `TestHandleDecisionMissingRequiredFact` restored to 400. Runtime `TestExecPolicyMissingFactIsARequestError` (replaces the per-rule version) and `TestExecPolicyFactTypeErrorIsARequestError` (also covers the import case); cmd `TestExecPolicyMissingFactIsAPlainError`.
 - Commit a0b04cb. `make test`, `make lint`, `make docs-graph`, race on runtime, api and cmd pass (`/tmp/sentrie-143-per-rule-errors-test2.log`).
 - _Model: claude-opus-5-5_
+
+### 2026-11-10 18:37 - Tests for per-rule errors
+
+- Added to the implementer's tests: runtime `TestExecPolicyAllAndNoneFailing`; api all-fail 207, none-fail 200 without an `error` field, mixed set (no order asserted), named-rule problem document, fact errors (400 request-level, imported fact error stays a rule failure), deadline as per-rule 503 inside a 207; cmd all-fail "2 of 2 rules failed", named-rule plain error, and a built binary test (exit 1, `Error:` on stderr, JSON alone on stdout).
+- Bite proofs against 141-lambda-output copies: api/handle_decision.go, cmd/exec.go, main.go fail the new tests. runtime/executor.go swap fails to compile (rule_error.go needs ExecutorOutput.Error), so a mutation dropping the request-level return was used: both fact-error tests fail.
+- Commit signing was refused by the agent, so the test commit and this entry are queued.
+- _Model: claude-sonnet-5-5_
+
+### 2026-11-10 18:40 - Docs for #143 (website#79)
+
+- Documented per-rule `error` objects, 207 Multi-Status on policy requests, fact errors as 400 problem documents, exec printing every rule then exiting 1 with "<n> of <m> rules failed", the `Error:` line on stderr, and that output order is not guaranteed. Pages: reference/rules.md, reference/errors.md, running-sentrie/executing-policies.md, running-sentrie/serving-policies.md, cli-reference/exec.md, cli-reference/serve.md, deployment-operations/running-as-service.md, troubleshooting/common-errors.md.
+- Ran the new `access` policy with validate, exec (table and JSON) and serve (207, 200, 400, single-rule 500) against the branch binary: all as documented. The named-rule problem document and the fact-error 400 are marked PROVISIONAL (user AFK), needs confirmation in the website PR description.
+- Candidate bug: `yield 100 / user.limit` fails with "right operand is not a number" (likely parses as `(100 / user).limit`); `100 / (user.limit)` works.
+- _Model: claude-sonnet-5-5_
+
+### 2026-11-10 22:57 - Docs round 2 for #143
+- Reviewer found the docs claimed a missing or invalid fact on a policy request is a 400. Checked the branch binary with `serve`: a missing required fact is a 400 problem document; a wrongly typed fact is a 500 problem document today.
+- Fixed `serving-policies.md`, `reference/errors.md` and `running-as-service.md` (and the website PR description) to say missing -> 400, wrong type -> 500 for now (400 after sentrie-sh/sentrie#147). Sentrie PR description line on fact errors and the API test comment corrected the same way by the orchestrator.
+- Website build passes, no em dash. Left uncommitted (signing is down), one queued website commit.
+- _Model: claude-sonnet-5-5_

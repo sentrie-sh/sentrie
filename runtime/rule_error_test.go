@@ -196,3 +196,42 @@ func (s *RuntimeTestSuite) TestExecRuleFailureCarriesTheRuleError() {
 	s.Equal(http.StatusBadRequest, out.Error.Status)
 	s.Equal("a", out.RuleName)
 }
+
+// Every rule failing still returns one output per rule, each with its error;
+// no rule failing returns a nil error and no Error on any output.
+func (s *RuntimeTestSuite) TestExecPolicyAllAndNoneFailing() {
+	ctx := s.T().Context()
+	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "all_none.sentrie", src: `namespace com/ex
+
+policy allbad {
+  rule x = { yield 1 / 0 }
+  rule y = { yield "x" - 1 }
+  export decision of x
+  export decision of y
+}
+
+policy clean {
+  rule x = { yield true }
+  rule y = { yield 2 }
+  export decision of x
+  export decision of y
+}
+`})
+
+	outputs, err := exec.ExecPolicy(ctx, "com/ex", "allbad", nil)
+	var ruleErrs RuleErrors
+	s.Require().True(stdErr.As(err, &ruleErrs), "error is RuleErrors: %v", err)
+	s.Len(ruleErrs, 2)
+	s.Require().Len(outputs, 2)
+	for _, o := range outputs {
+		s.Require().NotNil(o.Error, o.RuleName)
+		s.Equal(trinary.Unknown, o.Decision.State, o.RuleName)
+	}
+
+	outputs, err = exec.ExecPolicy(ctx, "com/ex", "clean", nil)
+	s.Require().NoError(err)
+	s.Require().Len(outputs, 2)
+	for _, o := range outputs {
+		s.Nil(o.Error, o.RuleName)
+	}
+}
