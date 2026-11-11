@@ -11,3 +11,10 @@
 - Branch cut from `main`.
 - Docs PR: sentrie-sh/website#90 (draft, base `next`); Sentrie PR #330.
 - _Model: claude-opus-5-5_
+
+### 2026-11-11 04:01 - Implement the engine check
+- New `cmd/engine.go`: `checkEngine` runs after `LoadPack` in `exec`, `serve` and `validate`; flag `--skip-engine-check`. `main` hands the version over with `cmd.SetEngineVersion`. Uses Masterminds/semver already in go.mod, so no dependency change. Strict semver comes free from `Constraints.Check`.
+- Found while testing: a binary built from a checkout carries a Go pseudo-version (`0.0.5-0.2026...-hash+dirty`), which strict semver would reject for `>=0.0.5`, breaking local dev. Treated as a dev build (warning, pass). PROVISIONAL (user AFK), needs confirmation: this rule; the error text suffix "(use --skip-engine-check to load it anyway)"; an unparseable binary version warns rather than fails; `bench` is not checked (not in the decision).
+- Added `cmd/engine_test.go` (table test). Updated `docs/codebase-graph/cmd.md` and `main.md`.
+- `make test` passes (log /tmp/sentrie-157-engine-check-impl-test.log).
+- _Model: claude-sonnet-5-5_
