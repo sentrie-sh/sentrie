@@ -133,7 +133,7 @@ func (s *CmdTestSuite) TestValidateRejectsWronglyTypedFactDefault() {
 	} {
 		s.Run(name, func() {
 			dir := s.writeTestPack("namespace com/ex\npolicy pol {\n  " + fact + "\n  rule r = { yield true }\n  export decision of r\n}\n")
-			err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+			err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 			s.Require().Error(err)
 			s.Contains(err.Error(), "fact 'n'")
 		})
