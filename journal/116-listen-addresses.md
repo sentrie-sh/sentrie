@@ -8,3 +8,9 @@
 - Branch cut from `main`.
 - Docs PR: sentrie-sh/website#89 (draft, base `next`); Sentrie PR #329.
 - _Model: claude-opus-5-5_
+
+### 2026-11-11 04:03 - Implement #116
+- Both claims reproduced on main by reading api/net.go (double brackets; `listen[0]` on empty slice).
+- `api/net.go`: `local6`/`network6` pass bare `::1`/`::`; empty list returns an error. `cmd/serve.go` wraps the Setup error as "invalid or unusable --http-listen". Added `api/net_test.go` (one suite method). Graph nodes api.net, api, infra.network_sockets, overview updated.
+- `make test` and `make docs-graph` pass. Nothing committed (signing down); queued script in v0.0.5-queued/116-listen-addresses.sh.
+- _Model: claude-sonnet-5-5_
