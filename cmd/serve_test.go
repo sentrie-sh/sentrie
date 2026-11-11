@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 )
 
 func runServeCLI(ctx context.Context, args []string) error {
@@ -68,7 +69,10 @@ func (s *CmdTestSuite) TestServeCmdRejectsEmptyListenAddress() {
 	s.Require().NoError(os.WriteFile(filepath.Join(packDir, "sentrie.pack.toml"), []byte(signalTestPack), 0o600))
 	s.Require().NoError(os.WriteFile(filepath.Join(packDir, "signal.sentrie"), []byte(signalTestPolicy), 0o600))
 
-	err := runServeCLI(s.T().Context(), []string{
+	// A regression would bind and block in serve; the deadline turns that into a failure.
+	ctx, cancel := context.WithTimeout(s.T().Context(), 5*time.Second)
+	defer cancel()
+	err := runServeCLI(ctx, []string{
 		"--pack-location", packDir,
 		"--http-port", "0",
 		"--http-listen=",
