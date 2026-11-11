@@ -21,3 +21,9 @@
 - Gate: `make test` passed (`/tmp/sentrie-115-body-size-limit-impl-test.log`), `make docs-graph` passed. Manual: `serve --http-max-body-bytes=-1` errors; `serve --help` lists the flag with default 1048576.
 - Signing down: nothing committed; queued script at `worktrees/v0.0.5-queued/115-body-size-limit.sh`.
 - _Model: claude-opus-5-5_
+
+### 2026-11-11 10:20 - Test the body limit
+- Extended `api/body_limit_test.go`: trailing data within the limit is still ignored (PROVISIONAL decision), one byte over a declared length is 413, a chunked body exactly at the limit passes, a negative `WithMaxBodyBytes` clamps to unlimited, an oversized unparseable body is 413 not 400.
+- `cmd/serve_test.go`: help lists the flag with default 1048576, `validateMaxBodyBytes` table, negative flag rejected before pack load (the pack location does not exist and the error still names the flag). New `cmd/serve_body_limit_test.go` drives the real binary: default 1 MiB, `--http-max-body-bytes 100`, and `0` (2 MiB body accepted). `startServe` now takes optional extra args.
+- Bite proofs: drain disabled, `limitBody` removed, default removed, clamp removed, validator disabled, `WithMaxBodyBytes` dropped from serve, default changed in the flag: each fails the matching tests. Production `handle_decision.go` from `main` fails five tests. Disabling only the `bodyOverLimit` pre-read check changes nothing visible, since the reader yields the same 413; it is an early-out, not a decision.
+- _Model: claude-sonnet-5-5_
