@@ -54,3 +54,9 @@
 - Tests updated (they pinned the per-rule 500): `TestImportedWronglyTypedFactIsPerRule500` became `TestImportedWronglyTypedFactIsARequestError` (policy and rule), `api` `TestDecisionImportedWronglyTypedFactIsPerRule500` became `TestDecisionImportedWronglyTypedFactIs400` (both paths), and `TestExecPolicyFactTypeErrorIsARequestError` expects the importer's request error. Added `TestExecImportedWronglyTypedFactIsAnError` (cmd); it fails with the runtime change reverted.
 - Graph: runtime.executor, runtime.imports, api.handle_decision. PR description updated. `make test`, `make lint` (0 issues), `make docs-graph` pass (`/tmp/sentrie-147-fact-binding-r2-test.log`).
 - _Model: claude-opus-5-5_
+
+### 2026-11-11 10:55 - Handoff (plan usage limit)
+- Done: user decision 11 implemented, tests and graph updated, committed signed (82938ca, c12710e); `make test`, `make lint`, `make docs-graph` passed before the stop.
+- Next: the test agent adds regression tests; then docs (website lines on imported `with` fact type errors to 400), re-review, combined check re-run.
+- Open findings: a missing required `with` fact for an imported policy is not caught at index build (runtime per-rule 400 inside a 207); `api/fact_binding_test.go` comment on `TestDecisionWronglyTypedNonLiteralDefaultIs500` still says PROVISIONAL although user decision 12 confirmed it.
+- _Model: claude-opus-5-5_
