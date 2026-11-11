@@ -259,7 +259,7 @@ policy pol {
 `)
 	var runErr error
 	_ = s.captureStderr(func() {
-		runErr = runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+		runErr = runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	})
 	s.Require().Error(runErr)
 	s.Contains(runErr.Error(), "in constraint takes each value as its own argument, as in @in(1, 2), not a list")
@@ -274,7 +274,7 @@ policy pol {
 `)
 	var runErr error
 	_ = s.captureStderr(func() {
-		runErr = runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+		runErr = runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	})
 	s.Require().Error(runErr)
 	s.Contains(runErr.Error(), "policy.sentrie:3:")
