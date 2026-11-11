@@ -24,3 +24,10 @@
 - Bite proof: `main`'s `exec.go`, `serve.go`, `validate.go` each make their wiring subtests fail; restored with `git checkout HEAD --`.
 - Gate: make test, make lint (0 issues), make docs-graph, race on cmd and root all pass.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 09:49 - Docs for #157 (website#90)
+- Website branch `157-engine-check`: documented the engine check on `packfile.md` (`[engine]` section and validation rule), the `--skip-engine-check` flag on `exec`, `serve`, `validate` and the CLI index, and a `common-errors.md` row. Behaviour taken from the implementation as it stands, including the PROVISIONAL items (pseudo-version is a dev build, unparseable version warns, `bench` unchecked).
+- Verified against binaries built from this branch: ldflags `main.version=0.0.4` gives the mismatch error and exit 1 on exec, serve and validate, `--skip-engine-check` loads it; `0.0.5-rc1` fails `>=0.0.5`; `-buildvcs=false` shows the dev warning; a plain build shows the source-build warning.
+- Found: pack snippets in `cli-reference/serve.md` and `cli-reference/index.md` use a pre-schema layout and `[engines]`, and fail `validate`. Left alone per the snippet rule and listed in the website PR description.
+- `npm run build` passes (/tmp/website-157-engine-check-build.log). Website commits 4e83060, 2a63e45, 6ec2a4d, all signed.
+- _Model: claude-sonnet-5-5_
