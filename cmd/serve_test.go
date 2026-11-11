@@ -58,6 +58,22 @@ func (s *CmdTestSuite) TestServeCmdWrapsUnusableListenAddress() {
 		"--http-listen", "127.0.0.1",
 	})
 	s.Require().Error(err)
-	s.Contains(err.Error(), "invalid or unusable --http-listen: ")
+	s.Contains(err.Error(), "invalid or unusable --http-listen/--http-port: ")
 	s.Contains(err.Error(), "failed to listen on 127.0.0.1:"+port)
+}
+
+// An empty --http-listen value must be rejected, not bind every interface.
+func (s *CmdTestSuite) TestServeCmdRejectsEmptyListenAddress() {
+	packDir := s.T().TempDir()
+	s.Require().NoError(os.WriteFile(filepath.Join(packDir, "sentrie.pack.toml"), []byte(signalTestPack), 0o600))
+	s.Require().NoError(os.WriteFile(filepath.Join(packDir, "signal.sentrie"), []byte(signalTestPolicy), 0o600))
+
+	err := runServeCLI(s.T().Context(), []string{
+		"--pack-location", packDir,
+		"--http-port", "0",
+		"--http-listen=",
+	})
+	s.Require().Error(err)
+	s.Contains(err.Error(), "invalid or unusable --http-listen")
+	s.Contains(err.Error(), "listen address must not be empty")
 }

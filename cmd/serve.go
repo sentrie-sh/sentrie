@@ -109,7 +109,7 @@ func serveCmd(ctx context.Context, args []string) error {
 		api.WithMaxRequestTimeout(evalMaxTimeout),
 	)
 	if err := server.Setup(ctx, input.Port, input.Listen); err != nil {
-		return fmt.Errorf("invalid or unusable --http-listen: %w", err)
+		return fmt.Errorf("invalid or unusable --http-listen/--http-port: %w", err)
 	}
 
 	go func() {
