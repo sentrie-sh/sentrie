@@ -47,3 +47,9 @@
 - `TestIsDefinedOnUndeclaredIdentifierErrors` keeps its validation assertions and again executes both rules on the unvalidated index, asserting `identifier not found: undeclared`, so the runtime behaviour of `is defined` on an undeclared name stays pinned.
 - Gate: index and cmd packages, `make test` (/tmp/sentrie-155-validate-checks-impl2-test.log), `make lint` (0 issues), `make docs-graph` all pass.
 - _Model: claude-opus-5-5_
+
+### 2026-11-11 04:00 - Docs for #155 round 2 (attach self-reference, -x)
+
+- `cli-reference/validate.md` Good to Know now says an attach expression reading its own rule is reported (matches exec), and notes that `validate -x` fails with the unknown-flag "flags take two dashes" error. Ran against the branch binary: `attach note as r` fails with the self-reference error, `attach note as note` validates and execs, `-x` prints the documented error. Website build passes (`/tmp/website-155-validate-checks-build.log`). Website PR description updated.
+- Signing agent refused twice; both commits left uncommitted and queued for the orchestrator.
+- _Model: Sonnet 5.5_
