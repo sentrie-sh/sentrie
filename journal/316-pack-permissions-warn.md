@@ -8,3 +8,11 @@
 - Branch cut from `main`.
 - Docs PR: sentrie-sh/website#91 (draft, base `next`); Sentrie PR #331.
 - _Model: claude-opus-5-5_
+
+### 2026-11-11 09:46 - Warn on unenforced fs_read and net
+- Reproduced: `rg` finds no reader of `Permissions.FSRead` or `Permissions.Net`; only `CheckEnvAccess` is consulted. Both lists parse and gate nothing.
+- Added `printUnenforcedPermissionWarnings` in `cmd/warnings.go`, the existing `warning: ...` stderr mechanism (as `validate` does for nondeterminism). Called right after `loader.LoadPack` in `exec`, `serve`, `validate` and `bench` (the four loader paths in `cmd/`). One line per non-empty list; nil permissions and empty lists are silent. Warnings never fail the command.
+- Chose `cmd/` over `loader.LoadPack` so library callers and tests stay quiet and no logger is needed.
+- Test: `TestUnenforcedPermissionWarnings` in `cmd/warnings_test.go` (nil, empty, env only, fs_read, net, both).
+- Graph: `docs/codebase-graph/cmd.md` updated. `make docs-graph` and `make test` pass (log `/tmp/sentrie-316-pack-permissions-warn-impl-test.log`).
+- _Model: claude-sonnet-5-5_
