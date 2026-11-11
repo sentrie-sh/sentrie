@@ -28,3 +28,12 @@
 - Candidate issue: an empty `--http-listen` value binds all interfaces. Pre-existing broken docs: running-as-service.md:12 and :128 use removed `--port`/`--listen all`.
 - Website build passes; commit 9bc5ee8 signed.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 10:33 - Round 2 review fixes
+
+- `resolveBindings` rejects any blank element (`--http-listen=` used to bind every interface). Message: `listen address must not be empty; use network to listen on all interfaces`. `serve` wraps errors as `invalid or unusable --http-listen/--http-port: ...`.
+- Tests: folded the duplicate IPv6 test into `IPv6Exact`, widened the bracket-once loop to all six names, added `RejectsEmptyAddress` and the serve test. Against main's `api/net.go` five api tests fail; the serve empty-address test hangs there (it binds all interfaces), which shows the bug.
+- Graph `api.net`: dropped the false "nothing documents this" line; `network4`/`network6` are dual-stack on Go (tcp46) and do not restrict the family (out of scope, separate issue).
+- Website: serve.md table shows bare addresses plus a dual-stack line, real error text checked on the branch binary; serving-policies.md updated and the "network4 for IPv4 only" claim dropped. Build passes (`/tmp/website-116-listen-addresses-build.log`).
+- Gate logs: `/tmp/sentrie-116-r2-test.log`, `-lint.log`, `-dg.log`, `-race.log`, all pass.
+- _Model: claude-sonnet-5-5_
