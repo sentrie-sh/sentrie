@@ -37,3 +37,8 @@
 - Swept the other `parseFQN` callers: `namespace` and `import ... from` are not type positions; every type position goes through `parseTypeRef` or the suffixed `is` path, and the bare `x is int` case gets its hint in `index/is_resolve.go`. No other gap.
 - `make test` PASS (/tmp/sentrie-144-boolean-int-float-impl2-test.log), `make lint` 0 issues, `make docs-graph` PASS.
 - _Model: claude-opus-5-5_
+
+### 2026-11-11 04:00 - Docs for #144 (round 2)
+- Website branch 144-boolean-int-float, changes staged but uncommitted (signing refused twice). `trinary.md` now says an `unknown` value yielded by a boolean rule, let, fact or cast is an error, while a boolean rule with no value (failed `when` and no `default`, or a skipped base with no `true` contribution) still reports unknown. `rules.md` contribution row states both cases. `built-in-functions.md`: `any` and `all` examples are now full `sentrie` policies.
+- Verified on the branch binary: failed-when boolean rule gives unknown; skipped base with a false contribution gives unknown, with a true one gives true; `yield unknown`, `default unknown` and an unknown contribution on a boolean rule error. any/all policies exec'd (true, true, true, false). `exec --output json` cannot marshal a `let` holding lambdas (table output works): possible Sentrie follow-up. No page talks about `with` bases and type names, so no `with` mention. `npm run build` passes (/tmp/website-144-boolean-int-float-build.log).
+- _Model: claude-sonnet-5-5_
