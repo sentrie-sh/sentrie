@@ -67,3 +67,7 @@
 - Bite proofs: restoring `parser/literal.go` to 9d256c7^ fails `TestConstraintArgumentErrorShowsPosition` and `TestConstraintMinusMustPrecedeNumberLiteral` (position printed twice); restored. 8afff61 is a no-behaviour refactor, so no test can bite it.
 - Added `TestStringURLSchemesAndHosts/failure messages`: default list message and lowered scheme list for scheme arguments (existing cases already cover mixed-case, `@url("ftp")` rejecting http, and the no-argument default).
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 10:22 - Validate test fix for #155
+- Dropped the positional rule argument from the `runValidateCLI` calls in the validate tests, because #155 makes `sentrie validate` reject a rule target. The tests pass alone and merged with #155.
+- _Model: claude-sonnet-5-5, subagents: none, tokens: ~30k_
