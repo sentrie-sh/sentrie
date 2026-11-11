@@ -14,3 +14,10 @@
 - `api/net.go`: `local6`/`network6` pass bare `::1`/`::`; empty list returns an error. `cmd/serve.go` wraps the Setup error as "invalid or unusable --http-listen". Added `api/net_test.go` (one suite method). Graph nodes api.net, api, infra.network_sockets, overview updated.
 - `make test` and `make docs-graph` pass. Nothing committed (signing down); queued script in v0.0.5-queued/116-listen-addresses.sh.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 09:46 - Test #116
+- Decision covered: bare `::1`/`::` for `local6`/`network6` (bracketed once), empty listen list is an error not a panic, and `serve` wraps the Setup error as "invalid or unusable --http-listen". The "stays the same" paths (IPv4, hostnames, one-predefined-only rule) are asserted in the mixed-list test. No PROVISIONAL items.
+- api/net_test.go: extended the implementer's suite with bracket-once, mixed list, empty list (nil and empty, no panic, exact message) and Setup-level empty list tests. cmd/serve_test.go: bind-failure test holding a free localhost port; header rewritten to the two-line SPDX form.
+- Bite proofs against main's api/net.go and cmd/serve.go: all new tests fail (panic index out of range, double brackets, missing wrap).
+- Local gate passes: make test, make lint, gofmt, docs-graph, race on api and cmd.
+- _Model: claude-sonnet-5-5_
