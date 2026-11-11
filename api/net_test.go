@@ -5,21 +5,8 @@ package api
 
 import "net"
 
-func (s *APITestSuite) TestResolveBindingsIPv6AndEmpty() {
-	got, err := resolveBindings(7529, []string{"local6"})
-	s.Require().NoError(err)
-	s.Equal([]string{"[::1]:7529"}, got)
-
-	got, err = resolveBindings(7529, []string{"network6"})
-	s.Require().NoError(err)
-	s.Equal([]string{"[::]:7529"}, got)
-
-	_, err = resolveBindings(7529, nil)
-	s.Error(err)
-}
-
 func (s *APITestSuite) TestResolveBindingsIPv6HostsAreBracketedOnce() {
-	for _, name := range []string{"local6", "network6"} {
+	for _, name := range []string{"local", "local4", "local6", "network", "network4", "network6"} {
 		got, err := resolveBindings(8080, []string{name})
 		s.Require().NoError(err, name)
 		s.Require().Len(got, 1, name)
@@ -29,8 +16,20 @@ func (s *APITestSuite) TestResolveBindingsIPv6HostsAreBracketedOnce() {
 		s.Require().NoError(err, got[0])
 		s.Equal("8080", port)
 		s.NotContains(host, "[", name)
-		s.NotNil(net.ParseIP(host), name)
+		if name != "local" && name != "network" {
+			s.NotNil(net.ParseIP(host), name)
+		}
 	}
+}
+
+func (s *APITestSuite) TestResolveBindingsIPv6Exact() {
+	got, err := resolveBindings(7529, []string{"local6"})
+	s.Require().NoError(err)
+	s.Equal([]string{"[::1]:7529"}, got)
+
+	got, err = resolveBindings(7529, []string{"network6"})
+	s.Require().NoError(err)
+	s.Equal([]string{"[::]:7529"}, got)
 }
 
 func (s *APITestSuite) TestResolveBindingsMixedLists() {
@@ -52,6 +51,15 @@ func (s *APITestSuite) TestResolveBindingsEmptyListIsAnError() {
 		s.NotPanics(func() { got, err = resolveBindings(7529, listen) })
 		s.Require().Error(err)
 		s.Equal("at least one listen address is required", err.Error())
+		s.Nil(got)
+	}
+}
+
+func (s *APITestSuite) TestResolveBindingsRejectsEmptyAddress() {
+	for _, listen := range [][]string{{""}, {"", ""}, {"127.0.0.1", ""}, {"  "}} {
+		got, err := resolveBindings(7529, listen)
+		s.Require().Error(err, "%q", listen)
+		s.Equal("listen address must not be empty; use network to listen on all interfaces", err.Error())
 		s.Nil(got)
 	}
 }

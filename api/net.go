@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"slices"
+	"strings"
 
 	"github.com/binaek/gocoll/collection"
 )
@@ -14,6 +15,12 @@ import (
 func resolveBindings(port int, listen []string) ([]string, error) {
 	if len(listen) == 0 {
 		return nil, fmt.Errorf("at least one listen address is required")
+	}
+
+	for _, listenAddr := range listen {
+		if strings.TrimSpace(listenAddr) == "" {
+			return nil, fmt.Errorf("listen address must not be empty; use network to listen on all interfaces")
+		}
 	}
 
 	predefined := [...]string{"local", "local4", "local6", "network", "network4", "network6"}
