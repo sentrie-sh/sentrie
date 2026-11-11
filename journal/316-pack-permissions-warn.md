@@ -22,3 +22,10 @@
 - Note: `net` entries must be URIs under the pack schema, so the fixtures use `https://example.com`.
 - Bite proof: restoring `cmd/{bench,exec,serve,validate}.go` from main fails all 12 positive subtests (4 commands x fs_read/net/both); negatives pass either way.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 10:30 - Docs for #316 (website#91)
+- Rewrote the permissions reference: only `env` is enforced; `fs_read` and `net` are parsed and validated, gate nothing, and trigger the stderr warning on validate, exec, serve and bench. `net` entries must be URIs. Removed the invented defaults and the "violations fail at runtime" claim.
+- Also changed packfile.md, guides/deployment-and-security.md (OS-level confinement advice), troubleshooting/common-errors.md and reference/functions.md. No docs change needed in cli-reference/index.md (example only).
+- Snippets run against the branch binary: complete pack file example, security page examples, guide example (validate and exec exit 0, warnings on stderr); a non-URI `net` is rejected. No pre-existing broken snippets found; untouched TOML fragments on packfile.md were not run.
+- Website build passes (`/tmp/website-316-pack-permissions-warn-build.log`). Website commits 5ee99f2, 6da75d5, 7faf538, 6ef6ef6, all signed.
+- _Model: claude-sonnet-5-5_
