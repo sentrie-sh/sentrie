@@ -16,3 +16,9 @@
 - Test: `TestUnenforcedPermissionWarnings` in `cmd/warnings_test.go` (nil, empty, env only, fs_read, net, both).
 - Graph: `docs/codebase-graph/cmd.md` updated. `make docs-graph` and `make test` pass (log `/tmp/sentrie-316-pack-permissions-warn-impl-test.log`).
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 10:27 - Test the permission warnings at the CLI
+- Added `TestPackPermissionWarningsAtCLI` in `cmd/pack_permissions_warning_test.go`: validate, exec, bench and serve (serve against an unparsable policy so it returns after load) each run against packs with fs_read, net, both, empty lists, env only and no permissions. Asserts the exact stderr warning line per permission is present or absent, and that warnings do not fail the command. Covers every decision bullet (warn at pack load and at validate; empty stays silent). No PROVISIONAL items in the implementer entry.
+- Note: `net` entries must be URIs under the pack schema, so the fixtures use `https://example.com`.
+- Bite proof: restoring `cmd/{bench,exec,serve,validate}.go` from main fails all 12 positive subtests (4 commands x fs_read/net/both); negatives pass either way.
+- _Model: claude-sonnet-5-5_
