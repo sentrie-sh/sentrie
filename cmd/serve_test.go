@@ -46,3 +46,30 @@ func (s *CmdTestSuite) TestServeCmdRejectsLegacyListenFlag() {
 	s.Require().Error(err)
 	s.Contains(err.Error(), "flag '--listen' is not defined for command 'serve'")
 }
+
+func (s *CmdTestSuite) TestServeCmdHelpListsMaxBodyBytes() {
+	out := s.captureStdout(func() {
+		s.Require().NoError(runServeCLI(s.T().Context(), []string{"--help"}))
+	})
+	s.Contains(out, "--http-max-body-bytes")
+	s.Contains(out, "1048576", "the default is 1 MiB")
+}
+
+func (s *CmdTestSuite) TestValidateMaxBodyBytes() {
+	for _, n := range []int{0, 1, 1 << 20} {
+		s.Require().NoError(validateMaxBodyBytes(n), "%d", n)
+	}
+	err := validateMaxBodyBytes(-1)
+	s.Require().ErrorContains(err, "invalid --http-max-body-bytes -1")
+	s.Require().ErrorContains(err, "must not be negative")
+}
+
+// A negative limit is refused before the pack is loaded: the pack location
+// does not exist, yet the error names the flag, not the pack.
+func (s *CmdTestSuite) TestServeCmdRejectsNegativeMaxBodyBytesBeforePackLoad() {
+	err := runServeCLI(s.T().Context(), []string{
+		"--pack-location", s.T().TempDir() + "/no-such-pack",
+		"--http-max-body-bytes=-5",
+	})
+	s.Require().ErrorContains(err, "invalid --http-max-body-bytes -5")
+}

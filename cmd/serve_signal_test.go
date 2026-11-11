@@ -127,7 +127,7 @@ func (s *CmdTestSuite) TearDownSuite() {
 
 // startServe serves a minimal pack with the built binary on a free loopback
 // port and returns once /health answers.
-func (s *CmdTestSuite) startServe() *startedServe {
+func (s *CmdTestSuite) startServe(extraArgs ...string) *startedServe {
 	s.T().Helper()
 	if runtime.GOOS == "windows" {
 		s.T().Skip("POSIX signals are not available on Windows")
@@ -148,10 +148,10 @@ func (s *CmdTestSuite) startServe() *startedServe {
 	s.Require().NoError(ln.Close())
 
 	logs := &lockedBuffer{}
-	proc := exec.Command(bin, "serve",
+	proc := exec.Command(bin, append([]string{"serve",
 		"--pack-location", packDir,
 		"--http-port", strconv.Itoa(port),
-		"--http-listen", "127.0.0.1")
+		"--http-listen", "127.0.0.1"}, extraArgs...)...)
 	proc.Stdout = logs
 	proc.Stderr = logs
 	s.Require().NoError(proc.Start())

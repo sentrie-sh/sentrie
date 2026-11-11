@@ -78,3 +78,44 @@ func (s *APITestSuite) TestBodyLimitZeroIsUnlimited() {
 	rec := s.postDecision(s.bodyLimitAPI(0), bodyLimitPath, paddedFacts(2<<20))
 	s.Equal(http.StatusOK, rec.Code, rec.Body.String())
 }
+
+// TestBodyLimitTrailingDataWithinLimitIgnored: PROVISIONAL (#115). Data after
+// the first JSON value is still ignored when the whole body fits the limit,
+// as it was before the limit existed.
+func (s *APITestSuite) TestBodyLimitTrailingDataWithinLimitIgnored() {
+	body := paddedFacts(0) + ` trailing garbage`
+	rec := s.postDecision(s.bodyLimitAPI(int64(len(body))+100), bodyLimitPath, body)
+	s.Equal(http.StatusOK, rec.Code, rec.Body.String())
+}
+
+// TestBodyLimitOneByteOverDeclared: the boundary is exact on a declared
+// length: limit+1 is a 413 where limit is accepted.
+func (s *APITestSuite) TestBodyLimitOneByteOverDeclared() {
+	body := paddedFacts(100)
+	rec := s.postDecision(s.bodyLimitAPI(int64(len(body))-1), bodyLimitPath, body)
+	s.assertBodyTooLarge(rec)
+}
+
+// TestBodyLimitChunkedAtLimitAccepted: a chunked body exactly at the limit
+// passes the reader and the drain.
+func (s *APITestSuite) TestBodyLimitChunkedAtLimitAccepted() {
+	body := paddedFacts(100)
+	req := httptest.NewRequest(http.MethodPost, bodyLimitPath, io.MultiReader(strings.NewReader(body)))
+	req.ContentLength = -1
+	rec := httptest.NewRecorder()
+	s.decisionHandler(s.bodyLimitAPI(int64(len(body)))).ServeHTTP(rec, req)
+	s.Equal(http.StatusOK, rec.Code, rec.Body.String())
+}
+
+// TestBodyLimitNegativeOptionIsUnlimited: WithMaxBodyBytes clamps a negative
+// value to 0 (no limit).
+func (s *APITestSuite) TestBodyLimitNegativeOptionIsUnlimited() {
+	s.Equal(int64(0), NewHTTPAPI(nil, WithMaxBodyBytes(-5)).maxBodyBytes)
+}
+
+// TestBodyLimitBodyTooLargeIsNot400: an oversized unparseable body is a 413,
+// not the 400 Invalid JSON a truncated read used to give.
+func (s *APITestSuite) TestBodyLimitBodyTooLargeIsNot400() {
+	rec := s.postDecision(s.bodyLimitAPI(16), bodyLimitPath, `{"facts":`+strings.Repeat("[", 200))
+	s.assertBodyTooLarge(rec)
+}
