@@ -58,3 +58,10 @@
 - No existing test pinned the old rejection. Added `skips an entry holding undefined` to `TestValidateAgainstDictTypeRefValues` and `TestDictEntryHoldingUndefinedIsAbsent` (rules `dictIs`, `dictTypedLet`, `dictNested`, `dictShapeField`, `dictWrongValue` in `typed_undefined_test.go`). Bite: with the old `typeref_dict.go` both fail.
 - Codebase graph: runtime.typeref_dict (behaviour and a new gotcha), runtime.typeref (caller-skip list). `make docs-graph` and `make test` pass (`/tmp/sentrie-148-typed-let-default-impl-test.log`).
 - _Model: claude-opus-5-5_
+
+### 2026-11-11 10:55 - Test round 3: dict entry holding undefined
+
+- Added `TestDictEntryHoldingUndefinedInEveryPosition` and `TestDictEntryHoldingUndefinedStaysTheSame` in `runtime/typed_undefined_test.go`: lambda parameter, lambda return, union, list, shape element, only-undefined dict pass; wrong-typed real value, `list[number]` element holding undefined fail; output JSON is `{"a":null,"b":2}`.
+- Skipped: a dict fact holding undefined (facts come from JSON, so undefined cannot arrive that way).
+- Bite: `typeref_dict.go` from `8847b8b~1` makes every positive case and the output case fail; restored with `git checkout HEAD -- runtime/typeref_dict.go`.
+- _Model: claude-sonnet-5-5_
