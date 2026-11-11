@@ -10,7 +10,8 @@ import (
 // A typed let, a derive return, a lambda return and an optional shape field
 // given undefined pass it through, as an untyped one does; a rule `default` does
 // not cover a body that yields undefined, and an error raised in a `default`
-// expression is the rule's error (#148).
+// expression is the rule's error (#148). A dict[T] entry holding undefined
+// counts as absent, so it passes a dict[T] check wherever one is written.
 
 const typedUndefinedSrc = `namespace com/ex
 
@@ -22,6 +23,7 @@ policy pol {
     n: number
     o?: number
   }
+  shape Bag { m: dict[number] }
   rule typedLet = {
     let x: number = doc.missing
     yield x
@@ -39,6 +41,20 @@ policy pol {
     let h: Holder = { "n": 1, "o": doc.missing }
     yield h.o
   }
+  rule dictIs = { yield { "a": doc.missing } is dict[number] }
+  rule dictTypedLet = {
+    let d: dict[number] = { "a": doc.missing, "b": 2 }
+    yield d.b == 2
+  }
+  rule dictNested = {
+    let d: list[dict[dict[number]]] = [{ "o": { "a": doc.missing } }]
+    yield true
+  }
+  rule dictShapeField = {
+    let b: Bag = { "m": { "a": doc.missing } }
+    yield true
+  }
+  rule dictWrongValue = { yield { "a": doc.missing, "b": "x" } is dict[number] }
   rule defaultBodyUndefined = default false when true { yield doc.missing }
   rule defaultGateFalse = default false when false { yield true }
   rule defaultErrors = default 1 / 0 when false { yield true }
@@ -48,6 +64,11 @@ policy pol {
   export decision of lambdaReturn
   export decision of shapeField
   export decision of defaultBodyUndefined
+  export decision of dictIs
+  export decision of dictTypedLet
+  export decision of dictNested
+  export decision of dictShapeField
+  export decision of dictWrongValue
   export decision of defaultGateFalse
   export decision of defaultErrors
 }
@@ -61,6 +82,22 @@ func (s *RuntimeTestSuite) TestTypedUndefinedPassesThrough() {
 			continue
 		}
 		s.Equal(trinary.Unknown, out.Decision.State, rule)
+	}
+}
+
+func (s *RuntimeTestSuite) TestDictEntryHoldingUndefinedIsAbsent() {
+	ctx := s.T().Context()
+	for _, rule := range []string{"dictIs", "dictTypedLet", "dictNested", "dictShapeField"} {
+		out, err := s.execRuleUnvalidated(ctx, typedUndefinedSrc, rule)
+		if !s.NoError(err, rule) {
+			continue
+		}
+		s.Equal(trinary.True, out.Decision.State, rule)
+	}
+
+	out, err := s.execRuleUnvalidated(ctx, typedUndefinedSrc, "dictWrongValue")
+	if s.NoError(err, "dictWrongValue") {
+		s.Equal(trinary.False, out.Decision.State, "a real value of the wrong type still fails")
 	}
 }
 

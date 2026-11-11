@@ -57,6 +57,15 @@ func (r *RuntimeTestSuite) TestValidateAgainstDictTypeRefValues() {
 		r.NoError(validate(map[string]any{"k": nil, "n": 1.0}, nullable))
 		r.Error(validate(map[string]any{"k": nil}, numbers))
 	})
+
+	r.Run("skips an entry holding undefined", func() {
+		// Undefined is not a value, so the entry counts as absent (#148);
+		// a real value of the wrong type beside it still fails.
+		r.NoError(validate(map[string]box.Value{"u": box.Undefined(), "n": box.FromAny(1.0)}, numbers))
+		r.Error(validate(map[string]box.Value{"u": box.Undefined(), "s": box.FromAny("no")}, numbers))
+		nested := ast.NewDictTypeRef(numbers, stubRange())
+		r.NoError(validate(map[string]box.Value{"o": box.Dict(map[string]box.Value{"u": box.Undefined()})}, nested))
+	})
 }
 
 // TestDictElementTypeInEveryPosition checks that dict[T] validates its values
