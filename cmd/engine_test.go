@@ -190,3 +190,45 @@ func (s *CmdTestSuite) TestBenchChecksEngine() {
 	err = runBenchCLI(s.T().Context(), []string{"com/ex/pol/ok", "--pack-location", dir, "--benchtime", "1x", "--skip-engine-check"})
 	s.Require().NoError(err)
 }
+
+func (s *CmdTestSuite) TestBenchEngineCheckCases() {
+	s.T().Cleanup(func() { SetEngineVersion("") })
+	ctx := s.T().Context()
+	bench := func(dir string) error {
+		return runBenchCLI(ctx, []string{"com/ex/pol/ok", "--pack-location", dir, "--benchtime", "1x"})
+	}
+	s.Run("satisfied", func() {
+		SetEngineVersion("0.0.5")
+		dir := s.writeEnginePack(">=0.0.5", engineTestPolicy)
+		var err error
+		out := s.captureStderr(func() { err = bench(dir) })
+		s.Require().NoError(err)
+		s.NotContains(out, "engine version is not checked")
+	})
+	s.Run("no engine constraint", func() {
+		SetEngineVersion("0.0.4")
+		dir := s.writeTestPack(engineTestPolicy)
+		s.Require().NoError(bench(dir))
+	})
+	warns := map[string]struct{ version, constraint, want string }{
+		"dev build":      {"", ">=99.0.0", "warning: pack requires sentrie >=99.0.0"},
+		"pseudo-version": {"v0.0.0-20261110181122-5f9f2a7446cb", ">=0.0.5", "built from source"},
+		"unparseable":    {"not-a-version", ">=1.0.0", "not a semantic version"},
+	}
+	for name, c := range warns {
+		s.Run(name+" warns and passes", func() {
+			SetEngineVersion(c.version)
+			dir := s.writeEnginePack(c.constraint, engineTestPolicy)
+			var err error
+			out := s.captureStderr(func() { err = bench(dir) })
+			s.Require().NoError(err)
+			s.Contains(out, c.want)
+		})
+	}
+	s.Run("help lists the flag", func() {
+		out := s.captureStdout(func() {
+			s.Require().NoError(runBenchCLI(ctx, []string{"--help"}))
+		})
+		s.Contains(out, "--skip-engine-check")
+	})
+}
