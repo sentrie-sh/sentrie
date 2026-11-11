@@ -82,7 +82,7 @@ func (s *CmdTestSuite) TestEngineCheckWiredIntoExecServeValidate() {
 			return runExecCLI(ctx, append([]string{"com/ex/pol/ok"}, a...))
 		},
 		"validate": func(a []string) error {
-			return runValidateCLI(ctx, append([]string{"com/ex/pol"}, a...))
+			return runValidateCLI(ctx, a)
 		},
 	}
 	for name, fn := range run {
