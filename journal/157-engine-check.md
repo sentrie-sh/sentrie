@@ -39,3 +39,11 @@
 - Tests added to `TestCheckEngine` and the wiring test (rc1 vs `>=0.0.4`, no-tag pseudo-version); they failed before the fix (8 subtests) and pass now. Verified on ldflags builds: rc1 passes `>=0.0.4`, fails `>=0.0.5`; the no-tag pseudo-version warns.
 - Website `packfile.md` and `common-errors.md` reworded; graph `cmd.md` updated. Gate: make test, lint, docs-graph, race on ./cmd, gofmt, website build all pass.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-11 10:49 - Round 3: check bench too (USER DECISION 16)
+- USER DECISION 16 (2026-11-11, the user: "Check bench too") replaces the PROVISIONAL "bench is not checked". `bench` now runs `checkEngine` right after `LoadPack` (inside `loadBenchIndex`, which takes the skip flag) and takes `--skip-engine-check` via the shared `skipEngineCheckFlag`, so error text, suffix, help text and the dev-build, pseudo-version and unparseable-version warnings are identical to `exec`, `serve` and `validate`. Those three are unchanged.
+- `TestBenchDoesNotCheckEngine` pinned the old behaviour and broke; replaced by `TestBenchChecksEngine` (mismatch errors with the suffix, the flag loads it). It fails against the previous `bench.go`. The test agent adds the full regression tests.
+- Graph `cmd.md`: flag signature lists `bench`, the "`bench` does not check" sentence removed, `bench` signature, behavior and exceptions mention the check. `engine.go` flag comment lists bench.
+- Merge note: #316's branch also edits `bench` right after the pack load (permissions warning); keep both blocks, `checkEngine` first.
+- Gate: make test (/tmp/sentrie-157-engine-check-impl-test.log), make lint, make docs-graph pass. Commit 390a144.
+- _Model: claude-opus-5-5_
