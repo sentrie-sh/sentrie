@@ -47,3 +47,8 @@
 - Merge note: #316's branch also edits `bench` right after the pack load (permissions warning); keep both blocks, `checkEngine` first.
 - Gate: make test (/tmp/sentrie-157-engine-check-impl-test.log), make lint, make docs-graph pass. Commit 390a144.
 - _Model: claude-opus-5-5_
+
+### 2026-11-11 10:52 - Round 3 bench engine tests
+- Added `TestBenchEngineCheckCases` in `cmd/engine_test.go`: satisfied runs, a pack with no `[engine]` constraint runs, dev build / Go pseudo-version / unparseable version warn on stderr and load, `bench --help` lists `--skip-engine-check`. Mismatch and skip flag stay in `TestBenchChecksEngine`.
+- Bite proof against `cmd/bench.go` from 390a144~1: the three warn cases and the help case fail (plus `TestBenchChecksEngine`); satisfied and no-constraint pass there by design (they guard against over-checking). Restored with `git checkout HEAD -- cmd/bench.go`.
+- _Model: claude-sonnet-5-5_
