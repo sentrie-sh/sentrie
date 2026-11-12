@@ -17,7 +17,8 @@ var (
 	cmplxType = reflect.TypeFor[ast.Cmplx]()
 )
 
-// shapeOrder lists a shape body's fields and comments in source order.
+// shapeOrder lists a shape body's fields, comments and `...` marker in
+// source order.
 // Fields live in a map and comments in a slice, so comparing the two alone
 // would miss a comment that moved past a field.
 func shapeOrder(c *ast.Cmplx) []string {
@@ -25,12 +26,15 @@ func shapeOrder(c *ast.Cmplx) []string {
 		offset int
 		label  string
 	}
-	members := make([]member, 0, len(c.Fields)+len(c.Comments))
+	members := make([]member, 0, len(c.Fields)+len(c.Comments)+1)
 	for name, f := range c.Fields {
 		members = append(members, member{f.Range.From.Offset, "field " + name})
 	}
 	for _, cm := range c.Comments {
 		members = append(members, member{cm.Span().From.Offset, "comment " + cm.Content})
+	}
+	if c.Open {
+		members = append(members, member{c.OpenRange.From.Offset, "..."})
 	}
 	slices.SortStableFunc(members, func(x, y member) int { return x.offset - y.offset })
 	out := make([]string, len(members))

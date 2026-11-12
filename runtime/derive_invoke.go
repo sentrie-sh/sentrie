@@ -96,7 +96,9 @@ func invokeDerive(ctx context.Context, callerEC *ExecutionContext, exec *executo
 	if val.IsCallable() {
 		return box.Undefined(), fmt.Errorf("derive cannot yield a callable value")
 	}
-	if lam.ReturnType != nil {
+	// An undefined return passes through, as it does without a return type
+	// (#148).
+	if lam.ReturnType != nil && !val.IsUndefined() {
 		if err := validateValueAgainstTypeRef(ctx, child, exec, scope, val, lam.ReturnType, lam.Body.Span()); err != nil {
 			return box.Undefined(), fmt.Errorf("derive return: %w", err)
 		}

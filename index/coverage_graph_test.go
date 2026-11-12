@@ -79,7 +79,8 @@ func (suite *IndexTestSuite) TestValidate_ShapePolicyLocalMissingBase() {
 	suite.Require().NoError(suite.idx.AddProgram(ctx, programWithPolicyShapeMissingNamespaceBase()))
 	err := suite.idx.Validate(ctx)
 	suite.Error(err)
-	suite.Contains(err.Error(), "shape not found")
+	suite.Contains(err.Error(), "not found")
+	suite.Contains(err.Error(), "NoSuchNsShape")
 }
 
 func (suite *IndexTestSuite) TestValidate_DetectShapeCycleNamespaceWith() {
@@ -188,9 +189,19 @@ func programWithRichRuleGraph(selfCycle bool) *ast.Program {
 	)
 	complexBody = ast.NewInfixExpression(complexBody, lambdaInRule, "and", pr(103))
 
+	// Every name the body reads must be defined: validate rejects an
+	// unknown identifier (#155).
+	var readFacts []ast.Statement
+	for _, name := range []string{
+		"chainC", "chainD", "argA", "argB", "le1", "le2", "mapVal", "objZ",
+		"u1", "cond1", "then1", "else1", "leftI", "rightI",
+	} {
+		readFacts = append(readFacts, ast.NewFactStatement(name, ast.NewStringTypeRef(pr(2)), name, nil, true, pr(2)))
+	}
+
 	pol := ast.NewPolicyStatement(
 		"GraphPol",
-		[]ast.Statement{
+		append(readFacts,
 			ast.NewFactStatement(
 				"user",
 				ast.NewStringTypeRef(pr(2)),
@@ -232,7 +243,7 @@ func programWithRichRuleGraph(selfCycle bool) *ast.Program {
 				pr(5),
 			),
 			ast.NewRuleExportStatement("chainA", nil, pr(6)),
-		},
+		),
 		pr(1),
 	)
 	return &ast.Program{
@@ -494,6 +505,8 @@ func programParentShapeOnly() *ast.Program {
 		Statements: []ast.Statement{
 			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "ex"}, r), r),
 			parentShape,
+			// a qualified with base must be exported by its namespace (#308)
+			ast.NewShapeExportStatement("ParentS", pr(4)),
 			ast.NewPolicyStatement(
 				"PP",
 				[]ast.Statement{

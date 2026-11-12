@@ -1,5 +1,9 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
 namespace exports
 policy prod {
+	fact score: number
 	rule passed = { yield score >= 60 }
 	export decision of passed attach severity as "low" attach category as "pass"
 }

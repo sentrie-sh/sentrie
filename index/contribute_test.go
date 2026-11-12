@@ -83,7 +83,7 @@ func (s *IndexTestSuite) TestContributionIndexErrors() {
 			body: `rule allow: boolean = false
   contribute allow when user.admin "yes"
   export decision of allow`,
-			want: "yields a string, but the rule takes trinary",
+			want: "yields a string, but the rule takes boolean",
 		},
 		"dict literal yield to a list of records": {
 			body: `rule pairs: list[record[string, number]] = []

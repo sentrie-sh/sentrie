@@ -40,12 +40,12 @@ func (idx *Index) checkImportWiths(ctx context.Context) error {
 					if w == nil {
 						continue
 					}
-					if _, ok := target.Facts[w.Name]; ok {
+					if target.FactByName(w.Name) != nil {
 						continue
 					}
 					errs = append(errs, xerr.ImportUnknownFactError{
 						At:      w.Span(),
-						Message: xerr.ImportUnknownFactMessage(w.Name, nsName+ast.FQNSeparator+polName, target.FactNamesByAlias()),
+						Message: xerr.ImportUnknownFactMessage(w.Name, nsName+ast.FQNSeparator+polName, target.FactAliasesByName()),
 					})
 				}
 			}

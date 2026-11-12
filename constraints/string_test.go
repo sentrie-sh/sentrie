@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package constraints_test
 
@@ -89,6 +76,16 @@ func (s *ConstraintsTestSuite) TestStringEmailURLUUID() {
 		s.runChecker(c, box.String("https://example.com/foo"), nil, false)
 		s.runChecker(c, box.String("ftp://example.com/foo"), nil, true)
 		s.runChecker(c, box.String("not a url"), nil, true)
+		ftp := []box.Value{box.String("ftp")}
+		s.runChecker(c, box.String("ftp://example.com/foo"), ftp, false)
+		s.runChecker(c, box.String("https://example.com/foo"), ftp, true)
+		s.runChecker(c, box.String("FTP://example.com/foo"), []box.Value{box.String("FTP")}, false)
+		https := []box.Value{box.String("https")}
+		s.runChecker(c, box.String("http://example.com/foo"), https, true)
+		s.runChecker(c, box.String("https://example.com/foo"), https, false)
+		three := []box.Value{box.String("http"), box.String("https"), box.String("ftp")}
+		s.runChecker(c, box.String("ftp://example.com/foo"), three, false)
+		s.runChecker(c, box.String("s3://bucket/key"), three, true)
 	})
 	s.Run("uuid", func() {
 		c := constraints.StringContraintCheckers["uuid"]

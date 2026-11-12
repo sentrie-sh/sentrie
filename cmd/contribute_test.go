@@ -49,7 +49,7 @@ func (s *CmdTestSuite) TestValidateCmdReportsContributionErrors() {
 	for name, c := range cases {
 		s.Run(name, func() {
 			dir := s.writeTestPack("namespace com/ex\npolicy pol {\n  " + c.body + "\n}\n")
-			err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+			err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 			s.Require().Error(err)
 			s.True(errors.Is(err, xerr.ErrIndex))
 			s.Contains(err.Error(), c.want)
@@ -70,14 +70,14 @@ policy pol {
   export decision of allow
 }
 `)
-	err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+	err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "imports its decision")
 }
 
 func (s *CmdTestSuite) TestValidateCmdAcceptsContributions() {
 	dir := s.writeTestPack(contributeCmdPolicy)
-	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir}))
+	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"--pack-location", dir}))
 }
 
 const contributeCmdPolicy = `namespace com/ex
@@ -132,7 +132,7 @@ policy pol {
 }
 `)
 	caps := s.writeCapabilities(`{"version": 1, "builtins": ["now"], "modules": []}`)
-	err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir, "--capabilities", caps})
+	err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir, "--capabilities", caps})
 	s.Require().Error(err)
 	s.True(errors.Is(err, xerr.ErrNotGranted))
 	s.Contains(err.Error(), `builtin "count"`)
@@ -140,7 +140,7 @@ policy pol {
 
 	var runErr error
 	out := s.captureStderr(func() {
-		runErr = runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+		runErr = runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	})
 	s.Require().NoError(runErr)
 	s.Contains(out, `builtin "now" is nondeterministic`)

@@ -75,7 +75,8 @@ func (c *lambdaCallable) Invoke(ctx context.Context, site *CallSite, args []box.
 	if err != nil {
 		return box.Undefined(), err
 	}
-	if c.lambda.ReturnType != nil {
+	// An undefined return passes through, as a derive's does (#148).
+	if c.lambda.ReturnType != nil && !v.IsUndefined() {
 		if err := validateValueAgainstTypeRef(ctx, child, site.Exec, scope, v, c.lambda.ReturnType, c.lambda.Body.Span()); err != nil {
 			return box.Undefined(), fmt.Errorf("lambda return: %w", err)
 		}

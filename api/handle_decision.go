@@ -5,7 +5,6 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/runtime"
-	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 // DecisionRequest represents the request body for rule execution
@@ -87,12 +85,27 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Parse request body
+	// Parse request body. limitBody caps what can be read (#115); a body
+	// that declares or turns out to be over the limit is a 413, never a 400.
+	if api.bodyOverLimit(r) {
+		api.writeBodyTooLarge(w, r)
+		return
+	}
 	var req DecisionRequest
 	dec := json.NewDecoder(r.Body)
 	dec.UseNumber() // keep integers beyond 2^53 exact (#166)
 	if err := dec.Decode(&req); err != nil {
+		if bodyTooLarge(err) {
+			api.writeBodyTooLarge(w, r)
+			return
+		}
 		api.writeErrorResponse(w, r, http.StatusBadRequest, "Invalid JSON", "The request body could not be parsed as valid JSON")
+		return
+	}
+	// Only an over-limit drain matters: any other read error (such as a client
+	// reset during trailing bytes) is ignored because the value is already decoded.
+	if err := api.drainBody(r); bodyTooLarge(err) {
+		api.writeBodyTooLarge(w, r)
 		return
 	}
 	if err := box.CheckJSONNumbers(req.Facts); err != nil {
@@ -113,15 +126,16 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 		runErr = e
 	}
 
-	if runErr != nil {
-		status := http.StatusInternalServerError
-		var invErr xerr.InvalidInvocationError
-		if errors.As(runErr, &invErr) {
-			status = http.StatusBadRequest
-		} else if errors.Is(runErr, context.DeadlineExceeded) {
-			status = http.StatusServiceUnavailable
-		}
-		api.writeErrorResponse(w, r, status, "Evaluation Failed", runErr.Error())
+	// A policy whose rules ran answers with every rule's result, and a rule
+	// that failed carries its own error (#143): 207 Multi-Status when any rule
+	// failed, even all of them. Any other failure, including a named rule's,
+	// is a problem document.
+	status := http.StatusOK
+	var ruleErrs runtime.RuleErrors
+	if len(rule) == 0 && errors.As(runErr, &ruleErrs) {
+		status = http.StatusMultiStatus
+	} else if runErr != nil {
+		api.writeErrorResponse(w, r, runtime.ErrorStatus(runErr), "Evaluation Failed", runErr.Error())
 		return
 	}
 
@@ -138,7 +152,7 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(status)
 	if _, err := w.Write(body.Bytes()); err != nil {
 		api.logger.ErrorContext(ctx, "Error writing response", "error", err)
 	}

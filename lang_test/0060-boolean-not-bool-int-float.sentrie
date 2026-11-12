@@ -1,0 +1,25 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+namespace booleans/names
+
+-- `bool`, `int` and `float` are not types (use boolean and number), but they
+-- are not keywords either: they stay usable as field, parameter and let names.
+shape Flags { bool: boolean  int: number  float: number  maybe: trinary }
+
+derive widen = (int: number, float: number): number => { yield int + float }
+
+policy boolean_names {
+  fact flags: Flags
+  fact strict: boolean
+  fact loose: trinary
+  let bool = flags.bool
+  let int = flags.int
+  let float = flags.float
+  let strict_copy: boolean = strict
+  let loose_copy: trinary = loose
+  let pick = (bool: boolean): boolean => { yield not bool }
+  let total = widen(int, float)
+  rule _corpus = { yield bool and strict_copy and pick(false) and total > 0 }
+  export decision of _corpus
+}

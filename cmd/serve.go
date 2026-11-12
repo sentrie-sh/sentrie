@@ -36,6 +36,12 @@ func addServeCmd(cli *cling.CLI) {
 				WithDescription("HTTP address(es) to listen on").
 				AsFlag(),
 			).
+			WithFlag(cling.
+				NewIntCmdInput("http-max-body-bytes").
+				WithDefault(int(api.DefaultMaxBodyBytes)).
+				WithDescription("Largest request body to accept, in bytes; a larger one is answered with 413. 0 disables the limit").
+				AsFlag(),
+			).
 			WithFlag(evalTimeoutFlag()).
 			WithFlag(evalMaxTimeoutFlag()).
 			WithFlag(capabilitiesFlag()),
@@ -46,14 +52,28 @@ type serveCmdArgs struct {
 	Port           int      `cling-name:"http-port"`
 	PackLocation   string   `cling-name:"pack-location"`
 	Listen         []string `cling-name:"http-listen"`
+	MaxBodyBytes   int      `cling-name:"http-max-body-bytes"`
 	EvalTimeout    string   `cling-name:"eval-timeout"`
 	EvalMaxTimeout string   `cling-name:"eval-max-timeout"`
 	Capabilities   string   `cling-name:"capabilities"`
 }
 
+// validateMaxBodyBytes checks an `--http-max-body-bytes` value (#115): a byte
+// count, where 0 disables the limit.
+func validateMaxBodyBytes(n int) error {
+	if n < 0 {
+		return fmt.Errorf("invalid --http-max-body-bytes %d: must not be negative; use 0 for no limit", n)
+	}
+	return nil
+}
+
 func serveCmd(ctx context.Context, args []string) error {
 	input := serveCmdArgs{}
 	if err := cling.Hydrate(ctx, args, &input); err != nil {
+		return err
+	}
+
+	if err := validateMaxBodyBytes(input.MaxBodyBytes); err != nil {
 		return err
 	}
 
@@ -107,6 +127,7 @@ func serveCmd(ctx context.Context, args []string) error {
 	server := api.NewHTTPAPI(exec,
 		api.WithRequestTimeout(evalTimeout),
 		api.WithMaxRequestTimeout(evalMaxTimeout),
+		api.WithMaxBodyBytes(int64(input.MaxBodyBytes)),
 	)
 	if err := server.Setup(ctx, input.Port, input.Listen); err != nil {
 		return fmt.Errorf("invalid or unusable --http-listen/--http-port: %w", err)

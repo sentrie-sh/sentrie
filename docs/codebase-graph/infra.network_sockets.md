@@ -33,8 +33,8 @@ Modelled as its own node because listener lifecycle is where several independent
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Long-lived OS resources held for the process lifetime. Nothing reopens a listener that dies.
-- **Performance/Scale Notes:** No connection limit, no read timeout, and no request body size limit are configured, so concurrency is bounded only by the host.
+- **Performance/Scale Notes:** No connection limit is configured, so concurrency is bounded only by the host. The read timeout is 30 seconds and request bodies are capped at 1 MiB by default (`--http-max-body-bytes`; [#115](https://github.com/sentrie-sh/sentrie/issues/115)).
 - **Dependencies Risk:**
   - **A listener that fails after startup dies silently.** `StartServer` writes serve errors to a channel nothing reads, and [[cmd]]'s `serve` then blocks on `ctx.Done()` - leaving a live process with no listeners and no error. See [[api.http]].
   - **Shutdown drains for at most 10 seconds.** `SIGTERM` and `SIGINT` start a graceful shutdown ([#117](https://github.com/sentrie-sh/sentrie/issues/117)); a request still running after `DefaultShutdownGracePeriod` is dropped. The grace period is not configurable.
-  - **The boundary is unauthenticated.** No authentication, wildcard CORS, and no body limit - filed as [#115](https://github.com/sentrie-sh/sentrie/issues/115). Anything that can reach the socket can request a decision.
+  - **The boundary is unauthenticated.** No authentication and wildcard CORS, filed as [#315](https://github.com/sentrie-sh/sentrie/issues/315). Anything that can reach the socket can request a decision.

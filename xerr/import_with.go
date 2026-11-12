@@ -26,20 +26,19 @@ func (e ImportUnknownFactError) Error() string {
 func (e ImportUnknownFactError) Unwrap() error { return ErrIndex }
 
 // ImportUnknownFactMessage is the message shared by the index check and the
-// runtime fallback. facts maps each fact alias of the imported policy (the
-// name a `with` clause must use, because Policy.Facts is keyed by alias) to the
-// fact's declared name. When a fact's declared name equals the `with` name but
-// its alias differs, the message says so.
+// runtime fallback. facts maps each fact's declared name in the imported
+// policy (the key a `with` clause uses, #147) to the fact's alias. When the
+// `with` name is a fact's alias rather than its name, the message says so.
 func ImportUnknownFactMessage(with, policy string, facts map[string]string) string {
-	aliases := slices.Sorted(maps.Keys(facts))
+	names := slices.Sorted(maps.Keys(facts))
 	msg := fmt.Sprintf("import binds unknown fact %q: policy %s ", with, policy)
-	if len(aliases) == 0 {
+	if len(names) == 0 {
 		return msg + "declares no facts"
 	}
-	msg += "accepts fact aliases: " + strings.Join(aliases, ", ")
-	for _, alias := range aliases {
-		if facts[alias] == with {
-			msg += fmt.Sprintf("; fact %q is bound by its alias %q", with, alias)
+	msg += "accepts facts: " + strings.Join(names, ", ")
+	for _, name := range names {
+		if facts[name] == with {
+			msg += fmt.Sprintf("; %q is the local alias of fact %q, bind it by its name", with, name)
 		}
 	}
 	return msg
