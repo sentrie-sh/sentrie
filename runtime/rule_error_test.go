@@ -117,8 +117,8 @@ func (s *RuntimeTestSuite) TestExecPolicyMissingFactIsARequestError() {
 	s.Empty(byName)
 }
 
-// A fact that fails its declared type is a request error too, while an
-// imported policy's fact error stays the importing rule's failure.
+// A fact that fails its declared type is a request error too, and so is an
+// imported policy's fact failing its type (#147, user decision 11).
 func (s *RuntimeTestSuite) TestExecPolicyFactTypeErrorIsARequestError() {
 	ctx := s.T().Context()
 	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "fact_type.sentrie", src: `namespace com/ex
@@ -145,10 +145,11 @@ policy importer {
 	s.Contains(err.Error(), "is not a number")
 
 	outputs, err = exec.ExecPolicy(ctx, "com/ex", "importer", nil)
-	s.Require().True(stdErr.As(err, &ruleErrs), "error is RuleErrors: %v", err)
-	s.Len(ruleErrs, 1)
-	s.Len(outputs, 2)
-	s.Contains(ruleErrs[0].Detail, "is not a number")
+	s.Require().Error(err)
+	s.False(stdErr.As(err, &ruleErrs), "error is not RuleErrors: %v", err)
+	s.Nil(outputs)
+	s.Equal(http.StatusBadRequest, ErrorStatus(err))
+	s.Contains(err.Error(), "is not a number")
 }
 
 // The evaluation deadline fails only the rules it stops, each with its own

@@ -4,9 +4,11 @@
 package runtime
 
 import (
+	"cmp"
 	"context"
 	stdErr "errors"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"slices"
 	"sync"
@@ -257,6 +259,7 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 	// under theLock, with one append per rule, panic or not.
 	theLock := &sync.Mutex{}
 	var ruleErrs RuleErrors
+	reqErrs := map[string]error{} // rule name -> its request error
 	outputs := make([]*ExecutorOutput, 0, len(p.RuleExports))
 	wg := &sync.WaitGroup{}
 	for exportedName, ruleExport := range p.RuleExports {
@@ -271,6 +274,9 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 				defer theLock.Unlock()
 				if output.Error != nil {
 					ruleErrs = append(ruleErrs, output.Error)
+					if reqErr := (*requestError)(nil); stdErr.As(output.Error, &reqErr) {
+						reqErrs[ruleName] = output.Error.err
+					}
 				}
 				outputs = append(outputs, output)
 			}
@@ -286,11 +292,11 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 	wg.Wait()
 
 	// Facts are the policy's, so a fact error is the same for every rule and
-	// is the request's error (#143).
-	for _, re := range ruleErrs {
-		if reqErr := (*requestError)(nil); stdErr.As(re, &reqErr) {
-			return nil, re.err
-		}
+	// is the request's error (#143). Rules importing other policies can hit
+	// different fact errors (#147), so the earliest declared rule's is
+	// returned, whatever order the rules finished in.
+	if len(reqErrs) > 0 {
+		return nil, firstDeclaredError(p, reqErrs)
 	}
 	if len(ruleErrs) > 0 {
 		return outputs, ruleErrs
@@ -329,29 +335,40 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 	defer ec.Dispose()
 
 	// A fact error of a top-level call is a request error, not a rule failure
-	// (#143): ExecPolicy returns it alone instead of one per rule.
+	// (#143): ExecPolicy returns it alone instead of one per rule. A wrongly
+	// typed or missing required fact of an imported policy's `with` is one
+	// too, a 400 like a caller's (#147); the rest of an imported rule's errors
+	// stay the importing rule's failure.
 	bindingFacts := true
+	withFactError := false
 	defer func() {
 		if caller == nil {
 			err = asRequestError(ec, bindingFacts, err)
+		} else {
+			err = asImportedFactError(ec, withFactError, err)
 		}
 	}()
 
-	for factName, factStatement := range p.Facts {
+	// A caller supplies a fact under its declared name; the fact is bound
+	// under its alias, the identifier the policy reads (#147).
+	for alias, factStatement := range p.Facts {
+		factName := factStatement.Name
 		// look for a value for this fact in the passed in facts map
 		factValue, ok := injectedFacts[factName]
 
 		// we do not have a value for this fact, and it is required - error
 		if !ok && !factStatement.Optional {
+			withFactError = true
 			return nil, xerr.ErrRequiredFact(factName)
 		}
 
 		if ok {
 			decodedFactValue := box.FromBoundaryAny(factValue)
 			if decodedFactValue.IsNull() && !ast.AcceptsNull(factStatement.Type) {
+				withFactError = true
 				return nil, fmt.Errorf("fact '%s' cannot be null: %w", factName, xerr.ErrInvalidInvocation(""))
 			}
-			err := ec.InjectFact(ctx, factName, decodedFactValue, false, factStatement.Type)
+			err := ec.InjectFact(ctx, alias, decodedFactValue, false, factStatement.Type)
 			if err != nil {
 				return nil, err
 			}
@@ -378,7 +395,7 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 			}
 
 			// inject the default value
-			if err := ec.InjectFact(ctx, factName, val, true, factStatement.Type); err != nil {
+			if err := ec.InjectFact(ctx, alias, val, true, factStatement.Type); err != nil {
 				return nil, err
 			}
 		}
@@ -462,7 +479,7 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 		stmt := thePolicy.Facts[name]
 		// validate the value against the type
 		if err := validateValueAgainstTypeRef(ctx, ec, e, thePolicy, fact.value, fact.typeRef, stmt.Span()); err != nil {
-			return nil, nil, nil, &factError{ec: ec, err: err}
+			return nil, nil, nil, &factError{ec: ec, name: stmt.Name, isDefault: fact.isDefault, err: err}
 		}
 	}
 
@@ -734,4 +751,34 @@ func evaluateRuleBase(ctx context.Context, ec *ExecutionContext, e *executorImpl
 
 	// Coerce to a *Decision using tristate.From(val)
 	return DecisionOf(val), err
+}
+
+// firstDeclaredError returns the error, of errs keyed by rule name, of the
+// rule declared earliest in p; rules not found among the statements come
+// after, by name. The choice does not depend on goroutine completion order.
+func firstDeclaredError(p *index.Policy, errs map[string]error) error {
+	order := make(map[string]int, len(p.Statements))
+	for i, stmt := range p.Statements {
+		if rule, ok := stmt.(*ast.RuleStatement); ok {
+			if _, seen := order[rule.RuleName]; !seen {
+				order[rule.RuleName] = i
+			}
+		}
+	}
+	names := slices.Collect(maps.Keys(errs))
+	slices.SortFunc(names, func(a, b string) int {
+		ia, aok := order[a]
+		ib, bok := order[b]
+		switch {
+		case aok && bok && ia != ib:
+			return cmp.Compare(ia, ib)
+		case aok != bok:
+			if aok {
+				return -1
+			}
+			return 1
+		}
+		return cmp.Compare(a, b)
+	})
+	return errs[names[0]]
 }
