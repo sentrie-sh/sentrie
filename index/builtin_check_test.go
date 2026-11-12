@@ -177,10 +177,42 @@ policy p {
 	s.Require().NoError(err)
 }
 
-func (s *IndexTestSuite) TestBuiltinCheckCountMismatchUndefinedAccept() {
+func (s *IndexTestSuite) TestBuiltinCheckCountWrongKindReject() {
 	err := s.parseAndValidate(`namespace com/ex
 policy p {
   rule allow = { yield count(5) }
+  export decision of allow
+}
+`, "f.sentrie")
+	s.Require().ErrorContains(err, "count expects a list, dict or string")
+}
+
+func (s *IndexTestSuite) TestBuiltinCheckCountRejectsBoolAndTypedFacts() {
+	for name, arg := range map[string]string{
+		"bool literal": "true",
+		"number fact":  "n",
+		"trinary fact": "b",
+	} {
+		s.Run(name, func() {
+			err := s.parseAndValidate(`namespace com/ex
+policy p {
+  fact n: number as n
+  fact b: trinary as b
+  rule allow = { yield count(`+arg+`) }
+  export decision of allow
+}
+`, "f.sentrie")
+			s.Require().ErrorContains(err, "count expects a list, dict or string")
+		})
+	}
+}
+
+func (s *IndexTestSuite) TestBuiltinCheckCountCountableKindsAccept() {
+	err := s.parseAndValidate(`namespace com/ex
+policy p {
+  fact xs: list[number] as xs
+  fact label: string as label
+  rule allow = { yield count([1]) + count({"a": 1}) + count("abc") + count(xs) + count(label) }
   export decision of allow
 }
 `, "f.sentrie")

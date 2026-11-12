@@ -45,7 +45,7 @@ The single registry of Sentrie's native functions and the declarative machinery 
   - **Exceptions:** None.
 
 - **Signature:** `(*Decl).Precheck(env Env, args []box.Value) -> (handled bool, val box.Value, err error)`
-  - **Behavior:** Validates arity then per-argument kinds. The `handled` flag is the interesting part: when a parameter declares `MismatchUndefined`, a kind mismatch **short-circuits the whole call to `Undefined`** rather than erroring, so `count(<not a collection>)` yields undefined instead of failing. Undefined and null arguments always bypass kind checking and reach the implementation.
+  - **Behavior:** Validates arity then per-argument kinds. The `handled` flag is the interesting part: when a parameter declares `MismatchUndefined`, a kind mismatch **short-circuits the whole call to `Undefined`** rather than erroring. No builtin declares it since [#149](https://github.com/sentrie-sh/sentrie/issues/149): `count` used to, so `count(5)` was silently undefined, and now errors with `count expects a list, dict or string`. Undefined and null arguments always bypass kind checking and reach the implementation, so `implCount` itself returns undefined for undefined and errors for null.
   - **Side Effects:** May call `env.CallableArity`.
   - **Exceptions:** The signature's `TooFewError`, `TooManyError`, `KindError`, or `CallableArityError`.
 
