@@ -3,7 +3,7 @@
 
 namespace exponent/literals
 shape Reading { value: number@min(1e-3)@max(1.5E+3) }
-shape Bounded number@min(2.5e-1)@not_in([1e2, 5e-1])
+shape Bounded number@min(2.5e-1)@not_in(1e2, 5e-1)
 
 policy exponent_literals {
   fact x: document

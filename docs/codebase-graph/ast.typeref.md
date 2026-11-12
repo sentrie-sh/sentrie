@@ -32,7 +32,7 @@ tags: type-system, constraints, parse-time-validation, code-generation
   - **Exceptions:** See `AddConstraint`.
 
 - **Signature:** `(*baseTypeRef).AddConstraint(c: *TypeRefConstraint) -> error`
-  - **Behavior:** Validates the constraint against the receiver's permitted table, then appends it. Arity rules: an entry of `-1` means variadic and requires **at least one** argument; any other value requires an **exact** match.
+  - **Behavior:** Validates the constraint against the receiver's permitted table, then appends it. Arity rules: an entry of `-1` means variadic and requires **at least one** argument; `-2` means any number including none (`@url()`, `@url("ftp")`); any other value requires an **exact** match.
   - **Side Effects:** Appends to the constraint slice and **mutates `Rnge.To`** so the type ref's span grows to cover its suffixes - this is why an error span for a constrained type covers the whole `string.min(3)` phrase.
   - **Exceptions:** `xerr.NotFoundError{}` when the name is absent from the table (surfaces as "unknown constraint"); `constraint %s requires at least 1 argument` for an empty variadic; `invalid number of arguments for constraint %s` for an arity mismatch.
 

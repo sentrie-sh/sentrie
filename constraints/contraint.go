@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"sync"
 
 	"github.com/sentrie-sh/sentrie/box"
@@ -23,7 +24,8 @@ type ArgCheck func(name string, arg box.Value) error
 
 type ConstraintDefinition struct {
 	Name string
-	// NumArgs is the exact number of arguments, or -1 for one or more.
+	// NumArgs is the exact number of arguments, -1 for one or more, or -2
+	// for any number including none.
 	NumArgs int
 	// Arg checks each argument, whatever its position. Nil when the
 	// constraint takes no arguments.
@@ -41,6 +43,8 @@ type ConstraintDefinition struct {
 // ErrInvalidArgument.
 func (d ConstraintDefinition) CheckArgs(args []box.Value) error {
 	switch {
+	case d.NumArgs == -2:
+		// Any number of arguments, including none.
 	case d.NumArgs == -1 && len(args) < 1:
 		return invalidArgf("%s constraint requires at least 1 argument", d.Name)
 	case d.NumArgs == 0 && len(args) != 0:
@@ -145,10 +149,23 @@ func divisorArg(name string, arg box.Value) error {
 	return nil
 }
 
-// numberSetArg requires a number or a list of numbers.
-func numberSetArg(_ string, arg box.Value) error {
-	_, err := numberConstraintSet(arg)
-	return err
+// memberArg returns the argument check of a membership constraint (`in`,
+// `not_in`): each listed value is its own argument and must pass check. A
+// list argument is rejected with a hint, since `@in([1, 2])` would otherwise
+// compare the value with the list itself and never match. example shows the
+// variadic form in the message.
+func memberArg(check ArgCheck, example string) ArgCheck {
+	return func(name string, arg box.Value) error {
+		if arg.Kind() == box.ValueList {
+			return invalidArgf("%s constraint takes each value as its own argument, as in @%s(%s), not a list", name, name, example)
+		}
+		return check(name, arg)
+	}
+}
+
+// isMember reports whether val equals one of the listed values.
+func isMember(val box.Value, listed []box.Value) bool {
+	return slices.ContainsFunc(listed, func(v box.Value) bool { return box.EqualValues(val, v) })
 }
 
 // ErrInvalidArgument marks a checker failure caused by the constraint's own

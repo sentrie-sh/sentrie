@@ -157,6 +157,7 @@ typeRef             ::= (primitiveType
 typeRefConstraint ::= '@' constraintName '(' commaSeparatedExpr? ')'
 /* A constraint name may be a keyword (e.g. @in). Right after '@' a keyword has no other meaning; a name that is not a constraint of the type is rejected as an unknown constraint. */
 constraintName      ::= IDENT | KEYWORD
+/* Constraint arguments are literals only: string, number, true/false/unknown, null, and list and map literals of these. A number literal may take a leading unary minus (@min(-5)); no other operator is allowed. Membership constraints are variadic: @in(1, 2), not @in([1, 2]). */
 primitiveType       ::= 'int' | 'float' | 'string' | 'bool' | 'document'
 listType            ::= 'list' '[' typeRef ']'
 dictType            ::= 'dict' '[' typeRef ']'
