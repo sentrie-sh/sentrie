@@ -29,6 +29,10 @@ func parseShapeStatement(ctx context.Context, p *Parser) ast.Statement {
 		p.errorAtf(nameToken.Range, "cannot declare a shape named %q: it is the built-in top type", name)
 		return nil
 	}
+	if hint, ok := ast.NotATypeHint(name); ok {
+		p.errorAtf(nameToken.Range, "cannot declare a shape named %q: %q is not a type name; did you mean %q?", name, name, hint)
+		return nil
+	}
 
 	var simpleTypeRef ast.TypeRef
 	var complexShape *ast.Cmplx
@@ -63,6 +67,9 @@ func parseComplexShape(ctx context.Context, p *Parser) *ast.Cmplx {
 		if with == nil {
 			return nil
 		}
+		if !checkNotATypeName(p, with) {
+			return nil
+		}
 		stmt.With = with
 	}
 
@@ -77,8 +84,26 @@ func parseComplexShape(ctx context.Context, p *Parser) *ast.Cmplx {
 			}
 			continue
 		}
+		// The open-shape marker ends the body: only comments may follow it.
+		if p.head().IsOfKind(tokens.TokenDotDotDot) && !stmt.Open {
+			stmt.Open = true
+			stmt.OpenRange = p.head().Range
+			p.advance()
+			continue
+		}
+		if stmt.Open {
+			if p.head().IsOfKind(tokens.EOF) {
+				break // the missing '}' is reported below
+			}
+			p.errorAtf(p.head().Range, "the open-shape marker '...' at %s must be the last entry in the shape body", stmt.OpenRange)
+			return nil
+		}
 		field := parseShapeField(ctx, p)
 		if field == nil {
+			return nil
+		}
+		if first, ok := stmt.Fields[field.Name]; ok {
+			p.errorAtf(field.Range, "duplicate shape field '%s': first declared at %s", field.Name, first.Range)
 			return nil
 		}
 		stmt.Fields[field.Name] = field
@@ -103,7 +128,9 @@ func parseShapeField(ctx context.Context, p *Parser) *ast.ShapeField {
 		Range: p.head().Range,
 	}
 
-	name, found := p.advanceExpected(tokens.Ident)
+	// A field name may be a keyword (`version: string`): at the start of a
+	// shape element a keyword has no other meaning.
+	name, found := advanceNameOrKeyword(p, tokens.Ident.String())
 	if !found {
 		return nil
 	}

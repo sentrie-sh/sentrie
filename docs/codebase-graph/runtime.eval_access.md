@@ -33,16 +33,15 @@ Implements `x.field` and `x[i]` over both native boxed containers and raw bounda
   - **Exceptions:** `cannot access field '%s' on %T`.
 
 - **Signature:** `accessIndex(_, col box.Value, idx box.Value) -> (box.Value, error)`
-  - **Behavior:** An undefined collection yields `Undefined`. Boxed lists index numerically with bounds checking returning `Undefined` out of range; boxed dicts index by string key. Raw `[]any` and `map[string]any` from the boundary behave the same way after conversion.
+  - **Behavior:** An undefined collection yields `Undefined`. Lists resolve the index through `listIndex`: an integer, or an integral float such as `2.0`, selects the element, and one outside the list (negative, too large, too large for an int, or an infinity) yields `Undefined`; an undefined index yields `Undefined`. Boxed dicts index by string key, and a missing key yields `Undefined`. Raw `[]any` and `map[string]any` from the boundary behave the same way after conversion.
   - **Side Effects:** None.
-  - **Exceptions:** `index access not supported on %T`.
+  - **Exceptions:** `list index must be an integer, got <kind>` for a string, bool, null or container index on a list, and `list index must be an integer, got <n>` for a number with a fractional part or NaN ([#149](https://github.com/sentrie-sh/sentrie/issues/149)); `index access not supported on %T`.
 
 ## 4. Operational Context & Gotchas
 - **Statefulness:** Stateless, pure accessors.
 - **Performance/Scale Notes:** Boundary values are converted on **every access**, so repeatedly indexing into a large JS-returned structure re-wraps values each time rather than converting once.
 - **Dependencies Risk:**
-  - **A non-numeric index on a list is silently element zero.** `accessIndex` calls `idx.NumberValue()` and **discards the ok flag**, so a string or null index yields `0`, then `int(0)`, returning the **first element** instead of an error or `Undefined`. `list["key"]` quietly returns `list[0]`.
-  - **Fractional indices truncate silently.** `int(n)` on a float means `list[1.9]` is `list[1]`, with no diagnostic.
+  - **A list index is strict, a dict key is not.** Until [#149](https://github.com/sentrie-sh/sentrie/issues/149) a string or null list index silently read element zero and `list[1.9]` truncated to `list[1]`; both are now errors. A non-string key on a dict is still `Undefined`, not an error, so the two containers disagree on a wrong-kinded index.
   - **A null receiver is not the same as an undefined receiver.** Only `IsUndefined` is checked, so `null.field` falls through to the error branch while `undefined.field` yields `Undefined` - an asymmetry that makes chain safety depend on which absence representation a value happens to carry.
   - **The error messages format `obj`, not the value's kind.** `%T` on a `box.Value` always prints `box.Value`, so `cannot access field 'x' on box.Value` tells a policy author nothing about what the receiver actually was. `obj.Kind()` would be the useful value.
   - **There is no null-safe access operator** in the language, so this permissive behaviour *is* the null-safety mechanism - which means tightening it would break policies that rely on the degradation.

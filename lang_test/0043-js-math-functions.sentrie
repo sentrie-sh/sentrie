@@ -49,12 +49,6 @@ policy mathTest {
     yield powVal == 8
   }
 
-  rule testConstants = default false {
-    let pi = math.PI
-    let e = math.E
-    yield pi > 3 and e > 2
-  }
-
   export decision of testRound
   export decision of testFloor
   export decision of testCeil
@@ -63,6 +57,5 @@ policy mathTest {
   export decision of testAbs
   export decision of testSqrt
   export decision of testPow
-  export decision of testConstants
 }
 

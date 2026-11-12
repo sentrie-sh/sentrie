@@ -35,7 +35,7 @@ func (s *CmdTestSuite) TestValidateCmdFailsOutsideTheGrantWithSpan() {
 	dir := s.writeTestPack(capabilitiesCmdPolicy)
 	caps := s.writeCapabilities(`{"version": 1, "builtins": [], "modules": []}`)
 
-	err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir, "--capabilities", caps})
+	err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir, "--capabilities", caps})
 	s.Require().Error(err)
 	s.True(errors.Is(err, xerr.ErrNotGranted))
 	s.Contains(err.Error(), `policy.sentrie:3:`)
@@ -47,9 +47,9 @@ func (s *CmdTestSuite) TestValidateCmdFailsOutsideTheGrantWithSpan() {
 func (s *CmdTestSuite) TestValidateCmdPassesInsideTheGrant() {
 	dir := s.writeTestPack(capabilitiesCmdPolicy)
 	caps := s.writeCapabilities(`{"version": 1, "builtins": ["count"], "modules": ["@sentrie/hash"], "local_modules": false}`)
-	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir, "--capabilities", caps}))
+	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"--pack-location", dir, "--capabilities", caps}))
 	// Without a file everything is granted.
-	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir}))
+	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"--pack-location", dir}))
 }
 
 func (s *CmdTestSuite) TestExecCmdFailsOutsideTheGrant() {
@@ -70,7 +70,7 @@ func (s *CmdTestSuite) TestCommandsRejectABadCapabilitiesFile() {
 	bad := s.writeCapabilities(`{"version": 1, "unknown": true}`)
 	ctx := s.T().Context()
 
-	err := runValidateCLI(ctx, []string{"com/ex/pol", "--pack-location", dir, "--capabilities", bad})
+	err := runValidateCLI(ctx, []string{"--pack-location", dir, "--capabilities", bad})
 	s.Require().Error(err)
 	s.Contains(err.Error(), `unknown field "unknown"`)
 
@@ -105,7 +105,7 @@ policy pol {
 		[]byte("import { v4 } from \"@sentrie/uuid\";\nexport const id = () => v4();"), 0o600))
 	caps := s.writeCapabilities(`{"version": 1, "modules": ["@sentrie/hash"], "local_modules": true}`)
 
-	err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir, "--capabilities", caps})
+	err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir, "--capabilities", caps})
 	s.Require().Error(err)
 	s.True(errors.Is(err, xerr.ErrNotGranted))
 	s.Contains(err.Error(), `require("@sentrie/uuid")`)
@@ -115,5 +115,5 @@ policy pol {
 	s.True(errors.Is(err, xerr.ErrNotGranted))
 
 	granted := s.writeCapabilities(`{"version": 1, "modules": ["@sentrie/uuid"]}`)
-	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir, "--capabilities", granted}))
+	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"--pack-location", dir, "--capabilities", granted}))
 }

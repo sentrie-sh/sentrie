@@ -31,7 +31,7 @@ func (s *ConstraintsTestSuite) TestDefinitionsDescribeTheirArguments() {
 	for kind, table := range allConstraintTables() {
 		for name, def := range table {
 			s.Equal(name, def.Name, "%s@%s", kind, name)
-			s.GreaterOrEqual(def.NumArgs, -1, "%s@%s", kind, name)
+			s.GreaterOrEqual(def.NumArgs, -2, "%s@%s", kind, name)
 			s.Equal(def.NumArgs != 0, def.Arg != nil, "%s@%s: Arg is set exactly when the constraint takes arguments", kind, name)
 			s.NotNil(def.Checker, "%s@%s", kind, name)
 		}
@@ -68,7 +68,8 @@ func (s *ConstraintsTestSuite) TestCheckArgs() {
 		{"range minimum above maximum", num["range"], args(n(5), n(1)), "range minimum 5 is greater than maximum 1"},
 		{"multiple_of zero", num["multiple_of"], args(n(0)), "divisor cannot be zero"},
 		{"multiple_of wrong kind", num["multiple_of"], args(sv("2")), "expected number, got string"},
-		{"in wrong set item", num["in"], args(box.List(args(n(1), sv("x")))), "expected number, got string"},
+		{"in second argument wrong kind", num["in"], args(n(1), sv("x")), "expected number, got string"},
+		{"in list", num["in"], args(box.List(args(n(1), n(2)))), "in constraint takes each value as its own argument, as in @in(1, 2), not a list"},
 		{"trinary eq wrong kind", tri["eq"], args(n(1)), "eq constraint expects a boolean argument"},
 		{"list not_empty with an argument", list["not_empty"], args(n(1)), "not_empty constraint takes no arguments"},
 	}
@@ -93,7 +94,7 @@ func (s *ConstraintsTestSuite) TestCheckArgs() {
 		{"range", num["range"], args(n(1), n(1))},
 		{"multiple_of", num["multiple_of"], args(n(0.5))},
 		{"in number", num["in"], args(n(1))},
-		{"in list", num["in"], args(box.List(args(n(1), n(2))))},
+		{"in several numbers", num["in"], args(n(1), n(2))},
 		{"trinary eq", tri["eq"], args(box.Trinary(trinary.Unknown))},
 	}
 	for _, tc := range valid {
@@ -151,7 +152,8 @@ func (s *ConstraintsTestSuite) TestCheckArgsCoversEveryConstraint() {
 		"regexp":   {valid: one(str("^[a-z]+$")), wrong: one(n(1))},
 		"divisor":  {valid: one(n(-2)), wrong: one(n(0))},
 		"trinary":  {valid: one(box.Trinary(trinary.Unknown)), wrong: one(n(1))},
-		"numset":   {valid: one(box.List([]box.Value{n(1), n(2.5)})), wrong: one(str("x"))},
+		"numbers":  {valid: []box.Value{n(1), n(2.5)}, wrong: []box.Value{n(1), str("x")}},
+		"schemes":  {valid: one(str("ftp")), wrong: one(n(1))},
 		"range":    {valid: []box.Value{n(-5), n(-1)}, wrong: []box.Value{n(1), str("x")}},
 		"variadic": {valid: []box.Value{str("a"), str("b")}, wrong: []box.Value{str("a"), n(1)}},
 	}
@@ -160,14 +162,15 @@ func (s *ConstraintsTestSuite) TestCheckArgsCoversEveryConstraint() {
 		"string/regexp":      "regexp",
 		"string/starts_with": "string", "string/ends_with": "string",
 		"string/has_substring": "string", "string/not_has_substring": "string",
-		"string/email": "none", "string/url": "none", "string/uuid": "none",
+		"string/email": "none", "string/url": "schemes", "string/uuid": "none",
 		"string/alphanumeric": "none", "string/alpha": "none", "string/numeric": "none",
 		"string/lowercase": "none", "string/uppercase": "none", "string/trimmed": "none",
 		"string/not_empty": "none",
 		"string/one_of":    "variadic", "string/not_one_of": "variadic",
+		"string/in": "variadic", "string/not_in": "variadic",
 		"number/min": "number", "number/max": "number", "number/eq": "number",
 		"number/neq": "number", "number/gt": "number", "number/lt": "number",
-		"number/in": "numset", "number/not_in": "numset",
+		"number/in": "numbers", "number/not_in": "numbers",
 		"number/range":       "range",
 		"number/multiple_of": "divisor",
 		"number/even":        "none", "number/odd": "none", "number/positive": "none",
@@ -202,8 +205,13 @@ func (s *ConstraintsTestSuite) TestCheckArgsCoversEveryConstraint() {
 				cerr := def.Checker(s.T().Context(), box.Null(), class.wrong)
 				s.Require().Error(cerr)
 				s.Equal(err.Error(), cerr.Error())
-				// Count: no arguments always fails; one too many fails unless variadic.
-				s.Error(def.CheckArgs(nil))
+				// Count: no arguments fails unless the constraint takes any
+				// number (-2); one too many fails unless variadic.
+				if def.NumArgs == -2 {
+					s.NoError(def.CheckArgs(nil))
+				} else {
+					s.Error(def.CheckArgs(nil))
+				}
 				if def.NumArgs > 0 {
 					s.Error(def.CheckArgs(append(append([]box.Value{}, class.valid...), class.valid[0])))
 				} else {

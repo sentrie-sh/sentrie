@@ -17,6 +17,8 @@ tags: traversal, ast-walking, reference-cycle, fail-closed
 | :--- | :--- | :--- | :--- |
 | `index.expr_walk` | `DEPENDS_ON` | [[ast]] | Switches over every expression kind plus the block statement kinds. |
 | [[index.validate]] | `CALLS` | [[index.expr_walk]] | `addNodes` uses it for every node that is not an identifier, rule or let. |
+| [[index.self_reference]] | `CALLS` | [[index.expr_walk]] | Descends through every kind it has no scope case for. |
+| [[index.ident_check]] | `CALLS` | [[index.expr_walk]] | Passes a callee's not-evaluated mark to its children. |
 | [[index.derive_expr_walk]] | `CALLS` | [[index.expr_walk]] | `forEachDeriveExprChild` delegates to `forEachExprChild` for the shape of every expression kind. |
 
 ## 3. Interface Contracts & Public Surface

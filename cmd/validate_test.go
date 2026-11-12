@@ -59,7 +59,7 @@ func (s *CmdTestSuite) TestValidateCmdWarnsOnNondeterministicSources() {
 	dir := s.writeTestPack(nondeterministicPolicy)
 	var runErr error
 	out := s.captureStderr(func() {
-		runErr = runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+		runErr = runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	})
 	s.Require().NoError(runErr, "warnings must not fail validation")
 	s.Contains(out, "warning: ")
@@ -78,7 +78,7 @@ policy pol {
 `)
 	var runErr error
 	out := s.captureStderr(func() {
-		runErr = runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+		runErr = runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	})
 	s.Require().NoError(runErr)
 	s.NotContains(out, "warning:")
@@ -102,10 +102,10 @@ policy p {
 // validate used to exit 0 on a typo'd with name.
 func (s *CmdTestSuite) TestValidateCmdRejectsUnknownImportWithFact() {
 	dir := s.writeTestPack(unknownWithFactPolicy)
-	err := runValidateCLI(s.T().Context(), []string{"t/p", "--pack-location", dir})
+	err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	s.Require().Error(err)
 	s.Contains(err.Error(), `import binds unknown fact "usr"`)
-	s.Contains(err.Error(), "policy t/q accepts fact aliases: user")
+	s.Contains(err.Error(), "policy t/q accepts facts: user")
 }
 
 const castCyclePolicy = `namespace t
@@ -122,14 +122,14 @@ policy p {
 // from #269: validate used to exit 0 on a cycle that only exec could find.
 func (s *CmdTestSuite) TestValidateCmdRejectsReferenceCycleThroughCastAndIndex() {
 	dir := s.writeTestPack(castCyclePolicy)
-	err := runValidateCLI(s.T().Context(), []string{"t/p", "--pack-location", dir})
+	err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "infinite recursion")
 }
 
 const inConstraintPolicy = `namespace com/ex
 policy pol {
-  let v: number @in([1, 2]) = 1
+  let v: number @in(1, 2) = 1
   rule ok = { yield v == 1 }
   export decision of ok
 }
@@ -146,7 +146,7 @@ policy pol {
 // keyword, and validate used to fail with "expected Ident, got in".
 func (s *CmdTestSuite) TestValidateCmdAcceptsInConstraint() {
 	dir := s.writeTestPack(inConstraintPolicy)
-	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir}))
+	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"--pack-location", dir}))
 }
 
 // TestValidateCmdReportsUnknownKeywordConstraint checks that a keyword which
@@ -160,7 +160,7 @@ policy pol {
   export decision of ok
 }
 `)
-	err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+	err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "cannot add constraint policy")
 	s.NotContains(err.Error(), "expected Ident")
@@ -180,7 +180,7 @@ policy p {
 // validate used to exit 0, and the unused typed let was never reported.
 func (s *CmdTestSuite) TestValidateCmdRejectsMissingShapeNames() {
 	dir := s.writeTestPack(missingShapePolicy)
-	err := runValidateCLI(s.T().Context(), []string{"t/a/p/ok", "--pack-location", dir})
+	err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "shape 'Missing' not found at ")
 	s.Contains(err.Error(), "policy.sentrie:5:10-17: index error")
@@ -203,7 +203,7 @@ policy p {
 // policy body.
 func (s *CmdTestSuite) TestValidateCmdAcceptsPolicyDeriveFirst() {
 	dir := s.writeTestPack(deriveFirstPolicy)
-	err := runValidateCLI(s.T().Context(), []string{"t/a/p", "--pack-location", dir})
+	err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	s.Require().NoError(err)
 }
 
@@ -219,7 +219,7 @@ policy p {
   export decision of ok
 }
 `)
-	err := runValidateCLI(s.T().Context(), []string{"t/a/p", "--pack-location", dir})
+	err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "'fact' must appear before rules, exports, lets, derives, and shapes")
 }
@@ -228,7 +228,7 @@ policy p {
 // that uses exponent number literals.
 func (s *CmdTestSuite) TestValidateCmdAcceptsExponentLiterals() {
 	dir := s.writeTestPack(exponentLiteralPolicy)
-	err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+	err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	s.Require().NoError(err)
 }
 
@@ -243,9 +243,40 @@ policy pol {
 }
 `
 	dir := s.writeTestPack(policy)
-	err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+	err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	s.Require().Error(err)
 	s.Contains(err.Error(), `invalid number literal "1e+": the exponent needs at least one digit`)
 	s.Contains(err.Error(), "policy.sentrie:3:35-38")
 	s.NotContains(err.Error(), "no prefix parse function")
+}
+
+func (s *CmdTestSuite) TestValidateCmdRejectsListFormOfIn() {
+	dir := s.writeTestPack(`namespace com/ex
+policy pol {
+  rule r = { yield 1 is number @in([1, 2]) }
+  export decision of r
+}
+`)
+	var runErr error
+	_ = s.captureStderr(func() {
+		runErr = runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
+	})
+	s.Require().Error(runErr)
+	s.Contains(runErr.Error(), "in constraint takes each value as its own argument, as in @in(1, 2), not a list")
+}
+
+func (s *CmdTestSuite) TestValidateCmdReportsConstraintParseErrorPosition() {
+	dir := s.writeTestPack(`namespace com/ex
+policy pol {
+  rule r = { yield 1 is number @min(-x) }
+  export decision of r
+}
+`)
+	var runErr error
+	_ = s.captureStderr(func() {
+		runErr = runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
+	})
+	s.Require().Error(runErr)
+	s.Contains(runErr.Error(), "policy.sentrie:3:")
+	s.NotContains(runErr.Error(), "%!")
 }

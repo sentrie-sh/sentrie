@@ -206,7 +206,7 @@ policy pol {
 	for _, tc := range cases {
 		s.Run(tc.name, func() {
 			dir := s.writeDataPackDir(tc.table, tc.files)
-			err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+			err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 			if tc.wantErr == "" {
 				s.Require().NoError(err)
 				return
@@ -226,7 +226,7 @@ func (s *CmdTestSuite) TestValidateCmdPackDataSymlinkOutsideRootRejected() {
 	if err := os.Symlink(outside, filepath.Join(dir, "link.json")); err != nil {
 		s.T().Skipf("symlinks unavailable: %v", err)
 	}
-	err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+	err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	s.Require().Error(err)
 	s.Contains(err.Error(), `data "roles" (link.json)`)
 }
@@ -239,7 +239,7 @@ func (s *CmdTestSuite) TestValidateCmdPackDataOversizeRejected() {
 	s.Require().NoError(err)
 	s.Require().NoError(f.Truncate(16<<20 + 1))
 	s.Require().NoError(f.Close())
-	err = runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+	err = runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "larger than the")
 }

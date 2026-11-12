@@ -7,8 +7,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"maps"
 	"os"
 	"strings"
 
@@ -137,11 +137,9 @@ func execCmd(ctx context.Context, args []string) error {
 		return fmt.Errorf("facts: %w", err)
 	}
 
-	facts := make(map[string]any)
-
-	// merge in the values from the different sources
-	maps.Copy(facts, factFileMap)
-	maps.Copy(facts, factFlagMap)
+	// --facts is merged over --fact-file: objects deeply, anything else,
+	// lists included, replaced (#147).
+	facts := mergeFacts(mergeFacts(nil, factFileMap), factFlagMap)
 
 	namespace, policy, rule, err := exec.Index().ResolveSegments(input.Rule)
 	if err != nil {
@@ -158,16 +156,45 @@ func execCmd(ctx context.Context, args []string) error {
 		runErr = err
 	}
 
-	// now that we have the outputs, lets map it by namespace and policy
-	if runErr != nil {
+	// A policy whose rules ran prints every rule's result, the failed ones
+	// with their errors, and then exits non-zero (#143). Any other failure,
+	// including a named rule's, is the error alone.
+	var ruleErrs runtime.RuleErrors
+	if runErr != nil && (len(rule) != 0 || !errors.As(runErr, &ruleErrs)) {
 		return runErr
 	}
 
 	if input.Output == "json" {
-		return formatOutputJSON(outputs)
+		if err := formatOutputJSON(outputs); err != nil {
+			return err
+		}
+	} else {
+		formatOutputTable(outputs)
 	}
-	formatOutputTable(outputs)
+	if len(ruleErrs) > 0 {
+		return fmt.Errorf("%d of %d rules failed", len(ruleErrs), len(outputs))
+	}
 	return nil
+}
+
+// mergeFacts merges src over dst and returns dst (a new map when dst is nil).
+// Where both hold an object under a key, the objects are merged the same way;
+// any other value from src, a list included, replaces dst's. Nested objects
+// from dst are copied, never written to.
+func mergeFacts(dst, src map[string]any) map[string]any {
+	if dst == nil {
+		dst = make(map[string]any, len(src))
+	}
+	for k, v := range src {
+		srcObj, srcIsObj := v.(map[string]any)
+		dstObj, dstIsObj := dst[k].(map[string]any)
+		if srcIsObj && dstIsObj {
+			dst[k] = mergeFacts(mergeFacts(nil, dstObj), srcObj)
+			continue
+		}
+		dst[k] = v
+	}
+	return dst
 }
 
 type ExecutorOutputMap map[string]map[string]map[string]*runtime.ExecutorOutput
@@ -249,6 +276,22 @@ func formatOutputTable(x []*runtime.ExecutorOutput) {
 				fmt.Printf("  ✓ %s: %v\n", ruleName, ruleData.Decision.Value)
 			}
 			fmt.Println()
+
+			numErrors := 0
+			for _, ruleData := range policyData {
+				if ruleData.Error != nil {
+					numErrors++
+				}
+			}
+			if numErrors > 0 {
+				fmt.Printf("Errors:    \n")
+				for ruleName, ruleData := range policyData {
+					if ruleData.Error != nil {
+						fmt.Printf("  ! %s: %s\n", ruleName, ruleData.Error.Detail)
+					}
+				}
+				fmt.Println()
+			}
 
 			numAttachments := 0
 			for _, ruleData := range policyData {

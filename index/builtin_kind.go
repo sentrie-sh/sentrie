@@ -239,10 +239,10 @@ func (k *kindCheckCtx) isBuiltinCall(c *ast.CallExpression) (*builtins.Decl, boo
 // ShapeTypeRef delegates to lookupShapeKind (alias vs complex). NullableTypeRef is
 // unknown in v1 because runtime Precheck passes null through; AnyTypeRef and
 // UnionTypeRef admit more than one kind, so they are unknown too.
-// RecordTypeRef maps to ValueList (runtime requires ListValue). TrinaryTypeRef maps to
-// ValueTrinary, which here stands for "boolean or unknown": at runtime a known truth value
+// RecordTypeRef maps to ValueList (runtime requires ListValue). A trinary TrinaryTypeRef maps
+// to ValueTrinary, which here stands for "boolean or unknown": at runtime a known truth value
 // is a ValueBool and only unknown is a ValueTrinary, so kindAllowed admits it only where
-// both kinds are allowed.
+// both kinds are allowed. A boolean TrinaryTypeRef rejects unknown, so it maps to ValueBool.
 func typeRefKind(idx *Index, policy *Policy, ref ast.TypeRef) (box.ValueKind, bool) {
 	if ref == nil {
 		return 0, false
@@ -253,6 +253,10 @@ func typeRefKind(idx *Index, policy *Policy, ref ast.TypeRef) (box.ValueKind, bo
 	case *ast.NumberTypeRef:
 		return box.ValueNumber, true
 	case *ast.TrinaryTypeRef:
+		if tr.Boolean {
+			// boolean rejects unknown, so a boolean value is always a ValueBool (#144)
+			return box.ValueBool, true
+		}
 		return box.ValueTrinary, true
 	case *ast.ListTypeRef, *ast.SetTypeRef:
 		return box.ValueList, true
@@ -326,8 +330,11 @@ func lookupShapeFieldTypeReadOnly(idx *Index, policy *Policy, shape *Shape, fiel
 			return f.TypeRef, f.TypeScope(scope), true
 		}
 		if shape.Model.WithFQN != nil {
-			parent := resolveShapeReadOnly(idx, scope, shape.Model.WithFQN)
-			if parent != nil {
+			// The same with-base resolution hydration uses, so the check
+			// and the runtime inherit from the same parent (#308). It only
+			// reads the index, so it is safe before commit.
+			parent, err := idx.resolveWithBase(shape)
+			if err == nil && parent != nil {
 				return lookupShapeFieldTypeReadOnly(idx, scope, parent, fieldName)
 			}
 		}

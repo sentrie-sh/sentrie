@@ -111,6 +111,7 @@ func (s *APITestSuite) TestHandleDecisionMissingRequiredFact() {
 
 	rec := s.postDecision(api, "/decision/sh/sentrie/example/user_access", `{"facts": {}}`)
 
+	// A fact error is the request's error, not each rule's (#143).
 	s.Equal(http.StatusBadRequest, rec.Code)
 	s.Equal("application/problem+json", rec.Header().Get("Content-Type"))
 
@@ -126,14 +127,18 @@ func (s *APITestSuite) TestHandleDecisionEvaluationInternalError() {
 
 	rec := s.postDecision(api, "/decision/sh/sentrie/example/shapes/example", `{"facts": {}}`)
 
-	s.Equal(http.StatusInternalServerError, rec.Code)
-	s.Equal("application/problem+json", rec.Header().Get("Content-Type"))
+	s.Equal(http.StatusMultiStatus, rec.Code)
+	s.Equal("application/json", rec.Header().Get("Content-Type"))
 
-	var problem ProblemDetails
-	s.Require().NoError(json.Unmarshal(rec.Body.Bytes(), &problem))
-	s.Equal(http.StatusInternalServerError, problem.Status)
-	s.Equal("Evaluation Failed", problem.Title)
-	s.Contains(problem.Detail, "invalid value for let declaration user")
+	found := false
+	for _, ruleErr := range s.decisionsWithErrors(rec.Body.Bytes()) {
+		if ruleErr != nil && strings.Contains(ruleErr.Detail, "invalid value for let declaration user") {
+			found = true
+			s.Equal(http.StatusInternalServerError, ruleErr.Status)
+			s.Equal("Evaluation Failed", ruleErr.Title)
+		}
+	}
+	s.True(found, rec.Body.String())
 }
 
 func (s *APITestSuite) TestHandleDecisionInvalidPath() {

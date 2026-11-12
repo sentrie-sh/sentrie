@@ -51,7 +51,7 @@ func (s *CmdTestSuite) TestExecCmdRunsPackBehindSymlinkWithNestedRequires() {
 		})
 		s.Contains(out, "true", loc)
 	}
-	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", link}))
+	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"--pack-location", link}))
 }
 
 // A pack-local module that is a symlink out of the pack stays refused when

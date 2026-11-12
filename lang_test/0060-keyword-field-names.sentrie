@@ -1,0 +1,41 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+namespace keywordfields/fixture
+
+shape Doc {
+  title: string
+  version: string
+  default?: number
+  in: boolean
+  not: boolean
+  is: boolean
+  contains: list[number]
+  true: dict[boolean]
+}
+
+policy docs {
+  fact d: Doc
+  fact input: document
+  fact obj: document
+
+  let t = d.title
+  let v = input.version
+  let def = d.default
+  let nested = obj.true.null
+
+  rule is_set = { yield d.is is defined }
+  rule is_member = { yield 2 in [d.in] }
+  rule has_seven = { yield d.contains contains 7 }
+  rule ops = { yield obj.in and not obj.not }
+  rule literal_key = { yield {"title": 1} }
+
+  export decision of is_set
+    attach version as d.version
+    attach default as 5
+    attach as as d.title
+  export decision of is_member
+  export decision of has_seven
+  export decision of ops
+  export decision of literal_key
+}

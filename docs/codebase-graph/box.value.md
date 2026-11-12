@@ -66,9 +66,9 @@ tags: value-model, tagged-union, type-system, memory-layout
   - **Exceptions:** None.
 
 - **Signature:** `MarshalJSON() -> ([]byte, error)`
-  - **Behavior:** JSON serialization for API and CLI output. `Undefined` is emitted as JSON `null`. An exact integer is emitted as plain digits, never exponent notation.
-  - **Side Effects:** Deep copy via `Any()`.
-  - **Exceptions:** Returns an error for callable values ("cannot marshal callable value to JSON"); otherwise propagates `encoding/json` errors.
+  - **Behavior:** JSON serialization for API and CLI output. `Undefined` is emitted as JSON `null`. An exact integer is emitted as plain digits, never exponent notation. A callable, at any depth, is emitted as `{"kind":"callable"}` (not the `"<callable>"` string `Any()` gives), so a decision or trace holding a lambda still encodes ([#141](https://github.com/sentrie-sh/sentrie/issues/141)).
+  - **Side Effects:** Deep copy via the unexported `jsonAny()`, which is `Any()` except for callables.
+  - **Exceptions:** Propagates `encoding/json` errors (for example a non-finite number).
 
 - **Signature:** `IsSet() -> bool`
   - **Behavior:** Reports whether a `ValueList` carries the set tag; see [[box.set]]. A set is not a separate kind, so `Kind()` is `ValueList` and `ListValue()` returns its distinct, canonically sorted elements.

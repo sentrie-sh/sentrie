@@ -56,7 +56,7 @@ func (s *IndexTestSuite) TestValidateRejectsBrokenConstraintArguments() {
 		{"wrong kind", `string@minlength("q")`, `"a"`, "invalid argument to constraint 'minlength': expected number, got string"},
 		{"zero divisor", `number@multiple_of(0)`, `1`, "invalid argument to constraint 'multiple_of': divisor cannot be zero"},
 		{"range minimum above maximum", `number@range(5, 1)`, `1`, "invalid argument to constraint 'range': range minimum 5 is greater than maximum 1"},
-		{"wrong set item kind", `number@not_in([1, "x"])`, `1`, "invalid argument to constraint 'not_in': expected number, got string"},
+		{"wrong member kind", `number@not_in(1, "x")`, `1`, "invalid argument to constraint 'not_in': expected number, got string"},
 		{"wrong trinary kind", `trinary@eq(1)`, `true`, "invalid argument to constraint 'eq': eq constraint expects a boolean argument"},
 		{"variadic item kind", `string@one_of("a", 1)`, `"a"`, "invalid argument to constraint 'one_of': expected string, got number"},
 	}
@@ -88,7 +88,7 @@ func (s *IndexTestSuite) TestValidateAcceptsValidConstraintArguments() {
 		{"minlength", `string@minlength(1)`, `"a"`},
 		{"multiple_of", `number@multiple_of(0.5)`, `1`},
 		{"range", `number@range(1, 1)`, `1`},
-		{"not_in list", `number@not_in([3, 4])`, `1`},
+		{"not_in several", `number@not_in(3, 4)`, `1`},
 		{"trinary eq", `trinary@eq(unknown)`, `unknown`},
 		{"one_of", `string@one_of("a", "b")`, `"a"`},
 		{"no arguments", `string@email()`, `"a@b.co"`},

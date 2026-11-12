@@ -370,14 +370,15 @@ policy p {
 }
 
 // TestImportedDecisionBoundToATruthType: a let, a derive parameter and a derive
-// return declared bool or trinary accept an import and hold its state, not the
-// envelope (#136). So does a fact default; an injected fact is covered through
+// return declared boolean or trinary accept an import and hold its state, not
+// the envelope (#136). The unknown import binds to trinary: boolean rejects
+// unknown (#144). So does a fact default; an injected fact is covered through
 // `with` above.
 func (s *RuntimeTestSuite) TestImportedDecisionBoundToATruthType() {
 	ctx := s.T().Context()
 	src := importEnvelopeBase + `policy p {
   fact fl?: trinary default impF
-  fact flu?: boolean default impU
+  fact flu?: trinary default impU
   rule defF = { yield fl or false }
   rule defU = { yield flu or false }
   rule defIsState = { yield fl == false }
@@ -389,7 +390,7 @@ func (s *RuntimeTestSuite) TestImportedDecisionBoundToATruthType() {
   rule impF = import decision f from t/q
   rule impU = import decision u from t/q
   rule letF = { let x: trinary = impF  yield x or false }
-  rule letU = { let x: boolean = impU  yield x or false }
+  rule letU = { let x: trinary = impU  yield x or false }
   rule letIsState = { let x: trinary = impF  yield x == false }
   rule paramF = { yield asIs(impF) }
   rule paramU = { yield asIs(impU) }

@@ -13,9 +13,9 @@ func TestImportUnknownFactMessage(t *testing.T) {
 		want  string
 	}{
 		{"no facts", "x", nil, `import binds unknown fact "x": policy t/q declares no facts`},
-		{"sorted aliases", "x", map[string]string{"b": "b", "a": "a"}, `import binds unknown fact "x": policy t/q accepts fact aliases: a, b`},
-		{"alias hint", "user", map[string]string{"u": "user"}, `import binds unknown fact "user": policy t/q accepts fact aliases: u; fact "user" is bound by its alias "u"`},
-		{"no hint when only an alias matches", "u2", map[string]string{"u": "user"}, `import binds unknown fact "u2": policy t/q accepts fact aliases: u`},
+		{"sorted names", "x", map[string]string{"b": "b", "a": "a"}, `import binds unknown fact "x": policy t/q accepts facts: a, b`},
+		{"alias hint", "u", map[string]string{"user": "u"}, `import binds unknown fact "u": policy t/q accepts facts: user; "u" is the local alias of fact "user", bind it by its name`},
+		{"no hint when nothing matches", "u2", map[string]string{"user": "u"}, `import binds unknown fact "u2": policy t/q accepts facts: user`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
