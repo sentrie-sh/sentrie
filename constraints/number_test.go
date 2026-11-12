@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package constraints_test
 
@@ -74,11 +61,13 @@ func (s *ConstraintsTestSuite) TestNumberInAndNotIn() {
 		s.runChecker(c, box.Number(7), nil, true)
 		s.runChecker(c, box.String("x"), []box.Value{box.Number(7)}, true)
 	})
-	s.Run("in list arg", func() {
+	s.Run("in variadic args", func() {
 		c := constraints.NumberContraintCheckers["in"]
-		set := box.List([]box.Value{box.Number(1), box.Number(2), box.Number(3)})
-		s.runChecker(c, box.Number(2), []box.Value{set}, false)
-		s.runChecker(c, box.Number(9), []box.Value{set}, true)
+		set := []box.Value{box.Number(1), box.Number(2), box.Number(3)}
+		s.runChecker(c, box.Number(2), set, false)
+		s.runChecker(c, box.Number(9), set, true)
+		// A list argument is a broken constraint, not a set (#146).
+		s.runChecker(c, box.Number(2), []box.Value{box.List(set)}, true)
 	})
 	s.Run("not_in scalar", func() {
 		c := constraints.NumberContraintCheckers["not_in"]
@@ -86,16 +75,16 @@ func (s *ConstraintsTestSuite) TestNumberInAndNotIn() {
 		s.runChecker(c, box.Number(5), []box.Value{box.Number(5)}, true)
 		s.runChecker(c, box.String("x"), []box.Value{box.Number(0)}, true)
 	})
-	s.Run("not_in list", func() {
+	s.Run("not_in variadic args", func() {
 		c := constraints.NumberContraintCheckers["not_in"]
-		set := box.List([]box.Value{box.Number(1), box.Number(2)})
-		s.runChecker(c, box.Number(3), []box.Value{set}, false)
-		s.runChecker(c, box.Number(2), []box.Value{set}, true)
+		set := []box.Value{box.Number(1), box.Number(2)}
+		s.runChecker(c, box.Number(3), set, false)
+		s.runChecker(c, box.Number(2), set, true)
+		s.runChecker(c, box.Number(3), []box.Value{box.List(set)}, true)
 	})
-	s.Run("not_in list rejects non-number entries", func() {
+	s.Run("not_in rejects a non-number among its arguments", func() {
 		c := constraints.NumberContraintCheckers["not_in"]
-		set := box.List([]box.Value{box.String("bad")})
-		s.runChecker(c, box.Number(7), []box.Value{set}, true)
+		s.runChecker(c, box.Number(7), []box.Value{box.Number(1), box.String("bad")}, true)
 	})
 	s.Run("not_in rejects non-number scalar set", func() {
 		c := constraints.NumberContraintCheckers["not_in"]

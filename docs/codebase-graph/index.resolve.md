@@ -20,8 +20,8 @@ The read-side API of the index: exact-match lookups for namespaces, policies, sh
 | `index.resolve` | `READS_FROM` | [[index.index]] | Reads `Namespaces` and `DerivesByFQN` directly. |
 | `index.resolve` | `READS_FROM` | [[index.namespace]] | Reads `Policies`, `Shapes`, `ShapeExports`, `DeriveExports`. |
 | [[index.segments]] | `CALLS` | [[index.resolve]] | `ResolveSegments` probes `ResolveNamespace` and `ResolvePolicy` repeatedly. |
-| [[index.shape]] | `CALLS` | [[index.resolve]] | Composition falls back to `ResolveShape` across namespaces and calls `VerifyShapeExported`. |
-| [[index.validate]] | `CALLS` | [[index.resolve]] | Rule-cycle detection resolves imported policies; shape-cycle detection resolves base shapes. |
+| [[index.shape]] | `CALLS` | [[index.resolve]] | `resolveWithBase` calls `VerifyShapeExported` on a qualified base's namespace and builds qualified names with `ShapeFQN`. |
+| [[index.validate]] | `CALLS` | [[index.resolve]] | Rule-cycle detection resolves imported policies. |
 | [[runtime]] | `CALLS` | [[index.resolve]] | Entry point for evaluating a named policy or rule. |
 
 ## 3. Interface Contracts & Public Surface

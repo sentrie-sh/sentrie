@@ -1,18 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package index
 
@@ -65,7 +52,7 @@ func TestShapeResolveDependency_NoModelEarlyReturn(t *testing.T) {
 	shape, err := createShape(ns, nil, stmt)
 	require.NoError(t, err)
 	idx := CreateIndex()
-	require.NoError(t, shape.resolveDependency(idx, nil))
+	require.NoError(t, shape.resolveDependency(idx))
 }
 
 func TestShapeResolveDependency_AlreadyHydratedShortCircuits(t *testing.T) {
@@ -79,7 +66,7 @@ func TestShapeResolveDependency_AlreadyHydratedShortCircuits(t *testing.T) {
 	require.NoError(t, err)
 	atomic.StoreUint32(&shape.hydrated, 1)
 	idx := CreateIndex()
-	require.NoError(t, shape.resolveDependency(idx, nil))
+	require.NoError(t, shape.resolveDependency(idx))
 }
 
 func TestShapeResolveDependency_ComposeFromAliasBaseErrors(t *testing.T) {
@@ -137,7 +124,7 @@ func TestShapeResolveDependency_ComposeFromAliasBaseErrors(t *testing.T) {
 	child := policy.Shapes["Child"]
 	require.NotNil(t, child)
 
-	err = child.resolveDependency(idx, policy)
+	err = child.resolveDependency(idx)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "cannot compose")
 }
@@ -203,7 +190,7 @@ func TestShapeResolveDependency_DuplicateFieldFromComposedBaseErrors(t *testing.
 	child := policy.Shapes["ChildDup"]
 	require.NotNil(t, child)
 
-	err = child.resolveDependency(idx, policy)
+	err = child.resolveDependency(idx)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "cannot compose with duplicate shape field")
 }
@@ -264,7 +251,7 @@ func TestShapeResolveDependency_PolicyLocalComposeUsesInPolicyShapes(t *testing.
 	ext := policy.Shapes["PExt"]
 	require.NotNil(t, ext)
 
-	err = ext.resolveDependency(idx, policy)
+	err = ext.resolveDependency(idx)
 	require.NoError(t, err)
 	require.Contains(t, ext.Model.Fields, "n")
 }

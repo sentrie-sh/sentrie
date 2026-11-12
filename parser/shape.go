@@ -103,7 +103,9 @@ func parseShapeField(ctx context.Context, p *Parser) *ast.ShapeField {
 		Range: p.head().Range,
 	}
 
-	name, found := p.advanceExpected(tokens.Ident)
+	// A field name may be a keyword (`version: string`): at the start of a
+	// shape element a keyword has no other meaning.
+	name, found := advanceNameOrKeyword(p, tokens.Ident.String())
 	if !found {
 		return nil
 	}

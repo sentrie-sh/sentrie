@@ -17,7 +17,7 @@ Parses `shape <ident>` in its two mutually exclusive forms: a **simple** alias t
 | :--- | :--- | :--- | :--- |
 | `parser.shape` | `CALLS` | [[parser.typeref]] | Parses the simple form's type and each field's type, including constraints. |
 | `parser.shape` | `CALLS` | [[parser.fqn]] | Parses the `with <fqn>` base-shape reference. |
-| `parser.shape` | `CALLS` | [[parser.parser]] | Uses `advanceExpected`, `expect`, `canExpect`, `canExpectAnyOf`, `peek`, `errorf`. |
+| `parser.shape` | `CALLS` | [[parser.parser]] | Uses `advanceExpected`, `advanceNameOrKeyword` (field names), `expect`, `canExpect`, `canExpectAnyOf`, `peek`, `errorf`. |
 | `parser.shape` | `CALLS` | [[ast]] | Emits `ast.NewShapeStatement`, `ast.Cmplx`, and `ast.ShapeField` values. |
 | [[parser.statement]] | `CALLS` | [[parser.shape]] | Registered for `tokens.KeywordShape` at top level. |
 | [[parser.policy]] | `CALLS` | [[parser.shape]] | Registered for the same kind at policy scope - the same handler serves both. |
@@ -37,7 +37,7 @@ Parses `shape <ident>` in its two mutually exclusive forms: a **simple** alias t
   - **Exceptions:** Returns `nil` on a failed base FQN, a missing `{` or `}`, or a failed field.
 
 - **Signature:** `parseShapeField(ctx: context.Context, p: *Parser) -> *ast.ShapeField`
-  - **Behavior:** Parses `name['?'] : <type>`. The `?` marks presence-optionality, mirroring the fact syntax. Carries three targeted migration errors that reject the retired `!` forms (`name!: T`, `name?!: T`, `name!?: T`) with the modern replacement spelled out.
+  - **Behavior:** Parses `name['?'] : <type>`. The name is an identifier or any keyword (`version: string`, `default?: number`, #159); at the start of a field a keyword has no other meaning. The `?` marks presence-optionality, mirroring the fact syntax. Carries three targeted migration errors that reject the retired `!` forms (`name!: T`, `name?!: T`, `name!?: T`) with the modern replacement spelled out.
   - **Side Effects:** Consumes tokens; emits `parseShapeField_start` / `_end` debug logs.
   - **Exceptions:** Returns `nil` for a missing name, any legacy `!` form, a missing `:`, or a type-reference failure.
 
