@@ -17,6 +17,13 @@ type Cmplx struct {
 	With   *FQN
 	Node   Node
 	Fields map[string]*ShapeField
+	// Open is set by a `...` marker as the last entry of the body: a value
+	// may then carry fields the shape does not declare. A shape without it is
+	// closed, and an undeclared field fails the shape check.
+	Open bool
+	// OpenRange is the span of the `...` marker, the zero range when Open is
+	// false.
+	OpenRange tokens.Range
 	// Comments holds the comments inside the shape body, in source order.
 	// Evaluation ignores them; a printer merges them with Fields by position.
 	Comments []*CommentStatement

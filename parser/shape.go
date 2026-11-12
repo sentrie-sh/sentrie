@@ -84,8 +84,26 @@ func parseComplexShape(ctx context.Context, p *Parser) *ast.Cmplx {
 			}
 			continue
 		}
+		// The open-shape marker ends the body: only comments may follow it.
+		if p.head().IsOfKind(tokens.TokenDotDotDot) && !stmt.Open {
+			stmt.Open = true
+			stmt.OpenRange = p.head().Range
+			p.advance()
+			continue
+		}
+		if stmt.Open {
+			if p.head().IsOfKind(tokens.EOF) {
+				break // the missing '}' is reported below
+			}
+			p.errorAtf(p.head().Range, "the open-shape marker '...' at %s must be the last entry in the shape body", stmt.OpenRange)
+			return nil
+		}
 		field := parseShapeField(ctx, p)
 		if field == nil {
+			return nil
+		}
+		if first, ok := stmt.Fields[field.Name]; ok {
+			p.errorAtf(field.Range, "duplicate shape field '%s': first declared at %s", field.Name, first.Range)
 			return nil
 		}
 		stmt.Fields[field.Name] = field

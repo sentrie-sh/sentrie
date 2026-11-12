@@ -146,7 +146,8 @@ mapEntry            ::= STRING ':' expr
 
 /* Type System */
 shapeDecl           ::= 'shape' IDENT ( typeRef | complexShape )
-complexShape        ::= ('with' typeName)? '{' shapeElement+ '}'
+/* A shape is closed: a value with a field it does not declare fails the check. A '...' marker as the last entry opens it; only comments may follow the marker. A field name may be declared once. A 'with' base's openness is not inherited. */
+complexShape        ::= ('with' typeName)? '{' shapeElement* '...'? '}'
 shapeElement        ::= fieldName ('?')? ":" typeRef
 typeRef             ::= (primitiveType
                           | typeName
