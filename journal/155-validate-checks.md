@@ -64,3 +64,8 @@
 - Website: no change. `cli-reference/validate.md` says a rule or let that refers directly to itself is reported, with no claim about a let shadowing an outer binding of its name.
 - Gate: `make test` (/tmp/sentrie-155-validate-checks-c1-test.log), `make lint` (0 issues, /tmp/sentrie-155-validate-checks-c1-lint.log), `make docs-graph` (/tmp/sentrie-155-validate-checks-c1-docs-graph.log) pass.
 - _Model: claude-opus-5-5_
+
+### 2026-11-12 10:41 - Tests for the shadowed let self-reference fix
+- Added to `index/validate_checks_test.go`: a nested let inside a lambda body with an outer policy let of the same name is skipped (added to `TestValidateShadowedLetSelfReferenceIsSkipped`), and `TestValidateMutualLetRecursionOutcome` (unshadowed `let a = b` / `let b = a` is still rejected, by the existing cycle check as "infinite recursion: a -> b -> a", not the self-reference check). `rule r = r` was already covered by `TestValidateReportsSelfReference`.
+- Bite proof: with `index/self_reference.go` from 2a3ab7d~1, the shadowed index test fails (policy let, rule, outer block let, and the lambda-body case) and the two cmd shadowing cases (policy let, rule) fail; restored afterwards. The mutual recursion test passes on both by design (guard).
+- _Model: claude-sonnet-5-5_
