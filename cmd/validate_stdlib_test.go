@@ -26,7 +26,7 @@ func (s *CmdTestSuite) TestValidateCmdChecksStdlibBuiltinCalls() {
 	for _, tc := range cases {
 		s.Run(tc.name, func() {
 			dir := s.writeTestPack("namespace com/ex\npolicy pol {\n  rule r = { yield " + tc.expr + " }\n  export decision of r\n}\n")
-			err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+			err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 			s.Require().Error(err)
 			s.Contains(err.Error(), tc.msg)
 		})
@@ -41,6 +41,6 @@ policy pol {
   export decision of r
 }
 `)
-		s.Require().NoError(runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir}))
+		s.Require().NoError(runValidateCLI(s.T().Context(), []string{"--pack-location", dir}))
 	})
 }

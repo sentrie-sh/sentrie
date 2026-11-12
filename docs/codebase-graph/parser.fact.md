@@ -35,6 +35,6 @@ Parses `fact <ident>['?'] : <type> ['as' <ident>] ['default' <expr>]`. Facts are
 - **Performance/Scale Notes:** Nothing notable.
 - **Dependencies Risk:**
   - **Optionality and nullability are different axes and both are expressible.** `fact x?: T` means the caller may omit `x`; `fact x: T?` means `x` must be supplied but may be null; `fact x?: T?` means both. Conflating them is the most likely source of runtime "missing fact" versus "null value" confusion - and only the first is a presence failure.
-  - **Alias defaults to the name, then is overwritten.** `Alias` is initialised to the fact's name and replaced only if `as` appears, so downstream code should read `Alias` (never `Name`) when resolving an external input key.
+  - **Alias defaults to the name, then is overwritten.** `Alias` is initialised to the fact's name and replaced only if `as` appears, so downstream code reads `Alias` for the local identifier and `Name` for the external input key a caller supplies ([#147](https://github.com/sentrie-sh/sentrie/issues/147)).
   - **The optional-marker span update is off.** After consuming `?`, the range end is set from `p.head()` - the token *after* the marker - so a fact declaration's span can extend slightly past the `?`. Harmless for messages, but do not treat spans here as byte-exact.
   - **`default` is parsed but not evaluated or type-checked here.** Whether the default satisfies the declared type (and its constraints) is decided later.

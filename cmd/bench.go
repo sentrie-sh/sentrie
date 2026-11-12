@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"os"
 	"runtime"
 	"strconv"
@@ -69,19 +68,21 @@ func addBenchCmd(cli *cling.CLI) {
 				AsFlag(),
 			).
 			WithFlag(evalTimeoutFlag()).
-			WithFlag(capabilitiesFlag()),
+			WithFlag(capabilitiesFlag()).
+			WithFlag(skipEngineCheckFlag()),
 	)
 }
 
 type benchCmdArgs struct {
-	PackLocation string `cling-name:"pack-location"`
-	Target       string `cling-name:"target"`
-	Facts        string `cling-name:"facts"`
-	FactFile     string `cling-name:"fact-file"`
-	Benchtime    string `cling-name:"benchtime"`
-	Count        int    `cling-name:"count"`
-	EvalTimeout  string `cling-name:"eval-timeout"`
-	Capabilities string `cling-name:"capabilities"`
+	PackLocation    string `cling-name:"pack-location"`
+	Target          string `cling-name:"target"`
+	Facts           string `cling-name:"facts"`
+	FactFile        string `cling-name:"fact-file"`
+	Benchtime       string `cling-name:"benchtime"`
+	Count           int    `cling-name:"count"`
+	EvalTimeout     string `cling-name:"eval-timeout"`
+	Capabilities    string `cling-name:"capabilities"`
+	SkipEngineCheck bool   `cling-name:"skip-engine-check"`
 }
 
 func benchCmd(ctx context.Context, args []string) error {
@@ -107,7 +108,7 @@ func benchCmd(ctx context.Context, args []string) error {
 	}
 
 	// Load, index and validate once; none of it is inside the timed loop.
-	idx, err := loadBenchIndex(ctx, input.PackLocation)
+	idx, err := loadBenchIndex(ctx, input.PackLocation, input.SkipEngineCheck)
 	if err != nil {
 		return err
 	}
@@ -163,21 +164,24 @@ func loadBenchFacts(factFile, factsJSON string) (map[string]any, error) {
 		if err := json.NewDecoder(bytes.NewReader(content)).Decode(&fromFile); err != nil {
 			return nil, err
 		}
-		maps.Copy(facts, fromFile)
+		facts = mergeFacts(facts, fromFile)
 	}
 	var fromFlag map[string]any
 	if err := json.NewDecoder(strings.NewReader(factsJSON)).Decode(&fromFlag); err != nil {
 		return nil, fmt.Errorf("invalid --facts: %w", err)
 	}
-	maps.Copy(facts, fromFlag)
-	return facts, nil
+	// Merged as exec merges them: objects deeply, lists replaced (#147).
+	return mergeFacts(facts, fromFlag), nil
 }
 
-// loadBenchIndex runs the load, index and validate steps that `exec` runs,
-// for `bench`.
-func loadBenchIndex(ctx context.Context, packLocation string) (*index.Index, error) {
+// loadBenchIndex runs the load, engine check, index and validate steps that
+// `exec` runs, for `bench`.
+func loadBenchIndex(ctx context.Context, packLocation string, skipEngineCheck bool) (*index.Index, error) {
 	pack, err := loader.LoadPack(ctx, packLocation)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkEngine(pack, skipEngineCheck, os.Stderr); err != nil {
 		return nil, err
 	}
 	if err := printUnenforcedPermissionWarnings(os.Stderr, pack); err != nil {

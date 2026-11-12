@@ -86,7 +86,10 @@ func (p *Parser) advanceExpected(kind tokens.Kind) (tokens.Instance, bool) {
 // Keywords are names only in positions where they cannot be read as anything
 // else: a segment of an `@scope/name` module path (`@sentrie/string`), a
 // constraint name after `@` (`@in`) and a segment after `/` in a declaration or
-// type name read by parseFQN (`constraints/in`). After `/` in an expression,
+// type name read by parseFQN (`constraints/in`), a field name after `.`
+// (`d.title`), a shape field name (`version: string`) and an attachment name
+// after `attach` (`attach version as ...`). Bare dict literal keys are not
+// among them. After `/` in an expression,
 // parseInfixExpression reads a keyword as a name through isNameOnlyKeyword.
 // Everywhere else a keyword keeps its keyword meaning. On any other token it
 // reports `expected <expected>, got <kind>`, so each position names what it

@@ -32,3 +32,20 @@ func NewAnyTypeRef(ssp tokens.Range) *AnyTypeRef {
 }
 
 func (a *AnyTypeRef) String() string { return AnyTypeName }
+
+// notATypeHints maps the type names other languages use, which are not
+// Sentrie types, to the Sentrie type to use instead (#144). They are not
+// lexer keywords, so they stay ordinary identifiers and field names
+// everywhere outside a type position.
+var notATypeHints = map[string]string{
+	"bool":  "boolean",
+	"int":   "number",
+	"float": "number",
+}
+
+// NotATypeHint reports whether name is one of the familiar type names that
+// Sentrie does not have (`bool`, `int`, `float`), and the type to suggest.
+func NotATypeHint(name string) (string, bool) {
+	hint, ok := notATypeHints[name]
+	return hint, ok
+}

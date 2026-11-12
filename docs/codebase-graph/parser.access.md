@@ -17,7 +17,7 @@ tags: field-access, index-access, infix-handler, navigation
 | :--- | :--- | :--- | :--- |
 | `parser.access` | `CALLS` | [[parser.expression]] | The index expression is parsed at `LOWEST` (bracket-delimited, so precedence resets). |
 | `parser.access` | `CALLS` | [[ast]] | Emits `ast.NewFieldAccessExpression` and `ast.NewIndexAccessExpression`. |
-| `parser.access` | `CALLS` | [[parser.parser]] | Uses `advance` and `advanceExpected`. |
+| `parser.access` | `CALLS` | [[parser.parser]] | Uses `advance`, `advanceExpected` (the `[` and `]`) and `advanceNameOrKeyword` (the field name). |
 | [[parser.lookups]] | `CALLS` | [[parser.access]] | Registered as infix handlers for `.` and `[`. |
 | [[runtime.eval_access]] | `DEPENDS_ON` | [[parser.access]] | Resolves field and index navigation against boxed values at runtime. |
 | [[box.value]] | `READS_FROM` | [[parser.access]] | Dict, document, and list kinds back the two access forms. |
@@ -25,7 +25,7 @@ tags: field-access, index-access, infix-handler, navigation
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `parseFieldAccessExpression(ctx, p, left: ast.Expression, precedence: Precedence) -> ast.Expression`
-  - **Behavior:** Consumes `.` and requires an **identifier** - field names are static, never computed. Emits `FieldAccessExpression(left, name)`.
+  - **Behavior:** Consumes `.` and requires an **identifier or any keyword** as the name (`d.title`, `x.in`, `x.not`, #159) - field names are static, never computed. Emits `FieldAccessExpression(left, name)`.
   - **Side Effects:** Consumes tokens.
   - **Exceptions:** Returns `nil` if the operator is not `.` (**without recording an error** - a silent failure, though unreachable via table dispatch) or if the field name is missing.
 
@@ -41,4 +41,4 @@ tags: field-access, index-access, infix-handler, navigation
   - **Both spans are wrong in opposite ways.** `FieldAccessExpression`'s range starts at the **dot**, not at the left operand, so an error on `user.email` highlights `.email` only. `IndexAccessExpression`'s range takes its `File` from the **closing** bracket while its `From` comes from the opening one - correct in practice, but it silently assumes both brackets are in the same file.
   - **No null-safe form.** There is no `?.` operator; navigating into an undefined value is a runtime concern resolved by [[box.value]]'s undefined semantics, not a syntactic one.
   - **`[` is triply overloaded** - list literal prefix, index-access infix, and computed map key - disambiguated only by parse position.
-  - **Field names are identifiers only.** Keys that are not valid identifiers must be reached with `["…"]`, and a keyword used as a field name will fail because the lexer promotes it to a keyword kind before this production sees it.
+  - **Field names are identifiers or keywords (#159).** The lexer still promotes a reserved word to its keyword kind; this production accepts that token as a name, since right after `.` a keyword has no other meaning. So `x.in`, `x.not` and `x.is` are field accesses, and `x.is is defined` reads field `is` then tests it; `x.true.null` chains; `alias.contains(...)` is a field access that the call handler then calls. No program valid before changes meaning, since every keyword after `.` was a parse error. Keys that are not valid identifiers (`"a-b"`, `"1x"`) still need `["…"]`.

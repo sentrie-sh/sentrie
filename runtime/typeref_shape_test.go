@@ -95,9 +95,18 @@ func (r *RuntimeTestSuite) TestValidateAgainstShapeTypeRef_FieldPresenceAndNulla
 			input: box.FromAny(map[string]any{"name": nil}), expectErr: false,
 		},
 		{
-			name: "present_undefined_is_invalid",
+			// A field holding undefined counts as missing (#148): an
+			// optional one is skipped, a required one fails.
+			name: "optional_present_undefined_is_valid",
 			field: index.ShapeModelField{
 				Name: "name", Optional: true, TypeRef: ast.NewNullableTypeRef(ast.NewStringTypeRef(stubRange()), stubRange()),
+			},
+			input: box.FromAny(map[string]box.Value{"name": box.Undefined()}), expectErr: false,
+		},
+		{
+			name: "required_present_undefined_is_missing",
+			field: index.ShapeModelField{
+				Name: "name", Optional: false, TypeRef: ast.NewNullableTypeRef(ast.NewStringTypeRef(stubRange()), stubRange()),
 			},
 			input: box.FromAny(map[string]box.Value{"name": box.Undefined()}), expectErr: true,
 		},
@@ -145,9 +154,11 @@ func (s *RuntimeTestSuite) TestValidateAgainstShapeTypeRefFieldErrorBranches() {
 	s.Require().Error(err)
 	s.Contains(err.Error(), "field 'name' is not valid")
 
+	// A required field holding undefined is missing, with the absent
+	// field's error (#148).
 	err = validateAgainstShapeTypeRef(s.T().Context(), &ExecutionContext{}, &executorImpl{}, policy, box.FromAny(map[string]box.Value{"name": box.Undefined()}), typeRef, stubRange())
 	s.Require().Error(err)
-	s.Contains(err.Error(), "cannot be undefined")
+	s.Contains(err.Error(), "field name is required")
 
 	policy.Shapes["UserShape"] = &index.Shape{
 		Model: &index.ShapeModel{

@@ -26,7 +26,7 @@ policy p {
 // validate used to fail with "expected Ident, got in" on the namespace line.
 func (s *CmdTestSuite) TestValidateCmdAcceptsKeywordSegmentNamespace() {
 	dir := s.writeTestPack(keywordNamespacePolicy)
-	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"constraints/in/p", "--pack-location", dir}))
+	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"--pack-location", dir}))
 }
 
 // TestValidateCmdAcceptsKeywordSegmentNamespaceImport checks a keyword-segment
@@ -42,14 +42,14 @@ policy q {
   export decision of imported
 }
 `), 0o600))
-	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"text/string/q", "--pack-location", dir}))
+	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"--pack-location", dir}))
 }
 
 // TestValidateCmdRejectsKeywordFirstSegment checks the error a user sees when
 // the first segment is a keyword.
 func (s *CmdTestSuite) TestValidateCmdRejectsKeywordFirstSegment() {
 	dir := s.writeTestPack("namespace in/x\npolicy p {\n  rule ok = true\n  export decision of ok\n}\n")
-	err := runValidateCLI(s.T().Context(), []string{"in/x/p", "--pack-location", dir})
+	err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "the first segment of a name cannot be a keyword")
 }
@@ -68,7 +68,7 @@ policy p {
 `)
 		var err error
 		s.NotPanics(func() {
-			err = runValidateCLI(s.T().Context(), []string{"app/p", "--pack-location", dir})
+			err = runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 		}, "call: %s", call)
 		s.Require().Error(err, "call: %s", call)
 	}

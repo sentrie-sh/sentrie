@@ -7,11 +7,22 @@ import (
 	"fmt"
 	"net"
 	"slices"
+	"strings"
 
 	"github.com/binaek/gocoll/collection"
 )
 
 func resolveBindings(port int, listen []string) ([]string, error) {
+	if len(listen) == 0 {
+		return nil, fmt.Errorf("at least one listen address is required")
+	}
+
+	for _, listenAddr := range listen {
+		if strings.TrimSpace(listenAddr) == "" {
+			return nil, fmt.Errorf("listen address must not be empty; use network to listen on all interfaces")
+		}
+	}
+
 	predefined := [...]string{"local", "local4", "local6", "network", "network4", "network6"}
 
 	// if any of the listen addresses is in the predefined list - then there MUST be exactly one address
@@ -31,13 +42,13 @@ func resolveBindings(port int, listen []string) ([]string, error) {
 		case "local4":
 			addresses = []string{net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", port))}
 		case "local6":
-			addresses = []string{net.JoinHostPort("[::1]", fmt.Sprintf("%d", port))}
+			addresses = []string{net.JoinHostPort("::1", fmt.Sprintf("%d", port))}
 		case "network":
 			addresses = []string{net.JoinHostPort("", fmt.Sprintf("%d", port))}
 		case "network4":
 			addresses = []string{net.JoinHostPort("0.0.0.0", fmt.Sprintf("%d", port))}
 		case "network6":
-			addresses = []string{net.JoinHostPort("[::]", fmt.Sprintf("%d", port))}
+			addresses = []string{net.JoinHostPort("::", fmt.Sprintf("%d", port))}
 		}
 	} else {
 		addresses = collection.Map(

@@ -1,24 +1,12 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 package runtime
 
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/box"
@@ -93,10 +81,9 @@ func accessIndex(_ context.Context, col box.Value, idx box.Value) (box.Value, er
 		return box.Undefined(), nil
 	}
 	if c, ok := col.ListValue(); ok {
-		n, _ := idx.NumberValue()
-		i := int(n)
-		if i < 0 || i >= len(c) {
-			return box.Undefined(), nil
+		i, found, err := listIndex(idx, len(c))
+		if err != nil || !found {
+			return box.Undefined(), err
 		}
 		return c[i], nil
 	}
@@ -111,10 +98,9 @@ func accessIndex(_ context.Context, col box.Value, idx box.Value) (box.Value, er
 	if ref, ok := col.ObjectRef(); ok {
 		switch c := ref.(type) {
 		case []any:
-			n, _ := idx.NumberValue()
-			i := int(n)
-			if i < 0 || i >= len(c) {
-				return box.Undefined(), nil
+			i, found, err := listIndex(idx, len(c))
+			if err != nil || !found {
+				return box.Undefined(), err
 			}
 			return box.FromBoundaryAny(c[i]), nil
 		case map[string]any:
@@ -130,4 +116,30 @@ func accessIndex(_ context.Context, col box.Value, idx box.Value) (box.Value, er
 		}
 	}
 	return box.Value{}, fmt.Errorf("index access not supported on %T", col)
+}
+
+// listIndex resolves idx against a list of length n. found is false, with no
+// error, for an undefined index (undefined propagates) and for an integer
+// outside the list, including one too large for an int. Any other index is an
+// error: a string, bool, null or container, and a number with a fractional
+// part. An integral float such as 2.0 is the integer it holds.
+func listIndex(idx box.Value, n int) (i int, found bool, err error) {
+	if idx.IsUndefined() {
+		return 0, false, nil
+	}
+	f, ok := idx.NumberValue()
+	if !ok {
+		return 0, false, fmt.Errorf("list index must be an integer, got %s", idx.Kind())
+	}
+	if iv, ok := idx.IntegralValue(); ok {
+		if iv < 0 || iv >= int64(n) {
+			return 0, false, nil
+		}
+		return int(iv), true, nil
+	}
+	if f != math.Trunc(f) {
+		return 0, false, fmt.Errorf("list index must be an integer, got %s", idx.String())
+	}
+	// Integral but outside int64, or an infinity: out of range.
+	return 0, false, nil
 }

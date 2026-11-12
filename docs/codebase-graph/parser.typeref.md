@@ -33,8 +33,8 @@ tags: type-syntax, constraints, nullable, recursive-descent
 - **Signature:** `parseBaseTypeRef(ctx, p) -> ast.TypeRef`
   - **Behavior:** Validates that the head is an `Ident` or one of the primitive/aggregate keywords, then dispatches:
     - `string` / `number` / `document` → the corresponding scalar ref.
-    - `boolean` **or** `trinary` → both map to `TrinaryTypeRef`; `boolean` is a pure alias with no distinct node.
-    - `Ident` → an FQN; `namedTypeRef` makes a bare `any` an `AnyTypeRef` and anything else a `ShapeTypeRef`. Segments after the first may be keywords (`text/string/Item`, #297, see [[parser.fqn]]). `any` is not a lexer keyword, so it stays an identifier (the quantifier builtin) in expressions.
+    - `boolean` **or** `trinary` → both map to `TrinaryTypeRef`; `boolean` sets its `Boolean` flag, which makes it reject `unknown` at runtime (#144).
+    - `Ident` → an FQN; a bare `bool`, `int` or `float` is rejected by `checkNotATypeName` with `unknown type "bool": did you mean "boolean"?` (`number` for `int` and `float`, #144); `namedTypeRef` makes a bare `any` an `AnyTypeRef` and anything else a `ShapeTypeRef`. Segments after the first may be keywords (`text/string/Item`, #297, see [[parser.fqn]]). `any` is not a lexer keyword, so it stays an identifier (the quantifier builtin) in expressions.
     - `list` / `dict` → constructed with a nil child, then a required `[ T ]` fills it in recursively.
     - `record` → constructed empty, then `[ T, U, … ]` fills a positional field list.
     - `set` followed by `[` → `parseSetTypeRef` builds a `SetTypeRef` (#162). `set` is **not a keyword**, so `set(...)` stays a builtin call; `atSetTypeRef` recognises the identifier `set` only when the next token is `[`, which no shape name can be followed by, so a bare `set` is still a shape reference.
@@ -67,7 +67,8 @@ tags: type-syntax, constraints, nullable, recursive-descent
 - **Dependencies Risk:**
   - **The head-validation list is rebuilt on every call.** Three slice allocations per type reference - harmless, but it means `PRIMITIVE_TYPES`/`AGGREGATE_TYPES` are copied constantly rather than checked in place.
   - **Nullable ordering is fixed: `T?@c(...)`, not `T@c(...)?`.** The `?` is consumed before the constraint loop, and because `NullableTypeRef` delegates `AddConstraint` to its inner type, constraints written after the `?` still attach to the underlying type. The two spellings are therefore not interchangeable in the source even though they produce the same constraint placement.
-  - **`boolean` and `trinary` are indistinguishable after parsing.** A policy written with `boolean` produces a `TrinaryTypeRef`, so diagnostics and any type-name rendering will say "trinary".
+  - **`boolean` and `trinary` share one node type.** Both are a `TrinaryTypeRef`; only the `Boolean` flag tells them apart, so code that switches on the node type and must treat `boolean` as strictly true or false has to read the flag (#144).
+  - **`bool`, `int` and `float` are rejected only in a type position.** They are not lexer keywords; `checkNotATypeName` runs on a single-segment name where [[parser.typeref]] or a suffixed `is` type ([[parser.is]]) builds a type. A bare `x is int` keeps both readings, so `int` may still be a value there.
   - **Commas are optional in `record[…]`.** The loop consumes a comma only if present, so `record[string number]` parses as two fields.
   - **Unterminated brackets rely on the head check, not EOF.** A missing `]` in a record loops until `advanceExpected` fails, reporting at end-of-input.
   - **Any keyword is accepted as a constraint name.** `advanceNameOrKeyword`, shared with module path segments in [[parser.use]] and later name segments in [[parser.fqn]], does not keep a list of keyword constraint names; `AddConstraint` rejects a keyword that is not a constraint of the type (`@policy(1)`) with the same `cannot add constraint policy: not found` as an unknown identifier. `in` is the only constraint name that is also a keyword today.

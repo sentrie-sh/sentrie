@@ -24,7 +24,7 @@ The schema below is normative and is enforced by `make docs-graph` (and by the `
 
 An edge is a `[[target]]` wiki-link or a backticked leaf id appearing in the **Target (Object)** column of a section-2 table. Subject and predicate cells must also be wiki-linked or backticked - a bare `CALLS` is not a predicate. Consumers **must** be markdown-aware:
 
-- `[[…]]` inside a code span or a fenced code block is **not** an edge. It is literal text. `api.net` legitimately documents the string `[[::1]]:7529`, which is the malformed output of `net.JoinHostPort` - not a reference to a node called `::1`.
+- `[[…]]` inside a code span or a fenced code block is **not** an edge. It is literal text. A string such as `[[::1]]:7529` (the doubly bracketed output `api.net` used to produce) is likewise literal text, not a reference to a node called `::1`.
 - Wiki-links outside section 2 are navigational cross-references, not edges.
 
 A naive `\[\[([^\]]+)\]\]` scan over the raw bytes will produce false edges. Strip code spans first.
@@ -273,11 +273,13 @@ graph TD
 - [[index.derive_purity]] - derive purity enforcement
 - [[index.expr_walk]] - general child walker for reference analysis
 - [[index.constraint_args]] - static constraint argument check
+- [[index.ident_check]] - static undefined identifier check
 - [[index.import_withs]] - unknown `with` fact check for imports
 - [[index.pack_data]] - `data` declarations must name loaded manifest entries
 - [[index.is_resolve]] - `is` shape-or-value resolution
 - [[index.resolve]] - symbol resolution
 - [[index.segments]] - path segment resolution
+- [[index.self_reference]] - scoped rule and let self-reference check
 - [[index.shape_refs]] - static shape name check
 - [[index.typeref_walk]] - type ref position walk
 - [[index.validate]] - whole-index validation
@@ -367,7 +369,7 @@ graph TD
 
 **Where correctness risk concentrates.** [[runtime.executor]] and [[runtime.exec_ctx]] carry the concurrency; [[runtime.modules]] and [[runtime.js]] execute foreign code; [[api.handle_decision]] is the unauthenticated network boundary. Changes in those four areas warrant the most scrutiny.
 
-**Where the language is stricter than it looks.** An undefined operand still makes arithmetic and comparisons `Undefined` ([[runtime.eval_infix]]), shapes accept undeclared fields ([[runtime.typeref_shape]]), and casts do not currently enforce their target type ([[runtime.eval_cast]]).
+**Where the language is stricter than it looks.** An undefined operand still makes arithmetic and comparisons `Undefined` ([[runtime.eval_infix]]), and casts do not currently enforce their target type ([[runtime.eval_cast]]).
 
 **Where the language is looser than it looks.** Constraint names are not validated until a decision is requested ([[constraints]]), and `transform` parses but is unimplemented ([[runtime.eval_transform]]).
 

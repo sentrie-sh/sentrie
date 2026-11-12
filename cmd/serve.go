@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -36,19 +37,37 @@ func addServeCmd(cli *cling.CLI) {
 				WithDescription("HTTP address(es) to listen on").
 				AsFlag(),
 			).
+			WithFlag(cling.
+				NewIntCmdInput("http-max-body-bytes").
+				WithDefault(int(api.DefaultMaxBodyBytes)).
+				WithDescription("Largest request body to accept, in bytes; a larger one is answered with 413. 0 disables the limit").
+				AsFlag(),
+			).
 			WithFlag(evalTimeoutFlag()).
 			WithFlag(evalMaxTimeoutFlag()).
-			WithFlag(capabilitiesFlag()),
+			WithFlag(capabilitiesFlag()).
+			WithFlag(skipEngineCheckFlag()),
 	)
 }
 
 type serveCmdArgs struct {
-	Port           int      `cling-name:"http-port"`
-	PackLocation   string   `cling-name:"pack-location"`
-	Listen         []string `cling-name:"http-listen"`
-	EvalTimeout    string   `cling-name:"eval-timeout"`
-	EvalMaxTimeout string   `cling-name:"eval-max-timeout"`
-	Capabilities   string   `cling-name:"capabilities"`
+	Port            int      `cling-name:"http-port"`
+	PackLocation    string   `cling-name:"pack-location"`
+	Listen          []string `cling-name:"http-listen"`
+	MaxBodyBytes    int      `cling-name:"http-max-body-bytes"`
+	EvalTimeout     string   `cling-name:"eval-timeout"`
+	EvalMaxTimeout  string   `cling-name:"eval-max-timeout"`
+	Capabilities    string   `cling-name:"capabilities"`
+	SkipEngineCheck bool     `cling-name:"skip-engine-check"`
+}
+
+// validateMaxBodyBytes checks an `--http-max-body-bytes` value (#115): a byte
+// count, where 0 disables the limit.
+func validateMaxBodyBytes(n int) error {
+	if n < 0 {
+		return fmt.Errorf("invalid --http-max-body-bytes %d: must not be negative; use 0 for no limit", n)
+	}
+	return nil
 }
 
 func serveCmd(ctx context.Context, args []string) error {
@@ -57,8 +76,15 @@ func serveCmd(ctx context.Context, args []string) error {
 		return err
 	}
 
+	if err := validateMaxBodyBytes(input.MaxBodyBytes); err != nil {
+		return err
+	}
+
 	pack, err := loader.LoadPack(ctx, input.PackLocation)
 	if err != nil {
+		return err
+	}
+	if err := checkEngine(pack, input.SkipEngineCheck, os.Stderr); err != nil {
 		return err
 	}
 	if err := printUnenforcedPermissionWarnings(os.Stderr, pack); err != nil {
@@ -110,9 +136,10 @@ func serveCmd(ctx context.Context, args []string) error {
 	server := api.NewHTTPAPI(exec,
 		api.WithRequestTimeout(evalTimeout),
 		api.WithMaxRequestTimeout(evalMaxTimeout),
+		api.WithMaxBodyBytes(int64(input.MaxBodyBytes)),
 	)
 	if err := server.Setup(ctx, input.Port, input.Listen); err != nil {
-		return err
+		return fmt.Errorf("invalid or unusable --http-listen/--http-port: %w", err)
 	}
 
 	go func() {

@@ -30,8 +30,13 @@ Owns the HTTP surface: route registration, multi-address listener setup, server 
   - **Side Effects:** None.
   - **Exceptions:** None.
 
+- **Signature:** `WithMaxBodyBytes(n int64) -> HTTPAPIOption` (in `api/body_limit.go`)
+  - **Behavior:** Caps every request body at `n` bytes ([#115](https://github.com/sentrie-sh/sentrie/issues/115)); `serve` sets it from `--http-max-body-bytes`. Default `DefaultMaxBodyBytes` (1 MiB); `0` (or a negative value) means no limit. `routes()` wraps the whole mux in `limitBody`, which puts `http.MaxBytesReader` around `r.Body`, so every route, current or future, is covered. The limiter only bounds the reader: the handler that reads a body maps the error to 413 (`bodyOverLimit` for a declared `Content-Length`, `bodyTooLarge` for a `*http.MaxBytesError`, `writeBodyTooLarge` for the problem document).
+  - **Side Effects:** None.
+  - **Exceptions:** None.
+
 - **Signature:** `Setup(ctx context.Context, port int, listen []string) -> error`
-  - **Behavior:** Registers `POST /decision/{target...}` (Go 1.22+ pattern routing with a wildcard tail) `GET /health` and `GET /health/deep` ([[api.health]]), resolves bindings, and opens a listener per address with a 30-second read timeout and a write timeout of `max(30s, ceiling + 5s)` (saturating), where the ceiling is `maxRequestTimeout` or else `requestTimeout`, so a request that asks for the longest allowed deadline can still be answered. With no ceiling and no default the write timeout stays at 30 seconds, which then caps a response. On any bind failure it closes every already-opened listener and clears the slice, so a partial bind never leaves sockets dangling.
+  - **Behavior:** Builds the handler with `routes()`, which registers `POST /decision/{target...}` (Go 1.22+ pattern routing with a wildcard tail) `GET /health` and `GET /health/deep` ([[api.health]]) behind the body limit, resolves bindings, and opens a listener per address with a 30-second read timeout and a write timeout of `max(30s, ceiling + 5s)` (saturating), where the ceiling is `maxRequestTimeout` or else `requestTimeout`, so a request that asks for the longest allowed deadline can still be answered. With no ceiling and no default the write timeout stays at 30 seconds, which then caps a response. On any bind failure it closes every already-opened listener and clears the slice, so a partial bind never leaves sockets dangling.
   - **Side Effects:** Binds sockets; populates `api.listeners`.
   - **Exceptions:** `failed to listen on %s: %w`; binding-resolution errors.
 

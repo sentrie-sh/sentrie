@@ -46,7 +46,7 @@ tags: error-taxonomy, diagnostics, sentinel-errors, failure-modes
   - **Exceptions:** Implements `Unwrap()` to `ErrIndex`.
 
 - **Signature:** `ImportUnknownFactError{At, Message}` / `ImportUnknownFactMessage(with, policy string, facts map[string]string) -> string`
-  - **Behavior:** Error for an `import ... with <name>` that the imported policy does not bind; unwraps to `ErrIndex`. Used as an index diagnostic and, positioned the same way, as the runtime fallback in [[runtime.imports]]. `facts` maps each fact alias to its declared name; the message lists the accepted aliases and, when a fact's declared name equals the `with` name but its alias differs, hints that it is bound by its alias.
+  - **Behavior:** Error for an `import ... with <name>` that the imported policy does not bind; unwraps to `ErrIndex`. Used as an index diagnostic and, positioned the same way, as the runtime fallback in [[runtime.imports]]. `facts` maps each declared fact name to its alias; the message lists the accepted names and, when the `with` name is a fact's alias, says it is the local alias of that fact and to bind it by its name ([#147](https://github.com/sentrie-sh/sentrie/issues/147)).
   - **Side Effects:** None.
   - **Exceptions:** N/A.
 

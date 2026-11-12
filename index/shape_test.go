@@ -4,11 +4,8 @@
 package index
 
 import (
-	"errors"
-
 	"github.com/sentrie-sh/sentrie/ast"
 	"github.com/sentrie-sh/sentrie/tokens"
-	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 // Simple shape without dependencies - verify basic shape creation and validation
@@ -53,16 +50,6 @@ func (s *IndexTestSuite) TestShapeDependency_SimpleShapeWithoutDependencies() {
 	// Verify shape is properly indexed
 	s.Contains(ns.Shapes, "User")
 	s.Equal(shape, ns.Shapes["User"])
-}
-
-func (s *IndexTestSuite) TestShapeDependency_NamespaceMissClassifier_WithNamespaceQualifiedShapeNotFound() {
-	err := xerr.ErrShapeNotFound("com/example/shared/User")
-	s.True(isShapeDependencyNamespaceMiss(err))
-}
-
-func (s *IndexTestSuite) TestShapeDependency_NamespaceMissClassifier_WithNonNotFoundError() {
-	err := errors.New("boom")
-	s.False(isShapeDependencyNamespaceMiss(err))
 }
 
 func (s *IndexTestSuite) TestShapeDependency_ResolveDependency_UsesPolicyShape() {
@@ -122,7 +109,10 @@ func (s *IndexTestSuite) TestShapeDependency_ResolveDependency_UsesPolicyShape()
 		},
 	}
 
-	err = dependentShape.resolveDependency(idx, inPolicy)
+	// The base resolves in the policy the shape is declared in.
+	dependentShape.Policy = inPolicy
+
+	err = dependentShape.resolveDependency(idx)
 	s.Require().NoError(err)
 	s.Contains(dependentShape.Model.Fields, "id")
 	s.Contains(dependentShape.Model.Fields, "name")
@@ -170,7 +160,7 @@ func (s *IndexTestSuite) TestShapeDependency_ShapeWithMissingDependency() {
 	// Validate the index - should fail with dependency not found error
 	err = idx.Validate(ctx)
 	s.Require().Error(err)
-	s.Contains(err.Error(), "error resolving shape")
+	s.Contains(err.Error(), "not found")
 	s.Contains(err.Error(), "NonExistentShape")
 }
 
@@ -1114,10 +1104,10 @@ func (s *IndexTestSuite) TestShapeDependency_CompositionWithUnexportedShapeCross
 	err = ns2.addShape(dependentShape)
 	s.Require().NoError(err)
 
-	// Validate the index - currently passes but should fail because unexported shapes cannot be accessed cross-namespace
-	// NOTE: This is a bug in the current implementation - ResolveShape doesn't check if shapes are exported
+	// Validate the index - a qualified base must be exported by its namespace (#308)
 	err = idx.Validate(ctx)
-	s.Require().NoError(err) // Current implementation incorrectly allows this
+	s.Require().Error(err)
+	s.Contains(err.Error(), "not exported")
 
 	// Verify both shapes are properly indexed
 	s.Contains(ns1.Shapes, "UnexportedShape")
@@ -1125,9 +1115,6 @@ func (s *IndexTestSuite) TestShapeDependency_CompositionWithUnexportedShapeCross
 
 	// Verify dependency relationship
 	s.Equal("com/example/shared/UnexportedShape", dependentShape.Model.WithFQN.String())
-
-	// Verify shape DAG is created correctly
-	s.NotNil(idx.shapeDag)
 }
 
 // Shape composition with exported shape cross-namespace - verify we can compose with exported shapes
