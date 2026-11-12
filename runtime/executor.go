@@ -701,17 +701,23 @@ func evaluateRuleBase(ctx context.Context, ec *ExecutionContext, e *executorImpl
 			val, defNode, err := eval(ctx, ec, e, p, r.Default)
 			dn.Attach(defNode).SetResult(val).SetErr(err)
 
-			theDefault = DecisionOf(val)
 			rn.Attach(dn)
-			if err == nil {
-				if verr := validateRuleValue(ctx, ec, e, p, r, val, r.Default.Span()); verr != nil {
-					dn.SetErr(verr)
-					return nil, verr
-				}
+			// An error in the default expression is the rule's error,
+			// never a silent unknown (#148).
+			if err != nil {
+				return nil, err
 			}
+			if verr := validateRuleValue(ctx, ec, e, p, r, val, r.Default.Span()); verr != nil {
+				dn.SetErr(verr)
+				return nil, verr
+			}
+			theDefault = DecisionOf(val)
 		}
 		return theDefault, nil
 	}
+
+	// The default covers only a `when` that does not hold: a body that
+	// yields undefined stays unknown, and a body error stays an error (#148).
 
 	ctx, rb, done := trace.New(ctx, r.Body, "rule-body", map[string]any{})
 	defer done()

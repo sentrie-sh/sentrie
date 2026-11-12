@@ -195,7 +195,7 @@ func (s *RuntimeTestSuite) TestExecRuleInternalRuleLookupFailureBranch() {
 	s.ErrorIs(err, xerr.NotFoundError{})
 }
 
-func (s *RuntimeTestSuite) TestEvaluateRuleOutcomeDefaultExpressionErrorKeepsDefaultUnknown() {
+func (s *RuntimeTestSuite) TestEvaluateRuleOutcomeDefaultExpressionErrorReturnsError() {
 	p := newEvalTestPolicy()
 	ruleStmt := ast.NewRuleStatement(
 		"r",
@@ -214,10 +214,10 @@ func (s *RuntimeTestSuite) TestEvaluateRuleOutcomeDefaultExpressionErrorKeepsDef
 		Default: ast.NewIdentifier("missing_default", stubRange()),
 	}
 	ec := NewExecutionContext(p, &executorImpl{})
+	// An error in the default is the rule's error, not a silent unknown (#148).
 	decision, _, err := evaluateRuleOutcome(s.T().Context(), ec, &executorImpl{}, p, rule)
-	s.Require().NoError(err)
-	s.Require().NotNil(decision)
-	s.Equal(trinary.Unknown, decision.State)
+	s.Require().ErrorContains(err, "missing_default")
+	s.Nil(decision)
 }
 
 func (s *RuntimeTestSuite) TestEvaluateRuleOutcomeWhenEvaluationFailureReturnsError() {

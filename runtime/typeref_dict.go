@@ -27,8 +27,12 @@ func validateAgainstDictTypeRef(ctx context.Context, ec *ExecutionContext, exec 
 	}
 
 	// check every value against the element type, in key order so the
-	// reported key is the same on every run
+	// reported key is the same on every run. An entry holding undefined
+	// counts as absent and is skipped: undefined is not a value (#148).
 	for _, key := range slices.Sorted(maps.Keys(entries)) {
+		if entries[key].IsUndefined() {
+			continue
+		}
 		if err := validateValueAgainstTypeRef(ctx, ec, exec, p, entries[key], typeRef.ValueType, pos); err != nil {
 			return fmt.Errorf("value for key %q is not valid at %s: %w", key, pos, err)
 		}
