@@ -123,6 +123,13 @@ policy typed {
   export decision of ok
 }
 
+policy attachfail {
+  rule ok = { yield true }
+  rule fine = { yield true }
+  export decision of ok attach good as 1 attach boom as 1 / 0
+  export decision of fine attach note as "kept"
+}
+
 policy importer {
   rule fine = { yield true }
   rule viaImport = import decision ok from re/test/typed with n as "x"
@@ -228,4 +235,47 @@ policy p {
 	case <-time.After(10 * time.Second):
 		s.FailNow("evaluation did not stop at its deadline")
 	}
+}
+
+// A rule whose attachment fails reports unknown with its error and no
+// attachments in the 207, never the true decision computed before the
+// attachment failed (#143 review); its sibling is untouched. Asked for by
+// name it is a problem document.
+func (s *APITestSuite) TestDecisionAttachmentFailureIsUnknown() {
+	api := s.rulePackAPI(ruleErrorAPIPolicy, nil)
+	rec := s.postDecision(api, "/decision/re/test/attachfail", `{"facts": {}}`)
+	s.Require().Equal(http.StatusMultiStatus, rec.Code, rec.Body.String())
+
+	var resp struct {
+		Decisions []struct {
+			Rule        string                `json:"rule"`
+			Decision    map[string]any        `json:"decision"`
+			Attachments map[string]any        `json:"attachments"`
+			Error       *runtimepkg.RuleError `json:"error"`
+		} `json:"decisions"`
+	}
+	s.Require().NoError(json.Unmarshal(rec.Body.Bytes(), &resp), rec.Body.String())
+	s.Require().Len(resp.Decisions, 2)
+	for _, d := range resp.Decisions {
+		switch d.Rule {
+		case "ok":
+			s.Require().NotNil(d.Error)
+			s.Contains(d.Error.Detail, "divide by zero")
+			s.Equal("unknown", d.Decision["state"], rec.Body.String())
+			s.NotEqual(true, d.Decision["value"], rec.Body.String())
+			s.Empty(d.Attachments, rec.Body.String())
+		case "fine":
+			s.Nil(d.Error)
+			s.Equal("true", d.Decision["state"], rec.Body.String())
+			s.Equal("kept", d.Attachments["note"])
+		default:
+			s.Failf("unexpected rule", "%s", d.Rule)
+		}
+	}
+
+	rec = s.postDecision(api, "/decision/re/test/attachfail/ok", `{"facts": {}}`)
+	s.Require().Equal(http.StatusInternalServerError, rec.Code, rec.Body.String())
+	s.Contains(rec.Body.String(), "divide by zero")
+	s.NotContains(rec.Body.String(), `"decisions"`)
+	s.NotContains(rec.Body.String(), `"good"`)
 }

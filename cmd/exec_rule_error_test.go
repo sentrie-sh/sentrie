@@ -146,3 +146,49 @@ func (s *CmdTestSuite) TestExecBinaryReportsRuleErrorsOnStderr() {
 	s.Require().NoError(json.Unmarshal(stdout.Bytes(), &got), strings.TrimSpace(stdout.String()))
 	s.Len(got, 2)
 }
+
+// A rule whose attachment fails prints as unknown with its error and no
+// attachments, never the true decision computed before the attachment failed
+// (#143 review); its sibling prints as usual.
+func (s *CmdTestSuite) TestExecPolicyAttachmentFailureIsUnknown() {
+	dir := s.writeTestPack(`namespace com/att
+policy pol {
+  rule ok = { yield true }
+  rule fine = { yield true }
+  export decision of ok attach good as 1 attach boom as 1 / 0
+  export decision of fine attach note as "kept"
+}
+`)
+	var err error
+	out := s.captureStdout(func() {
+		err = runExecCLI(s.T().Context(), []string{"com/att/pol", "--pack-location", dir, "--output", "json"})
+	})
+	s.Require().Error(err)
+	s.Equal("1 of 2 rules failed", err.Error())
+
+	var got []struct {
+		Rule        string         `json:"rule"`
+		Decision    map[string]any `json:"decision"`
+		Attachments map[string]any `json:"attachments"`
+		Error       *struct {
+			Detail string `json:"detail"`
+		} `json:"error"`
+	}
+	s.Require().NoError(json.Unmarshal([]byte(out), &got), out)
+	s.Require().Len(got, 2)
+	for _, d := range got {
+		switch d.Rule {
+		case "ok":
+			s.Require().NotNil(d.Error, out)
+			s.Contains(d.Error.Detail, "divide by zero")
+			s.Equal("unknown", d.Decision["state"], out)
+			s.Empty(d.Attachments, out)
+		case "fine":
+			s.Nil(d.Error, out)
+			s.Equal("true", d.Decision["state"], out)
+			s.Equal("kept", d.Attachments["note"], out)
+		default:
+			s.Failf("unexpected rule", "%s", d.Rule)
+		}
+	}
+}
