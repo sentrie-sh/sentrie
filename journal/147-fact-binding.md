@@ -96,3 +96,10 @@
 - The user confirmed the provisional round 3 choice (the user's words: "Keep the 400"): a required fact that an import leaves out of its `with` clauses fails the whole request with one 400, like a caller's missing required fact.
 - Removed the PROVISIONAL wording from the comments in `runtime/rule_error.go` and the three test files, from `docs/codebase-graph/runtime.executor.md` and from the PR description. No behaviour change.
 - _Model: claude-fable-5-2_
+
+### 2026-11-12 09:53 - Merge the #143 review comment fix
+
+- Merged `143-per-rule-errors` (head 1e19342) into this branch (a merge, so no force push). It brings the fix for the PR #319 review comment: a failed rule always reports an unknown decision with no attachments, and its trace records the error and the failing attachment.
+- Resolved two graph conflicts by keeping both sides: `api.handle_decision.md` (this branch's request wording, #143's 'no attachments' response wording) and `runtime.executor.md` (this branch's fact-binding text plus #143's attachment and trace sentences).
+- `go test ./api/... ./runtime/... ./cmd/...` and `make docs-graph` pass on the merged branch (`/tmp/s11-147-fact-binding-stack.log`).
+- _Model: claude-opus-5-5_
