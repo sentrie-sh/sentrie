@@ -112,6 +112,10 @@ func (s *IndexTestSuite) TestValidateShadowedLetSelfReferenceIsSkipped() {
 		})
 	}
 
+	// A nested let reading its own name inside a lambda body, with an outer
+	// policy let of that name, is skipped too.
+	s.NoError(s.parseAndValidate(checksSource("  let x = 1\n  rule r = count(filter([1], (v) => { let x = x + v\n yield x == 2 })) == 1\n  export decision of r\n"), "c.sentrie"))
+
 	// With no outer x of any kind the self-reference is still reported.
 	err := s.parseAndValidate(checksSource("  rule r = { let x = x + 1\n yield x } == 2\n  export decision of r\n"), "c.sentrie")
 	s.Require().Error(err)
@@ -193,4 +197,12 @@ func (s *IndexTestSuite) TestValidateIdentifiersNoFalsePositives() {
 // gap. When static literal type checks land, this test is flipped.
 func (s *IndexTestSuite) TestValidateStillAcceptsStaticLiteralTypeError() {
 	s.NoError(s.parseAndValidate(checksSource("  rule r = { yield 1 + true }\n  export decision of r\n"), "c.sentrie"))
+}
+
+// TestValidateMutualLetRecursionOutcome pins two policy lets that read each
+// other with no shadowing.
+func (s *IndexTestSuite) TestValidateMutualLetRecursionOutcome() {
+	err := s.parseAndValidate(checksSource("  let a = b\n  let b = a\n  rule r = a\n  export decision of r\n"), "c.sentrie")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "infinite recursion: a -> b -> a")
 }
