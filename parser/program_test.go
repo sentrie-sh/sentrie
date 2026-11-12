@@ -64,7 +64,7 @@ func (s *ParserTestSuite) TestParseProgramWithShapes() {
 namespace com/example
 shape User {
 	name:string
-	age:int
+	age:number
 }
 shape Person string
 `
@@ -147,7 +147,7 @@ func (s *ParserTestSuite) TestParseProgramComplex() {
 namespace com/example
 
 -- User shape
-shape User { name:string age:int }
+shape User { name:string age:number }
 
 -- User policy
 policy user {

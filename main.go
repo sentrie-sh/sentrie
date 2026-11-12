@@ -81,8 +81,9 @@ func main() {
 
 	cli := cmd.Setup(ctx, vers)
 	if err := cmd.Execute(ctx, cli, os.Args); err != nil {
-		// pretty print the error in the forn <red>Error</red>: <error>
-		fmt.Printf("Error: %s\n", err)
+		// On stderr, so stdout stays parseable: exec --output json prints every
+		// rule's result and still fails when a rule failed (#143).
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		exitCode = 1
 	}
 	os.Exit(exitCode)

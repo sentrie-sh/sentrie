@@ -328,7 +328,8 @@ policy pol {
 }
 
 // An undeclared identifier is a real error, not a missing value: 'is defined' must
-// not turn a typo into false.
+// not turn a typo into false. Validation now reports it before any evaluation
+// (#155), at each site.
 func (s *RuntimeTestSuite) TestIsDefinedOnUndeclaredIdentifierErrors() {
 	ctx := s.T().Context()
 	src := `namespace com/ex
@@ -339,7 +340,18 @@ policy pol {
   export decision of check_empty
 }
 `
-	_, exec := s.mustBuildDeriveExecutor(ctx, deriveTestProgram{name: "undeclared.sentrie", src: src})
+	idx := s.mustBuildDeriveIndex(ctx, deriveTestProgram{name: "undeclared.sentrie", src: src})
+	err := idx.Validate(ctx)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "identifier 'undeclared' not found at undeclared.sentrie:3:")
+	s.Contains(err.Error(), "identifier 'undeclared' not found at undeclared.sentrie:4:")
+
+	// The runtime still errors if such a pack is evaluated anyway: 'is
+	// defined' does not turn the typo into false.
+	rawExec, err := NewExecutor(idx)
+	s.Require().NoError(err)
+	exec, ok := rawExec.(*executorImpl)
+	s.Require().True(ok)
 	for _, rule := range []string{"check_defined", "check_empty"} {
 		s.Run(rule, func() {
 			_, err := exec.ExecRule(ctx, "com/ex", "pol", rule, nil)

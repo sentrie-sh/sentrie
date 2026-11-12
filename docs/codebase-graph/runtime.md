@@ -37,12 +37,17 @@ tags: evaluation, execution, sandboxing, javascript, concurrency, back-end
   - **Exceptions:** **Panics** if `idx.Pack` is nil - it dereferences `idx.Pack.Location` before any nil check.
 
 - **Signature:** `Executor` interface - `ExecPolicy(ctx, namespace, policy, facts) -> ([]*ExecutorOutput, error)`, `ExecRule(ctx, namespace, policy, rule, facts) -> (*ExecutorOutput, error)`, `Index() -> *index.Index`, `Close() -> error`
-  - **Behavior:** The public entrypoints. `ExecPolicy` fans out over every exported rule **concurrently**; `ExecRule` runs one.
+  - **Behavior:** The public entrypoints. `ExecPolicy` fans out over every exported rule **concurrently** and returns an output per rule even when some fail ([#143](https://github.com/sentrie-sh/sentrie/issues/143)); `ExecRule` runs one. See [[runtime.executor]].
   - **Side Effects:** Executes JavaScript, populates caches, builds trace trees.
-  - **Exceptions:** Missing required facts, unexported rules, evaluation errors, recursion errors.
+  - **Exceptions:** Missing required facts, unexported rules, evaluation errors, recursion errors. From `ExecPolicy`, rule failures arrive together as a `RuleErrors` next to the full outputs; a fact error is a request error, returned alone.
 
-- **Signature:** `ExecutorOutput` - `{ PolicyName, Namespace, RuleName, Decision *Decision, Attachments DecisionAttachments, RuleNode *trace.Node }`
-  - **Behavior:** The result envelope, JSON-serializable for CLI and API consumers.
+- **Signature:** `ExecutorOutput` - `{ PolicyName, Namespace, RuleName, Decision *Decision, Attachments DecisionAttachments, RuleNode *trace.Node, Error *RuleError }`
+  - **Behavior:** The result envelope, JSON-serializable for CLI and API consumers. `Error` (JSON `error`, omitted on success) is set when the rule failed; the decision is then unknown and `Attachments` is nil, even when the failure came after the value was computed (an attachment that failed), while `RuleNode` keeps the trace: its root carries the error (`withRuleError` sets it unless the node already has a more specific one, and a failing attachment's node is in it), but its `result` and child nodes keep the values computed before the failure, so clients read `decision` and `error`, not the trace.
+
+- **Signature:** `RuleError` - `{ Title, Status int, Detail }` / `RuleErrors []*RuleError` / `ErrorStatus(err) -> int` (in `runtime/rule_error.go`)
+  - **Behavior:** One rule's failure ([#143](https://github.com/sentrie-sh/sentrie/issues/143)), shaped like an RFC 9457 problem document: title `Evaluation Failed`, `Status` from `ErrorStatus` (400 invalid invocation, 503 deadline, 500 otherwise), `Detail` the error message. It unwraps to the underlying error. `RuleErrors` is `ExecPolicy`'s error when any rule failed; its message is the rule messages one per line, in no fixed order, and it unwraps to each. [[api.handle_decision]] uses `ErrorStatus` for its problem documents too.
+  - **Side Effects:** N/A.
+  - **Exceptions:** N/A.
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 
@@ -80,6 +85,6 @@ tags: evaluation, execution, sandboxing, javascript, concurrency, back-end
 - **Dependencies Risk:**
   - **This package converts static guarantees into runtime behaviour.** Everything [[index.validate]] could not prove - type conformance, arity of dynamic callables, module export presence - fails here, at request time, in front of a user.
   - **Concurrency correctness is not fully established.** Attached child contexts share the parent's `modules` map by reference while locking their own mutex, so a bind on a child and a read on the parent would take different locks over the same map. It is latent: modules are bound on the root context before evaluation begins. See [[runtime.exec_ctx]].
-  - **Several nil-dereference paths are reachable from policy input**, notably the fact alias/name mismatch in [[runtime.executor]] and the unchecked `output.RuleNode` in [[runtime.imports]].
+  - **Several nil-dereference paths are reachable from policy input**, notably the unchecked `output.RuleNode` in [[runtime.imports]] (facts are bound and validated under one key, the alias, since [#147](https://github.com/sentrie-sh/sentrie/issues/147)).
   - **The JS sandbox is the trust boundary.** Module permissions come from the pack manifest, but once a VM is bound, cache keying decides which export set a policy actually sees - see the canonical-key caveat in [[runtime.executor]].
   - **Failure is biased toward `Unknown`, not toward denial.** A rule that errors yields an `Unknown` decision envelope alongside the error; callers that ignore the error read a permissive-looking result.

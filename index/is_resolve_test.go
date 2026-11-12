@@ -106,3 +106,23 @@ policy pol {
 	s.Less(z, y)
 	s.Less(y, x)
 }
+
+// TestResolveIsBareNotATypeName: a bare `x is bool` may be a value
+// comparison, so it is an index error, not a parse error, and it carries the
+// type hint (PROVISIONAL, #144). A value named int still resolves.
+func (s *IndexTestSuite) TestResolveIsBareNotATypeName() {
+	for name, hint := range map[string]string{"bool": "boolean", "int": "number", "float": "number"} {
+		s.Run(name, func() {
+			src := "namespace com/app\npolicy pol {\n  rule r = { yield 1 is " + name + " }\n  export decision of r\n}\n"
+			_, err := s.validateIsSources(src)
+			s.Require().Error(err)
+			s.Contains(err.Error(), `"`+name+`" is neither a shape nor a value in scope`)
+			s.Contains(err.Error(), `is not a type, did you mean "`+hint+`"?`)
+		})
+	}
+	s.Run("value named int stays equality", func() {
+		src := "namespace com/app\npolicy pol {\n  let int = 1\n  rule r = { yield 1 is int }\n  export decision of r\n}\n"
+		_, err := s.validateIsSources(src)
+		s.Require().NoError(err)
+	})
+}

@@ -246,7 +246,7 @@ func (s *RuntimeTestSuite) TestImportDecisionUnknownWithFactReturnsError() {
 	val, node, err := ImportDecision(ctx, exec, ec, callerPolicy, imp)
 	s.Require().Error(err)
 	s.ErrorIs(err, xerr.ErrIndex)
-	s.Contains(err.Error(), `import binds unknown fact "levl": policy test/ns/target accepts fact aliases: level`)
+	s.Contains(err.Error(), `import binds unknown fact "levl": policy test/ns/target accepts facts: level`)
 	s.True(val.IsNull())
 	s.Require().NotNil(node)
 	s.Contains(node.Err, `unknown fact "levl"`)

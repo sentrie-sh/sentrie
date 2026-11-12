@@ -61,15 +61,16 @@ policy gaps {
   rule after = "a"
   export decision of uses
 
-  -- boolean OR over true, false and unknown, with a skipped base
-  rule falseBase: boolean = false
+  -- Kleene OR over true, false and unknown (a trinary rule), and a boolean
+  -- rule whose base is skipped (#144: a boolean contribution cannot be unknown)
+  rule falseBase: trinary = false
   contribute falseBase { yield unknown }
-  rule falseBaseTrue: boolean = false
+  rule falseBaseTrue: trinary = false
   contribute falseBaseTrue { yield unknown }
   contribute falseBaseTrue { yield true }
-  rule unknownBase: boolean = unknown
+  rule unknownBase: trinary = unknown
   contribute unknownBase { yield false }
-  rule trueBase: boolean = true
+  rule trueBase: trinary = true
   contribute trueBase { yield unknown }
   rule skippedBase: boolean = when user.never { yield true }
   contribute skippedBase { yield false }
@@ -184,17 +185,22 @@ func (s *RuntimeTestSuite) TestContributeRuntimeErrorFailsTheRuleAndIsReported()
 		s.Equal(box.Trinary(trinary.Unknown), out.Decision.Value, rule)
 	}
 
-	// the failing rule is reported by ExecPolicy, the other rules still run
+	// ExecPolicy reports the failing rules with their errors (#143), and the
+	// other rules still run
 	outs, err := exec.ExecPolicy(ctx, "com/ex", "gaps", gapsFacts(nil))
 	s.Require().Error(err)
 	s.Contains(err.Error(), "divide by zero")
-	names := map[string]bool{}
+	byName := map[string]*ExecutorOutput{}
 	for _, o := range outs {
-		names[o.RuleName] = true
+		byName[o.RuleName] = o
 	}
-	s.False(names["boom"])
-	s.False(names["boomwhen"])
-	s.True(names["uses"])
+	for _, rule := range []string{"boom", "boomwhen"} {
+		s.Require().Contains(byName, rule)
+		s.Require().NotNil(byName[rule].Error, rule)
+		s.Contains(byName[rule].Error.Detail, "divide by zero", rule)
+	}
+	s.Require().Contains(byName, "uses")
+	s.Nil(byName["uses"].Error)
 }
 
 func (s *RuntimeTestSuite) TestContributeTypeErrorsReportUnknown() {

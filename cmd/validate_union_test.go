@@ -13,7 +13,7 @@ policy pol {
   export decision of ok
 }
 `)
-	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir}))
+	s.Require().NoError(runValidateCLI(s.T().Context(), []string{"--pack-location", dir}))
 }
 
 func (s *CmdTestSuite) TestValidateCmdRejectsUnknownShapeInUnionMember() {
@@ -23,7 +23,7 @@ policy pol {
   export decision of bad
 }
 `)
-	err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+	err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	s.Require().Error(err)
 	s.Contains(err.Error(), `shape "Missing" is not visible here`)
 }
@@ -35,7 +35,7 @@ policy pol {
   export decision of bad
 }
 `)
-	err := runValidateCLI(s.T().Context(), []string{"com/ex/pol", "--pack-location", dir})
+	err := runValidateCLI(s.T().Context(), []string{"--pack-location", dir})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "only '|>' is supported")
 }

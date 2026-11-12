@@ -177,10 +177,42 @@ policy p {
 	s.Require().NoError(err)
 }
 
-func (s *IndexTestSuite) TestBuiltinCheckCountMismatchUndefinedAccept() {
+func (s *IndexTestSuite) TestBuiltinCheckCountWrongKindReject() {
 	err := s.parseAndValidate(`namespace com/ex
 policy p {
   rule allow = { yield count(5) }
+  export decision of allow
+}
+`, "f.sentrie")
+	s.Require().ErrorContains(err, "count expects a list, dict or string")
+}
+
+func (s *IndexTestSuite) TestBuiltinCheckCountRejectsBoolAndTypedFacts() {
+	for name, arg := range map[string]string{
+		"bool literal": "true",
+		"number fact":  "n",
+		"trinary fact": "b",
+	} {
+		s.Run(name, func() {
+			err := s.parseAndValidate(`namespace com/ex
+policy p {
+  fact n: number as n
+  fact b: trinary as b
+  rule allow = { yield count(`+arg+`) }
+  export decision of allow
+}
+`, "f.sentrie")
+			s.Require().ErrorContains(err, "count expects a list, dict or string")
+		})
+	}
+}
+
+func (s *IndexTestSuite) TestBuiltinCheckCountCountableKindsAccept() {
+	err := s.parseAndValidate(`namespace com/ex
+policy p {
+  fact xs: list[number] as xs
+  fact label: string as label
+  rule allow = { yield count([1]) + count({"a": 1}) + count("abc") + count(xs) + count(label) }
   export decision of allow
 }
 `, "f.sentrie")
@@ -909,4 +941,35 @@ policy p {
 `, "f.sentrie")
 	s.Require().Error(err)
 	s.Contains(err.Error(), "filter: first argument must be a list")
+}
+
+// The static kind check finds an inherited field through the same with-base
+// resolution as hydration (resolveWithBase), so a qualified base naming the
+// shape's own namespace, or a two-segment base, types the field like an
+// unqualified one (#308).
+func (s *IndexTestSuite) TestBuiltinCheckInheritedFieldThroughQualifiedWithBase() {
+	cases := []struct {
+		name string
+		ns   string
+		with string
+	}{
+		{name: "unqualified base", ns: "t/a", with: "Base"},
+		{name: "own-namespace qualified base", ns: "t/a", with: "t/a/Base"},
+		{name: "two-segment base in own namespace", ns: "t", with: "t/Base"},
+	}
+	for _, tc := range cases {
+		s.Run(tc.name, func() {
+			err := s.parseAndValidate(fmt.Sprintf(`namespace %s
+shape Base { n: number }
+shape B with %s { m: number }
+policy p {
+  fact x: B as x
+  rule allow = { yield merge(x.n, {}) }
+  export decision of allow
+}
+`, tc.ns, tc.with), "f.sentrie")
+			s.Require().Error(err)
+			s.Contains(err.Error(), "first argument is not a dict")
+		})
+	}
 }

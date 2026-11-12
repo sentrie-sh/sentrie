@@ -25,7 +25,7 @@ The process bootstrap: installs signal handling, resolves build-time version inf
 ## 3. Interface Contracts & Public Surface
 
 - **Signature:** `main()`
-  - **Behavior:** Creates a background context cancelled by `SIGINT` or `SIGTERM` ([#117](https://github.com/sentrie-sh/sentrie/issues/117)), restores the default signal behaviour after the first one so a second signal terminates the process at once, resolves the version once, installs the default logger, builds the CLI, and executes it. On error it prints `Error: <err>` to stdout and exits 1.
+  - **Behavior:** Creates a background context cancelled by `SIGINT` or `SIGTERM` ([#117](https://github.com/sentrie-sh/sentrie/issues/117)), restores the default signal behaviour after the first one so a second signal terminates the process at once, resolves the version once, installs the default logger, builds the CLI, and executes it. On error it prints `Error: <err>` to stderr and exits 1, so stdout carries only the command's output ([#143](https://github.com/sentrie-sh/sentrie/issues/143): `exec --output json` prints every rule's result and still fails when a rule failed).
   - **Side Effects:** Signal handlers; global logger; process exit.
   - **Exceptions:** None - errors become exit codes.
 

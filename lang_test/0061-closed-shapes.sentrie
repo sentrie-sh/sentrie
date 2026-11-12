@@ -1,0 +1,60 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+namespace closedshapes/fixture
+
+-- Shapes are closed by default; `...` as the last entry opts one out.
+shape Address {
+  city: string
+  zip?: string
+}
+
+shape Person {
+  name: string
+  address: Address
+}
+
+shape Envelope {
+  id: string
+  ...
+}
+
+shape OpenAddress {
+  city: string
+  ... -- other keys are accepted
+}
+
+shape Base {
+  a: number
+  ...
+}
+
+-- openness is per declaration: Child is closed although Base is open
+shape Child with Base {
+  b: number
+}
+
+shape OpenChild with Address {
+  note: string
+  ...
+}
+
+shape Table {
+  rows: dict[Address]
+}
+
+policy people {
+  fact p: Person
+  fact e: Envelope
+  fact t: Table
+
+  let literal = {"k": 1, "k": 2}
+
+  rule named = { yield p.name == "a" and p.address.city == "b" }
+  rule envelope = { yield e.id is defined }
+  rule literal_key = { yield literal.k == 2 }
+
+  export decision of named
+  export decision of envelope
+  export decision of literal_key
+}

@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"os"
 	"runtime"
 	"strconv"
@@ -165,14 +164,14 @@ func loadBenchFacts(factFile, factsJSON string) (map[string]any, error) {
 		if err := json.NewDecoder(bytes.NewReader(content)).Decode(&fromFile); err != nil {
 			return nil, err
 		}
-		maps.Copy(facts, fromFile)
+		facts = mergeFacts(facts, fromFile)
 	}
 	var fromFlag map[string]any
 	if err := json.NewDecoder(strings.NewReader(factsJSON)).Decode(&fromFlag); err != nil {
 		return nil, fmt.Errorf("invalid --facts: %w", err)
 	}
-	maps.Copy(facts, fromFlag)
-	return facts, nil
+	// Merged as exec merges them: objects deeply, lists replaced (#147).
+	return mergeFacts(facts, fromFlag), nil
 }
 
 // loadBenchIndex runs the load, engine check, index and validate steps that

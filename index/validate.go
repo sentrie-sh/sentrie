@@ -4,7 +4,6 @@
 package index
 
 import (
-	"cmp"
 	"context"
 	"fmt"
 	"strings"
@@ -59,6 +58,12 @@ func (idx *Index) validate(ctx context.Context) error {
 	}
 	// Check for self-references in rules and shapes
 	if err := idx.detectReferenceCycle(ctx); err != nil {
+		return err
+	}
+	if err := idx.detectSelfReference(ctx); err != nil {
+		return err
+	}
+	if err := idx.checkIdentifiers(ctx); err != nil {
 		return err
 	}
 	if err := idx.detectContributionSelfReference(ctx); err != nil {
@@ -183,6 +188,10 @@ func addNodes(g dag.G[String], nodes []ast.Node, referedBy String, policy *Polic
 
 		switch n := node.(type) {
 		case *ast.Identifier:
+			// A self edge is refused (dag.ErrSelfLoop) and dropped: the graph
+			// ignores scope, so `rule x = { let x = 1 yield x }` would read as
+			// x referencing itself. detectSelfReference resolves names by
+			// scope and reports real self-references.
 			_ = g.AddEdge(String(referedBy.String()), String(n.Value))
 		case *ast.RuleStatement:
 			g.AddNode(String(n.RuleName))
@@ -308,22 +317,8 @@ func (idx *Index) detectShapeCycle(ctx context.Context) (dag.G[*Shape], error) {
 			if ctx.Err() != nil {
 				return nil, fmt.Errorf("validation cancelled: %w", xerr.ErrIndex)
 			}
-			if shape.Model == nil || shape.Model.WithFQN == nil || shape.Model.WithFQN.IsEmpty() {
-				continue
-			}
-
-			withShape, err := idx.ResolveShape(
-				cmp.Or( // if there's no parent namespace, use the namespace FQN
-					shape.Model.WithFQN.Parent().String(),
-					shape.Namespace.FQN.String(),
-				),
-				shape.Model.WithFQN.LastSegment())
-			if err != nil {
-				return nil, fmt.Errorf("error resolving shape: %s: %w", err, xerr.ErrIndex)
-			}
-			// find the shape with the FQN
-			if err := shapeDag.AddEdge(shape, withShape); err != nil {
-				return nil, fmt.Errorf("error adding edge: %s: %w", err, xerr.ErrIndex)
+			if err := idx.addShapeBaseEdge(shapeDag, shape); err != nil {
+				return nil, err
 			}
 		}
 
@@ -333,15 +328,8 @@ func (idx *Index) detectShapeCycle(ctx context.Context) (dag.G[*Shape], error) {
 			}
 			// add the edges for the policy shapes
 			for _, shape := range policy.Shapes {
-				if shape.Model != nil && shape.Model.WithFQN != nil && !shape.Model.WithFQN.IsEmpty() {
-					// find the shape with the FQN
-					withShape, ok := ns.Shapes[shape.Model.WithFQN.String()]
-					if !ok {
-						return nil, fmt.Errorf("shape not found: %s at %s: %w", shape.Model.WithFQN.String(), shape.Statement.Span().String(), xerr.ErrIndex)
-					}
-					if err := shapeDag.AddEdge(shape, withShape); err != nil {
-						return nil, fmt.Errorf("error adding edge: %s: %w", err, xerr.ErrIndex)
-					}
+				if err := idx.addShapeBaseEdge(shapeDag, shape); err != nil {
+					return nil, err
 				}
 			}
 		}
@@ -357,6 +345,23 @@ func (idx *Index) detectShapeCycle(ctx context.Context) (dag.G[*Shape], error) {
 	}
 
 	return shapeDag, nil
+}
+
+// addShapeBaseEdge adds the edge from shape to the shape its `with` clause
+// names, resolved by resolveWithBase exactly as hydration resolves it. A
+// shape without a `with` clause adds nothing.
+func (idx *Index) addShapeBaseEdge(shapeDag dag.G[*Shape], shape *Shape) error {
+	withShape, err := idx.resolveWithBase(shape)
+	if err != nil {
+		return err
+	}
+	if withShape == nil {
+		return nil
+	}
+	if err := shapeDag.AddEdge(shape, withShape); err != nil {
+		return fmt.Errorf("error adding edge: %s: %w", err, xerr.ErrIndex)
+	}
+	return nil
 }
 
 // importTarget returns the namespace and policy name an import clause refers

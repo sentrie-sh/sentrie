@@ -180,3 +180,78 @@ func (s *ParserTestSuite) TestParseTypeRefMalformedRecordDoesNotLoop() {
 	s.Nil(stmt)
 	s.Error(parser.err)
 }
+
+func (s *ParserTestSuite) TestParseShapeOpenMarker() {
+	parse := func(src string) (*ast.ShapeStatement, error) {
+		p := NewParserFromString(src, "test.sentrie")
+		stmt := parseShapeStatement(s.T().Context(), p)
+		if p.err != nil {
+			return nil, p.err
+		}
+		shapeStmt, ok := stmt.(*ast.ShapeStatement)
+		s.Require().True(ok)
+		return shapeStmt, nil
+	}
+
+	for name, src := range map[string]string{
+		"after fields":          "shape S { a: string b: number ... }",
+		"alone":                 "shape S { ... }",
+		"comment after marker":  "shape S { a: string ... -- trailing\n }",
+		"comment line after":    "shape S {\n a: string\n ...\n -- note\n}",
+		"comment before marker": "shape S {\n a: string\n -- note\n ...\n}",
+	} {
+		s.Run(name, func() {
+			stmt, err := parse(src)
+			s.Require().NoError(err)
+			s.True(stmt.Complex.Open)
+			s.NotZero(stmt.Complex.OpenRange.To.Offset)
+		})
+	}
+
+	stmt, err := parse("shape S { a: string }")
+	s.Require().NoError(err)
+	s.False(stmt.Complex.Open)
+
+}
+
+func (s *ParserTestSuite) TestParseShapeOpenMarkerMustBeLast() {
+	for name, tc := range map[string]struct{ src, msg string }{
+		"field after marker":                {"shape S { a: string ... b: number }", "must be the last entry"},
+		"second marker":                     {"shape S { a: string ... ... }", "must be the last entry"},
+		"marker then field on its own line": {"shape S {\n ...\n b: number\n}", "must be the last entry"},
+	} {
+		s.Run(name, func() {
+			p := NewParserFromString(tc.src, "test.sentrie")
+			stmt := parseShapeStatement(s.T().Context(), p)
+			s.Nil(stmt)
+			s.Require().Error(p.err)
+			s.Contains(p.err.Error(), tc.msg)
+		})
+	}
+
+	s.Run("missing close brace after marker", func() {
+		p := NewParserFromString("shape S { a: string ...", "test.sentrie")
+		stmt := parseShapeStatement(s.T().Context(), p)
+		s.Nil(stmt)
+		s.Require().Error(p.err)
+		s.NotContains(p.err.Error(), "must be the last entry")
+	})
+}
+
+func (s *ParserTestSuite) TestParseShapeDuplicateFieldNamesBothSpans() {
+	p := NewParserFromString("shape S {\n  a: string\n  b: number\n  a: number\n}", "test.sentrie")
+	stmt := parseShapeStatement(s.T().Context(), p)
+	s.Nil(stmt)
+	s.Require().Error(p.err)
+	msg := p.err.Error()
+	s.Contains(msg, "duplicate shape field 'a'")
+	s.Contains(msg, "first declared at")
+	s.Contains(msg, "test.sentrie:4:", "error is reported at the second declaration")
+	s.Contains(msg, "test.sentrie:2:", "error names the first declaration")
+
+	// a keyword field name still counts as a duplicate (#159 stack)
+	p = NewParserFromString("shape S { default: string default: number }", "test.sentrie")
+	s.Nil(parseShapeStatement(s.T().Context(), p))
+	s.Require().Error(p.err)
+	s.Contains(p.err.Error(), "duplicate shape field 'default'")
+}

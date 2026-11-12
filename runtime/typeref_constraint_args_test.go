@@ -104,7 +104,7 @@ func (s *RuntimeTestSuite) TestValidConstraintArgumentsEvaluateUnchanged() {
 		{"float max rejects", `0.75 is number@max(0.5)`, trinary.False},
 		{"float multiple", `0.5 is number@multiple_of(0.25)`, trinary.True},
 		{"multiple rejects", `5 is number@multiple_of(2)`, trinary.False},
-		{"not_in list with a float", `2.5 is number@not_in([1, 2.5])`, trinary.False},
+		{"not_in with a float", `2.5 is number@not_in(1, 2.5)`, trinary.False},
 		{"not_in single number", `2 is number@not_in(1)`, trinary.True},
 		{"regexp holds", `"ab" is string@regexp("^a")`, trinary.True},
 		{"regexp rejects", `"ba" is string@regexp("^a")`, trinary.False},

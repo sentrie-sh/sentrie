@@ -35,9 +35,9 @@ var (
 		DeriveSafe:  true,
 		Sig: Sig{
 			Params: []ParamSig{{
-				Name:       "collection",
-				Kinds:      kindCountable,
-				OnMismatch: MismatchUndefined,
+				Name:      "collection",
+				Kinds:     kindCountable,
+				KindError: countKindError,
 			}},
 			TooFewError:  "count requires 1 argument",
 			TooManyError: "count requires 1 argument",
@@ -216,8 +216,17 @@ func implCount(ctx context.Context, env Env, args ...box.Value) (box.Value, erro
 	if m, ok := args[0].DictValue(); ok {
 		return box.Number(len(m)), nil
 	}
-	return box.Undefined(), nil
+	// Precheck passes undefined and null through; only undefined is absent
+	// data. Null, like any other kind, is not countable.
+	if args[0].IsUndefined() {
+		return box.Undefined(), nil
+	}
+	return box.Undefined(), fmt.Errorf("%s, got %s", countKindError, args[0].Kind())
 }
+
+// countKindError is the message for a count argument that is not a list,
+// dict or string, shared by the precheck, the static check and implCount.
+const countKindError = "count expects a list, dict or string"
 
 func implError(ctx context.Context, env Env, args ...box.Value) (box.Value, error) {
 	fa := args

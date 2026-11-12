@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"slices"
 
 	"github.com/sentrie-sh/sentrie/box"
 )
@@ -105,18 +104,13 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 	}),
 	"in": define(ConstraintDefinition{
 		Name:    "in",
-		NumArgs: 1,
-		Arg:     numberSetArg,
+		NumArgs: -1,
+		Arg:     memberArg(numberArg, "1, 2"),
 		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			if val.Kind() != box.ValueNumber {
 				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
-			set, err := numberConstraintSet(args[0])
-			if err != nil {
-				return err
-			}
-
-			if !slices.ContainsFunc(set, func(n box.Value) bool { return box.EqualValues(val, n) }) {
+			if !isMember(val, args) {
 				return fmt.Errorf("value %v is not in the set", val)
 			}
 			return nil
@@ -124,18 +118,13 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 	}),
 	"not_in": define(ConstraintDefinition{
 		Name:    "not_in",
-		NumArgs: 1,
-		Arg:     numberSetArg,
+		NumArgs: -1,
+		Arg:     memberArg(numberArg, "1, 2"),
 		Checker: func(ctx context.Context, val box.Value, args []box.Value) error {
 			if val.Kind() != box.ValueNumber {
 				return fmt.Errorf("expected number, got %s", val.Kind())
 			}
-			set, err := numberConstraintSet(args[0])
-			if err != nil {
-				return err
-			}
-
-			if slices.ContainsFunc(set, func(n box.Value) bool { return box.EqualValues(val, n) }) {
+			if isMember(val, args) {
 				return fmt.Errorf("value %v is in the set", val)
 			}
 			return nil
@@ -223,10 +212,12 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 					return nil
 				}
 			}
-			// Use epsilon for floating point comparison
+			// Use epsilon for floating point comparison. math.Mod takes the
+			// sign of the dividend, so compare magnitudes: -3.5 is no more a
+			// multiple of 2 than 3.5 is.
 			epsilon := 1e-10
-			remainder := math.Mod(valNum, divisor)
-			if remainder > epsilon && remainder < divisor-epsilon {
+			remainder := math.Abs(math.Mod(valNum, divisor))
+			if remainder > epsilon && remainder < math.Abs(divisor)-epsilon {
 				return fmt.Errorf("value %v is not a multiple of %v", val, divisor)
 			}
 			return nil
@@ -330,20 +321,4 @@ var NumberContraintCheckers map[string]ConstraintDefinition = map[string]Constra
 			return nil
 		},
 	}),
-}
-
-func numberConstraintSet(arg box.Value) ([]box.Value, error) {
-	if argList, ok := arg.ListValue(); ok {
-		for _, item := range argList {
-			if item.Kind() != box.ValueNumber {
-				return nil, invalidArgf("expected number, got %s", item.Kind())
-			}
-		}
-		return argList, nil
-	}
-
-	if arg.Kind() != box.ValueNumber {
-		return nil, invalidArgf("expected number, got %s", arg.Kind())
-	}
-	return []box.Value{arg}, nil
 }

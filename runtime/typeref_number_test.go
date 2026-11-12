@@ -203,13 +203,13 @@ func (r *RuntimeTestSuite) TestNumberInConstraintFromSource() {
 	src := `namespace com/app
 
 policy pol {
-  fact n: number @in([1, 2])
-  let one: number @in([1, 2]) = 1
-  let three: number @in([1, 2]) = 3
+  fact n: number @in(1, 2)
+  let one: number @in(1, 2) = 1
+  let three: number @in(1, 2) = 3
   rule accepts = { yield one == 1 }
   rule rejects = { yield three == 3 }
   rule from_fact = { yield n > 0 }
-  rule is_check = { yield 1 is number @in([1, 2]) and not (3 is number @in([1, 2])) }
+  rule is_check = { yield 1 is number @in(1, 2) and not (3 is number @in(1, 2)) }
   export decision of accepts
   export decision of rejects
   export decision of from_fact
@@ -241,22 +241,22 @@ policy pol {
 
 const numberInPositionsSource = `namespace com/app
 
-shape Roll { value: number @in([1, 2, 3]) }
-shape Pick number @in([1, 2])
+shape Roll { value: number @in(1, 2, 3) }
+shape Pick number @in(1, 2)
 
 policy pol {
-  fact xs: list[number @in([1, 2])]
+  fact xs: list[number @in(1, 2)]
   fact payload: document
   fact n: number
-  shape Local { pick: number @in([7, 8]) }
+  shape Local { pick: number @in(7, 8) }
   rule list_ok = { yield count(xs) > 0 }
   rule field_conforms = { yield payload is Roll }
   rule field_malformed = { yield payload is not Roll }
   rule alias_is = { yield n is Pick }
   rule alias_is_not = { yield n is not Pick }
-  rule inline_is = { yield n is number @in([1, 2]) }
-  rule inline_is_not = { yield n is not number @in([1, 2]) }
-  rule list_elem_is = { yield [n] is list[number @in([1, 2])] }
+  rule inline_is = { yield n is number @in(1, 2) }
+  rule inline_is_not = { yield n is not number @in(1, 2) }
+  rule list_elem_is = { yield [n] is list[number @in(1, 2)] }
   rule policy_shape = { yield { "pick": 7 } is Local and { "pick": 9 } is not Local }
   rule derive_ok = { yield pickOne(1) == 1 }
   rule derive_bad = { yield pickOne(2) == 2 }
@@ -273,7 +273,7 @@ policy pol {
   export decision of derive_bad
 }
 
-derive pickOne = (v: number @in([1])): number => { yield v }
+derive pickOne = (v: number @in(1)): number => { yield v }
 `
 
 // TestNumberInConstraintInEveryTypePosition checks that `@in` is accepted and
@@ -320,7 +320,7 @@ func (r *RuntimeTestSuite) TestNumberInConstraintInEveryTypePosition() {
 	r.Require().Error(err)
 	r.Contains(err.Error(), "value 3 is not in the set")
 
-	// A derive parameter typed number @in([1]) rejects 2.
+	// A derive parameter typed number @in(1) rejects 2.
 	_, err = exec.ExecRule(ctx, "com/app", "pol", "derive_bad", withFact(base, "xs", []any{1}))
 	r.Require().Error(err)
 	r.Contains(err.Error(), "value 2 is not in the set")

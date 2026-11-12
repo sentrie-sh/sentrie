@@ -56,7 +56,7 @@ tags: parser-state, token-window, error-accumulation, dispatch-tables
   - **Exceptions:** None.
 
 - **Signature:** `advanceNameOrKeyword(p, expected string) -> (tokens.Instance, bool)`
-  - **Behavior:** Consumes an `Ident` or any keyword token as a name. Used in the positions where a keyword is a name: `@scope/name` module path segments ([[parser.use]]), constraint names after `@` ([[parser.typeref]], #285), and the segments after `/` in a declaration or type name ([[parser.fqn]], #297). On any other token reports `expected <expected>, got <kind> at <range>`; module paths pass `Ident`, constraints pass `constraint name after '@'`.
+  - **Behavior:** Consumes an `Ident` or any keyword token as a name. Used in the positions where a keyword is a name: `@scope/name` module path segments ([[parser.use]]), constraint names after `@` ([[parser.typeref]], #285), the segments after `/` in a declaration or type name ([[parser.fqn]], #297), field names after `.` ([[parser.access]]), shape field names ([[parser.shape]]) and attachment names ([[parser.export_rule]]) (#159). Bare dict literal keys are not among them. On any other token reports `expected <expected>, got <kind> at <range>`; module paths pass `Ident`, constraints pass `constraint name after '@'`.
   - **Side Effects:** Consumes a token on success; appends to `p.err` on failure.
   - **Exceptions:** As `advanceExpected`.
 
