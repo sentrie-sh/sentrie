@@ -12,7 +12,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/sentrie-sh/sentrie/api/middleware"
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/loader"
 	runtimepkg "github.com/sentrie-sh/sentrie/runtime"
@@ -51,12 +50,9 @@ func (s *APITestSuite) examplePackHTTPAPI() *HTTPAPI {
 	return s.examplePackAPI
 }
 
+// decisionHandler is the handler Setup serves, body limit included.
 func (s *APITestSuite) decisionHandler(api *HTTPAPI) http.Handler {
-	mux := http.NewServeMux()
-	mux.Handle("POST /decision/{target...}",
-		middleware.RequestIDMiddleware(http.HandlerFunc(api.handleDecision)),
-	)
-	return mux
+	return api.routes()
 }
 
 func (s *APITestSuite) postDecision(api *HTTPAPI, path string, body string) *httptest.ResponseRecorder {
