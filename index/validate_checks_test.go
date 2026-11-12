@@ -93,6 +93,31 @@ func (s *IndexTestSuite) TestValidateSelfReferenceNoFalsePositives() {
 	}
 }
 
+// TestValidateShadowedLetSelfReferenceIsSkipped is the PR review case: a let
+// reading its own name while an outer let, rule, fact or lambda parameter
+// binds that name too may read the outer value at runtime (evalIdent checks
+// cached locals across ancestor contexts before lets), so it is skipped as
+// ambiguous rather than reported.
+func (s *IndexTestSuite) TestValidateShadowedLetSelfReferenceIsSkipped() {
+	cases := map[string]string{
+		"policy let":       "  let x = 1\n  rule r = (x + { let x = x + 1\n yield x }) == 2\n  export decision of r\n",
+		"rule":             "  rule x = 1\n  rule r = (x + { let x = x + 1\n yield x }) == 2\n  export decision of r\n",
+		"outer block let":  "  rule r = { let x = 1\n yield x + { let x = x + 1\n yield x } } == 2\n  export decision of r\n",
+		"fact alias":       "  fact x?: number default 1\n  rule r = { let x = x + 1\n yield x } == 1\n  export decision of r\n",
+		"lambda parameter": "  rule r = count(filter([1], (x) => { let x = x + 1\n yield x == 1 })) == 1\n  export decision of r\n",
+	}
+	for name, body := range cases {
+		s.Run(name, func() {
+			s.NoError(s.parseAndValidate(checksSource(body), "c.sentrie"))
+		})
+	}
+
+	// With no outer x of any kind the self-reference is still reported.
+	err := s.parseAndValidate(checksSource("  rule r = { let x = x + 1\n yield x } == 2\n  export decision of r\n"), "c.sentrie")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "let 'x' references itself")
+}
+
 // TestValidateReportsUndefinedIdentifier is #155: a name that nothing binds is
 // a validation error at validate time, with a hint where it is a near miss.
 func (s *IndexTestSuite) TestValidateReportsUndefinedIdentifier() {

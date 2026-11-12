@@ -32,6 +32,35 @@ func (s *CmdTestSuite) TestValidateCmdAcceptsShadowedNames() {
 	s.NoError(s.validatePolicy("  rule x = { let x = 1\n yield x == 1 }\n  export decision of x\n"))
 }
 
+// TestValidateCmdAcceptsLetShadowingCachedOuterBinding is the PR review case:
+// the outer x is read and cached first, so the inner let's `x` reads the
+// cached 1 at runtime instead of recursing. validate must not reject a pack
+// that exec evaluates to true.
+// A fact of the same name is read before any let, so the inner let is never
+// evaluated there either.
+func (s *CmdTestSuite) TestValidateCmdAcceptsLetShadowingCachedOuterBinding() {
+	cases := map[string]string{
+		"policy let": "  let x = 1\n  rule r = (x + { let x = x + 1 yield x }) == 2\n",
+		"rule":       "  rule x = 1\n  rule r = (x + { let x = x + 1 yield x }) == 2\n",
+		"fact alias": "  fact x?: number default 1\n  rule r = { let x = x + 1 yield x } == 1\n",
+	}
+	for name, body := range cases {
+		s.Run(name, func() {
+			dir := s.writeTestPack("namespace com/ex\npolicy pol {\n" + body + "  export decision of r\n}\n")
+			s.Require().NoError(runValidateCLI(s.T().Context(), []string{"--pack-location", dir}))
+			s.Equal(true, s.execDecision(dir, "com/ex/pol/r", "{}"))
+		})
+	}
+}
+
+// TestValidateCmdStillRejectsUnshadowedLetSelfReference: with no outer x,
+// `let x = x + 1` fails at runtime and is still a validation error.
+func (s *CmdTestSuite) TestValidateCmdStillRejectsUnshadowedLetSelfReference() {
+	err := s.validatePolicy("  rule r = { let x = x + 1 yield x } == 2\n  export decision of r\n")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "let 'x' references itself")
+}
+
 // TestValidateCmdStillAcceptsStaticLiteralTypeError pins the deferred half of
 // #155: `1 + true` is not rejected by validate yet.
 func (s *CmdTestSuite) TestValidateCmdStillAcceptsStaticLiteralTypeError() {

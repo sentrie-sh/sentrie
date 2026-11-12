@@ -21,7 +21,9 @@ import (
 // identifier the way the runtime's evalIdent does instead: a lambda parameter
 // of any enclosing lambda, then pack data and facts, then the nearest let
 // (block lets inside out, then the policy's), then a rule. A self-reference is
-// an identifier that resolves to the rule or let whose value it is in.
+// an identifier that resolves to the rule or let whose value it is in, except
+// a let whose name is also bound outside it, which the runtime may resolve to
+// a cached outer value (outerBinding).
 //
 // A lambda body is not part of the value it is written in: a let bound to a
 // lambda may call itself (#161), and a lambda passed to a call may never run.
@@ -118,34 +120,65 @@ type selfRefWalk struct {
 // *ast.VarDeclaration for a let, a *Rule for a rule, or nil for anything
 // else (a parameter, pack data, a fact, a derive, or nothing). The order is
 // evalIdent's: locals (parameters) first, across the whole scope chain, then
-// data and facts, then lets nearest first, then rules.
-func (w *selfRefWalk) resolve(name string, scope *selfRefFrame) any {
+// data and facts, then lets nearest first, then rules. For a block let, the
+// frame that declares it is returned too; it is nil for a policy let.
+func (w *selfRefWalk) resolve(name string, scope *selfRefFrame) (any, *selfRefFrame) {
 	for f := scope; f != nil; f = f.parent {
 		if _, ok := f.params[name]; ok {
-			return nil
+			return nil, nil
 		}
 	}
 	if _, ok := w.policy.Data[name]; ok {
-		return nil
+		return nil, nil
 	}
 	if _, ok := w.policy.Facts[name]; ok {
-		return nil
+		return nil, nil
 	}
 	for f := scope; f != nil; f = f.parent {
 		if vd, ok := f.lets[name]; ok {
 			if vd == nil {
-				return nil
+				return nil, nil
 			}
-			return vd
+			return vd, f
 		}
 	}
 	if vd, ok := w.policy.Lets[name]; ok {
-		return vd
+		return vd, nil
 	}
 	if r, ok := w.policy.Rules[name]; ok {
-		return r
+		return r, nil
 	}
-	return nil
+	return nil, nil
+}
+
+// outerBinding reports whether name, read inside the value of a let declared
+// in declScope (nil for a policy let), is also bound outside that let: by an
+// enclosing block's let, a policy let, or a rule. A lambda parameter or fact
+// of that name never gets here, since resolve gives it precedence.
+//
+// evalIdent reads a cached local (ExecutionContext.GetLocal, across every
+// ancestor context) before it looks a let up, and an evaluated let or rule is
+// cached as a local under its name. So once an outer binding of the name has
+// been read, the inner let's own read returns the outer value instead of
+// recursing: with `let x = 1`, `rule r = (x + { let x = x + 1 yield x }) == 2`
+// evaluates to true. Whether the outer value is cached first depends on
+// evaluation order, which this check does not model, so a shadowed
+// self-reference is skipped as ambiguous rather than reported. This is a known
+// gap: when the outer binding is not read first, the pack still fails at
+// runtime with "references itself".
+func (w *selfRefWalk) outerBinding(name string, declScope *selfRefFrame) bool {
+	if declScope != nil {
+		for f := declScope.parent; f != nil; f = f.parent {
+			if _, ok := f.lets[name]; ok {
+				return true
+			}
+		}
+		if _, ok := w.policy.Lets[name]; ok {
+			return true
+		}
+	}
+	_, ok := w.policy.Rules[name]
+	return ok
 }
 
 // walk visits e with the given scope. owner is the rule or let whose value e
@@ -159,9 +192,14 @@ func (w *selfRefWalk) walk(e ast.Node, scope *selfRefFrame, owner any) error {
 		if owner == nil {
 			return nil
 		}
-		if target := w.resolve(n.Value, scope); target != nil && target == owner {
-			*w.errs = append(*w.errs, siteError{at: n.Span(), err: selfReferenceError(owner, n)})
+		target, declScope := w.resolve(n.Value, scope)
+		if target == nil || target != owner {
+			return nil
 		}
+		if _, isLet := target.(*ast.VarDeclaration); isLet && w.outerBinding(n.Value, declScope) {
+			return nil
+		}
+		*w.errs = append(*w.errs, siteError{at: n.Span(), err: selfReferenceError(owner, n)})
 		return nil
 	case *ast.CallExpression:
 		// The callee is resolved by getTarget, never evaluated as an
