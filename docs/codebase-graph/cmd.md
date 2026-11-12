@@ -60,8 +60,8 @@ Defines the five user-facing commands and wires the loading pipeline behind each
   - **Side Effects:** Full evaluations; writes to stdout; closes the executor on return.
   - **Exceptions:** Unknown target; a target that fails to evaluate (for example a required fact missing); invalid `--benchtime`, `--count`, `--facts` or `--eval-timeout`; pack, fact-file and capabilities errors. The exit status is non-zero. A failure in the warm-up evaluation prints no result line; a failure in a later `--count` run stops after the lines already printed.
 
-- **Signature:** `sentrie validate <rule> [--pack-location .] [--facts '{}']`
-  - **Behavior:** Runs the pipeline, constructs an executor and closes it, returning any error. Success means the pack parses, indexes, validates, and can be loaded. It then prints one `warning: <span>: <message>` line to stderr per use of a nondeterministic builtin or builtin-module export (`index.NondeterminismWarnings` with `js.IsNondeterministicExport`); warnings never fail validation.
+- **Signature:** `sentrie validate [--pack-location .] [--capabilities <path>]`
+  - **Behavior:** Takes no positional argument: a non-flag word is an error (`validate takes no arguments`), a single-dash word such as `-x` is an error (`validate: unknown flag`), and `--facts` is no longer a flag, so cling rejects it ([#155](https://github.com/sentrie-sh/sentrie/issues/155)). Runs the pipeline, constructs an executor and closes it, returning any error. Success means the pack parses, indexes, validates, and can be loaded. It then prints one `warning: <span>: <message>` line to stderr per use of a nondeterministic builtin or builtin-module export (`index.NondeterminismWarnings` with `js.IsNondeterministicExport`); warnings never fail validation.
   - **Side Effects:** None beyond reading files.
   - **Exceptions:** Any pipeline error.
 
@@ -80,7 +80,8 @@ Defines the five user-facing commands and wires the loading pipeline behind each
 - **Statefulness:** Each command builds a fresh index and executor; nothing is shared between invocations.
 - **Performance/Scale Notes:** The whole pack is parsed and indexed on every command, including `validate`. Startup cost scales with pack size, and `serve` pays it once before binding - so a large pack delays readiness but never serves a partially-indexed state.
 - **Dependencies Risk:**
-  - **`validate` accepts a `rule` argument and a `--facts` flag and uses neither.** It validates the entire pack regardless. The `rule` argument is also **required**, so `sentrie validate` alone fails and the user must supply a rule name that is then ignored. This is confusing enough to be worth either honouring or removing.
+  - **`validate` checks the whole pack and evaluates nothing.** It used to accept a rule argument and a `--facts` flag and ignore both; both are gone (#155). cling binds positionals without complaint, so `validateCmd` rejects any non-flag word itself, as `fmtCmd` does. cling treats a single-dash word as a positional, so only a `--` prefix counts as a flag there.
+  - **`exec` checks `runErr != nil` before using it** - the correct pattern that [[api.handle_decision]] is missing. Worth noting the two call sites diverge.
   - **`serve` launches `StartServer` in a goroutine and ignores its outcome.** Combined with that function's inability to report a serve error (see [[api.http]]), a listener that fails after startup leaves the process alive and silent, blocked on `ctx.Done()` with nothing listening.
   - **`serve` checks `ctx.Err()` inside the program loop but `exec` and `validate` do not**, so only `serve` is interruptible during indexing.
   - **`exec` builds `[]*ExecutorOutput{output}` without a nil guard.** `ExecRule` returns an output on success and on failure ([#143](https://github.com/sentrie-sh/sentrie/issues/143)), and a named rule's failure returns before the outputs are used.
