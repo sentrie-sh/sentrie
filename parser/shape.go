@@ -29,6 +29,10 @@ func parseShapeStatement(ctx context.Context, p *Parser) ast.Statement {
 		p.errorAtf(nameToken.Range, "cannot declare a shape named %q: it is the built-in top type", name)
 		return nil
 	}
+	if hint, ok := ast.NotATypeHint(name); ok {
+		p.errorAtf(nameToken.Range, "cannot declare a shape named %q: %q is not a type name; did you mean %q?", name, name, hint)
+		return nil
+	}
 
 	var simpleTypeRef ast.TypeRef
 	var complexShape *ast.Cmplx
@@ -61,6 +65,9 @@ func parseComplexShape(ctx context.Context, p *Parser) *ast.Cmplx {
 		p.advance()
 		with := parseFQN(ctx, p)
 		if with == nil {
+			return nil
+		}
+		if !checkNotATypeName(p, with) {
 			return nil
 		}
 		stmt.With = with

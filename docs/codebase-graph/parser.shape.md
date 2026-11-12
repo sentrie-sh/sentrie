@@ -43,6 +43,7 @@ Parses `shape <ident>` in its two mutually exclusive forms: a **simple** alias t
 
 ## 4. Operational Context & Gotchas
 - **No shape may be named `any`.** `parseShapeStatement` rejects it, since a bare `any` in a type position is the top type ([[parser.typeref]]).
+- **No shape may be named `bool`, `int` or `float`.** They are not type names, and a type position rejects them with a hint ([[parser.typeref]]), so a shape of that name could never be referenced; `parseShapeStatement` reports `cannot declare a shape named "int": "int" is not a type name; did you mean "number"?` (#144) The `with` base goes through the same `checkNotATypeName` check as a type position, so `shape S with int { ... }` fails with the hint rather than as an unknown shape later.
 - **Statefulness:** Stateless functions; the `Cmplx` value accumulates fields during the parse.
 - **Performance/Scale Notes:** Two debug logs per field. Nothing else notable.
 - **Dependencies Risk:**

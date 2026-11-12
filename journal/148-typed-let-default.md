@@ -1,0 +1,87 @@
+## Binaek Sarkar (binaek89@gmail.com)
+
+### 2026-11-10 22:54 - Pick up #148
+- A typed `let` errors on missing data where an untyped one yields undefined; `default` does not cover a body that yields undefined; errors inside a `default` expression are dropped (runtime/executor.go).
+- Picked up in batch 2 of the v0.0.5 milestone (#148, #145, #144, #155, #147), locally while the user is AFK: SSH signing is down, so this stub and its push are queued in the orchestration state file. Paired `sentrie-sh/website` branch of the same name, cut from `next`.
+- Decisions recorded with the user on 2026-11-10, which the reviewer judges the change against:
+  - A typed `let`, a derive return and a shape field given undefined let undefined pass through, the same as untyped.
+  - `default` does NOT apply when the body yields undefined: the result stays unknown (user overrode the recommendation). So `default` never masks a body error either.
+  - An error raised inside a `default` expression is returned (bug fix, no choice).
+- PROVISIONAL (user AFK), needs confirmation: branch stacked on `143-per-rule-errors` (itself on `141-lambda-output`), because #143 rewrote the executor's rule paths this fix touches. PR base `143-per-rule-errors` until #143 merges.
+- Docs PR: sentrie-sh/website#83 (draft, base `next`); Sentrie PR #323.
+- _Model: claude-opus-5-5_
+
+### 2026-11-10 22:59 - Implement #148
+- Reproduced on the base (5818ddd) with `runtime/typed_undefined_test.go`: a typed let (`invalid value for let declaration x: value undefined is not a number`), a derive return (`derive return: value undefined is not a number`), a lambda return (`lambda return: ...`) and a shape field given undefined (`field n cannot be undefined`) all errored where the untyped forms yield unknown. `default false when true { yield doc.missing }` already yields unknown, which the decision keeps, so claim 2 needs no code change. `default 1 / 0 when false { ... }` reported unknown with no error: claim 3 reproduced.
+- Typed let (`runtime/eval_ident.go`), derive return (`runtime/derive_invoke.go`) and lambda return (`runtime/callable.go`) skip the type check and the bind when the value is undefined. The skip sits at the call sites, not in `validateValueAgainstTypeRef`, because `x is T` and casts go through the dispatcher and must keep rejecting undefined. A rule's declared type already let undefined through (`validateRuleValue`).
+- Shape field (`runtime/typeref_shape.go`): a field present with an undefined value now passes without its type being checked; an absent required field still fails. Facts are decoded from JSON and never hold undefined, so fact validation is unaffected. Side effect: `x is S` is now true for a value whose required field is present but undefined.
+- `evaluateRuleBase` (`runtime/executor.go`) returns an error raised in the `default` expression (with #143 it becomes that rule's per-rule error) and only builds the default decision on success. Comment added that `default` covers only the gate.
+- PROVISIONAL (user AFK), needs confirmation: the lambda return type gets the same pass-through as a derive return. The decision names typed lets, derive returns and shape fields; a typed lambda's return is the same construct as a derive's, and leaving it strict would keep the exact inconsistency the issue reports. One-line revert in `runtime/callable.go` if not wanted. Parameters are unchanged (optional parameters already skip undefined; a required parameter given undefined still errors).
+- Note for review: a typed let given undefined skips its constraints too, so a constraint with a broken argument is not reported there (unlike a nullable given null, #273), the same as for any other skipped check.
+- Updated tests the decided behaviour breaks: `TestEvaluateRuleOutcomeDefaultExpressionErrorKeepsDefaultUnknown` asserted the dropped error, renamed to `...ReturnsError` and now expects it; `TestValidateAgainstShapeTypeRef_FieldPresenceAndNullabilityMatrix` case `present_undefined_is_invalid` becomes `present_undefined_is_valid`; `TestValidateAgainstShapeTypeRefFieldErrorBranches` now expects a present-undefined required field to pass.
+- Codebase graph: runtime.eval_ident, runtime.derive_invoke, runtime.callable, runtime.typeref_shape, runtime.executor, runtime.typeref. `make docs-graph` passes; `make test` passes (`/tmp/sentrie-148-typed-let-default-impl-test.log`).
+- Signing down: nothing committed; the queued commits are in the report.
+- _Model: claude-opus-5-5_
+
+### 2026-11-10 23:03 - Test and CI #148
+- Added `runtime/typed_undefined_boundaries_test.go` (`TestTypedUndefinedStaysStrictAtBoundaries`): `undefined is Shape` is not true, `undefined as number` errors, a required typed lambda parameter given undefined errors, an absent required shape field errors, and `default` does not mask a body error. These pin behaviour #148 leaves unchanged, so they pass on the base too by design. The implementer's `typed_undefined_test.go` covers the pass-through and default-error decisions.
+- Bite proofs against `143-per-rule-errors` production code (copy, swap, restore): eval_ident.go, derive_invoke.go, callable.go each fail `TestTypedUndefinedPassesThrough`; typeref_shape.go also fails the two updated shape tests; executor.go fails `TestRuleDefaultExpressionErrorIsReturned` and `TestEvaluateRuleOutcomeDefaultExpressionErrorReturnsError`. Tree restored each time.
+- No language-visible fixture added: the behaviour is covered at the runtime level and lang_test fixtures cover parse/format, not rule results.
+- Gate: make test, make lint, gofmt, docs-graph, em dash and attribution checks pass. Signing check skipped (nothing committed).
+- _Model: claude-sonnet-5-5_
+
+### 2026-11-10 23:30 - Docs for #148
+- Website branch 148-typed-let-default (from next), uncommitted because signing is down. Pages: reference/rules.md (new "What `default` covers": guard only, body undefined stays unknown, `default` expression errors returned), reference/let.md (new "Typed let and undefined"), reference/derives.md (undefined passes through a declared return type), reference/index.md Lambdas (typed lambda return pass-through, PROVISIONAL, required parameter still strict). reference/functions.md has no lambda return text, so it is unchanged; shapes.md and types-and-values.md already say `is` and casts reject undefined.
+- Each added snippet was validated and executed against the branch binary; results match the text. `npm run build` passes (/tmp/website-148-typed-let-default-build.log). Old snippets on the changed pages were not run. PR description PR_DESCRIPTION_148-typed-let-default.md written, link to sentrie PR is #TBD.
+- Open point: the wording "reported as that rule's error" assumes #143's docs; recheck when stacking.
+- _Model: claude-sonnet-5-5_
+
+### 2026-11-11 10:24 - Round 2: a shape field holding undefined is missing
+- User decision (2026-11-11, "nope - undefined is not a value."), replacing the earlier PROVISIONAL pass-through that made `x is S` true when a required field was present but undefined. A shape field holding undefined now takes the absent-field path in `validateAgainstShapeTypeRef` (`runtime/typeref_shape.go`): an optional one is skipped, a required one fails with the same `field <name> is required` error, so `x is S` is false and a typed check against `S` fails. A whole value that is undefined still passes through a typed let, derive return or lambda return, unchanged.
+- Before #148 both optional and required fields holding undefined failed with `cannot be undefined`; the optional case stays fine as decided in round 1.
+- Tests updated: matrix case `present_undefined_is_valid` (an optional field) renamed `optional_present_undefined_is_valid`, plus a new `required_present_undefined_is_missing` case; `TestValidateAgainstShapeTypeRefFieldErrorBranches` expects `field name is required` again; `TestTypedUndefinedPassesThrough`'s `shapeField` rule now uses an optional field (`o?: number`); `TestTypedUndefinedStaysStrictAtBoundaries` adds `undefinedField` (typed let, required field holding undefined, expects the absent-field error) and `isShapeUndefinedField` (`is` answers false). Bite: with round 1's `typeref_shape.go` restored, the boundaries test and both shape-validation tests fail.
+- lang_test fixtures: none use undefined shape fields; nothing to change.
+- Codebase graph: runtime.typeref_shape (field walk and gotcha rewritten), runtime.typeref (caller-skip list). PR description: provisional item removed, decision stated.
+- `go test ./runtime/... ./lang_test/...` passes; `make test` passes (`/tmp/sentrie-148-typed-let-default-round2-test.log`); `make docs-graph` passes. Website not touched (docs agent follows).
+- _Model: claude-opus-5-5_
+
+### 2026-11-11 10:26 - Docs for #148, round 2
+- Website branch 148-typed-let-default: new text in reference/shapes.md (Field modifiers: a required field holding undefined counts as missing, `x is S` false, typed check fails with `field <name> is required`; optional holding undefined is treated as omitted; runnable snippet) and a cross-reference sentence in reference/let.md. Round 1 pages never said a present-but-undefined required field passes (only the PR description did); that text was replaced and the provisional wording removed.
+- Verified on the branch binary (b8b1fad): `is Item` false, typed let errors `field id is required`, optional undefined passes. Build passes (/tmp/website-148-typed-let-default-build.log). 18 untouched shapes.md snippets fail validation (listed in the website PR description).
+- _Model: claude-sonnet-5-5_
+
+### 2026-11-11 10:50 - Round 3: a dict entry holding undefined is absent
+- USER DECISION 22 (2026-11-11, "Fix it in #148 now"), extending "undefined is not a value": a `dict[T]` entry holding undefined counts as absent. `validateAgainstDictTypeRef` (`runtime/typeref_dict.go`) now skips such an entry before the per-value check, the same treatment round 2 gives a shape field and #145's closed-shape check gives a key holding undefined. `{ "a": doc.missing } is dict[number]` is now true (was false), and a typed let, a `list[dict[dict[number]]]` and a shape field of type `dict[number]` holding such an entry pass. A real value of the wrong type beside it still fails. Every typed position (fact, let, lambda parameter and return, shape field, nested, union or list member) goes through this one validator, so one change covers them.
+- `list[T]` unchanged: a list element holding undefined still fails.
+- Output unchanged: the entry is not removed; the dict keeps the key and the JSON output writes it as `null` (checked with `json.Marshal` of the rule output: `{"a":null,"b":2}`).
+- Constraints: PROVISIONAL. `checkConstraints` still receives the whole dict, undefined entry included, but `DictContraintCheckers` is empty, so no dict constraint exists that could count it. Nothing to decide today; if a size constraint is added, it would count the entry unless filtered.
+- No existing test pinned the old rejection. Added `skips an entry holding undefined` to `TestValidateAgainstDictTypeRefValues` and `TestDictEntryHoldingUndefinedIsAbsent` (rules `dictIs`, `dictTypedLet`, `dictNested`, `dictShapeField`, `dictWrongValue` in `typed_undefined_test.go`). Bite: with the old `typeref_dict.go` both fail.
+- Codebase graph: runtime.typeref_dict (behaviour and a new gotcha), runtime.typeref (caller-skip list). `make docs-graph` and `make test` pass (`/tmp/sentrie-148-typed-let-default-impl-test.log`).
+- _Model: claude-opus-5-5_
+
+### 2026-11-11 10:55 - Test round 3: dict entry holding undefined
+
+- Added `TestDictEntryHoldingUndefinedInEveryPosition` and `TestDictEntryHoldingUndefinedStaysTheSame` in `runtime/typed_undefined_test.go`: lambda parameter, lambda return, union, list, shape element, only-undefined dict pass; wrong-typed real value, `list[number]` element holding undefined fail; output JSON is `{"a":null,"b":2}`.
+- Skipped: a dict fact holding undefined (facts come from JSON, so undefined cannot arrive that way).
+- Bite: `typeref_dict.go` from `8847b8b~1` makes every positive case and the output case fail; restored with `git checkout HEAD -- runtime/typeref_dict.go`.
+- _Model: claude-sonnet-5-5_
+
+### 2026-11-11 11:05 - Handoff: round 3 tests
+
+- Tests committed and passing; bite proof done (production file restored, tree clean).
+- Gate run and passing: make test, make lint, make docs-graph, gofmt, em dash and attribution checks, signatures all G.
+- Not run: `go test -race` on non-runtime packages (the branch touches only runtime, so none apply).
+- _Model: claude-sonnet-5-5_
+
+### 2026-11-11 11:30 - Docs for #148 round 3: dict entry holding undefined
+
+- Website `reference/types-and-values.md` (Declaring a Collection Type) now says a `dict[T]` entry holding undefined counts as absent (decision 22, commit 8847b8b), a wrong-typed real value and a `list[T]` element holding undefined still fail, and JSON writes the entry as `null`. One runnable snippet (`entryIsAbsent` true, `wrongValue` false, `typedLet` `{"a":null,"b":2}`), validated and executed against the branch binary. `shapes.md` gained one linking sentence. No existing sentence became false. Website PR_DESCRIPTION updated. Build passes (`/tmp/website-148-typed-let-default-build.log`).
+- Signing agent refused twice, so the website change is left uncommitted and this entry is uncommitted too.
+- _Model: claude-sonnet-5-5_
+
+### 2026-11-12 09:53 - Merge the #143 review comment fix
+
+- Merged `143-per-rule-errors` (head 1e19342) into this branch (a merge, so no force push). It brings the fix for the PR #319 review comment: a failed rule always reports an unknown decision with no attachments, and its trace records the error and the failing attachment.
+
+- `go test ./api/... ./runtime/... ./cmd/...` and `make docs-graph` pass on the merged branch (`/tmp/s11-148-typed-let-default-stack.log`).
+- _Model: claude-opus-5-5_

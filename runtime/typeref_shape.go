@@ -51,16 +51,15 @@ func validateAgainstShapeTypeRef(ctx context.Context, ec *ExecutionContext, exec
 
 	// check the fields
 	for _, field := range shape.Model.Fields {
+		// A field holding undefined counts as missing: undefined is not a
+		// value (#148). An optional one is skipped, a required one fails as
+		// an absent field does.
 		fieldValue, ok := vm[field.Name]
-		if !ok {
+		if !ok || fieldValue.IsUndefined() {
 			if field.Optional {
 				continue
 			}
 			return errMismatch("field %s is required at %s - expected field", field.Name, pos)
-		}
-
-		if fieldValue.IsUndefined() {
-			return errMismatch("field %s cannot be undefined at %s - expected field value", field.Name, pos)
 		}
 
 		// A field composed in through `with` resolves in its declaring shape.

@@ -5,10 +5,14 @@ package ast
 
 import "github.com/sentrie-sh/sentrie/tokens"
 
+// TrinaryTypeRef is the `trinary` type (true, false or unknown) and, with
+// Boolean set, the `boolean` type (true or false only).
 type TrinaryTypeRef struct {
 	*baseTypeRef
 	// Boolean records that the source spelled the type `boolean` rather than
-	// `trinary`. The two are the same type; this only keeps the spelling.
+	// `trinary`. A boolean is a trinary that rejects unknown, like
+	// `trinary @not_unknown()`; the runtime validator and the union member
+	// check enforce it (#144).
 	Boolean bool
 }
 
@@ -27,4 +31,9 @@ func NewTrinaryTypeRef(ssp tokens.Range) *TrinaryTypeRef {
 var _ TypeRef = &TrinaryTypeRef{}
 var _ Node = &TrinaryTypeRef{}
 
-func (b *TrinaryTypeRef) String() string { return "trinary" }
+func (b *TrinaryTypeRef) String() string {
+	if b.Boolean {
+		return "boolean"
+	}
+	return "trinary"
+}

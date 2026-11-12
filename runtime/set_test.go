@@ -138,7 +138,8 @@ policy p {
 // TestSetOfBooleanHoldsImportedDecisionStates covers a set[boolean] that is
 // given imported decisions (#136 with #162): each element is the decision's
 // state, not its dict, at a typed let and at a cast; a decision and the bool
-// it equals are duplicates; an unknown state cannot be held.
+// it equals are duplicates; an unknown state cannot be held, even by a
+// set[trinary] (a set[boolean] already rejects it as not a boolean, #144).
 func (s *RuntimeTestSuite) TestSetOfBooleanHoldsImportedDecisionStates() {
 	ctx := s.T().Context()
 	src := importEnvelopeBase + `policy sp {
@@ -148,7 +149,7 @@ func (s *RuntimeTestSuite) TestSetOfBooleanHoldsImportedDecisionStates() {
 
   let states: set[boolean] = [impT, impF]
   let dup: set[boolean] = [impT, true]
-  let unk: set[boolean] = [impU]
+  let unk: set[trinary] = [impU]
 
   rule let_states = { yield states }
   rule let_member = { yield true in states and false in states and count(states) == 2 }

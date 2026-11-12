@@ -5,7 +5,6 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/sentrie-sh/sentrie/box"
 	"github.com/sentrie-sh/sentrie/runtime"
-	"github.com/sentrie-sh/sentrie/xerr"
 )
 
 // DecisionRequest represents the request body for rule execution
@@ -113,15 +111,16 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 		runErr = e
 	}
 
-	if runErr != nil {
-		status := http.StatusInternalServerError
-		var invErr xerr.InvalidInvocationError
-		if errors.As(runErr, &invErr) {
-			status = http.StatusBadRequest
-		} else if errors.Is(runErr, context.DeadlineExceeded) {
-			status = http.StatusServiceUnavailable
-		}
-		api.writeErrorResponse(w, r, status, "Evaluation Failed", runErr.Error())
+	// A policy whose rules ran answers with every rule's result, and a rule
+	// that failed carries its own error (#143): 207 Multi-Status when any rule
+	// failed, even all of them. Any other failure, including a named rule's,
+	// is a problem document.
+	status := http.StatusOK
+	var ruleErrs runtime.RuleErrors
+	if len(rule) == 0 && errors.As(runErr, &ruleErrs) {
+		status = http.StatusMultiStatus
+	} else if runErr != nil {
+		api.writeErrorResponse(w, r, runtime.ErrorStatus(runErr), "Evaluation Failed", runErr.Error())
 		return
 	}
 
@@ -138,7 +137,7 @@ func (api *HTTPAPI) handleDecision(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(status)
 	if _, err := w.Write(body.Bytes()); err != nil {
 		api.logger.ErrorContext(ctx, "Error writing response", "error", err)
 	}
