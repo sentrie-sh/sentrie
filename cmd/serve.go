@@ -87,6 +87,9 @@ func serveCmd(ctx context.Context, args []string) error {
 	if err := checkEngine(pack, input.SkipEngineCheck, os.Stderr); err != nil {
 		return err
 	}
+	if err := printUnenforcedPermissionWarnings(os.Stderr, pack); err != nil {
+		return err
+	}
 
 	idx := index.CreateIndex()
 
