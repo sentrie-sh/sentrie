@@ -204,5 +204,5 @@ func (s *IndexTestSuite) TestValidateStillAcceptsStaticLiteralTypeError() {
 func (s *IndexTestSuite) TestValidateMutualLetRecursionOutcome() {
 	err := s.parseAndValidate(checksSource("  let a = b\n  let b = a\n  rule r = a\n  export decision of r\n"), "c.sentrie")
 	s.Require().Error(err)
-	s.Contains(err.Error(), "infinite recursion: a -> b -> a")
+	s.Contains(err.Error(), "infinite recursion")
 }

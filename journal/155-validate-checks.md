@@ -66,6 +66,6 @@
 - _Model: claude-opus-5-5_
 
 ### 2026-11-12 10:41 - Tests for the shadowed let self-reference fix
-- Added to `index/validate_checks_test.go`: a nested let inside a lambda body with an outer policy let of the same name is skipped (added to `TestValidateShadowedLetSelfReferenceIsSkipped`), and `TestValidateMutualLetRecursionOutcome` (unshadowed `let a = b` / `let b = a` is still rejected, by the existing cycle check as "infinite recursion: a -> b -> a", not the self-reference check). `rule r = r` was already covered by `TestValidateReportsSelfReference`.
+- Added to `index/validate_checks_test.go`: a nested let inside a lambda body with an outer policy let of the same name is skipped (added to `TestValidateShadowedLetSelfReferenceIsSkipped`), and `TestValidateMutualLetRecursionOutcome` (unshadowed `let a = b` / `let b = a` is still rejected, by the existing cycle check as "infinite recursion: a -> b -> a" or the reverse order, not the self-reference check). `rule r = r` was already covered by `TestValidateReportsSelfReference`.
 - Bite proof: with `index/self_reference.go` from 2a3ab7d~1, the shadowed index test fails (policy let, rule, outer block let, and the lambda-body case) and the two cmd shadowing cases (policy let, rule) fail; restored afterwards. The mutual recursion test passes on both by design (guard).
 - _Model: claude-sonnet-5-5_
