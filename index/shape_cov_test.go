@@ -1,6 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
-//
-// Copyright 2026 Binaek Sarkar
 
 package index
 
@@ -18,15 +17,15 @@ func (s *IndexTestSuite) TestShapeResolveDependencyFailsWhenComposedShapeNotExpo
 	idx.Namespaces[sourceNS.FQN.String()] = sourceNS
 	idx.Namespaces[otherNS.FQN.String()] = otherNS
 
-	// Intentionally make ResolveShape return a shape whose Namespace differs from
-	// the namespace map entry to exercise the not-exported cross-namespace guard.
+	// A qualified base resolves in the namespace it names, which must export
+	// it, even when the shape's own Namespace field names another one (#308).
 	base := testShape(otherNS, nil, "base", nil)
 	sourceNS.Shapes[base.Name] = base
 
-	derived := testShape(currentNS, nil, "derived", ast.NewFQN([]string{"base"}, testRange()).Ptr())
+	derived := testShape(currentNS, nil, "derived", ast.NewFQN([]string{"source", "base"}, testRange()).Ptr())
 	currentNS.Shapes[derived.Name] = derived
 
-	err := derived.resolveDependency(idx, nil)
+	err := derived.resolveDependency(idx)
 	s.Require().Error(err)
 	s.Contains(err.Error(), "not exported")
 }
@@ -44,8 +43,8 @@ func (s *IndexTestSuite) TestShapeResolveDependencyNotExportedMarksHydrated_Cov(
 	derived := testShape(currentNS, nil, "derived", ast.NewFQN([]string{"base"}, testRange()).Ptr())
 	currentNS.Shapes[derived.Name] = derived
 
-	_ = derived.resolveDependency(idx, nil)
-	s.Require().NoError(derived.resolveDependency(idx, nil))
+	_ = derived.resolveDependency(idx)
+	s.Require().NoError(derived.resolveDependency(idx))
 }
 
 func (s *IndexTestSuite) TestShapeResolveDependencyInValidationFlow_Cov() {

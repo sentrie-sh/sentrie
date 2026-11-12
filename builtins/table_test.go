@@ -128,10 +128,9 @@ func TestGoldenBehavior(t *testing.T) {
 		require.Equal(t, int64(5), v.Any())
 	})
 
-	t.Run("count wrong kind undefined", func(t *testing.T) {
-		v, err := invoke(t, "count", env, box.Number(5))
-		require.NoError(t, err)
-		require.True(t, v.IsUndefined())
+	t.Run("count wrong kind errors", func(t *testing.T) {
+		_, err := invoke(t, "count", env, box.Number(5))
+		require.ErrorContains(t, err, "count expects a list, dict or string")
 	})
 
 	t.Run("merge undefined first", func(t *testing.T) {

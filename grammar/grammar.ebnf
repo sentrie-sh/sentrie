@@ -19,7 +19,7 @@ dataDecl            ::= 'data' IDENT (':' typeRef)? ('as' IDENT)?
 
 useStmt             ::= 'use' '{' IDENT ( ',' IDENT )* '}' 'from' execSource ('as' IDENT)?
 execSource          ::= STRING | ('@' modulePathSegment ( '/' modulePathSegment )*)
-/* A module path segment may be a keyword (e.g. @sentrie/string). Keywords are also accepted as a constraint name (constraintName) and as a later segment of an FQN. The default alias is the last segment, so a keyword last segment needs an explicit 'as IDENT'. */
+/* A module path segment may be a keyword (e.g. @sentrie/string). Keywords are also accepted as a constraint name (constraintName), as a later segment of an FQN and as a fieldName. The default alias is the last segment, so a keyword last segment needs an explicit 'as IDENT'. */
 modulePathSegment   ::= IDENT | KEYWORD
 /* A STRING source is a file path relative to the policy and must not start with '@': a quoted "@scope/name" is rejected with a hint to drop the quotes. */
 
@@ -47,7 +47,7 @@ contributeDecl      ::= 'contribute' IDENT ('when' expr)? blockExpr
 
 /* Imports and Exports */
 exportRule          ::= 'export' 'decision' 'of' IDENT ( attachClause )*
-attachClause        ::= 'attach' IDENT 'as' expr
+attachClause        ::= 'attach' fieldName 'as' expr
 
 ruleImportClause    ::= 'import' 'decision' IDENT 'from' FQN ( withClause )*
 withClause          ::= 'with' IDENT 'as' expr
@@ -129,10 +129,12 @@ emptyExpr           ::= addExpr 'is' 'not'? 'empty'
 
 /* Basic Expression Structures */
 groupedExpr         ::= '(' expr ')'
-functionCall        ::= IDENT ('.' IDENT)? '(' commaSeparatedExpr? ')'
+functionCall        ::= IDENT ('.' fieldName)? '(' commaSeparatedExpr? ')'
 commaSeparatedExpr  ::= expr (',' expr)*
 indexAccess         ::= primaryExpr '[' expr ']'
-fieldAccess         ::= primaryExpr '.' IDENT
+fieldAccess         ::= primaryExpr '.' fieldName
+/* A field, shape element or attachment name may be a keyword (e.g. d.title, version: string, attach default as ...): in those positions a keyword has no other meaning. A bare map literal key may not. */
+fieldName           ::= IDENT | KEYWORD
 blockExpr           ::= '{' ( comment | varDecl | ruleDecl )* 'yield' expr '}'
 
 /* Literals */
@@ -145,7 +147,7 @@ mapEntry            ::= STRING ':' expr
 /* Type System */
 shapeDecl           ::= 'shape' IDENT ( typeRef | complexShape )
 complexShape        ::= ('with' typeName)? '{' shapeElement+ '}'
-shapeElement        ::= IDENT ('?')? ":" typeRef
+shapeElement        ::= fieldName ('?')? ":" typeRef
 typeRef             ::= (primitiveType
                           | typeName
                           | recordType
@@ -155,6 +157,7 @@ typeRef             ::= (primitiveType
 typeRefConstraint ::= '@' constraintName '(' commaSeparatedExpr? ')'
 /* A constraint name may be a keyword (e.g. @in). Right after '@' a keyword has no other meaning; a name that is not a constraint of the type is rejected as an unknown constraint. */
 constraintName      ::= IDENT | KEYWORD
+/* Constraint arguments are literals only: string, number, true/false/unknown, null, and list and map literals of these. A number literal may take a leading unary minus (@min(-5)); no other operator is allowed. Membership constraints are variadic: @in(1, 2), not @in([1, 2]). */
 primitiveType       ::= 'int' | 'float' | 'string' | 'bool' | 'document'
 listType            ::= 'list' '[' typeRef ']'
 dictType            ::= 'dict' '[' typeRef ']'

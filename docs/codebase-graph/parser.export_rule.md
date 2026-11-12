@@ -18,7 +18,7 @@ The `export` keyword is context-sensitive: inside a policy block it reaches this
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `parser.export_rule` | `CALLS` | [[parser.expression]] | Parses each attachment's `as <expr>` at `LOWEST`. |
-| `parser.export_rule` | `CALLS` | [[parser.parser]] | Uses `head`, `advance`, `advanceExpected`, `expect`, `errorf`. |
+| `parser.export_rule` | `CALLS` | [[parser.parser]] | Uses `head`, `advance`, `advanceExpected`, `advanceNameOrKeyword` (attachment names), `expect`, `errorf`. |
 | `parser.export_rule` | `CALLS` | [[ast]] | Emits `ast.NewRuleExportStatement` and `ast.NewAttachmentClause`. |
 | [[parser.policy]] | `CALLS` | [[parser.export_rule]] | Registered for `tokens.KeywordExport` in the **policy-scope** table. |
 | [[runtime.decision]] | `DEPENDS_ON` | [[parser.export_rule]] | Resolves the exported rule and evaluates attachments into the decision payload. |
@@ -32,7 +32,7 @@ The `export` keyword is context-sensitive: inside a policy block it reaches this
   - **Exceptions:** Returns `nil` for `policy-level derives cannot be exported; only namespace-level derives may use export derive`, or for a missing `decision`/`of`/rule identifier, or a failed attachment.
 
 - **Signature:** `parseAttachmentClause(ctx: context.Context, p: *Parser) -> *ast.AttachmentClause`
-  - **Behavior:** Parses `attach <ident> as <expr>`. The identifier is the attachment key; the expression is evaluated at decision time and becomes its value.
+  - **Behavior:** Parses `attach <name> as <expr>`. The name, an identifier or any keyword (`attach version as ...`, #159), is the attachment key; the expression is evaluated at decision time and becomes its value.
   - **Side Effects:** Consumes tokens; may record errors.
   - **Exceptions:** Returns `nil` for a missing identifier, a missing `as`, or a failed expression.
 
