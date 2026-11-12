@@ -75,6 +75,9 @@ type ExecutorOutput struct {
 	Decision    *Decision           `json:"decision"`
 	Attachments DecisionAttachments `json:"attachments"`
 	RuleNode    *trace.Node         `json:"trace"`
+	// Error is set when this rule failed (#143); the decision is then unknown.
+	// It is omitted from JSON for a rule that succeeded.
+	Error *RuleError `json:"error,omitempty"`
 }
 
 func (e *ExecutorOutput) ToTrinary() trinary.Value {
@@ -212,21 +215,21 @@ func (e *executorImpl) Close() error {
 }
 
 // withEvalDeadline derives the per-evaluation deadline from ctx. The returned
-// done releases it and, when this deadline (not the caller's) is what ended the
-// evaluation, says so in the error. A nested ExecRule (a cross-policy import)
-// inherits whichever deadline is earlier. A deadline set with
-// ContextWithEvalTimeout takes the place of the executor's own.
-func (e *executorImpl) withEvalDeadline(parent context.Context) (context.Context, func(error) error) {
+// cancel releases it. annotate says so in an error when this deadline (not the
+// caller's) is what ended the evaluation; ExecPolicy applies it to each rule's
+// error. A nested ExecRule (a cross-policy import) inherits whichever deadline
+// is earlier. A deadline set with ContextWithEvalTimeout takes the place of
+// the executor's own.
+func (e *executorImpl) withEvalDeadline(parent context.Context) (_ context.Context, cancel func(), annotate func(error) error) {
 	timeout := e.evalTimeout
 	if d, ok := parent.Value(evalTimeoutKey{}).(time.Duration); ok && d > 0 {
 		timeout = d
 	}
 	if timeout <= 0 {
-		return parent, func(err error) error { return err }
+		return parent, func() {}, func(err error) error { return err }
 	}
-	ctx, cancel := context.WithTimeout(parent, timeout)
-	return ctx, func(err error) error {
-		defer cancel()
+	ctx, cancelCtx := context.WithTimeout(parent, timeout)
+	return ctx, cancelCtx, func(err error) error {
 		if err != nil && parent.Err() == nil && stdErr.Is(ctx.Err(), context.DeadlineExceeded) && stdErr.Is(err, context.DeadlineExceeded) {
 			return fmt.Errorf("evaluation exceeded its %s deadline: %w", timeout, err)
 		}
@@ -234,18 +237,26 @@ func (e *executorImpl) withEvalDeadline(parent context.Context) (context.Context
 	}
 }
 
-// ExecPolicy executes all exported rules and returns the results
-func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) (_ []*ExecutorOutput, err error) {
-	ctx, done := e.withEvalDeadline(ctx)
-	defer func() { err = done(err) }()
+// ExecPolicy executes every exported rule concurrently and returns one output
+// per rule, in no particular order (#143). A rule that fails does not stop the
+// others: its output reports unknown and carries the failure in Error. When any
+// rule failed the returned error is a RuleErrors holding those failures, so a
+// caller that wants the partial results checks for it with errors.As. Any other
+// error, with nil outputs, is a request error: the policy did not resolve, or
+// its facts did not bind or validate (a missing required fact, say).
+func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) ([]*ExecutorOutput, error) {
+	ctx, cancel, annotate := e.withEvalDeadline(ctx)
+	defer cancel()
 
 	p, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
 		return nil, err
 	}
 
+	// Each goroutine builds its own output and touches the shared slices only
+	// under theLock, with one append per rule, panic or not.
 	theLock := &sync.Mutex{}
-	var compositeErr error
+	var ruleErrs RuleErrors
 	outputs := make([]*ExecutorOutput, 0, len(p.RuleExports))
 	wg := &sync.WaitGroup{}
 	for exportedName, ruleExport := range p.RuleExports {
@@ -254,37 +265,45 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 			ruleName = ruleExport.RuleName
 		}
 		wg.Go(func() {
+			report := func(output *ExecutorOutput, err error) {
+				output = withRuleError(output, namespace, policy, ruleName, annotate(err))
+				theLock.Lock()
+				defer theLock.Unlock()
+				if output.Error != nil {
+					ruleErrs = append(ruleErrs, output.Error)
+				}
+				outputs = append(outputs, output)
+			}
 			defer func() {
 				if r := recover(); r != nil {
-					theLock.Lock()
-					defer theLock.Unlock()
-					compositeErr = stdErr.Join(compositeErr, fmt.Errorf("panic in ExecRule %q: %v", ruleName, r))
+					report(nil, fmt.Errorf("panic in ExecRule %q: %v", ruleName, r))
 				}
 			}()
 
-			output, err := e.ExecRule(ctx, namespace, policy, ruleName, facts)
-
-			// now that we have the output, we can add it to the outputs slice,
-			// but we need to lock the mutex to avoid race conditions
-			theLock.Lock()
-			defer theLock.Unlock()
-			if err != nil {
-				compositeErr = stdErr.Join(compositeErr, err)
-				return
-			}
-
-			// add the output to the outputs slice
-			outputs = append(outputs, output)
+			report(e.execRuleFrom(ctx, namespace, policy, ruleName, facts, nil))
 		})
 	}
 	wg.Wait()
 
-	return outputs, compositeErr
+	// Facts are the policy's, so a fact error is the same for every rule and
+	// is the request's error (#143).
+	for _, re := range ruleErrs {
+		if reqErr := (*requestError)(nil); stdErr.As(re, &reqErr) {
+			return nil, re.err
+		}
+	}
+	if len(ruleErrs) > 0 {
+		return outputs, ruleErrs
+	}
+	return outputs, nil
 }
 
-// ExecRule executes an exported rule and returns the result
-func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, injectedFacts map[string]any) (_ *ExecutorOutput, err error) {
-	return e.execRuleFrom(ctx, namespace, policy, rule, injectedFacts, nil)
+// ExecRule executes an exported rule and returns the result. On failure it
+// still returns an output, reporting unknown with the failure in Error, next
+// to the error itself (#143).
+func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, injectedFacts map[string]any) (*ExecutorOutput, error) {
+	output, err := e.execRuleFrom(ctx, namespace, policy, rule, injectedFacts, nil)
+	return withRuleError(output, namespace, policy, rule, err), err
 }
 
 // execRuleFrom is ExecRule for a rule evaluated on behalf of caller, an
@@ -292,8 +311,9 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 // context takes over the caller's call depth and eval frame counter, so an
 // imported decision does not reset the recursion limits.
 func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule string, injectedFacts map[string]any, caller *ExecutionContext) (_ *ExecutorOutput, err error) {
-	ctx, done := e.withEvalDeadline(ctx)
-	defer func() { err = done(err) }()
+	ctx, cancel, annotate := e.withEvalDeadline(ctx)
+	defer cancel()
+	defer func() { err = annotate(err) }()
 
 	// Validate exported
 	p, err := e.index.ResolvePolicy(namespace, policy)
@@ -307,6 +327,15 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 	ec := NewExecutionContext(p, e)
 	ec.inheritDepth(caller)
 	defer ec.Dispose()
+
+	// A fact error of a top-level call is a request error, not a rule failure
+	// (#143): ExecPolicy returns it alone instead of one per rule.
+	bindingFacts := true
+	defer func() {
+		if caller == nil {
+			err = asRequestError(ec, bindingFacts, err)
+		}
+	}()
 
 	for factName, factStatement := range p.Facts {
 		// look for a value for this fact in the passed in facts map
@@ -354,6 +383,8 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 			}
 		}
 	}
+
+	bindingFacts = false
 
 	// bind lets
 	for k, v := range p.Lets {
@@ -431,7 +462,7 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 		stmt := thePolicy.Facts[name]
 		// validate the value against the type
 		if err := validateValueAgainstTypeRef(ctx, ec, e, thePolicy, fact.value, fact.typeRef, stmt.Span()); err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, &factError{ec: ec, err: err}
 		}
 	}
 
@@ -455,7 +486,11 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 			v, node, err := eval(ctx, ec, e, thePolicy, attachment.Value)
 			attachmentNode.Attach(node)
 			if err != nil {
+				// The failing attachment and its error stay in the rule's
+				// trace, so the trace shows where the rule failed (#143).
 				attachmentNode.SetErr(err)
+				ruleNode.Attach(attachmentNode)
+				ruleNode.SetErr(err)
 				return d, attachments, ruleNode, err
 			}
 			attachments[attachment.Name] = v

@@ -184,17 +184,22 @@ func (s *RuntimeTestSuite) TestContributeRuntimeErrorFailsTheRuleAndIsReported()
 		s.Equal(box.Trinary(trinary.Unknown), out.Decision.Value, rule)
 	}
 
-	// the failing rule is reported by ExecPolicy, the other rules still run
+	// ExecPolicy reports the failing rules with their errors (#143), and the
+	// other rules still run
 	outs, err := exec.ExecPolicy(ctx, "com/ex", "gaps", gapsFacts(nil))
 	s.Require().Error(err)
 	s.Contains(err.Error(), "divide by zero")
-	names := map[string]bool{}
+	byName := map[string]*ExecutorOutput{}
 	for _, o := range outs {
-		names[o.RuleName] = true
+		byName[o.RuleName] = o
 	}
-	s.False(names["boom"])
-	s.False(names["boomwhen"])
-	s.True(names["uses"])
+	for _, rule := range []string{"boom", "boomwhen"} {
+		s.Require().Contains(byName, rule)
+		s.Require().NotNil(byName[rule].Error, rule)
+		s.Contains(byName[rule].Error.Detail, "divide by zero", rule)
+	}
+	s.Require().Contains(byName, "uses")
+	s.Nil(byName["uses"].Error)
 }
 
 func (s *RuntimeTestSuite) TestContributeTypeErrorsReportUnknown() {

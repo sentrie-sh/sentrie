@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -158,15 +159,24 @@ func execCmd(ctx context.Context, args []string) error {
 		runErr = err
 	}
 
-	// now that we have the outputs, lets map it by namespace and policy
-	if runErr != nil {
+	// A policy whose rules ran prints every rule's result, the failed ones
+	// with their errors, and then exits non-zero (#143). Any other failure,
+	// including a named rule's, is the error alone.
+	var ruleErrs runtime.RuleErrors
+	if runErr != nil && (len(rule) != 0 || !errors.As(runErr, &ruleErrs)) {
 		return runErr
 	}
 
 	if input.Output == "json" {
-		return formatOutputJSON(outputs)
+		if err := formatOutputJSON(outputs); err != nil {
+			return err
+		}
+	} else {
+		formatOutputTable(outputs)
 	}
-	formatOutputTable(outputs)
+	if len(ruleErrs) > 0 {
+		return fmt.Errorf("%d of %d rules failed", len(ruleErrs), len(outputs))
+	}
 	return nil
 }
 
@@ -249,6 +259,22 @@ func formatOutputTable(x []*runtime.ExecutorOutput) {
 				fmt.Printf("  ✓ %s: %v\n", ruleName, ruleData.Decision.Value)
 			}
 			fmt.Println()
+
+			numErrors := 0
+			for _, ruleData := range policyData {
+				if ruleData.Error != nil {
+					numErrors++
+				}
+			}
+			if numErrors > 0 {
+				fmt.Printf("Errors:    \n")
+				for ruleName, ruleData := range policyData {
+					if ruleData.Error != nil {
+						fmt.Printf("  ! %s: %s\n", ruleName, ruleData.Error.Detail)
+					}
+				}
+				fmt.Println()
+			}
 
 			numAttachments := 0
 			for _, ruleData := range policyData {
