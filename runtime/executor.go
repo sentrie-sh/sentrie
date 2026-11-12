@@ -4,9 +4,11 @@
 package runtime
 
 import (
+	"cmp"
 	"context"
 	stdErr "errors"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"slices"
 	"sync"
@@ -75,6 +77,9 @@ type ExecutorOutput struct {
 	Decision    *Decision           `json:"decision"`
 	Attachments DecisionAttachments `json:"attachments"`
 	RuleNode    *trace.Node         `json:"trace"`
+	// Error is set when this rule failed (#143); the decision is then unknown.
+	// It is omitted from JSON for a rule that succeeded.
+	Error *RuleError `json:"error,omitempty"`
 }
 
 func (e *ExecutorOutput) ToTrinary() trinary.Value {
@@ -94,6 +99,12 @@ type Executor interface {
 
 // ErrExecutorClosed is returned when an evaluation needs a module after Close.
 var ErrExecutorClosed = stdErr.New("executor is closed")
+
+// ErrCallableDecision is the error of a rule whose whole value is a callable
+// (#141). A lambda is not a decision: there is nothing to report, so the rule
+// fails rather than encoding a placeholder. A callable nested inside a rule's
+// value is fine and encodes as {"kind":"callable"} (see box.Value.MarshalJSON).
+var ErrCallableDecision = stdErr.New("a rule's value cannot be a callable")
 
 // moduleLoad is one module's entry in the executor's lifetime module map. done
 // is closed once module and err are set, so concurrent first users wait on a
@@ -206,21 +217,21 @@ func (e *executorImpl) Close() error {
 }
 
 // withEvalDeadline derives the per-evaluation deadline from ctx. The returned
-// done releases it and, when this deadline (not the caller's) is what ended the
-// evaluation, says so in the error. A nested ExecRule (a cross-policy import)
-// inherits whichever deadline is earlier. A deadline set with
-// ContextWithEvalTimeout takes the place of the executor's own.
-func (e *executorImpl) withEvalDeadline(parent context.Context) (context.Context, func(error) error) {
+// cancel releases it. annotate says so in an error when this deadline (not the
+// caller's) is what ended the evaluation; ExecPolicy applies it to each rule's
+// error. A nested ExecRule (a cross-policy import) inherits whichever deadline
+// is earlier. A deadline set with ContextWithEvalTimeout takes the place of
+// the executor's own.
+func (e *executorImpl) withEvalDeadline(parent context.Context) (_ context.Context, cancel func(), annotate func(error) error) {
 	timeout := e.evalTimeout
 	if d, ok := parent.Value(evalTimeoutKey{}).(time.Duration); ok && d > 0 {
 		timeout = d
 	}
 	if timeout <= 0 {
-		return parent, func(err error) error { return err }
+		return parent, func() {}, func(err error) error { return err }
 	}
-	ctx, cancel := context.WithTimeout(parent, timeout)
-	return ctx, func(err error) error {
-		defer cancel()
+	ctx, cancelCtx := context.WithTimeout(parent, timeout)
+	return ctx, cancelCtx, func(err error) error {
 		if err != nil && parent.Err() == nil && stdErr.Is(ctx.Err(), context.DeadlineExceeded) && stdErr.Is(err, context.DeadlineExceeded) {
 			return fmt.Errorf("evaluation exceeded its %s deadline: %w", timeout, err)
 		}
@@ -228,18 +239,27 @@ func (e *executorImpl) withEvalDeadline(parent context.Context) (context.Context
 	}
 }
 
-// ExecPolicy executes all exported rules and returns the results
-func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) (_ []*ExecutorOutput, err error) {
-	ctx, done := e.withEvalDeadline(ctx)
-	defer func() { err = done(err) }()
+// ExecPolicy executes every exported rule concurrently and returns one output
+// per rule, in no particular order (#143). A rule that fails does not stop the
+// others: its output reports unknown and carries the failure in Error. When any
+// rule failed the returned error is a RuleErrors holding those failures, so a
+// caller that wants the partial results checks for it with errors.As. Any other
+// error, with nil outputs, is a request error: the policy did not resolve, or
+// its facts did not bind or validate (a missing required fact, say).
+func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string, facts map[string]any) ([]*ExecutorOutput, error) {
+	ctx, cancel, annotate := e.withEvalDeadline(ctx)
+	defer cancel()
 
 	p, err := e.index.ResolvePolicy(namespace, policy)
 	if err != nil {
 		return nil, err
 	}
 
+	// Each goroutine builds its own output and touches the shared slices only
+	// under theLock, with one append per rule, panic or not.
 	theLock := &sync.Mutex{}
-	var compositeErr error
+	var ruleErrs RuleErrors
+	reqErrs := map[string]error{} // rule name -> its request error
 	outputs := make([]*ExecutorOutput, 0, len(p.RuleExports))
 	wg := &sync.WaitGroup{}
 	for exportedName, ruleExport := range p.RuleExports {
@@ -248,37 +268,48 @@ func (e *executorImpl) ExecPolicy(ctx context.Context, namespace, policy string,
 			ruleName = ruleExport.RuleName
 		}
 		wg.Go(func() {
+			report := func(output *ExecutorOutput, err error) {
+				output = withRuleError(output, namespace, policy, ruleName, annotate(err))
+				theLock.Lock()
+				defer theLock.Unlock()
+				if output.Error != nil {
+					ruleErrs = append(ruleErrs, output.Error)
+					if reqErr := (*requestError)(nil); stdErr.As(output.Error, &reqErr) {
+						reqErrs[ruleName] = output.Error.err
+					}
+				}
+				outputs = append(outputs, output)
+			}
 			defer func() {
 				if r := recover(); r != nil {
-					theLock.Lock()
-					defer theLock.Unlock()
-					compositeErr = stdErr.Join(compositeErr, fmt.Errorf("panic in ExecRule %q: %v", ruleName, r))
+					report(nil, fmt.Errorf("panic in ExecRule %q: %v", ruleName, r))
 				}
 			}()
 
-			output, err := e.ExecRule(ctx, namespace, policy, ruleName, facts)
-
-			// now that we have the output, we can add it to the outputs slice,
-			// but we need to lock the mutex to avoid race conditions
-			theLock.Lock()
-			defer theLock.Unlock()
-			if err != nil {
-				compositeErr = stdErr.Join(compositeErr, err)
-				return
-			}
-
-			// add the output to the outputs slice
-			outputs = append(outputs, output)
+			report(e.execRuleFrom(ctx, namespace, policy, ruleName, facts, nil))
 		})
 	}
 	wg.Wait()
 
-	return outputs, compositeErr
+	// Facts are the policy's, so a fact error is the same for every rule and
+	// is the request's error (#143). Rules importing other policies can hit
+	// different fact errors (#147), so the earliest declared rule's is
+	// returned, whatever order the rules finished in.
+	if len(reqErrs) > 0 {
+		return nil, firstDeclaredError(p, reqErrs)
+	}
+	if len(ruleErrs) > 0 {
+		return outputs, ruleErrs
+	}
+	return outputs, nil
 }
 
-// ExecRule executes an exported rule and returns the result
-func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, injectedFacts map[string]any) (_ *ExecutorOutput, err error) {
-	return e.execRuleFrom(ctx, namespace, policy, rule, injectedFacts, nil)
+// ExecRule executes an exported rule and returns the result. On failure it
+// still returns an output, reporting unknown with the failure in Error, next
+// to the error itself (#143).
+func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule string, injectedFacts map[string]any) (*ExecutorOutput, error) {
+	output, err := e.execRuleFrom(ctx, namespace, policy, rule, injectedFacts, nil)
+	return withRuleError(output, namespace, policy, rule, err), err
 }
 
 // execRuleFrom is ExecRule for a rule evaluated on behalf of caller, an
@@ -286,8 +317,9 @@ func (e *executorImpl) ExecRule(ctx context.Context, namespace, policy, rule str
 // context takes over the caller's call depth and eval frame counter, so an
 // imported decision does not reset the recursion limits.
 func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule string, injectedFacts map[string]any, caller *ExecutionContext) (_ *ExecutorOutput, err error) {
-	ctx, done := e.withEvalDeadline(ctx)
-	defer func() { err = done(err) }()
+	ctx, cancel, annotate := e.withEvalDeadline(ctx)
+	defer cancel()
+	defer func() { err = annotate(err) }()
 
 	// Validate exported
 	p, err := e.index.ResolvePolicy(namespace, policy)
@@ -302,21 +334,41 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 	ec.inheritDepth(caller)
 	defer ec.Dispose()
 
-	for factName, factStatement := range p.Facts {
+	// A fact error of a top-level call is a request error, not a rule failure
+	// (#143): ExecPolicy returns it alone instead of one per rule. A wrongly
+	// typed or missing required fact of an imported policy's `with` is one
+	// too, a 400 like a caller's (#147); the rest of an imported rule's errors
+	// stay the importing rule's failure.
+	bindingFacts := true
+	withFactError := false
+	defer func() {
+		if caller == nil {
+			err = asRequestError(ec, bindingFacts, err)
+		} else {
+			err = asImportedFactError(ec, withFactError, err)
+		}
+	}()
+
+	// A caller supplies a fact under its declared name; the fact is bound
+	// under its alias, the identifier the policy reads (#147).
+	for alias, factStatement := range p.Facts {
+		factName := factStatement.Name
 		// look for a value for this fact in the passed in facts map
 		factValue, ok := injectedFacts[factName]
 
 		// we do not have a value for this fact, and it is required - error
 		if !ok && !factStatement.Optional {
+			withFactError = true
 			return nil, xerr.ErrRequiredFact(factName)
 		}
 
 		if ok {
 			decodedFactValue := box.FromBoundaryAny(factValue)
 			if decodedFactValue.IsNull() && !ast.AcceptsNull(factStatement.Type) {
+				withFactError = true
 				return nil, fmt.Errorf("fact '%s' cannot be null: %w", factName, xerr.ErrInvalidInvocation(""))
 			}
-			err := ec.InjectFact(ctx, factName, decodedFactValue, false, factStatement.Type)
+			err := ec.InjectFact(ctx, alias, decodedFactValue, false, factStatement.Type)
 			if err != nil {
 				return nil, err
 			}
@@ -343,11 +395,13 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 			}
 
 			// inject the default value
-			if err := ec.InjectFact(ctx, factName, val, true, factStatement.Type); err != nil {
+			if err := ec.InjectFact(ctx, alias, val, true, factStatement.Type); err != nil {
 				return nil, err
 			}
 		}
 	}
+
+	bindingFacts = false
 
 	// bind lets
 	for k, v := range p.Lets {
@@ -362,6 +416,17 @@ func (e *executorImpl) execRuleFrom(ctx context.Context, namespace, policy, rule
 	}
 
 	decision, attachments, ruleNode, err := e.execRule(ctx, ec, namespace, policy, rule)
+	// A reported rule whose whole value is a lambda is that rule's error, with
+	// no decision or attachments, so it is reported as unknown. The check sits
+	// here rather than in execRule because a rule referenced from inside the
+	// policy may be a lambda helper, as in filter(xs, helper). It wins over an
+	// attachment error: execRule evaluates attachments after the value, and
+	// they are dropped here anyway.
+	if decision != nil && decision.reported().Value.IsCallable() {
+		err = fmt.Errorf("rule %s: %w", index.RuleFQN(namespace, policy, rule), ErrCallableDecision)
+		ruleNode.SetErr(err)
+		decision, attachments = nil, nil
+	}
 	if err != nil && decision == nil {
 		decision = DecisionOf(box.Trinary(trinary.Unknown))
 	}
@@ -414,7 +479,7 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 		stmt := thePolicy.Facts[name]
 		// validate the value against the type
 		if err := validateValueAgainstTypeRef(ctx, ec, e, thePolicy, fact.value, fact.typeRef, stmt.Span()); err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, &factError{ec: ec, name: stmt.Name, isDefault: fact.isDefault, err: err}
 		}
 	}
 
@@ -438,7 +503,11 @@ func (e *executorImpl) execRule(ctx context.Context, ec *ExecutionContext, names
 			v, node, err := eval(ctx, ec, e, thePolicy, attachment.Value)
 			attachmentNode.Attach(node)
 			if err != nil {
+				// The failing attachment and its error stay in the rule's
+				// trace, so the trace shows where the rule failed (#143).
 				attachmentNode.SetErr(err)
+				ruleNode.Attach(attachmentNode)
+				ruleNode.SetErr(err)
 				return d, attachments, ruleNode, err
 			}
 			attachments[attachment.Name] = v
@@ -649,17 +718,23 @@ func evaluateRuleBase(ctx context.Context, ec *ExecutionContext, e *executorImpl
 			val, defNode, err := eval(ctx, ec, e, p, r.Default)
 			dn.Attach(defNode).SetResult(val).SetErr(err)
 
-			theDefault = DecisionOf(val)
 			rn.Attach(dn)
-			if err == nil {
-				if verr := validateRuleValue(ctx, ec, e, p, r, val, r.Default.Span()); verr != nil {
-					dn.SetErr(verr)
-					return nil, verr
-				}
+			// An error in the default expression is the rule's error,
+			// never a silent unknown (#148).
+			if err != nil {
+				return nil, err
 			}
+			if verr := validateRuleValue(ctx, ec, e, p, r, val, r.Default.Span()); verr != nil {
+				dn.SetErr(verr)
+				return nil, verr
+			}
+			theDefault = DecisionOf(val)
 		}
 		return theDefault, nil
 	}
+
+	// The default covers only a `when` that does not hold: a body that
+	// yields undefined stays unknown, and a body error stays an error (#148).
 
 	ctx, rb, done := trace.New(ctx, r.Body, "rule-body", map[string]any{})
 	defer done()
@@ -676,4 +751,34 @@ func evaluateRuleBase(ctx context.Context, ec *ExecutionContext, e *executorImpl
 
 	// Coerce to a *Decision using tristate.From(val)
 	return DecisionOf(val), err
+}
+
+// firstDeclaredError returns the error, of errs keyed by rule name, of the
+// rule declared earliest in p; rules not found among the statements come
+// after, by name. The choice does not depend on goroutine completion order.
+func firstDeclaredError(p *index.Policy, errs map[string]error) error {
+	order := make(map[string]int, len(p.Statements))
+	for i, stmt := range p.Statements {
+		if rule, ok := stmt.(*ast.RuleStatement); ok {
+			if _, seen := order[rule.RuleName]; !seen {
+				order[rule.RuleName] = i
+			}
+		}
+	}
+	names := slices.Collect(maps.Keys(errs))
+	slices.SortFunc(names, func(a, b string) int {
+		ia, aok := order[a]
+		ib, bok := order[b]
+		switch {
+		case aok && bok && ia != ib:
+			return cmp.Compare(ia, ib)
+		case aok != bok:
+			if aok {
+				return -1
+			}
+			return 1
+		}
+		return cmp.Compare(a, b)
+	})
+	return errs[names[0]]
 }

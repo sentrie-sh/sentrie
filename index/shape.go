@@ -31,6 +31,12 @@ type Shape struct {
 type ShapeModel struct {
 	WithFQN *ast.FQN
 	Fields  map[string]*ShapeModelField
+	// Open is true when the shape's own body ends in `...`: a value may then
+	// carry fields the shape does not declare. It comes from this shape's
+	// declaration only. A `with` base being open does not open the shape
+	// that composes it, so a composed shape is closed unless it writes `...`
+	// itself.
+	Open bool
 }
 
 type ExportedShape struct {
@@ -220,6 +226,7 @@ func createShape(ns *Namespace, p *Policy, stmt *ast.ShapeStatement) (*Shape, er
 		if stmt.Complex.With != nil {
 			shape.Model.WithFQN = stmt.Complex.With
 		}
+		shape.Model.Open = stmt.Complex.Open
 		for _, field := range stmt.Complex.Fields {
 			if field.Name == "" {
 				continue

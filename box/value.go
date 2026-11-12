@@ -371,14 +371,39 @@ func (v Value) String() string {
 	}
 }
 
+// MarshalJSON encodes v as JSON. A callable, at any depth, encodes as
+// {"kind":"callable"}: it has no data to show, and a decision trace or output
+// that holds a lambda must still encode (#141).
 func (v Value) MarshalJSON() ([]byte, error) {
 	if v.IsUndefined() {
 		return []byte("null"), nil
 	}
-	if v.IsCallable() {
-		return nil, fmt.Errorf("cannot marshal callable value to JSON")
+	return json.Marshal(v.jsonAny())
+}
+
+// jsonAny is Any for JSON encoding: identical, except that a callable becomes
+// a {"kind":"callable"} object instead of the "<callable>" string.
+func (v Value) jsonAny() any {
+	switch v.kind {
+	case ValueCallable:
+		return map[string]string{"kind": "callable"}
+	case ValueList:
+		xs, _ := v.ref.([]Value)
+		out := make([]any, 0, len(xs))
+		for _, x := range xs {
+			out = append(out, x.jsonAny())
+		}
+		return out
+	case ValueDict:
+		m, _ := v.ref.(map[string]Value)
+		out := make(map[string]any, len(m))
+		for k, x := range m {
+			out[k] = x.jsonAny()
+		}
+		return out
+	default:
+		return v.Any()
 	}
-	return json.Marshal(v.Any())
 }
 
 func FromAny(x any) Value {

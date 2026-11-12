@@ -18,7 +18,7 @@ DataDecl = "data" IDENT (":" TypeRef)? ("as" IDENT)?
 
 UseStmt = "use" "{" IDENT ("," IDENT)* "}" "from" ExecSource ("as" IDENT)?
 ExecSource = STRING / ("@" ModulePathSegment ("/" ModulePathSegment)*)
-/* A module path segment may be a keyword (e.g. @sentrie/string). Keywords are also accepted as a constraint name (ConstraintName) and as a later segment of an FQN. The default alias is the last segment, so a keyword last segment needs an explicit "as" IDENT. */
+/* A module path segment may be a keyword (e.g. @sentrie/string). Keywords are also accepted as a constraint name (ConstraintName), as a later segment of an FQN and as a FieldName. The default alias is the last segment, so a keyword last segment needs an explicit "as" IDENT. */
 ModulePathSegment = IDENT / KEYWORD
 /* A STRING source is a file path relative to the policy and must not start with "@": a quoted "@scope/name" is rejected with a hint to drop the quotes. */
 
@@ -47,7 +47,7 @@ ContributeDecl = "contribute" IDENT ("when" Expr)? BlockExpr
 
 /* Imports and Exports */
 ExportRule = "export" "decision" "of" IDENT AttachClause*
-AttachClause = "attach" IDENT "as" Expr
+AttachClause = "attach" FieldName "as" Expr
 
 RuleImportClause = "import" "decision" IDENT "from" FQN WithClause*
 WithClause = "with" IDENT "as" Expr
@@ -130,10 +130,12 @@ EmptyExpr = AddExpr "is" ("not")? "empty"
 
 /* Basic Expression Structures */
 GroupedExpr = "(" Expr ")"
-FunctionCall = IDENT ("." IDENT)? "(" CommaSeparatedExpr? ")"
+FunctionCall = IDENT ("." FieldName)? "(" CommaSeparatedExpr? ")"
 CommaSeparatedExpr = Expr ("," Expr)*
 IndexAccess = PrimaryExpr "[" Expr "]"
-FieldAccess = PrimaryExpr "." IDENT
+FieldAccess = PrimaryExpr "." FieldName
+/* A field, shape element or attachment name may be a keyword (e.g. d.title, version: string, attach default as ...): in those positions a keyword has no other meaning. A bare map literal key may not. */
+FieldName = IDENT / KEYWORD
 BlockExpr = "{" (Comment / VarDecl / RuleDecl)* "yield" Expr "}"
 
 /* Literals */
@@ -145,8 +147,11 @@ MapEntry = STRING ":" Expr
 
 /* Type System */
 ShapeDecl = "shape" IDENT (TypeRef / ComplexShape)
-ComplexShape = ("with" TypeName)? "{" ShapeElement+ "}"
-ShapeElement = IDENT ("?")? ":" TypeRef
+/* A shape is closed: a value with a field it does not declare fails the check. A "..." marker as the
+   last entry opens it; only comments may follow the marker. A field name may be declared once. A "with"
+   base's openness is not inherited. */
+ComplexShape = ("with" TypeName)? "{" ShapeElement* "..."? "}"
+ShapeElement = FieldName ("?")? ":" TypeRef
 /* A union matches when any member matches. `|` binds looser than a member's `?` and constraints and
    than brackets: `string | number?` is `string | (number?)`, and constraints bind to the member they
    follow. There is no grouping syntax. */
@@ -160,6 +165,7 @@ AnyType = "any"
 TypeRefConstraint = "@" ConstraintName "(" CommaSeparatedExpr? ")"
 /* A constraint name may be a keyword (e.g. @in). Right after "@" a keyword has no other meaning; a name that is not a constraint of the type is rejected as an unknown constraint. */
 ConstraintName = IDENT / KEYWORD
+/* Constraint arguments are literals only: string, number, true/false/unknown, null, and list and map literals of these. A number literal may take a leading unary minus (@min(-5)); no other operator is allowed. Membership constraints are variadic: @in(1, 2), not @in([1, 2]). */
 PrimitiveType = "int" / "float" / "string" / "bool" / "document"
 ListType = "list" "[" TypeRef "]"
 DictType = "dict" "[" TypeRef "]"

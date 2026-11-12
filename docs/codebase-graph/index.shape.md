@@ -36,15 +36,15 @@ tags: type-model, composition, hydration, records
   - **Side Effects:** None for an indexed shape; allocates per call only for a hand-built one.
   - **Exceptions:** None.
 
-- **Signature:** `ShapeModel` - `{ WithFQN *ast.FQN, Fields map[string]*ShapeModelField }` / `ShapeModelField` - `{ Node, Name, Optional, TypeRef, DeclaredIn *Shape }`
-  - **Behavior:** Fields are a map, so **declaration order is lost**. `Optional` here is field optionality, distinct from a nullable type ref. `DeclaredIn` is the shape whose declaration holds the field; `resolveDependency` copies field pointers, so a field composed in through `with` keeps its base shape. `(*ShapeModelField).TypeScope(fallback)` is `DeclaredIn.ShapeScope()`, or `fallback` when that is nil. [[runtime.typeref_shape]] and [[index.builtin_kind]] resolve the field's type there ([#281](https://github.com/sentrie-sh/sentrie/issues/281)).
+- **Signature:** `ShapeModel` - `{ WithFQN *ast.FQN, Fields map[string]*ShapeModelField, Open bool }` / `ShapeModelField` - `{ Node, Name, Optional, TypeRef, DeclaredIn *Shape }`
+  - **Behavior:** `Open` is copied from `Cmplx.Open` by `createShape` and is never inherited: `resolveDependency` copies a base's fields, not its openness, so a shape composed `with` an open base is closed unless it ends in `...` itself (#145, PROVISIONAL). Fields are a map, so **declaration order is lost**. `Optional` here is field optionality, distinct from a nullable type ref. `DeclaredIn` is the shape whose declaration holds the field; `resolveDependency` copies field pointers, so a field composed in through `with` keeps its base shape. `(*ShapeModelField).TypeScope(fallback)` is `DeclaredIn.ShapeScope()`, or `fallback` when that is nil. [[runtime.typeref_shape]] and [[index.builtin_kind]] resolve the field's type there ([#281](https://github.com/sentrie-sh/sentrie/issues/281)).
   - **Side Effects:** N/A.
   - **Exceptions:** N/A.
 
 - **Signature:** `createShape(ns *Namespace, p *Policy, stmt *ast.ShapeStatement) -> (*Shape, error)`
   - **Behavior:** Builds the FQN from the policy when policy-scoped, otherwise the namespace; builds `shapeScope`; populates `Model` for complex shapes (recording `With` and each field, with `DeclaredIn` set to the new shape) or `AliasOf` for simple ones. Fields with an empty name are skipped silently.
   - **Side Effects:** Allocation only.
-  - **Exceptions:** `duplicate shape field '%s' at %s` - note this one is **not** wrapped in `xerr.ErrIndex`, unlike its sibling errors.
+  - **Exceptions:** `duplicate shape field '%s' at %s` - unreachable for a parsed shape, since [[parser.shape]] rejects a duplicate field first and the AST map cannot hold two; **not** wrapped in `xerr.ErrIndex`, unlike its sibling errors.
 
 - **Signature:** `(*Shape).resolveDependency(idx *Index) -> error`
   - **Behavior:** No-ops if already hydrated, if there is no model, or if there is no `with` clause. Otherwise takes the base from `resolveWithBase` and copies its fields in.

@@ -344,9 +344,19 @@ func (p *Policy) AddFact(fact *ast.FactStatement) error {
 		return xerr.ErrConflict("fact declaration", fact.Span(), seen.Span())
 	}
 
+	// The declared name is the key a caller supplies the fact under, so two
+	// facts may not share it even when their aliases differ (#147).
+	if seen := p.FactByName(fact.Name); seen != nil {
+		return xerr.ErrConflict(fmt.Sprintf("fact name '%s'", fact.Name), fact.Span(), seen.Span())
+	}
+
 	// Required facts (not optional) cannot have default values
 	if !fact.Optional && fact.Default != nil {
-		return xerr.ErrInvalidInvocation(fmt.Sprintf("required fact '%s' at %s cannot have a default value", fact.Alias, fact.Span()))
+		return xerr.ErrInvalidInvocation(fmt.Sprintf("required fact '%s' at %s cannot have a default value", fact.Name, fact.Span()))
+	}
+
+	if err := checkFactDefault(fact); err != nil {
+		return err
 	}
 
 	p.Facts[fact.Alias] = fact
@@ -370,14 +380,43 @@ func (p *Policy) AddData(data *ast.DataStatement) error {
 	return nil
 }
 
-// FactNamesByAlias maps each key of p.Facts (the fact's alias) to its declared
-// name. The keys are the names an `import decision ... with <name> as ...`
-// clause must use: ImportDecision and ExecRule look facts up by exactly these
-// keys.
-func (p *Policy) FactNamesByAlias() map[string]string {
+// FactByName returns the fact declared under name, the key a caller supplies
+// it under (an HTTP request, `exec --facts`, an import's `with` clause), or
+// nil. p.Facts is keyed by alias, the fact's local binding, so this is a scan;
+// a policy declares few facts (#147).
+func (p *Policy) FactByName(name string) *ast.FactStatement {
+	for _, fact := range p.Facts {
+		if fact.Name == name {
+			return fact
+		}
+	}
+	return nil
+}
+
+// FactAliasesByName maps each fact's declared name, the key a caller and an
+// `import decision ... with <name> as ...` clause use, to its alias.
+func (p *Policy) FactAliasesByName() map[string]string {
 	out := make(map[string]string, len(p.Facts))
 	for alias, fact := range p.Facts {
-		out[alias] = fact.Name
+		out[fact.Name] = alias
 	}
 	return out
+}
+
+// checkFactDefault rejects a default whose type is statically wrong for the
+// fact: a null default for a type that does not accept null, or a literal of
+// the wrong kind (`fact n?: number default "x"`). It runs while the index is
+// built, so `sentrie validate` reports it and no request evaluates it (#147).
+// A default that is not a literal is checked against the type at runtime.
+func checkFactDefault(fact *ast.FactStatement) error {
+	if fact.Default == nil || fact.Type == nil {
+		return nil
+	}
+	if _, ok := fact.Default.(*ast.NullLiteral); ok && !ast.AcceptsNull(fact.Type) {
+		return fmt.Errorf("fact '%s' at %s cannot have a null default: its type %s does not accept null: %w", fact.Name, fact.Default.Span(), fact.Type.String(), xerr.ErrIndex)
+	}
+	if lit, litKind, ok := literalYieldMismatch(fact.Default, fact.Type); ok {
+		return fmt.Errorf("default value of fact '%s' at %s is a %s, but the fact is declared %s: %w", fact.Name, lit.Span(), litKind, fact.Type.String(), xerr.ErrIndex)
+	}
+	return nil
 }

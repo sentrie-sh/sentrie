@@ -136,7 +136,7 @@ func (s *ParserTestSuite) TestParseTypeRefKeywordConstraintName() {
 // not a constraint of the type is reported as an unknown constraint, the same
 // way an unknown identifier is, rather than as a token error.
 func (s *ParserTestSuite) TestParseTypeRefUnknownKeywordConstraintName() {
-	for _, input := range []string{"number @policy(1)", "string @in([\"a\"])", "number @nope(1)"} {
+	for _, input := range []string{"number @policy(1)", "trinary @in(true)", "number @nope(1)"} {
 		p := NewParserFromString(input, "test.sentra")
 		ref := parseTypeRef(s.T().Context(), p)
 		s.Nil(ref, input)

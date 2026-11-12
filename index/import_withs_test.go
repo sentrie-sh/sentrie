@@ -78,7 +78,7 @@ policy p {
 	s.Equal(9, e.At.From.Line)
 	s.Equal(44, e.At.From.Column)
 	s.True(strings.HasPrefix(src[e.At.From.Offset:], "with usr  as"), "span must start at the with clause")
-	s.Equal(`import binds unknown fact "usr": policy t/q accepts fact aliases: user, zone`, e.Message)
+	s.Equal(`import binds unknown fact "usr": policy t/q accepts facts: user, zone`, e.Message)
 }
 
 // TestImportWithUnknownFactListsDeclaredFactsSorted checks the diagnostic order
@@ -99,7 +99,7 @@ policy p {
 `})
 	errs := unknownFactErrors(err)
 	s.Require().Len(errs, 1)
-	s.Contains(errs[0].Message, "accepts fact aliases: alpha, mid, zeta")
+	s.Contains(errs[0].Message, "accepts facts: alpha, mid, zeta")
 }
 
 func (s *IndexTestSuite) TestImportWithOnTargetWithoutFactsIsRejected() {
@@ -148,10 +148,10 @@ policy p {
 `}))
 }
 
-// TestImportWithFactsMatchByAlias pins the key space: Policy.Facts is keyed by
-// the fact alias, and the with name must match that key (the same one the
-// runtime injects by). #147 may revisit this.
-func (s *IndexTestSuite) TestImportWithFactsMatchByAlias() {
+// TestImportWithFactsMatchByName pins the key space: a with clause names the
+// fact by its declared name, the key a caller supplies it under, never by its
+// local alias (#147).
+func (s *IndexTestSuite) TestImportWithFactsMatchByName() {
 	src := `namespace t
 policy q {
   fact subject?: string as who
@@ -159,12 +159,12 @@ policy q {
   export decision of ok
 }
 policy p {
-  rule viaAlias = import decision ok from t/q with %s as "x"
-  export decision of viaAlias
+  rule viaName = import decision ok from t/q with %s as "x"
+  export decision of viaName
 }
 `
-	s.Require().NoError(s.validateSources([2]string{"f.sentrie", fmt.Sprintf(src, "who")}))
-	err := s.validateSources([2]string{"f.sentrie", fmt.Sprintf(src, "subject")})
+	s.Require().NoError(s.validateSources([2]string{"f.sentrie", fmt.Sprintf(src, "subject")}))
+	err := s.validateSources([2]string{"f.sentrie", fmt.Sprintf(src, "who")})
 	s.Require().Error(err)
 	s.Len(unknownFactErrors(err), 1)
 }
@@ -229,13 +229,13 @@ policy p {
 	s.Require().Len(errs, 1)
 	s.Equal("p.sentrie", errs[0].At.File)
 	s.Equal(3, errs[0].At.From.Line)
-	s.Equal(`import binds unknown fact "lvl": policy com/other/q accepts fact aliases: level`, errs[0].Message)
+	s.Equal(`import binds unknown fact "lvl": policy com/other/q accepts facts: level`, errs[0].Message)
 }
 
-// TestImportWithByDeclaredNameOfAliasedFactHintsAlias: facts are bound by
-// alias, so `with user` does not reach `fact user as u`. The message must say
-// which names are accepted and point at the alias.
-func (s *IndexTestSuite) TestImportWithByDeclaredNameOfAliasedFactHintsAlias() {
+// TestImportWithByAliasOfAliasedFactHintsName: facts are bound by declared
+// name (#147), so `with u` does not reach `fact user as u`. The message must
+// say which names are accepted and point from the alias to the name.
+func (s *IndexTestSuite) TestImportWithByAliasOfAliasedFactHintsName() {
 	err := s.validateSources([2]string{"f.sentrie", `namespace t
 policy q {
   fact user?: document as u
@@ -243,14 +243,14 @@ policy q {
   export decision of ok
 }
 policy p {
-  rule r = import decision ok from t/q with user as {"role": "admin"}
-  rule right = import decision ok from t/q with u as {"role": "admin"}
+  rule r = import decision ok from t/q with u as {"role": "admin"}
+  rule right = import decision ok from t/q with user as {"role": "admin"}
   export decision of r
   export decision of right
 }
 `})
 	s.Require().Error(err)
 	errs := unknownFactErrors(err)
-	s.Require().Len(errs, 1, "only the declared-name clause is rejected")
-	s.Equal(`import binds unknown fact "user": policy t/q accepts fact aliases: u; fact "user" is bound by its alias "u"`, errs[0].Message)
+	s.Require().Len(errs, 1, "only the alias clause is rejected")
+	s.Equal(`import binds unknown fact "u": policy t/q accepts facts: user; "u" is the local alias of fact "user", bind it by its name`, errs[0].Message)
 }

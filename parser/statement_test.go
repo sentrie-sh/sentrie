@@ -141,8 +141,8 @@ func (s *ParserTestSuite) TestParseFactStatement() {
 	}{
 		{"fact user:string", "user", false, "required fact"},
 		{"fact user?:string", "user", true, "optional fact"},
-		{"fact age:int default 25", "age", false, "required fact with default"},
-		{"fact age?:int default 25", "age", true, "optional fact with default"},
+		{"fact age:number default 25", "age", false, "required fact with default"},
+		{"fact age?:number default 25", "age", true, "optional fact with default"},
 		{"fact name:string default \"john\"", "name", false, "required fact with string default"},
 		{"fact name?:string default \"john\"", "name", true, "optional fact with string default"},
 		{"fact name:ShapeName default \"john\"", "name", false, "required fact with shape type"},
@@ -194,7 +194,7 @@ func (s *ParserTestSuite) TestParseShapeStatement() {
 		expected string
 	}{
 		{"shape User { }", "User"},
-		{"shape Person { name:string age:int }", "Person"},
+		{"shape Person { name:string age:number }", "Person"},
 		{"shape Simple string", "Simple"},
 	}
 
@@ -367,7 +367,7 @@ namespace com/example;
 policy user {
 	rule check = { yield true }
 	fact name:string default "john"
-	shape User { name:string age:int }
+	shape User { name:string age:number }
 }
 `
 	parser := NewParserFromString(input, "test.sentrie")
