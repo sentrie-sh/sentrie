@@ -94,10 +94,11 @@ func (s *IndexTestSuite) TestValidateSelfReferenceNoFalsePositives() {
 }
 
 // TestValidateShadowedLetSelfReferenceIsSkipped is the PR review case: a let
-// reading its own name while an outer let, rule, fact or lambda parameter
-// binds that name too may read the outer value at runtime (evalIdent checks
-// cached locals across ancestor contexts before lets), so it is skipped as
-// ambiguous rather than reported.
+// reading its own name while any other let, rule, fact or lambda parameter in
+// the policy binds that name may read the other binding's cached value at
+// runtime (evalIdent checks cached locals across ancestor contexts before
+// lets, and a same-policy rule runs in its caller's context), so it is
+// skipped as ambiguous rather than reported.
 func (s *IndexTestSuite) TestValidateShadowedLetSelfReferenceIsSkipped() {
 	cases := map[string]string{
 		"policy let":       "  let x = 1\n  rule r = (x + { let x = x + 1\n yield x }) == 2\n  export decision of r\n",
@@ -105,6 +106,10 @@ func (s *IndexTestSuite) TestValidateShadowedLetSelfReferenceIsSkipped() {
 		"outer block let":  "  rule r = { let x = 1\n yield x + { let x = x + 1\n yield x } } == 2\n  export decision of r\n",
 		"fact alias":       "  fact x?: number default 1\n  rule r = { let x = x + 1\n yield x } == 1\n  export decision of r\n",
 		"lambda parameter": "  rule r = count(filter([1], (x) => { let x = x + 1\n yield x == 1 })) == 1\n  export decision of r\n",
+		// G and H: the other x is a block let or lambda parameter of the
+		// calling rule; r2 runs in r's context and reads its cached x.
+		"calling rule's block let":        "  rule r2 = { let x = x + 1\n yield x }\n  rule r = { let x = 1\n yield x + r2 } == 2\n  export decision of r\n",
+		"calling rule's lambda parameter": "  rule r2 = { let x = x + 1\n yield x }\n  rule r = count(filter([1], (x) => { yield x + r2 == 2 })) == 1\n  export decision of r\n",
 	}
 	for name, body := range cases {
 		s.Run(name, func() {
@@ -112,8 +117,9 @@ func (s *IndexTestSuite) TestValidateShadowedLetSelfReferenceIsSkipped() {
 		})
 	}
 
-	// A nested let reading its own name inside a lambda body, with an outer
-	// policy let of that name, is skipped too.
+	// KNOWN GAP, not a valid pack: the policy let x is never read first, so
+	// exec fails with "'x' references itself". It is skipped only because
+	// another binding of x exists in the policy.
 	s.NoError(s.parseAndValidate(checksSource("  let x = 1\n  rule r = count(filter([1], (v) => { let x = x + v\n yield x == 2 })) == 1\n  export decision of r\n"), "c.sentrie"))
 
 	// With no outer x of any kind the self-reference is still reported.

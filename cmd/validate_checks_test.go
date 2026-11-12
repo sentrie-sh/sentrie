@@ -37,18 +37,29 @@ func (s *CmdTestSuite) TestValidateCmdAcceptsShadowedNames() {
 // cached 1 at runtime instead of recursing. validate must not reject a pack
 // that exec evaluates to true.
 // A fact of the same name is read before any let, so the inner let is never
-// evaluated there either.
+// evaluated there either. A same-policy rule runs in its caller's context, so
+// r2's let reads the caller's cached block let or lambda parameter.
 func (s *CmdTestSuite) TestValidateCmdAcceptsLetShadowingCachedOuterBinding() {
 	cases := map[string]string{
 		"policy let": "  let x = 1\n  rule r = (x + { let x = x + 1 yield x }) == 2\n",
 		"rule":       "  rule x = 1\n  rule r = (x + { let x = x + 1 yield x }) == 2\n",
 		"fact alias": "  fact x?: number default 1\n  rule r = { let x = x + 1 yield x } == 1\n",
+		// G and H: r2 runs in r's context and reads r's cached x.
+		"calling rule's block let":        "  rule r2 = { let x = x + 1 yield x }\n  rule r = { let x = 1 yield x + r2 } == 2\n",
+		"calling rule's lambda parameter": "  rule r2 = { let x = x + 1 yield x }\n  rule r = count(filter([1], (x) => { yield x + r2 == 2 })) == 1\n",
 	}
 	for name, body := range cases {
 		s.Run(name, func() {
 			dir := s.writeTestPack("namespace com/ex\npolicy pol {\n" + body + "  export decision of r\n}\n")
 			s.Require().NoError(runValidateCLI(s.T().Context(), []string{"--pack-location", dir}))
-			s.Equal(true, s.execDecision(dir, "com/ex/pol/r", "{}"))
+			// Table output: `--output json` fails on a pack that evaluates a
+			// lambda ("cannot marshal callable value"), on the base too.
+			var runErr error
+			out := s.captureStdout(func() {
+				runErr = runExecCLI(s.T().Context(), []string{"com/ex/pol/r", "--pack-location", dir})
+			})
+			s.Require().NoError(runErr)
+			s.Contains(out, "r: true", out)
 		})
 	}
 }
