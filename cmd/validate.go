@@ -25,7 +25,8 @@ func addValidateCmd(cli *cling.CLI) {
 				WithDescription("Pack directory to load").
 				AsFlag(),
 			).
-			WithFlag(capabilitiesFlag()),
+			WithFlag(capabilitiesFlag()).
+			WithFlag(skipEngineCheckFlag()),
 	)
 }
 
@@ -38,8 +39,9 @@ no facts; use sentrie exec to evaluate a rule.
 `
 
 type validateCmdArgs struct {
-	PackLocation string `cling-name:"pack-location"`
-	Capabilities string `cling-name:"capabilities"`
+	PackLocation    string `cling-name:"pack-location"`
+	Capabilities    string `cling-name:"capabilities"`
+	SkipEngineCheck bool   `cling-name:"skip-engine-check"`
 }
 
 func validateCmd(ctx context.Context, args []string) error {
@@ -64,6 +66,9 @@ func validateCmd(ctx context.Context, args []string) error {
 
 	pack, err := loader.LoadPack(ctx, input.PackLocation)
 	if err != nil {
+		return err
+	}
+	if err := checkEngine(pack, input.SkipEngineCheck, os.Stderr); err != nil {
 		return err
 	}
 

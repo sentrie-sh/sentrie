@@ -16,6 +16,7 @@ The process bootstrap: installs signal handling, resolves build-time version inf
 | Source (Subject) | Relationship (Predicate) | Target (Object) | Context / Data Payload Flow |
 | :--- | :--- | :--- | :--- |
 | `main` | `CALLS` | [[cmd]] | `cmd.Setup` builds the CLI, `cmd.Execute` runs it with `os.Args`. |
+| `main` | `CALLS` | [[cmd]] | `cmd.SetEngineVersion` passes the resolved version for the pack `[engine]` check (#157). |
 | `main` | `CALLS` | [[version]] | `GetVersionInfo` assembles the version string from ldflags and build info. |
 | `main` | `DEPENDS_ON` | [[constants]] | `EnvDebug` and `EnvLogLevel` control logging. |
 | `main` | `IMPORTS` | `ext.google.uuid` | Generates a per-process instance identifier for log correlation. |
@@ -34,7 +35,7 @@ The process bootstrap: installs signal handling, resolves build-time version inf
   - **Exceptions:** None.
 
 - **Signature:** Build-time variables - `version`, `commit`, `treeState`, `date`, `builtBy`
-  - **Behavior:** Overridden via `-ldflags "-X main.version=…"`. Each is applied only when non-empty, so an unstamped build falls back to whatever [[version]] derives from Go build info.
+  - **Behavior:** Overridden via `-ldflags "-X main.version=…"`. Each is applied only when non-empty, so an unstamped build falls back to whatever [[version]] derives from Go build info. `version` need not be semver: startup renders it with `versionOnce().String()`, which prints a non-semver value as given instead of panicking (#157), and the `[engine]` check then warns and passes. `main_test.go` builds the binary with `-X main.version=not-semver` and runs `validate`, `exec` and `--version` against it (skipped under `-short`).
   - **Side Effects:** None.
   - **Exceptions:** None.
 
