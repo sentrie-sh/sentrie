@@ -24,7 +24,7 @@ The schema below is normative and is enforced by `make docs-graph` (and by the `
 
 An edge is a `[[target]]` wiki-link or a backticked leaf id appearing in the **Target (Object)** column of a section-2 table. Subject and predicate cells must also be wiki-linked or backticked - a bare `CALLS` is not a predicate. Consumers **must** be markdown-aware:
 
-- `[[…]]` inside a code span or a fenced code block is **not** an edge. It is literal text. `api.net` legitimately documents the string `[[::1]]:7529`, which is the malformed output of `net.JoinHostPort` - not a reference to a node called `::1`.
+- `[[…]]` inside a code span or a fenced code block is **not** an edge. It is literal text. A string such as `[[::1]]:7529` (the doubly bracketed output `api.net` used to produce) is likewise literal text, not a reference to a node called `::1`.
 - Wiki-links outside section 2 are navigational cross-references, not edges.
 
 A naive `\[\[([^\]]+)\]\]` scan over the raw bytes will produce false edges. Strip code spans first.

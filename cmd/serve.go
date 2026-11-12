@@ -130,7 +130,7 @@ func serveCmd(ctx context.Context, args []string) error {
 		api.WithMaxBodyBytes(int64(input.MaxBodyBytes)),
 	)
 	if err := server.Setup(ctx, input.Port, input.Listen); err != nil {
-		return err
+		return fmt.Errorf("invalid or unusable --http-listen/--http-port: %w", err)
 	}
 
 	go func() {
