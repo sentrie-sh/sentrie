@@ -37,7 +37,7 @@ func (idx *Index) commit(ctx context.Context) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		if err := shape.resolveDependency(idx, nil); err != nil {
+		if err := shape.resolveDependency(idx); err != nil {
 			return err
 		}
 	}
