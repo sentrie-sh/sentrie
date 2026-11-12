@@ -78,3 +78,10 @@
 - Website `reference/types-and-values.md` (Declaring a Collection Type) now says a `dict[T]` entry holding undefined counts as absent (decision 22, commit 8847b8b), a wrong-typed real value and a `list[T]` element holding undefined still fail, and JSON writes the entry as `null`. One runnable snippet (`entryIsAbsent` true, `wrongValue` false, `typedLet` `{"a":null,"b":2}`), validated and executed against the branch binary. `shapes.md` gained one linking sentence. No existing sentence became false. Website PR_DESCRIPTION updated. Build passes (`/tmp/website-148-typed-let-default-build.log`).
 - Signing agent refused twice, so the website change is left uncommitted and this entry is uncommitted too.
 - _Model: claude-sonnet-5-5_
+
+### 2026-11-12 09:53 - Merge the #143 review comment fix
+
+- Merged `143-per-rule-errors` (head 1e19342) into this branch (a merge, so no force push). It brings the fix for the PR #319 review comment: a failed rule always reports an unknown decision with no attachments, and its trace records the error and the failing attachment.
+
+- `go test ./api/... ./runtime/... ./cmd/...` and `make docs-graph` pass on the merged branch (`/tmp/s11-148-typed-let-default-stack.log`).
+- _Model: claude-opus-5-5_
