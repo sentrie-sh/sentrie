@@ -61,15 +61,16 @@ policy gaps {
   rule after = "a"
   export decision of uses
 
-  -- boolean OR over true, false and unknown, with a skipped base
-  rule falseBase: boolean = false
+  -- Kleene OR over true, false and unknown (a trinary rule), and a boolean
+  -- rule whose base is skipped (#144: a boolean contribution cannot be unknown)
+  rule falseBase: trinary = false
   contribute falseBase { yield unknown }
-  rule falseBaseTrue: boolean = false
+  rule falseBaseTrue: trinary = false
   contribute falseBaseTrue { yield unknown }
   contribute falseBaseTrue { yield true }
-  rule unknownBase: boolean = unknown
+  rule unknownBase: trinary = unknown
   contribute unknownBase { yield false }
-  rule trueBase: boolean = true
+  rule trueBase: trinary = true
   contribute trueBase { yield unknown }
   rule skippedBase: boolean = when user.never { yield true }
   contribute skippedBase { yield false }

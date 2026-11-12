@@ -52,7 +52,7 @@ A best-effort static type inferencer: given an expression and a lexical scope, i
   - **Exceptions:** None.
 
 - **Signature:** `typeRefKind(idx, policy, ref) -> (box.ValueKind, bool)`
-  - **Behavior:** Maps each type-ref implementation to a kind. Documented special cases: `ShapeTypeRef` delegates to `lookupShapeKind` (alias versus complex record); `NullableTypeRef` is **deliberately unknown** because runtime prechecks pass null through; `AnyTypeRef` and `UnionTypeRef` are unknown because they admit more than one kind; `RecordTypeRef` and `SetTypeRef` map to `ValueList` (a set is a tagged list, #162); `TrinaryTypeRef` maps to `ValueTrinary`, which here means "bool or unknown" because at runtime a known truth value is a `ValueBool` ([#135](https://github.com/sentrie-sh/sentrie/issues/135)).
+  - **Behavior:** Maps each type-ref implementation to a kind. Documented special cases: `ShapeTypeRef` delegates to `lookupShapeKind` (alias versus complex record); `NullableTypeRef` is **deliberately unknown** because runtime prechecks pass null through; `AnyTypeRef` and `UnionTypeRef` are unknown because they admit more than one kind; `RecordTypeRef` and `SetTypeRef` map to `ValueList` (a set is a tagged list, #162); a `trinary` `TrinaryTypeRef` maps to `ValueTrinary`, which here means "bool or unknown" because at runtime a known truth value is a `ValueBool` ([#135](https://github.com/sentrie-sh/sentrie/issues/135)); a `boolean` one maps to `ValueBool`, since `boolean` rejects unknown (#144).
   - **Side Effects:** None.
   - **Exceptions:** None; unknown is a return value, not an error.
 

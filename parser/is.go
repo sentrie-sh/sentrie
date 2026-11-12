@@ -77,6 +77,9 @@ func parseIsExpression(ctx context.Context, p *Parser, left ast.Expression, prec
 			if isAny || suffixed || p.canExpect(tokens.TokenPipe) {
 				// `any`, or a suffix or `|` only a type can carry: this is a
 				// type, not a value
+				if !checkNotATypeName(p, &fqn) {
+					return nil
+				}
 				if suffixed {
 					typ = parseTypeRefSuffixes(ctx, p, typ, true)
 					if typ == nil {

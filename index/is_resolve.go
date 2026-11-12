@@ -110,7 +110,11 @@ func (k *kindCheckCtx) resolveIs(is *ast.IsExpression) *siteError {
 
 	for _, part := range ref.Parts {
 		if !k.namesValue(part) {
-			return isResolveError(at, ref.String(), fmt.Sprintf("%q is neither a shape nor a value in scope", part))
+			msg := fmt.Sprintf("%q is neither a shape nor a value in scope", part)
+			if hint, ok := ast.NotATypeHint(part); ok && len(ref.Parts) == 1 {
+				msg = fmt.Sprintf("%s; %q is not a type, did you mean %q?", msg, part, hint)
+			}
+			return isResolveError(at, ref.String(), msg)
 		}
 	}
 	is.Type = nil

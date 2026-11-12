@@ -11,6 +11,7 @@ import (
 	"github.com/sentrie-sh/sentrie/index"
 	"github.com/sentrie-sh/sentrie/runtime/trace"
 	"github.com/sentrie-sh/sentrie/tokens"
+	"github.com/sentrie-sh/sentrie/trinary"
 )
 
 // validateRuleValue checks a value produced by a rule's body or default
@@ -40,7 +41,8 @@ func validateRuleValue(ctx context.Context, ec *ExecutionContext, e *executorImp
 //     value. A base that is not a list (undefined, null, or the rule's guard
 //     did not hold and it has no default) starts the list empty.
 //   - boolean or trinary: the result is the Kleene OR of the base state and
-//     each contribution's value.
+//     each contribution's value. A boolean contribution must be true or
+//     false; a skipped base is still unknown.
 //
 // On any error the decision is nil, so ExecRule reports Unknown rather than
 // the base or a partly combined value.
@@ -85,6 +87,15 @@ func applyContributions(ctx context.Context, ec *ExecutionContext, e *executorIm
 		combined = box.List(items)
 	} else {
 		combined = box.Trinary(state)
+	}
+	// A boolean rule's base and contributions were each checked against
+	// boolean, which rejects unknown, so an unknown result means none of them
+	// produced a value: the base was skipped (its guard did not hold, or it
+	// yielded undefined) and no contribution was true. The rule then reports
+	// unknown, as a boolean rule without contributions does when its guard
+	// does not hold, rather than failing its own type (#144).
+	if kind == index.ContributionBool && state == trinary.Unknown && isBooleanTypeRef(r.Node.Type) {
+		return DecisionOf(combined), nil
 	}
 	// The combined value must satisfy the whole declared type too (list
 	// constraints such as a maximum length apply to the combined list).
