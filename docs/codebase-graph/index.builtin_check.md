@@ -43,7 +43,7 @@ Walks every expression a policy holds (fact defaults, policy lets, rule `default
   - **Exceptions:** `validation cancelled`.
 
 - **Signature:** `(*kindCheckCtx).checkBuiltinCall(decl *builtins.Decl, c *ast.CallExpression) -> []error`
-  - **Behavior:** Takes the declaration the walk already resolved. Computes `min` from the count of non-optional params and `max` from total params; reports too-many only when the signature is **non-variadic** and a `TooManyError` message exists, pointing the span at the first excess argument. Reports too-few pointing at the callee identifier. Then per argument: checks the value kind when statically known and the mismatch policy is not `MismatchUndefined`, synthesising an "expected callable" message when none was authored; and checks callback arity when the signature declares allowed arities.
+  - **Behavior:** Takes the declaration the walk already resolved. Computes `min` from the count of non-optional params and `max` from total params; reports too-many only when the signature is **non-variadic** and a `TooManyError` message exists, pointing the span at the first excess argument. Reports too-few pointing at the callee identifier. Then per argument: checks the value kind when statically known and the mismatch policy is not `MismatchUndefined` (no builtin declares it since [#149](https://github.com/sentrie-sh/sentrie/issues/149), so `count(5)` is now rejected at load), synthesising an "expected callable" message when none was authored; and checks callback arity when the signature declares allowed arities.
   - **Side Effects:** None.
   - **Exceptions:** Returns the three `xerr` builtin diagnostics.
 

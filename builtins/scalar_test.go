@@ -536,17 +536,31 @@ func TestCount_EmptyMap(t *testing.T) {
 func TestCount_OtherType(t *testing.T) {
 	t.Parallel()
 	env := noopEnv()
-	// Count should return 0 for non-list, non-string, non-map types
-	result, err := invoke(t, "count", env, boxArgs(42)...)
-	require.NoError(t, err)
-	require.True(t, result.IsUndefined())
+	// A number is not countable: an error, not a silent undefined.
+	_, err := invoke(t, "count", env, boxArgs(42)...)
+	require.ErrorContains(t, err, "count expects a list, dict or string")
 }
 
 func TestCount_Bool(t *testing.T) {
 	t.Parallel()
 	env := noopEnv()
-	// Count should return 0 for bool
-	result, err := invoke(t, "count", env, boxArgs(true)...)
+	// A bool is not countable.
+	_, err := invoke(t, "count", env, boxArgs(true)...)
+	require.ErrorContains(t, err, "count expects a list, dict or string")
+}
+
+func TestCount_NullErrors(t *testing.T) {
+	t.Parallel()
+	env := noopEnv()
+	// null is not countable: an error, not a silent undefined.
+	_, err := invoke(t, "count", env, box.Null())
+	require.ErrorContains(t, err, "count expects a list, dict or string")
+}
+
+func TestCount_UndefinedStaysUndefined(t *testing.T) {
+	t.Parallel()
+	env := noopEnv()
+	result, err := invoke(t, "count", env, box.Undefined())
 	require.NoError(t, err)
 	require.True(t, result.IsUndefined())
 }

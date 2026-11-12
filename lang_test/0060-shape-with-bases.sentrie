@@ -1,0 +1,22 @@
+-- SPDX-FileCopyrightText: © 2026 Binaek Sarkar <binaek89@gmail.com>
+-- SPDX-License-Identifier: Apache-2.0
+
+namespace shapes/with
+shape Root { id: string }
+shape Named with Root { name: string }
+shape Qualified with shapes/with/Root { label: string }
+
+policy bases {
+  fact v: document
+
+  shape Sibling { s: number }
+  shape OnSibling with Sibling { t: number }
+  shape OnNamespace with Root { u: number }
+  shape OnOwnQualified with shapes/with/Root { w: number }
+  -- A policy shape shadows the namespace shape of the same name.
+  shape Named { shadow: number }
+  shape OnShadow with Named { x: number }
+
+  rule ok = { yield v is OnSibling or v is OnNamespace or v is OnOwnQualified or v is OnShadow or v is Qualified }
+  export decision of ok
+}

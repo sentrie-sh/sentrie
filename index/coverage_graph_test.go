@@ -79,7 +79,8 @@ func (suite *IndexTestSuite) TestValidate_ShapePolicyLocalMissingBase() {
 	suite.Require().NoError(suite.idx.AddProgram(ctx, programWithPolicyShapeMissingNamespaceBase()))
 	err := suite.idx.Validate(ctx)
 	suite.Error(err)
-	suite.Contains(err.Error(), "shape not found")
+	suite.Contains(err.Error(), "not found")
+	suite.Contains(err.Error(), "NoSuchNsShape")
 }
 
 func (suite *IndexTestSuite) TestValidate_DetectShapeCycleNamespaceWith() {
@@ -494,6 +495,8 @@ func programParentShapeOnly() *ast.Program {
 		Statements: []ast.Statement{
 			ast.NewNamespaceStatement(ast.NewFQN([]string{"com", "ex"}, r), r),
 			parentShape,
+			// a qualified with base must be exported by its namespace (#308)
+			ast.NewShapeExportStatement("ParentS", pr(4)),
 			ast.NewPolicyStatement(
 				"PP",
 				[]ast.Statement{
