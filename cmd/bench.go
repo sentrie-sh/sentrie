@@ -140,7 +140,7 @@ func benchCmd(ctx context.Context, args []string) error {
 
 	name := benchName(input.Target)
 	out := os.Stdout
-	_, _ = fmt.Fprintf(out, "goos: %s\ngoarch: %s\n", runtime.GOOS, runtime.GOARCH)
+	_, _ = fmt.Fprintf(out, "os: %s\narch: %s\n", runtime.GOOS, runtime.GOARCH)
 	for range input.Count {
 		res, err := runBench(spec, op)
 		if err != nil {
