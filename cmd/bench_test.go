@@ -30,8 +30,8 @@ func runBenchCLI(ctx context.Context, args []string) error {
 	return Execute(ctx, cli, append([]string{"sentrie", "bench"}, args...))
 }
 
-// benchLines returns the benchmark result lines of out, ignoring the goos and
-// goarch configuration lines.
+// benchLines returns the benchmark result lines of out, ignoring the os and
+// arch configuration lines.
 func benchLines(out string) []string {
 	var lines []string
 	for _, l := range strings.Split(strings.TrimSpace(out), "\n") {
@@ -54,8 +54,10 @@ func (s *CmdTestSuite) TestBenchCmdFixedIterationsAndLineFormat() {
 	out, err := s.runBenchOutput("user_management/user_access/allow_admin",
 		"--pack-location", benchExamplePack(), "--facts", benchAdminFacts, "--benchtime", "7x")
 	s.Require().NoError(err)
-	s.Contains(out, "goos: "+runtime.GOOS)
-	s.Contains(out, "goarch: "+runtime.GOARCH)
+	s.True(strings.HasPrefix(out, "os: "+runtime.GOOS+"\narch: "+runtime.GOARCH+"\n"),
+		"output must start with the os and arch configuration lines, got %q", out)
+	s.NotContains(out, "goos:")
+	s.NotContains(out, "goarch:")
 
 	lines := benchLines(out)
 	s.Require().Len(lines, 1)
