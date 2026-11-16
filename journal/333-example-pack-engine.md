@@ -23,3 +23,9 @@
 - Verified with binaries stamped by `-X main.version`: 0.0.4 is refused with the expected error; 0.0.5 and 0.0.6 validate with the same four warnings as before (two unenforced permissions, two nondeterminism notices).
 - `go test -count=1` on every package that loads `example_pack` (`cmd`, `format`, `api`, `index`, `runtime`, `lexer`, `parser`) passes.
 - _Model: claude-opus-5-5_
+
+### 2026-11-17 00:36 - Drop the upper bound, per review
+- Review suggestion on #334: `sentrie = ">=0.0.5"` instead of `">=0.0.5 <1.0.0"`. Applied as suggested.
+- This supersedes the 00:33 entry's choice of a two-sided range and its `<1.0.0` rationale. The example pack now only sets a floor.
+- Re-verified with stamped binaries: 0.0.4 is refused (`pack requires sentrie >=0.0.5, running 0.0.4`); 0.0.5 and 1.2.0 validate with the same four warnings.
+- _Model: claude-opus-5-5_
