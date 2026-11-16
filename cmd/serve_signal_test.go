@@ -29,9 +29,6 @@ version = 1
 [pack]
 name = "signal-pack"
 version = "1.0.0"
-
-[engine]
-sentrie = ">=0.1.0 <2.0.0"
 `
 
 const signalTestPolicy = `namespace sh/sentrie/signal
