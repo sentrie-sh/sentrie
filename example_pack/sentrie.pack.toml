@@ -14,7 +14,7 @@ repository = "https://github.com/my-org/org-policies"
 "Bob Smith" = "bob@example.com"
 
 [engine]
-sentrie = ">=0.0.5 <1.0.0"
+sentrie = ">=0.0.5"
 
 [permissions]
 fs_read = ["./data/**", "/etc/ssl/certs/**"]
