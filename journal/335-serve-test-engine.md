@@ -11,3 +11,11 @@
 - Release plan agreed with the user: merge this, then delete and re-push the `v0.0.5` tag on the fix commit. The Go proxy and sumdb already hold `v0.0.5` at `8b4718a`, so module users keep that commit; the difference is a test file only.
 - Branch and worktree `worktrees/335-serve-test-engine` off local `main` (`8b4718a`), which matches origin.
 - _Model: claude-opus-5-5_
+
+### 2026-11-17 00:52 - Drop the fixture's engine block and check it at a tag
+- Removed the `[engine]` block from `signalTestPack` in `cmd/serve_signal_test.go`. The fixture now has only `[schema]` and `[pack]`.
+- Checked it where it fails: a throwaway clone of this branch, the change committed there unsigned (scaffolding, never pushed), and a local-only `v0.0.5` tag on that commit.
+  - `go version -m` on a plain `go build` there reports `mod github.com/sentrie-sh/sentrie v0.0.5`, the same stamp the release job gets.
+  - `go test -count=1 ./...` passes, all 23 packages with tests, including `cmd`.
+- Did not change `loader/pack_test.go`: it only parses the manifest and never runs the engine check.
+- _Model: claude-opus-5-5_
